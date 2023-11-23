@@ -141,10 +141,10 @@ void GDN_TheWorld_MapModder::initForGlobalMap(QuadTree* quadtree, TheWorld_Utils
 		m_quadTree = quadtree;
 		m_quadrantData = quadrantData;
 		deinitRequired(false);
-		//m_tileSize = 512;
-		//while (m_tileSize > m_viewer->Globals()->heightmapResolution())
-		//	m_tileSize /= 2;
-		m_tileSize = m_viewer->Globals()->heightmapResolution();
+		m_tileSize = 512;
+		while (m_tileSize > m_viewer->Globals()->heightmapResolution())
+			m_tileSize /= 2;
+		//m_tileSize = m_viewer->Globals()->heightmapResolution();
 		m_viewportBorder = 0;
 		m_initialized = c_initializedForGlobalmap;
 		startProcessRequired(true);
@@ -287,7 +287,6 @@ TheWorld_Utils::MemoryBuffer* GDN_TheWorld_MapModder::getOutBuffer(void)
 
 		{
 			// global map is an ALBEDO map so color in format RGB
-
 			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1.2 ") + __FUNCTION__, "copy globalmap out buffer");
 			godot::PackedByteArray data = m_outImage->get_data();
 			int64_t bufferSize = data.size();
@@ -468,25 +467,19 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			m_viewport->add_child(m_plane);
 
 			{
-				const int32_t planeResolution = 4;
+				const int32_t planeResolution = (int32_t)m_tileSize;
 				godot::Ref<godot::Mesh> mesh = MeshCache::makeFlatChunk(planeResolution, 0, float(m_tileSize / planeResolution) * gridStepInWU);
-				//const int32_t planeResolution = 16;
+				//const int32_t planeResolution = 16;	// ATTENTION: redicing number of vertices result will result very imprecise becasue, for optimizing normal viewport, splatmap is fetched in vertex shader rather than
+														// in fragment shader (less time) but for this reason splatmap values will result from an interpolation of real splatmap values being very imprecise
+														// caluclating globalmap we need more precise calculation of splatmap values so, to use same shader, we have to increment the number of vertices to reduce interpolation effects
 				//godot::Ref<godot::Mesh> mesh = MeshCache::makeFlatChunk(planeResolution, 0, float(m_imageSize / planeResolution) * gridStepInWU);
 				m_displacementPlane = Vector3(0.0f, 0.0f, 0.0f) * gridStepInWU;
 				m_plane->set_mesh(mesh);
 			}
-			//{
-			//  da ritestare: modificato per tenere conto di gridStepInWU 
-			//	godot::Ref<godot::PlaneMesh> mesh = memnew(godot::PlaneMesh);
-			//	mesh->set_size(godot::Vector2((float)m_tileSize * gridStepInWU, (float)m_tileSize) * gridStepInWU);
-			//	mesh->set_subdivide_depth(3);
-			//	mesh->set_subdivide_width(3);
-			//	m_displacementPlane = Vector3(m_tileSize / 2, 0.0f, m_tileSize / 2) * gridStepInWU;
-			//	m_plane->set_mesh(mesh);
-			//}
 
 			m_camera = memnew(godot::Camera3D);
 			//m_camera->set_projection(godot::Camera3D::ProjectionType::PROJECTION_ORTHOGONAL);
+			m_camera->set_projection(godot::Camera3D::ProjectionType::PROJECTION_PERSPECTIVE);
 			godot::Vector2i viewportSize = m_viewport->get_size();
 			m_camera->set_size(viewportSize.x);
 			m_camera->set_near(0.1f);
@@ -584,8 +577,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 					}
 					Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8, data);
 					image = im;
-					std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
-					image->save_png(outFileName.c_str());
+					//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
+					//image->save_png(outFileName.c_str());
 				}
 				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
 				material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
@@ -763,6 +756,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 					}
 					Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8, data);
 					image = im;
+					//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
+					//image->save_png(outFileName.c_str());
 				}
 				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
 				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
@@ -801,7 +796,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			}
 			
 			material->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, godot::Plane(200.0f, 200.0f, 200.0f, 200.0f));
-			material->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, false);
+			material->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, true);
 			material->set_shader_parameter(SHADER_PARAM_TRIPLANAR, false);
 			material->set_shader_parameter(SHADER_PARAM_TILE_REDUCTION_PER_TEXTURE, godot::Plane(0.0f, 0.0f, 0.0f, 0.0f));	// disabled for every texture
 			material->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_START, 0);
@@ -1034,7 +1029,6 @@ void GDN_TheWorld_MapModder::_process(double _delta)
 				center *= gridStepInWU;
 				m_camera->set_position(godot::Vector3(center.x, (float)m_tileSize * 1.3f, center.y));
 				m_plane->set_position(godot::Vector3(origin.x, 0.0f, origin.y) + m_displacementPlane);
-				//m_plane->set_position(godot::Vector3(0.0f, 0.0f, 0.0f) + m_displacementPlane);
 			}
 			else
 			{

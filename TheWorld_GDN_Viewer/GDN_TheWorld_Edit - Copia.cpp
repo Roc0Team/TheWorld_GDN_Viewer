@@ -2,6 +2,7 @@
 
 #include "GDN_TheWorld_Viewer.h"
 #include "GDN_TheWorld_Edit.h"
+#include "MeshCache.h"
 #include "WorldModifier.h"
 #include "Utils.h"
 #include "FastNoiseLite.h"
@@ -30,6 +31,7 @@
 #include <godot_cpp/classes/viewport_texture.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/classes/sprite2d.hpp>
+#include <godot_cpp/classes/plane_mesh.hpp>
 #pragma warning (pop)
 
 #include <string>
@@ -126,6 +128,24 @@ void GDN_TheWorld_MapModder::initForSplatmap(TheWorld_Utils::MemoryBuffer* float
 		deinitRequired(false);
 		m_initialized = c_initializedForSplatmap;
 
+		startProcessRequired(true);
+	}
+}
+
+void GDN_TheWorld_MapModder::initForGlobalMap(QuadTree* quadtree, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData)
+{
+	my_assert(m_initialized == c_uninitialized);
+
+	if (m_initialized == c_uninitialized)
+	{
+		m_quadTree = quadtree;
+		m_quadrantData = quadrantData;
+		deinitRequired(false);
+		m_tileSize = 512;
+		while (m_tileSize > m_viewer->Globals()->heightmapResolution())
+			m_tileSize /= 2;
+		m_viewportBorder = 0;
+		m_initialized = c_initializedForGlobalmap;
 		startProcessRequired(true);
 	}
 }
@@ -248,7 +268,34 @@ TheWorld_Utils::MemoryBuffer* GDN_TheWorld_MapModder::getOutBuffer(void)
 			m_outBuffer->adjustSize(bufferSize);
 		}
 	}
-	
+	else if (m_initialized == c_initializedForGlobalmap)
+	{
+		godot::Image::Format outImageFormat = m_outImage->get_format();
+
+		{
+			//std::string outFileName = GDN_TheWorld_Globals::c_groundTexturesDir + textureName.c_str();
+			std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".globalmap.png";
+			m_outImage->save_png(outFileName.c_str());
+		}
+		
+		if (outImageFormat != godot::Image::FORMAT_RGB8)
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1.2 ") + __FUNCTION__, "convert format");
+			m_outImage->convert(godot::Image::FORMAT_RGB8);
+		}
+
+		{
+			// global map is an ALBEDO map so color in format RGB
+
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1.2 ") + __FUNCTION__, "copy globalmap out buffer");
+			godot::PackedByteArray data = m_outImage->get_data();
+			int64_t bufferSize = data.size();
+			m_outBuffer->reserve(bufferSize);
+			memcpy(m_outBuffer->ptr(), data.ptr(), bufferSize);
+			m_outBuffer->adjustSize(bufferSize);
+		}
+	}
+
 	return m_outBuffer.get();
 }
 
@@ -257,7 +304,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 	TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1 ") + __FUNCTION__, "ALL");
 
 	//if (m_initialized == c_uninitialized)
-		my_assert(!(m_initialized == c_uninitialized));
+	my_assert(!(m_initialized == c_uninitialized));
 
 	set_process(false);
 	
@@ -275,25 +322,36 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 	m_viewport = memnew(godot::SubViewport);
 	add_child(m_viewport);
-	m_viewport->set_size(godot::Vector2i(int32_t(m_tileSize + m_viewportBorder * 2), int32_t(m_tileSize + m_viewportBorder * 2)));
-	m_viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_DISABLED);
 	m_viewport->set_clear_mode(godot::SubViewport::ClearMode::CLEAR_MODE_ALWAYS);
 	godot::Ref<godot::World3D> w = memnew(godot::World3D);
 	m_viewport->set_world_3d(w);
 	m_viewport->set_use_own_world_3d(true);
+	if (m_initialized == c_initializedForGlobalmap)
+	{
+		m_viewport->set_size(godot::Vector2i(int32_t(m_tileSize + 1), int32_t(m_tileSize + 1)));
+		m_viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_ALWAYS);
+		m_viewport->set_debug_draw(godot::Viewport::DebugDraw::DEBUG_DRAW_UNSHADED);
 
-	m_map = memnew(godot::Sprite2D);
-	m_map->set_centered(false);
-	m_viewport->add_child(m_map);
+		// assume square buffer
+		m_imageSize = (size_t)sqrt(float(m_quadrantData->heights32Buffer->size() / sizeof(float)));
+		my_assert(size_t(pow((float)m_imageSize, 2) * sizeof(float)) == m_quadrantData->heights32Buffer->size());	// verify buffer is square
+	}
+	else
+	{
+		m_viewport->set_size(godot::Vector2i(int32_t(m_tileSize + m_viewportBorder * 2), int32_t(m_tileSize + m_viewportBorder * 2)));
+		m_viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_DISABLED);
+		m_map = memnew(godot::Sprite2D);
+		m_map->set_centered(false);
+		m_viewport->add_child(m_map);
+
+		// assume square buffer
+		m_imageSize = (size_t)sqrt(float(m_float32HeigthsBuffer->size() / sizeof(float)));
+		my_assert(size_t(pow((float)m_imageSize, 2) * sizeof(float)) == m_float32HeigthsBuffer->size());	// verify buffer is square
+		my_assert(m_imageSize / m_tileSize * m_tileSize == m_imageSize - 1);								// verify tile can cover all the image with the exception of the left/botton border
+	}
 
 	godot::RenderingServer* vs = godot::RenderingServer::get_singleton();
 	godot::Error e = vs->connect("frame_post_draw", Callable(this, "frame_post_draw"));
-
-	// assume square buffer
-	m_imageSize = (size_t)sqrt(float(m_float32HeigthsBuffer->size() / sizeof(float)));
-	my_assert(size_t(pow((float)m_imageSize, 2) * sizeof(float)) == m_float32HeigthsBuffer->size());	// verify buffer is square
-	//my_assert((float(m_imageSize) / float(m_tileSize)) * m_tileSize == m_imageSize);
-	my_assert(m_imageSize / m_tileSize * m_tileSize == m_imageSize - 1);								// verify tile can cover all the image with the exception of the left/botton border
 
 	godot::Vector2i viewportSize = m_viewport->get_size();
 	my_assert(viewportSize.x == viewportSize.y);
@@ -318,8 +376,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			}
 	}
 
-	godot::Ref<godot::ImageTexture> heigthTexture;
-
+	if (m_initialized != c_initializedForGlobalmap) 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.2 ") + __FUNCTION__, "Create Image/Texture from heights buffer");
 
@@ -340,7 +397,10 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 		// DEBUG
 
 		Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-		heigthTexture = tex;
+		//godot::Ref<godot::ImageTexture> heigthTexture;
+		//heigthTexture = tex;
+		//m_map->set_texture(heigthTexture);
+		m_map->set_texture(tex);
 	}
 
 	if (m_initialized == c_initializedForNormals)
@@ -377,7 +437,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 		}
 
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.3 ") + __FUNCTION__, "splatmap Material stuff");
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.5 ") + __FUNCTION__, "splatmap Material stuff");
 
 			godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
 			godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
@@ -396,17 +456,371 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			m_map->set_material(mat);
 		}
 	}
+	else if (m_initialized == c_initializedForGlobalmap)
+	{
+		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+		
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.6 ") + __FUNCTION__, "globalmap generating mesh");
 
-	m_map->set_texture(heigthTexture);
+			m_plane = memnew(godot::MeshInstance3D);
+			m_viewport->add_child(m_plane);
+
+			{
+				const int32_t planeResolution = 4;
+				godot::Ref<godot::Mesh> mesh = MeshCache::makeFlatChunk(planeResolution, 0, float(m_tileSize / planeResolution) * gridStepInWU);
+				//const int32_t planeResolution = 16;
+				//godot::Ref<godot::Mesh> mesh = MeshCache::makeFlatChunk(planeResolution, 0, float(m_imageSize / planeResolution) * gridStepInWU);
+				m_displacementPlane = Vector3(0.0f, 0.0f, 0.0f) * gridStepInWU;
+				m_plane->set_mesh(mesh);
+			}
+			//{
+			//  da ritestare: modificato per tenere conto di gridStepInWU 
+			//	godot::Ref<godot::PlaneMesh> mesh = memnew(godot::PlaneMesh);
+			//	mesh->set_size(godot::Vector2((float)m_tileSize * gridStepInWU, (float)m_tileSize) * gridStepInWU);
+			//	mesh->set_subdivide_depth(3);
+			//	mesh->set_subdivide_width(3);
+			//	m_displacementPlane = Vector3(m_tileSize / 2, 0.0f, m_tileSize / 2) * gridStepInWU;
+			//	m_plane->set_mesh(mesh);
+			//}
+
+			m_camera = memnew(godot::Camera3D);
+			m_camera->set_projection(godot::Camera3D::ProjectionType::PROJECTION_ORTHOGONAL);
+			godot::Vector2i viewportSize = m_viewport->get_size();
+			m_camera->set_size(viewportSize.x);
+			m_camera->set_near(0.1f);
+			m_camera->set_far(1000.0f);
+			m_camera->set_current(true);
+			m_camera->set_rotation(godot::Vector3(-TheWorld_Utils::kPi/2, 0, 0));
+			m_viewport->add_child(m_camera);
+		}
+		
+		godot::Ref<godot::Material> planeMaterial;
+
+		//int shaderType = 0;		// StandardMaterial3D
+		int shaderType = 1;		// LookDev
+		//int shaderType = 2;		// Regular
+
+		if (shaderType == 0)
+		{
+			godot::Ref<godot::StandardMaterial3D> material = memnew(godot::StandardMaterial3D);
+			material->set_albedo(godot::Color(0.0f, 1.0f, 0.0f));
+			planeMaterial = material;
+		}
+		else if (shaderType == 1)
+		{
+			godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getLookDevMaterial(ShaderTerrainData::LookDev::Splat);		// SHADER_PARAM_LOOKDEV_MAP
+			godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
+			material->set_shader(currentMaterial->get_shader());
+
+			int numVerticesPerQuadrantSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize(); 
+			
+			{
+				size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
+				godot::PackedByteArray data;
+				size_t heightmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
+				data.resize((int)heightmapBufferSizeInBytes);
+				size_t heightsBufferSize = m_quadrantData->heights16Buffer->size();
+				assert(heightmapBufferSizeInBytes == heightsBufferSize);
+				{
+					memcpy((char*)data.ptrw(), m_quadrantData->heights16Buffer->ptr(), heightsBufferSize);
+				}
+				godot::Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RH, data);
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, tex);
+			}
+
+			{
+				godot::Ref<godot::Image> image;
+				size_t normalsBufferSize = 0;
+				if (m_quadrantData->normalsBuffer != nullptr)
+					normalsBufferSize = m_quadrantData->normalsBuffer->size();
+				if (normalsBufferSize == 0)
+				{
+					godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::FORMAT_RGB8);
+					image->fill(godot::Color(0, 0, 0, 1.0));
+					image = im;
+				}
+				else
+				{
+					godot::PackedByteArray data;
+					size_t normalmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
+					data.resize((int)normalmapBufferSizeInBytes);
+					assert(normalmapBufferSizeInBytes == normalsBufferSize);
+					{
+						memcpy((char*)data.ptrw(), m_quadrantData->normalsBuffer->ptr(), normalsBufferSize);
+					}
+					godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGB8, data);
+					image = im;
+				}
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, tex);
+			}
+
+			{
+				Ref<godot::Image> image;
+				size_t splatmapBufferSize = 0;
+				if (m_quadrantData->splatmapBuffer != nullptr)
+					splatmapBufferSize = m_quadrantData->splatmapBuffer->size();
+				if (splatmapBufferSize == 0)
+				{
+					Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::FORMAT_RGBA8);
+					image = im;
+					image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
+				}
+				else
+				{
+					godot::PackedByteArray data;
+					size_t splatmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+					data.resize((int)splatmapBufferSizeInBytes);
+					assert(splatmapBufferSizeInBytes == splatmapBufferSize);
+					{
+						memcpy((char*)data.ptrw(), m_quadrantData->splatmapBuffer->ptr(), splatmapBufferSizeInBytes);
+					}
+					Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8, data);
+					image = im;
+					std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
+					image->save_png(outFileName.c_str());
+				}
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
+			}
+			
+			godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
+			godot::Variant inverseTransform = t.affine_inverse();
+			material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
+			Basis normalBasis = t.basis.inverse().transposed();
+			material->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
+			material->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+			//material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+			//material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			//material->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
+
+			planeMaterial = material;
+		}
+		else if (shaderType == 2)
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.7 ") + __FUNCTION__, "globalmap Material stuff");
+
+			TheWorld_Utils::TerrainEdit* terrainEdit = m_quadrantData->terrainEdit;
+
+			godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getRegularMaterial();
+			//godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getLookDevMaterial(ShaderTerrainData::LookDev::Normals);		// SHADER_PARAM_LOOKDEV_MAP
+			godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
+			material->set_shader(currentMaterial->get_shader());
+
+			{
+				godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
+				//godot::TypedArray<godot:Dictionary> params = 
+				godot::RID rid = currentMaterial->get_shader()->get_rid();
+				godot::TypedArray<godot::Dictionary> params = rs->get_shader_parameter_list(rid);
+				int64_t size = params.size();
+				for (int i = 0; i < size; i++)
+				{
+					//std::string paramName = String(params[i].get("name")).utf8().get_data();
+					godot::PackedByteArray array = String(params[i].get("name")).to_ascii_buffer();
+					std::string paramName((char*)array.ptr(), array.size());
+					godot::Variant v = currentMaterial->get_shader_parameter(paramName.c_str());
+					material->set_shader_parameter(paramName.c_str(), v);
+				}
+
+				godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
+				godot::Variant inverseTransform = t.affine_inverse();
+				material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
+				material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+				material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+			}
+
+			material->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+			material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+			material->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
+			//godot::Variant inverseTransform = currentMaterial->get_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM);
+			godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
+			godot::Variant inverseTransform = t.affine_inverse();
+			material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
+			godot::Variant normalBasis = currentMaterial->get_shader_parameter(SHADER_PARAM_NORMAL_BASIS);
+			material->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
+			
+			std::string lowElevationTexName = terrainEdit->extraValues.lowElevationTexName_r;
+			if (lowElevationTexName.size() > 0)
+			{
+				godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(lowElevationTexName);
+				if (lowElevation_albedo_bump_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
+
+				godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(lowElevationTexName);
+				if (lowElevation_normal_roughness_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
+			}
+			std::string highElevationTexName = terrainEdit->extraValues.highElevationTexName_g;
+			if (highElevationTexName.size() > 0)
+			{
+				godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(highElevationTexName);
+				if (highElevation_albedo_bump_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
+
+				godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(highElevationTexName);
+				if (highElevation_normal_roughness_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
+			}
+			std::string dirtTexName = terrainEdit->extraValues.dirtTexName_b;
+			if (dirtTexName.size() > 0)
+			{
+				godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(dirtTexName);
+				if (dirt_albedo_bump_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
+
+				godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(dirtTexName);
+				if (dirt_normal_roughness_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
+			}
+			std::string rocksTexName = terrainEdit->extraValues.rocksTexName_a;
+			if (rocksTexName.size() > 0)
+			{
+				godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(rocksTexName);
+				if (rocks_albedo_bump_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
+
+				godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(rocksTexName);
+				if (rocks_normal_roughness_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
+			}
+
+			int numVerticesPerQuadrantSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
+
+			{
+				size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
+				godot::PackedByteArray data;
+				size_t heightmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
+				data.resize((int)heightmapBufferSizeInBytes);
+				{
+					size_t heightsBufferSize = m_quadrantData->heights16Buffer->size();
+					assert(heightmapBufferSizeInBytes == heightsBufferSize);
+					memcpy((char*)data.ptrw(), m_quadrantData->heights16Buffer->ptr(), heightsBufferSize);
+				}
+				godot::Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RH, data);
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, tex);
+			}
+
+			{
+				godot::Ref<godot::Image> image;
+				size_t normalsBufferSize = 0;
+				if (m_quadrantData->normalsBuffer != nullptr)
+					normalsBufferSize = m_quadrantData->normalsBuffer->size();
+				if (normalsBufferSize == 0)
+				{
+					godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::FORMAT_RGB8);
+					image = im;
+					image->fill(godot::Color(0, 0, 0, 1.0));
+				}
+				else
+				{
+					godot::PackedByteArray data;
+					size_t normalmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
+					data.resize((int)normalmapBufferSizeInBytes);
+					assert(normalmapBufferSizeInBytes == normalsBufferSize);
+					{
+						memcpy((char*)data.ptrw(), m_quadrantData->normalsBuffer->ptr(), normalsBufferSize);
+					}
+					godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGB8, data);
+					image = im;
+				}
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, tex);
+				//material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
+			}
+
+			{
+				godot::Ref<godot::Image> image;
+
+				size_t splatmapBufferSize = 0;
+				if (m_quadrantData->splatmapBuffer != nullptr)
+					splatmapBufferSize = m_quadrantData->splatmapBuffer->size();
+				if (splatmapBufferSize == 0)
+				{
+					Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::FORMAT_RGBA8);
+					image = im;
+					image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
+				}
+				else
+				{
+					godot::PackedByteArray data;
+					size_t splatmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+					data.resize((int)splatmapBufferSizeInBytes);
+					assert(splatmapBufferSizeInBytes == splatmapBufferSize);
+					{
+						memcpy((char*)data.ptrw(), m_quadrantData->splatmapBuffer->ptr(), splatmapBufferSizeInBytes);
+					}
+					Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8, data);
+					image = im;
+				}
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, tex);
+			}
+
+			{
+				Ref<Image> image;
+				size_t colormapBufferSize = 0;
+				if (m_quadrantData->colormapBuffer != nullptr)
+					colormapBufferSize = m_quadrantData->colormapBuffer->size();
+				if (colormapBufferSize == 0)
+				{
+					godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8);
+					image = im;
+					image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+				}
+				else
+				{
+					godot::PackedByteArray data;
+					size_t colormapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+					data.resize((int)colormapBufferSizeInBytes);
+					assert(colormapBufferSizeInBytes == colormapBufferSize);
+					{
+						memcpy((char*)data.ptrw(), m_quadrantData->colormapBuffer->ptr(), colormapBufferSizeInBytes);
+					}
+					godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8, data);
+					image = im;
+				}
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_COLORMAP, tex);
+			}
+			
+			material->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, godot::Plane(200.0f, 200.0f, 200.0f, 200.0f));
+			material->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, true);
+			material->set_shader_parameter(SHADER_PARAM_TRIPLANAR, false);
+			material->set_shader_parameter(SHADER_PARAM_TILE_REDUCTION_PER_TEXTURE, godot::Plane(0.0f, 0.0f, 0.0f, 0.0f));	// disabled for every texture
+			material->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_START, 0);
+			material->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_DISTANCE, 0);	// Disable use of globalmap
+			material->set_shader_parameter(SHADER_PARAM_COLORMAP_OPACITY_PER_TEXTURE, godot::Plane(1.0f, 1.0f, 1.0f, 1.0f));	// Notset
+
+			planeMaterial = material;
+		}
+
+		m_plane->set_material_override(planeMaterial);
+	}
 
 	if (m_debugSprite != nullptr)
 	{
 		m_debugSprite->set_texture(m_viewport->get_texture());
-		//m_debugSprite->set_texture(texture);
 		m_debugSprite->set_position(m_debugSprite->get_texture()->get_size() / 2);
 	}
 
 	set_process(true);
+	m_numProcessExecutions = 0;
 	startProcessRequired(false);
 }
 
@@ -436,6 +850,9 @@ void GDN_TheWorld_MapModder::deinit(void)
 			parent->remove_child(m_viewport);
 		m_viewport->queue_free();
 		m_viewport = nullptr;
+		m_map = nullptr;
+		m_plane = nullptr;
+		m_camera = nullptr;
 
 		deinitRequired(false);
 		startProcessRequired(false);
@@ -482,6 +899,51 @@ void GDN_TheWorld_MapModder::custom_ready(GDN_TheWorld_Viewer* viewer, GDN_TheWo
 		m_debugSprite = memnew(godot::Sprite2D);
 		m_viewer->add_child(m_debugSprite);
 	}
+
+	//{
+	//	const int32_t c_viewportSize = 512;
+
+	//	godot::SubViewport*  viewport = memnew(godot::SubViewport);
+	//	m_viewer->add_child(viewport);
+	//	viewport->set_clear_mode(godot::SubViewport::ClearMode::CLEAR_MODE_ALWAYS);
+	//	godot::Ref<godot::World3D> w = memnew(godot::World3D);
+	//	viewport->set_world_3d(w);
+	//	viewport->set_use_own_world_3d(true);
+
+	//	viewport->set_size(godot::Vector2i(int32_t(c_viewportSize + 1), int32_t(c_viewportSize + 1)));
+	//	viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_ALWAYS);
+	//	viewport->set_debug_draw(godot::Viewport::DebugDraw::DEBUG_DRAW_UNSHADED);
+
+	//	godot::Ref<godot::StandardMaterial3D> stdMat = memnew(godot::StandardMaterial3D);
+	//	stdMat->set_albedo(godot::Color(0.0f, 1.0f, 0.0f));
+
+	//	godot::Ref<godot::PlaneMesh> mesh = memnew(godot::PlaneMesh);
+	//	mesh->set_size(godot::Vector2((float)c_viewportSize, (float)c_viewportSize));
+	//	mesh->set_subdivide_depth(3);
+	//	mesh->set_subdivide_width(3);
+
+	//	godot::MeshInstance3D* plane = memnew(godot::MeshInstance3D);
+	//	plane->set_material_override(stdMat);
+	//	plane->set_mesh(mesh);
+	//	viewport->add_child(plane);
+
+	//	godot::Camera3D* camera = memnew(godot::Camera3D);
+	//	camera->set_projection(godot::Camera3D::ProjectionType::PROJECTION_ORTHOGONAL);
+	//	godot::Vector2i viewportSize = viewport->get_size();
+	//	camera->set_size(viewportSize.x);
+	//	camera->set_near(0.1f);
+	//	camera->set_far(10.0f);
+	//	camera->set_current(true);
+	//	camera->set_rotation(godot::Vector3(-TheWorld_Utils::kPi/2, 0, 0));
+	//	viewport->add_child(camera);
+
+	//	camera->set_position(godot::Vector3(0.0f, 2.0f, 0.0f));
+
+	//	godot::Sprite2D* sprite = memnew(godot::Sprite2D);
+	//	m_viewer->add_child(sprite);
+	//	sprite->set_position(godot::Vector2(256 + 512 * 2, 256));
+	//	sprite->set_texture(viewport->get_texture());
+	//}
 }
 
 void GDN_TheWorld_MapModder::debug_process(double _delta)
@@ -502,6 +964,8 @@ void GDN_TheWorld_MapModder::_process(double _delta)
 	if (!is_processing())
 		return;
 
+	m_numProcessExecutions++;
+
 	if (m_processingTile && m_frameAvailable)
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("MapModder _process 1 ") + __FUNCTION__, "Processing tile");
@@ -516,6 +980,13 @@ void GDN_TheWorld_MapModder::_process(double _delta)
 
 		godot::Ref<godot::Image> viewportImage = m_viewport->get_texture()->get_image();
 		godot::Image::Format viewportImageFormat = viewportImage->get_format();
+		
+		if (m_initialized == c_initializedForGlobalmap)
+		{
+			godot::Vector2i pos = m_currentTile * (int32_t)m_tileSize; 
+			std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.process_" + std::to_string(m_numProcessExecutions) + "_" + std::to_string(pos.x) + "_" + std::to_string(pos.y) + ".png";
+			viewportImage->save_png(outFileName.c_str());
+		}
 
 		// DEBUG
 		//{
@@ -552,9 +1023,23 @@ void GDN_TheWorld_MapModder::_process(double _delta)
 		{
 			godot::Vector2i tile = m_tilesQueue.front();
 			m_tilesQueue.pop();
-			godot::Vector2 pos = (godot::Vector2((float)tile.x, (float)tile.y) * (float)m_tileSize * -1) + godot::Vector2((float)m_viewportBorder, (float)m_viewportBorder);
-			m_map->set_position(pos);
-			m_viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_ONCE);
+			if (m_initialized == c_initializedForGlobalmap)
+			{
+				float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+				godot::Vector2 origin = tile * (int32_t)m_tileSize;
+				godot::Vector2 center = origin + (0.5f * godot::Vector2((float)m_viewport->get_size().x, (float)m_viewport->get_size().y));
+				origin *= gridStepInWU;
+				center *= gridStepInWU;
+				m_camera->set_position(godot::Vector3(center.x, 2.0f * gridStepInWU, center.y));
+				m_plane->set_position(godot::Vector3(origin.x, 0.0f, origin.y) + m_displacementPlane);
+				//m_plane->set_position(godot::Vector3(0.0f, 0.0f, 0.0f) + m_displacementPlane);
+			}
+			else
+			{
+				godot::Vector2 pos = (godot::Vector2((float)tile.x, (float)tile.y) * (float)m_tileSize * -1) + godot::Vector2((float)m_viewportBorder, (float)m_viewportBorder);
+				m_map->set_position(pos);
+				m_viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_ONCE);
+			}
 			m_currentTile = tile;
 			m_tiles[tile] = c_tileStatusProcessing;
 			m_processingTile = true;
@@ -586,8 +1071,8 @@ void GDN_TheWorld_Edit::_bind_methods()
 	ClassDB::bind_method(D_METHOD("edit_mode_reload_shader"), &GDN_TheWorld_Edit::editModeReloadShader);
 	ClassDB::bind_method(D_METHOD("edit_mode_sel_terr_type"), &GDN_TheWorld_Edit::editModeSelectTerrainTypeAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_sel_lookdev"), &GDN_TheWorld_Edit::editModeSelectLookDevAction);
-	ClassDB::bind_method(D_METHOD("mouse_entered_main_panel"), &GDN_TheWorld_Edit::editModeMouseEnteredMainPanel);
-	ClassDB::bind_method(D_METHOD("mouse_exited_main_panel"), &GDN_TheWorld_Edit::editModeMouseExitedMainPanel);
+	ClassDB::bind_method(D_METHOD("mouse_entered_edit_panel"), &GDN_TheWorld_Edit::editModeMouseEnteredEditPanel);
+	ClassDB::bind_method(D_METHOD("mouse_exited_edit_panel"), &GDN_TheWorld_Edit::editModeMouseExitedEditPanel);
 	ClassDB::bind_method(D_METHOD("control_need_resize"), &GDN_TheWorld_Edit::controlNeedResize);
 	ClassDB::bind_method(D_METHOD("void_signal_manager", "p_object", "p_signal", "p_class_name", "p_instance_id", "p_object_name", "p_custom1", "p_custom2", "p_custom3"), &GDN_TheWorld_Edit::voidSignalManager);
 	ClassDB::bind_method(D_METHOD("gui_input_event", "p_event, p_object", "p_signal", "p_class_name", "p_instance_id", "p_object_name", "p_custom1", "p_custom2", "p_custom3"), &GDN_TheWorld_Edit::guiInputEvent);
@@ -713,18 +1198,18 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 	}
 }
 
-void GDN_TheWorld_Edit::editModeMouseEnteredMainPanel(void)
+void GDN_TheWorld_Edit::editModeMouseEnteredEditPanel(void)
 {
 	m_requiredUIAcceptFocus = true;
 	//setUIAcceptFocus(true);
-	m_innerData->m_mouseInsideMainPanel = true;
+	m_innerData->m_mouseInsideEditPanel = true;
 }
 
-void GDN_TheWorld_Edit::editModeMouseExitedMainPanel(void)
+void GDN_TheWorld_Edit::editModeMouseExitedEditPanel(void)
 {
 	m_requiredUIAcceptFocus = false;
 	//setUIAcceptFocus(false);
-	m_innerData->m_mouseInsideMainPanel = false;
+	m_innerData->m_mouseInsideEditPanel = false;
 }
 
 bool GDN_TheWorld_Edit::UIAcceptingFocus(void)
@@ -813,16 +1298,15 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	set_name(THEWORLD_EDIT_MODE_UI_CONTROL_NAME);
 
 	m_mapModder = memnew(GDN_TheWorld_MapModder);
-	m_mapModder->custom_ready(m_viewer, this);
+	m_mapModder->custom_ready(m_viewer, this, true);
 
 	//const Color self_modulate = get_self_modulate();
 	//const Color self_modulate_to_transparency(1.0f, 1.0f, 1.0f, 0.5f);
 	const Color self_modulate_to_transparency(0.0f, 0.0f, 0.0f, 0.5f);
 	//const Color self_modulate(1.0f, 1.0f, 1.0f, 1.0f);
 
-	godot::PanelContainer* panelContainer = nullptr;
-	//godot::MarginContainer* marginContainer = nullptr;
 	godot::HBoxContainer* hBoxContainer = nullptr;
+	godot::VBoxContainer* vBoxContainer = nullptr;
 	godot::Control* separator = nullptr;
 	godot::Button* button = nullptr;
 	godot::Label* label = nullptr;
@@ -834,11 +1318,17 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 	m_innerData->m_mainTabContainer = createControl<godot::TabContainer>(m_innerData->m_mainPanelContainer, "", "", "", nullptr, "", "", "", "", self_modulate_to_transparency);
 
-	m_innerData->m_mainVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainTabContainer, "Terrain");
+	godot::MarginContainer* marginContainer = nullptr;
+	marginContainer = createControl<godot::MarginContainer>(m_innerData->m_mainTabContainer, "Terrain");
+	if (!IS_EDITOR_HINT())
+	{
+		marginContainer->add_theme_constant_override("margin_left", 5);
+		marginContainer->add_theme_constant_override("margin_right", 5);
+	}
 
-	panelContainer = createControl<godot::PanelContainer>(m_innerData->m_mainVBoxContainer);
+	vBoxContainer = createControl<godot::VBoxContainer>(marginContainer);
 
-	m_innerData->m_mainFixedVBoxContainer = createControl<godot::VBoxContainer>(panelContainer);
+	m_innerData->m_mainFixedVBoxContainer = createControl<godot::VBoxContainer>(vBoxContainer);
 
 	{
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
@@ -879,7 +1369,6 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	//setMessage(std::string("AAAAAAAAAAAAAAAAAAAAAAA"));
 
 	{
-		//m_innerData->m_infoButton = createControl<godot::Button>(m_innerData->m_mainFixedVBoxContainer, "", (std::wstring(DOWN_ARROW) + L" " + INFO_BUTTON_TEXT).c_str(), "pressed", this, "edit_mode_info_panel");
 		m_innerData->m_infoButton = createControl<godot::Button>(m_innerData->m_mainFixedVBoxContainer, "InfoPanelToggle", (std::wstring(DOWN_ARROW) + L" " + INFO_BUTTON_TEXT).c_str(), "pressed", this, "void_signal_manager");
 		m_innerData->m_infoButton->set_text_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_LEFT);
 
@@ -894,37 +1383,29 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_showNormal->set_text("Show Normal");
 		m_innerData->m_showNormal->set_toggle_mode(true);
 		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showNormal, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		m_innerData->m_showNormal = createControl<godot::CheckBox>(hBoxContainer, "ShowPositionCheckBox");
+		m_innerData->m_showNormal->set_text("Show Position");
+		m_innerData->m_showNormal->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showNormal, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 
 		m_innerData->m_infoLabel = createControl<godot::Label>(m_innerData->m_infoVBoxContainer);
 	}
 
-	//marginContainer = createControl<godot::MarginContainer>(m_innerData->m_mainVBoxContainer);
+	separator = createControl<HSeparator>(vBoxContainer);
 
-	m_innerData->m_mainTerrainScrollContainer = createControl<godot::ScrollContainer>(m_innerData->m_mainVBoxContainer);		// m_innerData->m_mainTabContainer		"Terrain"
+	m_innerData->m_mainTerrainScrollContainer = createControl<godot::ScrollContainer>(vBoxContainer);	// m_innerData->m_mainTabContainer
 	m_innerData->m_mainTerrainScrollContainer->set_h_size_flags(godot::Control::SizeFlags::SIZE_FILL);
 	m_innerData->m_mainTerrainScrollContainer->set_v_size_flags(godot::Control::SizeFlags::SIZE_FILL);
 	m_innerData->m_mainTerrainScrollContainer->set_horizontal_scroll_mode(godot::ScrollContainer::SCROLL_MODE_AUTO);
 	m_innerData->m_mainTerrainScrollContainer->set_vertical_scroll_mode(godot::ScrollContainer::SCROLL_MODE_AUTO);
 
-	godot::MarginContainer* marginContainer = nullptr;
-	marginContainer = createControl<godot::MarginContainer>(m_innerData->m_mainTerrainScrollContainer, "");
-	if (!IS_EDITOR_HINT())
-	{
-		marginContainer->add_theme_constant_override("margin_left", 5);
-		marginContainer->add_theme_constant_override("margin_right", 5);
-	}
-	//marginContainer->add_theme_constant_override("margin_top", 5);
-	//marginContainer->add_theme_constant_override("margin_bottom", 5);
-
-	m_innerData->m_mainScrolledVBoxContainer = createControl<godot::VBoxContainer>(marginContainer);
+	m_innerData->m_mainScrolledVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainTerrainScrollContainer);	// marginContainer
 
 	{
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
 		m_innerData->m_lookDevOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_lookdev");
 		m_innerData->m_lookDevOptionButton->set_h_size_flags(godot::OptionButton::SizeFlags::SIZE_EXPAND_FILL);
 		m_innerData->m_lookDevOptionButton->set_toggle_mode(true);
-		//m_innerData->m_lookDevOptionButton->connect("item_selected", Callable(this, "edit_mode_sel_lookdev"));
-		//m_innerData->m_lookDevOptionButton->set_focus_mode(godot::Control::FocusMode::FOCUS_NONE);
 		m_innerData->m_lookDevOptionButton->add_item("Lookdev disabled", (int64_t)ShaderTerrainData::LookDev::NotSet);
 		m_innerData->m_lookDevOptionButton->add_separator();
 		m_innerData->m_lookDevOptionButton->add_item("Lookdev heights", (int64_t)ShaderTerrainData::LookDev::Heights);
@@ -933,17 +1414,23 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_lookDevOptionButton->add_item("Lookdev colors", (int64_t)ShaderTerrainData::LookDev::Color);
 		m_innerData->m_lookDevOptionButton->add_item("Lookdev globalmap", (int64_t)ShaderTerrainData::LookDev::Global);
 		m_innerData->m_lookDevOptionButton->add_item("Lookdev chunk lod", (int64_t)ShaderTerrainData::LookDev::ChunkLod);
+		m_innerData->m_lookDevOptionButton->add_item("Lookdev universe", (int64_t)ShaderTerrainData::LookDev::Universe);
+		m_innerData->m_lookDevOptionButton->add_item("Lookdev shader art", (int64_t)ShaderTerrainData::LookDev::ShaderArt);
+		m_innerData->m_lookDevOptionButton->add_item("Lookdev lightning", (int64_t)ShaderTerrainData::LookDev::Lightning);
+		m_innerData->m_lookDevOptionButton->add_item("Lookdev star nest", (int64_t)ShaderTerrainData::LookDev::StarNest);
+		m_innerData->m_lookDevOptionButton->add_item("Lookdev flaring star", (int64_t)ShaderTerrainData::LookDev::FlaringStar);
+		m_innerData->m_lookDevOptionButton->add_item("Lookdev animated diamond", (int64_t)ShaderTerrainData::LookDev::AnimatedDiamond);
+		m_innerData->m_lookDevOptionButton->add_item("Lookdev plasma waves", (int64_t)ShaderTerrainData::LookDev::PlasmaWaves);
 	}
 
 	{
-		//m_innerData->m_noiseButton = createControl<godot::Button>(m_innerData->m_mainScrolledVBoxContainer, "NoisePanelToggle", (std::wstring(RIGHT_ARROW) + L" " + NOISE_BUTTON_TEXT).c_str(), "pressed", this, "edit_mode_noise_panel");
 		m_innerData->m_noiseButton = createControl<godot::Button>(m_innerData->m_mainScrolledVBoxContainer, "NoisePanelToggle", (std::wstring(RIGHT_ARROW) + L" " + NOISE_BUTTON_TEXT).c_str(), "pressed", this, "void_signal_manager");
 		m_innerData->m_noiseButton->set_text_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_LEFT);
 
 		m_innerData->m_noiseVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
 		m_innerData->m_noiseVBoxContainer->hide();
 
-		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);
+		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);	// TEST
 		
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		m_innerData->m_terrTypeOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_terr_type");
@@ -994,6 +1481,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Ping Pong Strength");
 		m_innerData->m_fractalPingPongStrength = createControl<godot::LineEdit>(hBoxContainer);
+
+		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);	// TEST
 	}
 
 	{
@@ -1006,6 +1495,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 		godot::Vector2 size(70, 70);
 		
+		separator = createControl<HSeparator>(m_innerData->m_terrEditVBoxContainer);	// TEST
+
 		godot::Size2 labelMinimumSize(150, 0);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "High Elev. Factor");
@@ -1085,9 +1576,11 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_dirtTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_dirtTexName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
+
+		separator = createControl<HSeparator>(m_innerData->m_terrEditVBoxContainer);	// TEST
 	}
 	
-	separator = createControl<Label>(m_innerData->m_mainScrolledVBoxContainer, "", " ");
+	m_innerData->m_dummyLabel = createControl<Label>(m_innerData->m_mainScrolledVBoxContainer, "", " ");
 
 	controlNeedResize();
 
@@ -1105,8 +1598,8 @@ T* GDN_TheWorld_Edit::createControl(godot::Node* parent, std::string name, godot
 {
 	T* control = memnew(T);
 	parent->add_child(control);
-	godot::Error e = control->connect("mouse_entered", Callable(this, "mouse_entered_main_panel"));
-	e = control->connect("mouse_exited", Callable(this, "mouse_exited_main_panel"));
+	godot::Error e = control->connect("mouse_entered", Callable(this, "mouse_entered_edit_panel"));
+	e = control->connect("mouse_exited", Callable(this, "mouse_exited_edit_panel"));
 	
 	if (name.length() > 0)
 		control->set_name(name.c_str());
@@ -1174,32 +1667,40 @@ void GDN_TheWorld_Edit::deinit(void)
 
 void GDN_TheWorld_Edit::setSizeUI(void)
 {
-	//set_anchor(godot::Side::SIDE_RIGHT, 1.0);
-	//set_offset(godot::Side::SIDE_TOP, 0.0);
+	set_anchor(godot::Side::SIDE_RIGHT, 1.0);
+	set_anchor(godot::Side::SIDE_LEFT, 1.0);
 	//set_offset(godot::Side::SIDE_RIGHT, 0.0);
+	//set_offset(godot::Side::SIDE_TOP, 0.0);
 	//set_offset(godot::Side::SIDE_BOTTOM, 0.0);
 
-	if (IS_EDITOR_HINT())
-	{
-		std::string classsName;
-		godot::Node* parent = get_parent();
-		if (parent != nullptr)
-		{
-			godot::String s = parent->get_class();
-			classsName = m_viewer->to_string(s);
-		}
-		if (classsName == "Control")
-			set_offset(godot::Side::SIDE_LEFT, ((godot::Control*)get_parent())->get_size().x - 350);
-		else
-			set_offset(godot::Side::SIDE_LEFT, get_viewport()->get_visible_rect().get_size().x - 350);
-	}
-	else
-	{
-		set_anchor(godot::Side::SIDE_LEFT, 1.0);
-		set_offset(godot::Side::SIDE_LEFT, -400);
-		set_custom_minimum_size(godot::Size2(400, 600));
-		//set_offset(godot::Side::SIDE_LEFT, get_viewport()->get_visible_rect().get_size().x - 450);
-	}
+#define CONTROL_DISTANCE_FROM_BORDER 5
+#define CONTROL_SIZE 420
+
+	//if (IS_EDITOR_HINT())
+	//{
+	//	std::string classsName;
+	//	godot::Node* parent = get_parent();
+	//	if (parent != nullptr)
+	//	{
+	//		godot::String s = parent->get_class();
+	//		classsName = m_viewer->to_string(s);
+	//	}
+	//	if (classsName == "Control")
+	//	{
+	//		set_offset(godot::Side::SIDE_LEFT, ((godot::Control*)get_parent())->get_size().x - 350);
+	//	}
+	//	else
+	//	{
+	//		set_offset(godot::Side::SIDE_LEFT, get_viewport()->get_visible_rect().get_size().x - 350);
+	//	}
+	//}
+	//else
+	//{
+	//	set_offset(godot::Side::SIDE_LEFT, get_viewport()->get_visible_rect().get_size().x - CONTROL_SIZE - CONTROL_DISTANCE_FROM_BORDER);
+	//}
+	set_offset(godot::Side::SIDE_LEFT, -(CONTROL_SIZE + CONTROL_DISTANCE_FROM_BORDER));
+	set_offset(godot::Side::SIDE_RIGHT, -CONTROL_DISTANCE_FROM_BORDER);
+	set_offset(godot::Side::SIDE_TOP, CONTROL_DISTANCE_FROM_BORDER);
 
 	m_scrollPanelsNeedResize = true;
 	m_infoLabelTextChanged = true;
@@ -1307,9 +1808,10 @@ void GDN_TheWorld_Edit::setSeed(int seed)
 
 int GDN_TheWorld_Edit::seed(void)
 {
-	godot::String s = m_innerData->m_seed->get_text();
-	const char* str = s.utf8().get_data();
-	int ret = std::stoi(std::string(str));
+	//godot::String s = m_innerData->m_seed->get_text();
+	//const char* str = s.utf8().get_data();
+	//int ret = std::stoi(std::string(str));
+	int ret = std::stoi(std::string(m_innerData->m_seed->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1320,9 +1822,10 @@ void GDN_TheWorld_Edit::setFrequency(float frequency)
 
 float GDN_TheWorld_Edit::frequency(void)
 {
-	godot::String s = m_innerData->m_frequency->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_frequency->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_frequency->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1333,9 +1836,10 @@ void GDN_TheWorld_Edit::setOctaves(int octaves)
 
 int GDN_TheWorld_Edit::octaves(void)
 {
-	godot::String s = m_innerData->m_fractalOctaves->get_text();
-	const char* str = s.utf8().get_data();
-	int ret = std::stoi(std::string(str));
+	//godot::String s = m_innerData->m_fractalOctaves->get_text();
+	//const char* str = s.utf8().get_data();
+	//int ret = std::stoi(std::string(str));
+	int ret = std::stoi(std::string(m_innerData->m_fractalOctaves->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1346,9 +1850,10 @@ void GDN_TheWorld_Edit::setLacunarity(float lacunarity)
 
 float GDN_TheWorld_Edit::lacunarity(void)
 {
-	godot::String s = m_innerData->m_fractalLacunarity->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_fractalLacunarity->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_fractalLacunarity->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1359,9 +1864,10 @@ void GDN_TheWorld_Edit::setGain(float gain)
 
 float GDN_TheWorld_Edit::gain(void)
 {
-	godot::String s = m_innerData->m_fractalGain->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_fractalGain->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_fractalGain->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1372,9 +1878,10 @@ void GDN_TheWorld_Edit::setWeightedStrength(float weightedStrength)
 
 float GDN_TheWorld_Edit::weightedStrength(void)
 {
-	godot::String s = m_innerData->m_fractalWeightedStrength->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_fractalWeightedStrength->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_fractalWeightedStrength->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1385,9 +1892,10 @@ void GDN_TheWorld_Edit::setPingPongStrength(float pingPongStrength)
 
 float GDN_TheWorld_Edit::pingPongStrength(void)
 {
-	godot::String s = m_innerData->m_fractalPingPongStrength->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_fractalPingPongStrength->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_fractalPingPongStrength->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1398,9 +1906,10 @@ void GDN_TheWorld_Edit::setAmplitude(unsigned int amplitude)
 
 unsigned int GDN_TheWorld_Edit::amplitude(void)
 {
-	godot::String s = m_innerData->m_amplitudeLabel->get_text();
-	const char* str = s.utf8().get_data();
-	unsigned int ret = std::stoi(std::string(str));
+	//godot::String s = m_innerData->m_amplitudeLabel->get_text();
+	//const char* str = s.utf8().get_data();
+	//unsigned int ret = std::stoi(std::string(str));
+	unsigned int ret = std::stoi(std::string(m_innerData->m_amplitudeLabel->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1411,9 +1920,10 @@ void GDN_TheWorld_Edit::setScaleFactor(float scaleFactor)
 
 float GDN_TheWorld_Edit::scaleFactor(void)
 {
-	godot::String s = m_innerData->m_scaleFactorLabel->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_scaleFactorLabel->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_scaleFactorLabel->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1424,9 +1934,10 @@ void GDN_TheWorld_Edit::setDesideredMinHeight(float desideredMinHeight)
 
 float GDN_TheWorld_Edit::desideredMinHeight(void)
 {
-	godot::String s = m_innerData->m_desideredMinHeightLabel->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_desideredMinHeightLabel->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_desideredMinHeightLabel->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1437,9 +1948,10 @@ void GDN_TheWorld_Edit::setSlopeVerticalFactor(float value)
 
 float GDN_TheWorld_Edit::slopeVerticalFactor(void)
 {
-	godot::String s = m_innerData->m_slopeVerticalFactor->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_slopeVerticalFactor->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_slopeVerticalFactor->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1450,9 +1962,10 @@ void GDN_TheWorld_Edit::setSlopeFlatFactor(float value)
 
 float GDN_TheWorld_Edit::slopeFlatFactor(void)
 {
-	godot::String s = m_innerData->m_slopeFlatFactor->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_slopeFlatFactor->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_slopeFlatFactor->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1463,9 +1976,10 @@ void GDN_TheWorld_Edit::setDirtOnRocksFactor(float value)
 
 float GDN_TheWorld_Edit::dirtOnRocksFactor(void)
 {
-	godot::String s = m_innerData->m_dirtOnRocksFactor->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_dirtOnRocksFactor->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_dirtOnRocksFactor->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1476,9 +1990,10 @@ void GDN_TheWorld_Edit::setHighElevationFactor(float value)
 
 float GDN_TheWorld_Edit::highElevationFactor(void)
 {
-	godot::String s = m_innerData->m_highElevationFactor->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_highElevationFactor->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_highElevationFactor->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1489,9 +2004,10 @@ void GDN_TheWorld_Edit::setLowEleveationFactor(float value)
 
 float GDN_TheWorld_Edit::lowEleveationFactor(void)
 {
-	godot::String s = m_innerData->m_lowElevationFactor->get_text();
-	const char* str = s.utf8().get_data();
-	float ret = std::stof(std::string(str));
+	//godot::String s = m_innerData->m_lowElevationFactor->get_text();
+	//const char* str = s.utf8().get_data();
+	//float ret = std::stof(std::string(str));
+	float ret = std::stof(std::string(m_innerData->m_lowElevationFactor->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1502,9 +2018,10 @@ void GDN_TheWorld_Edit::setSplatMapMode(size_t value)
 
 size_t GDN_TheWorld_Edit::splatMapMode(void)
 {
-	godot::String s = m_innerData->m_splatMapMode->get_text();
-	const char* str = s.utf8().get_data();
-	size_t ret = size_t(std::stoi(std::string(str)));
+	//godot::String s = m_innerData->m_splatMapMode->get_text();
+	//const char* str = s.utf8().get_data();
+	//size_t ret = size_t(std::stoi(std::string(str)));
+	size_t ret = size_t(std::stoi(std::string(m_innerData->m_splatMapMode->get_text().utf8().get_data())));
 	return ret;
 }
 
@@ -1544,7 +2061,7 @@ void GDN_TheWorld_Edit::setElapsed(size_t elapsed, bool onGoing)
 	//{
 	//	if (!m_onGoingElapsedLabel)
 	//	{
-	//		m_innerData->m_elapsedLabel->set("custom_colors/font_color", Color(1, 0, 0));
+	//		m_innerData->m_elapsedLabel->add_theme_color_override("font_color", Color(1, 0, 0));
 	//		m_onGoingElapsedLabel = true;
 	//	}
 	//}
@@ -1552,7 +2069,7 @@ void GDN_TheWorld_Edit::setElapsed(size_t elapsed, bool onGoing)
 	//{
 	//	if (m_onGoingElapsedLabel)
 	//	{
-	//		m_innerData->m_elapsedLabel->set("custom_colors/font_color", Color(1, 1, 1));
+	//		m_innerData->m_elapsedLabel->add_theme_color_override("font_color", Color(1, 1, 1));	
 	//		m_onGoingElapsedLabel = false;
 	//	}
 	//}
@@ -1598,11 +2115,11 @@ void GDN_TheWorld_Edit::setNote1(std::string msg)
 
 size_t GDN_TheWorld_Edit::elapsed(void)
 {
-	godot::String s = m_innerData->m_elapsedLabel->get_text();
-	const char* str = s.utf8().get_data();
-	size_t ret = std::stoll(std::string(str));
+	//godot::String s = m_innerData->m_elapsedLabel->get_text();
+	//const char* str = s.utf8().get_data();
+	//size_t ret = std::stoll(std::string(str));
+	size_t ret = std::stoll(std::string(m_innerData->m_elapsedLabel->get_text().utf8().get_data()));
 	return ret;
-	return 0;
 }
 
 void GDN_TheWorld_Edit::setMouseHitLabelText(std::string text)
@@ -1693,28 +2210,40 @@ void GDN_TheWorld_Edit::_input(const Ref<InputEvent>& event)
 	const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
 	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
 
-	if (IS_EDITOR_HINT()
-		&& eventMouseButton != nullptr && eventMouseButton->is_pressed()
-		&& (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_DOWN || eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_UP)
-		&& m_innerData->m_mouseInsideMainPanel)
+	if (m_innerData->m_mouseInsideEditPanel)
 	{
-		accept_event();
-
-		if (m_innerData->m_mainTerrainScrollContainer != nullptr)
+		if (IS_EDITOR_HINT())
 		{
-			int vStep = 30;
-			int vScroll = m_innerData->m_mainTerrainScrollContainer->get_v_scroll();
-			double vStep1 = m_innerData->m_mainTerrainScrollContainer->get_vertical_custom_step();
-			if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_DOWN)
-				m_innerData->m_mainTerrainScrollContainer->set_v_scroll(vScroll + vStep);
-			else
-				m_innerData->m_mainTerrainScrollContainer->set_v_scroll(vScroll - vStep);
-			//int hStep = 10;
-			//int hScroll = m_innerData->m_mainTerrainScrollContainer->get_h_scroll();
-			//if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_DOWN)
-			//	m_innerData->m_mainTerrainScrollContainer->set_h_scroll(hScroll + hStep);
-			//else
-			//	m_innerData->m_mainTerrainScrollContainer->set_h_scroll(hScroll - hStep);
+			if (eventMouseButton != nullptr && eventMouseButton->is_pressed()
+				&& (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_DOWN || eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_UP))
+			{
+				accept_event();
+
+				if (m_innerData->m_mainTerrainScrollContainer != nullptr)
+				{
+					int vStep = 30;
+					int vScroll = m_innerData->m_mainTerrainScrollContainer->get_v_scroll();
+					double vStep1 = m_innerData->m_mainTerrainScrollContainer->get_vertical_custom_step();
+					if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_DOWN)
+						m_innerData->m_mainTerrainScrollContainer->set_v_scroll(vScroll + vStep);
+					else
+						m_innerData->m_mainTerrainScrollContainer->set_v_scroll(vScroll - vStep);
+					//int hStep = 10;
+					//int hScroll = m_innerData->m_mainTerrainScrollContainer->get_h_scroll();
+					//if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_DOWN)
+					//	m_innerData->m_mainTerrainScrollContainer->set_h_scroll(hScroll + hStep);
+					//else
+					//	m_innerData->m_mainTerrainScrollContainer->set_h_scroll(hScroll - hStep);
+				}
+			}
+		}
+		else
+		{
+			//if (eventMouseButton != nullptr && eventMouseButton->is_pressed()
+			//	&& (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_DOWN || eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_UP))
+			//{
+			//	accept_event();
+			//}
 		}
 	}
 }
@@ -1726,7 +2255,7 @@ void GDN_TheWorld_Edit::_unhandled_input(const Ref<InputEvent>& event)
 
 	//if (eventMouseButton != nullptr && eventMouseButton->is_pressed()
 	//	&& (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_DOWN || eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_WHEEL_UP)
-	//	&& m_innerData->m_mouseInsideMainPanel)
+	//	&& m_innerData->m_mouseInsideEditPanel)
 	//{
 	//	accept_event();
 	//}
@@ -1782,28 +2311,72 @@ void GDN_TheWorld_Edit::_notification(int p_what)
 	}
 }
 
-godot::Size2 GDN_TheWorld_Edit::getTerrainScrollPanelSize(void)
+godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 {
+	//return godot::Size2(0, 400);
+	
 	if (m_viewer == nullptr || m_innerData->m_mainScrolledVBoxContainer == nullptr)
 		return godot::Size2(0.0f, 0.0f);
 
 	godot::Size2 viewportSize = m_viewer->getViewportSize();
-	godot::Rect2 contentRect = m_innerData->m_mainScrolledVBoxContainer->get_rect();
-	godot::Size2 contentSize = contentRect.size;
-	
-	godot::Size2 ret = viewportSize;
+	godot::Rect2 scrollableContentRect = m_innerData->m_mainScrolledVBoxContainer->get_global_rect();
+	godot::Size2 scrollableContentSize = m_innerData->m_mainScrolledVBoxContainer->get_rect().size;
 
-	if (contentSize != godot::Size2(0.0f, 0.0f))
+	float lookdevOptionButtonHeight = m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
+	float noiseButtonHeight = m_innerData->m_noiseButton->get_rect().size.height + 3;
+	float terrEditButtonHeight = m_innerData->m_terrEditButton->get_rect().size.height + 3;
+	float dummyLabelHeight = m_innerData->m_dummyLabel->get_rect().size.height + 3;
+
+	static float noiseVBoxCExpandedHeight = 0;
+	float noiseVBoxCHeight;
+	if (m_innerData->m_noiseVBoxContainer->is_visible())
 	{
-		if (viewportSize.height > contentSize.height)
-			ret.height = contentSize.height;
-		if (viewportSize.width > contentSize.width)
-			ret.width = contentSize.width;
+		if (noiseVBoxCExpandedHeight == 0)
+		{
+			noiseVBoxCExpandedHeight = m_innerData->m_noiseVBoxContainer->get_rect().size.height + 4;
+		}
+		noiseVBoxCHeight = noiseVBoxCExpandedHeight;
 	}
+	else
+		noiseVBoxCHeight = 0;
+	//float noiseVBoxCHeight = m_innerData->m_noiseVBoxContainer->is_visible() ? m_innerData->m_noiseVBoxContainer->get_rect().size.height + 4 : 0;
+
+	static float terrEditVBoxcExpandedHeight = 0;
+	float terrEditVBoxcHeight;
+	if (m_innerData->m_terrEditVBoxContainer->is_visible())
+	{
+		if (terrEditVBoxcExpandedHeight == 0)
+		{
+			terrEditVBoxcExpandedHeight = m_innerData->m_terrEditVBoxContainer->get_rect().size.height + 4;
+		}
+		terrEditVBoxcHeight = terrEditVBoxcExpandedHeight;
+	}
+	else
+		terrEditVBoxcHeight = 0;
+	//float terrEditVBoxcHeight = m_innerData->m_terrEditVBoxContainer->is_visible() ? m_innerData->m_terrEditVBoxContainer->get_rect().size.height + 4 : 0;
+
+	float scrollableContentHeightCalc = lookdevOptionButtonHeight + noiseButtonHeight + noiseVBoxCHeight + terrEditButtonHeight + terrEditVBoxcHeight + dummyLabelHeight;
+
+	godot::Size2 ret;
+
+	if (scrollableContentRect.position.y + scrollableContentHeightCalc < viewportSize.y)
+	{
+		ret = godot::Size2(0, scrollableContentHeightCalc);
+	}
+	else
+		ret = godot::Size2(0, viewportSize.y - scrollableContentRect.position.y);
+	
+	//godot::Size2 ret = viewportSize;
+	//if (contentSize != godot::Size2(0.0f, 0.0f))
+	//{
+	//	if (viewportSize.height > contentSize.height)
+	//		ret.height = contentSize.height;
+	//	if (viewportSize.width > contentSize.width)
+	//		ret.width = contentSize.width;
+	//}
 
 	//ret.width = 0;	// ???
-	//ret.height = 50;
-
+	
 	return ret;
 }
 
@@ -1829,6 +2402,21 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	if (!m_initialized)
 		return;
 
+	//if (m_innerData->m_mainScrolledVBoxContainer != nullptr)
+	//{
+	//	float scrollableContentHeight = m_innerData->m_mainScrolledVBoxContainer->get_global_rect().size.height;
+	//	float scrollableContentHeight2 = m_innerData->m_mainScrolledVBoxContainer->get_rect().size.height;
+	//	
+	//	float lookdevOptionButtonHeight = m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
+	//	float noiseButtonHeight = m_innerData->m_noiseButton->get_rect().size.height + 3;
+	//	float noiseVBoxCHeight = m_innerData->m_noiseVBoxContainer->is_visible() ? m_innerData->m_noiseVBoxContainer->get_rect().size.height + 4 : 0;
+	//	float terrEditButtonHeight = m_innerData->m_terrEditButton->get_rect().size.height + 3;
+	//	float terrEditVBoxcHeight = m_innerData->m_terrEditVBoxContainer->is_visible() ? m_innerData->m_terrEditVBoxContainer->get_rect().size.height + 4 : 0;
+	//	float dummyLabelHeight = m_innerData->m_dummyLabel->get_rect().size.height + 3;
+	//	float scrollableContentHeightCalc = lookdevOptionButtonHeight + noiseButtonHeight + noiseVBoxCHeight + terrEditButtonHeight + terrEditVBoxcHeight + dummyLabelHeight;
+	//	float size2 = 0;
+	//}
+
 	if (m_controlNeedResize)
 	{
 		setSizeUI();
@@ -1839,7 +2427,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	{
 		if (m_innerData->m_mainScrolledVBoxContainer != nullptr && m_innerData->m_mainScrolledVBoxContainer->get_rect().size != godot::Size2(0.0f, 0.0f))
 		{
-			m_innerData->m_mainTerrainScrollContainer->set_custom_minimum_size(getTerrainScrollPanelSize());
+			m_innerData->m_mainTerrainScrollContainer->set_custom_minimum_size(getTerrainScrolledPanelSize());
 			m_scrollPanelsNeedResize = false;
 		}
 	}
@@ -1949,12 +2537,11 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			+ "Quad Sel: " + m_innerData->m_mouseQuadSelStr + "\n"
 			+ "Pos Sel: " + m_innerData->m_mouseQuadSelPosStr;
 		m_innerData->m_infoLabel->set_text(infoLabelText.c_str());
-		//m_elapsedLabelNormalColor = m_elapsedLabel->get("custom_colors/font_color");
 		if (m_innerData->m_onGoing)
 		{
 			if (!m_onGoingElapsedLabel)
 			{
-				m_innerData->m_elapsedLabel->set("custom_colors/font_color", Color(1, 0, 0));
+				m_innerData->m_elapsedLabel->add_theme_color_override("font_color", Color(1, 0, 0));
 				m_onGoingElapsedLabel = true;
 			}
 		}
@@ -1962,7 +2549,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		{
 			if (m_onGoingElapsedLabel)
 			{
-				m_innerData->m_elapsedLabel->set("custom_colors/font_color", Color(1, 1, 1));
+				m_innerData->m_elapsedLabel->add_theme_color_override("font_color", Color(1, 1, 1));
 				m_onGoingElapsedLabel = false;
 			}
 		}
@@ -2205,7 +2792,7 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 				else
 					m_innerData->m_lowElevationTexPanel->add_theme_stylebox_override("panel", m_innerData->m_styleBoxHighlightedFrame);
 
-				m_innerData->m_mouseInsideMainPanel = true;
+				m_innerData->m_mouseInsideEditPanel = true;
 			}
 			else if (godot::String(custom1) == c_highElevationEditTextureName.c_str())
 			{
@@ -2223,7 +2810,7 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 				else
 					m_innerData->m_highElevationTexPanel->add_theme_stylebox_override("panel", m_innerData->m_styleBoxHighlightedFrame);
 
-				m_innerData->m_mouseInsideMainPanel = true;
+				m_innerData->m_mouseInsideEditPanel = true;
 			}
 			else if (godot::String(custom1) == c_dirtEditTextureName.c_str())
 			{
@@ -2241,7 +2828,7 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 				else
 					m_innerData->m_dirtTexPanel->add_theme_stylebox_override("panel", m_innerData->m_styleBoxHighlightedFrame);
 
-				m_innerData->m_mouseInsideMainPanel = true;
+				m_innerData->m_mouseInsideEditPanel = true;
 			}
 			else if (godot::String(custom1) == c_rocksEditTextureName.c_str())
 			{
@@ -2259,7 +2846,7 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 				else
 					m_innerData->m_rocksTexPanel->add_theme_stylebox_override("panel", m_innerData->m_styleBoxHighlightedFrame);
 
-				m_innerData->m_mouseInsideMainPanel = true;
+				m_innerData->m_mouseInsideEditPanel = true;
 			}
 			else if (godot::String(custom1) == "SelTexturePanel_ItemPanelGuiInput")
 			{
@@ -2267,7 +2854,7 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 				if (m_innerData->m_selTexturePanel->m_textureItems.contains(textureName) && !m_innerData->m_selTexturePanel->m_textureItems[textureName]->m_selected)
 					m_innerData->m_selTexturePanel->m_textureItems[textureName]->m_panel->add_theme_stylebox_override("panel", m_innerData->m_styleBoxHighlightedFrame);
 
-				m_innerData->m_mouseInsideMainPanel = true;
+				m_innerData->m_mouseInsideEditPanel = true;
 			}
 		}
 	}
@@ -2289,7 +2876,7 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 				if (!m_innerData->m_rocksTexSelected)
 					m_innerData->m_rocksTexPanel->remove_theme_stylebox_override("panel");
 
-				m_innerData->m_mouseInsideMainPanel = false;
+				m_innerData->m_mouseInsideEditPanel = false;
 			}
 			else if (godot::String(custom1) == "SelTexturePanel_ItemPanelGuiInput")
 			{
@@ -2297,7 +2884,7 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 				if (m_innerData->m_selTexturePanel->m_textureItems.contains(textureName) && !m_innerData->m_selTexturePanel->m_textureItems[textureName]->m_selected)
 					m_innerData->m_selTexturePanel->m_textureItems[textureName]->m_panel->remove_theme_stylebox_override("panel");
 
-				m_innerData->m_mouseInsideMainPanel = false;
+				m_innerData->m_mouseInsideEditPanel = false;
 			}
 		}
 	}
@@ -2462,6 +3049,13 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 			m_viewer->normalVisible(true);
 		else
 			m_viewer->normalVisible(false);
+	}
+	else if (_objectName == "ShowPositionCheckBox")
+	{
+		if (pressed)
+			m_viewer->positionVisible(true);
+		else
+			m_viewer->positionVisible(false);
 	}
 }
 
@@ -2874,7 +3468,10 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	setMessage(godot::String("Completed!"), true);
 
-	editModeApplyTextures_1(false, true);
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenerate 1.3 ") + __FUNCTION__, "Apply textures");
+		editModeApplyTextures_1(false, true);
+	}
 }
 
 void GDN_TheWorld_Edit::editModeBlendAction(void)
@@ -2948,319 +3545,208 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 
 		for (auto& pos : quandrantPos)
 		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
+
 			if (m_actionStopRequested)
 			{
 				m_actionStopRequested = false;
 				break;
 			}
 
-			QuadTree* quadTree = m_viewer->getQuadTree(pos);
+			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+			TheWorld_Utils::MemoryBuffer heights16Buffer;
+			TheWorld_Utils::MemoryBuffer heights32Buffer;
+			TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData quadrantData;
+
+			QuadTree* quadTree = nullptr;
+			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+				quadTree = prepareHeightsForQuadrantBlend(&pos, &quadrantData, &terrainEditValuesBuffer, &heights16Buffer, &heights32Buffer);
+			}
+				
 			if (quadTree != nullptr)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
-
-				quadTree->getQuadrant()->lockInternalData();
-
-				TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-				TheWorld_Utils::MemoryBuffer heights16Buffer;
-				TheWorld_Utils::MemoryBuffer heights32Buffer;
-				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData quadrantData;
-				quadTree->getQuadrant()->getTerrainEdit()->serialize(terrainEditValuesBuffer);
-				heights16Buffer.copyFrom(quadTree->getQuadrant()->getFloat16HeightsBuffer());
-				heights32Buffer.copyFrom(quadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-				quadrantData.meshId = quadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-				quadrantData.terrainEditValues = &terrainEditValuesBuffer;
-				quadrantData.minHeight = quadTree->getQuadrant()->getTerrainEdit()->minHeight;
-				quadrantData.maxHeight = quadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-				quadrantData.heights16Buffer = &heights16Buffer;
-				quadrantData.heights32Buffer = &heights32Buffer;
-				quadrantData.normalsBuffer = nullptr;
-				quadrantData.splatmapBuffer = nullptr;
-				quadrantData.colormapBuffer = nullptr;
-				quadrantData.globalmapBuffer = nullptr;
-
+				std::vector<std::thread> threads;
+				threads.resize(8);
+								
 				TheWorld_Utils::MemoryBuffer northTerrainEditValuesBuffer;
 				TheWorld_Utils::MemoryBuffer northHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer northHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northQuadrantData;
-				QuadrantPos p = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
-				QuadTree* northQuadTree = m_viewer->getQuadTree(p);
-				if (northQuadTree != nullptr)
+				QuadrantPos northPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
+				QuadTree* northQuadTree = nullptr;
 				{
-					northQuadTree->getQuadrant()->lockInternalData();
-
-					northQuadTree->getQuadrant()->getTerrainEdit()->serialize(northTerrainEditValuesBuffer);
-					northHeights16Buffer.copyFrom(northQuadTree->getQuadrant()->getFloat16HeightsBuffer());
-					northHeights32Buffer.copyFrom(northQuadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-					northQuadrantData.meshId = northQuadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-					northQuadrantData.terrainEditValues = &northTerrainEditValuesBuffer;
-					northQuadrantData.minHeight = northQuadTree->getQuadrant()->getTerrainEdit()->minHeight;
-					northQuadrantData.maxHeight = northQuadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-					northQuadrantData.heights16Buffer = &northHeights16Buffer;
-					northQuadrantData.heights32Buffer = &northHeights32Buffer;
-					northQuadrantData.normalsBuffer = nullptr;
-					northQuadrantData.splatmapBuffer = nullptr;
-					northQuadrantData.colormapBuffer = nullptr;
-					northQuadrantData.globalmapBuffer = nullptr;
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+					threads[0] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &northQuadTree, &northPos, &northQuadrantData, &northTerrainEditValuesBuffer, &northHeights16Buffer, &northHeights32Buffer);
+					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+					//northQuadTree = prepareHeightsForQuadrantBlend(&northPos, &northQuadrantData, &northTerrainEditValuesBuffer, &northHeights16Buffer, &northHeights32Buffer);
 				}
-				else
-					northQuadTree = nullptr;
 
 				TheWorld_Utils::MemoryBuffer southTerrainEditValuesBuffer;
 				TheWorld_Utils::MemoryBuffer southHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer southHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southQuadrantData;
-				p = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
-				QuadTree* southQuadTree = m_viewer->getQuadTree(p);
-				if (southQuadTree != nullptr)
+				QuadrantPos southPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
+				QuadTree* southQuadTree = nullptr;
 				{
-					southQuadTree->getQuadrant()->lockInternalData();
-
-					southQuadTree->getQuadrant()->getTerrainEdit()->serialize(southTerrainEditValuesBuffer);
-					southHeights16Buffer.copyFrom(southQuadTree->getQuadrant()->getFloat16HeightsBuffer());
-					southHeights32Buffer.copyFrom(southQuadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-					southQuadrantData.meshId = southQuadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-					southQuadrantData.terrainEditValues = &southTerrainEditValuesBuffer;
-					southQuadrantData.minHeight = southQuadTree->getQuadrant()->getTerrainEdit()->minHeight;
-					southQuadrantData.maxHeight = southQuadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-					southQuadrantData.heights16Buffer = &southHeights16Buffer;
-					southQuadrantData.heights32Buffer = &southHeights32Buffer;
-					southQuadrantData.normalsBuffer = nullptr;
-					southQuadrantData.splatmapBuffer = nullptr;
-					southQuadrantData.colormapBuffer = nullptr;
-					southQuadrantData.globalmapBuffer = nullptr;
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+					threads[1] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &southQuadTree, &southPos, &southQuadrantData, &southTerrainEditValuesBuffer, &southHeights16Buffer, &southHeights32Buffer);
+					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+					//southQuadTree = prepareHeightsForQuadrantBlend(&southPos, &southQuadrantData, &southTerrainEditValuesBuffer, &southHeights16Buffer, &southHeights32Buffer);
 				}
-				else
-					southQuadTree = nullptr;
 
 				TheWorld_Utils::MemoryBuffer westTerrainEditValuesBuffer;
 				TheWorld_Utils::MemoryBuffer westHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer westHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData westQuadrantData;
-				p = pos.getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
-				QuadTree* westQuadTree = m_viewer->getQuadTree(p);
-				if (westQuadTree != nullptr)
+				QuadrantPos westPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
+				QuadTree* westQuadTree = nullptr;
 				{
-					westQuadTree->getQuadrant()->lockInternalData();
-
-					westQuadTree->getQuadrant()->getTerrainEdit()->serialize(westTerrainEditValuesBuffer);
-					westHeights16Buffer.copyFrom(westQuadTree->getQuadrant()->getFloat16HeightsBuffer());
-					westHeights32Buffer.copyFrom(westQuadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-					westQuadrantData.meshId = westQuadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-					westQuadrantData.terrainEditValues = &westTerrainEditValuesBuffer;
-					westQuadrantData.minHeight = westQuadTree->getQuadrant()->getTerrainEdit()->minHeight;
-					westQuadrantData.maxHeight = westQuadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-					westQuadrantData.heights16Buffer = &westHeights16Buffer;
-					westQuadrantData.heights32Buffer = &westHeights32Buffer;
-					westQuadrantData.normalsBuffer = nullptr;
-					westQuadrantData.splatmapBuffer = nullptr;
-					westQuadrantData.colormapBuffer = nullptr;
-					westQuadrantData.globalmapBuffer = nullptr;
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+					threads[2] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &westQuadTree, &westPos, &westQuadrantData, &westTerrainEditValuesBuffer, &westHeights16Buffer, &westHeights32Buffer);
+					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+					//westQuadTree = prepareHeightsForQuadrantBlend(&westPos, &westQuadrantData, &westTerrainEditValuesBuffer, &westHeights16Buffer, &westHeights32Buffer);
 				}
-				else
-					westQuadTree = nullptr;
 
 				TheWorld_Utils::MemoryBuffer eastTerrainEditValuesBuffer;
 				TheWorld_Utils::MemoryBuffer eastHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer eastHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData eastQuadrantData;
-				p = pos.getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
-				QuadTree* eastQuadTree = m_viewer->getQuadTree(p);
-				if (eastQuadTree != nullptr)
+				QuadrantPos eastPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
+				QuadTree* eastQuadTree = nullptr;
 				{
-					eastQuadTree->getQuadrant()->lockInternalData();
-
-					eastQuadTree->getQuadrant()->getTerrainEdit()->serialize(eastTerrainEditValuesBuffer);
-					eastHeights16Buffer.copyFrom(eastQuadTree->getQuadrant()->getFloat16HeightsBuffer());
-					eastHeights32Buffer.copyFrom(eastQuadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-					eastQuadrantData.meshId = eastQuadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-					eastQuadrantData.terrainEditValues = &eastTerrainEditValuesBuffer;
-					eastQuadrantData.minHeight = eastQuadTree->getQuadrant()->getTerrainEdit()->minHeight;
-					eastQuadrantData.maxHeight = eastQuadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-					eastQuadrantData.heights16Buffer = &eastHeights16Buffer;
-					eastQuadrantData.heights32Buffer = &eastHeights32Buffer;
-					eastQuadrantData.normalsBuffer = nullptr;
-					eastQuadrantData.splatmapBuffer = nullptr;
-					eastQuadrantData.colormapBuffer = nullptr;
-					eastQuadrantData.globalmapBuffer = nullptr;
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+					threads[3] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &eastQuadTree, &eastPos, &eastQuadrantData, &eastTerrainEditValuesBuffer, &eastHeights16Buffer, &eastHeights32Buffer);
+					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+					//eastQuadTree = prepareHeightsForQuadrantBlend(&eastPos, &eastQuadrantData, &eastTerrainEditValuesBuffer, &eastHeights16Buffer, &eastHeights32Buffer);
 				}
-				else
-					eastQuadTree = nullptr;
 
 				TheWorld_Utils::MemoryBuffer northwestTerrainEditValuesBuffer;
 				TheWorld_Utils::MemoryBuffer northwestHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer northwestHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northwestQuadrantData;
-				p = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinusXMinus);
-				QuadTree* northwestQuadTree = m_viewer->getQuadTree(p);
-				if (northwestQuadTree != nullptr)
+				QuadrantPos northwestPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinusXMinus);
+				QuadTree* northwestQuadTree = nullptr;
 				{
-					northwestQuadTree->getQuadrant()->lockInternalData();
-
-					northwestQuadTree->getQuadrant()->getTerrainEdit()->serialize(northwestTerrainEditValuesBuffer);
-					northwestHeights16Buffer.copyFrom(northwestQuadTree->getQuadrant()->getFloat16HeightsBuffer());
-					northwestHeights32Buffer.copyFrom(northwestQuadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-					northwestQuadrantData.meshId = northwestQuadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-					northwestQuadrantData.terrainEditValues = &northwestTerrainEditValuesBuffer;
-					northwestQuadrantData.minHeight = northwestQuadTree->getQuadrant()->getTerrainEdit()->minHeight;
-					northwestQuadrantData.maxHeight = northwestQuadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-					northwestQuadrantData.heights16Buffer = &northwestHeights16Buffer;
-					northwestQuadrantData.heights32Buffer = &northwestHeights32Buffer;
-					northwestQuadrantData.normalsBuffer = nullptr;
-					northwestQuadrantData.splatmapBuffer = nullptr;
-					northwestQuadrantData.colormapBuffer = nullptr;
-					northwestQuadrantData.globalmapBuffer = nullptr;
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+					threads[4] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &northwestQuadTree, &northwestPos, &northwestQuadrantData, &northwestTerrainEditValuesBuffer, &northwestHeights16Buffer, &northwestHeights32Buffer);
+					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+					//northwestQuadTree = prepareHeightsForQuadrantBlend(&northwestPos, &northwestQuadrantData, &northwestTerrainEditValuesBuffer, &northwestHeights16Buffer, &northwestHeights32Buffer);
 				}
-				else
-					northwestQuadTree = nullptr;
 
 				TheWorld_Utils::MemoryBuffer northeastTerrainEditValuesBuffer;
 				TheWorld_Utils::MemoryBuffer northeastHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer northeastHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northeastQuadrantData;
-				p = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinusXPlus);
-				QuadTree* northeastQuadTree = m_viewer->getQuadTree(p);
-				if (northeastQuadTree != nullptr)
+				QuadrantPos northeastPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinusXPlus);
+				QuadTree* northeastQuadTree = nullptr;
 				{
-					northeastQuadTree->getQuadrant()->lockInternalData();
-
-					northeastQuadTree->getQuadrant()->getTerrainEdit()->serialize(northeastTerrainEditValuesBuffer);
-					northeastHeights16Buffer.copyFrom(northeastQuadTree->getQuadrant()->getFloat16HeightsBuffer());
-					northeastHeights32Buffer.copyFrom(northeastQuadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-					northeastQuadrantData.meshId = northeastQuadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-					northeastQuadrantData.terrainEditValues = &northeastTerrainEditValuesBuffer;
-					northeastQuadrantData.minHeight = northeastQuadTree->getQuadrant()->getTerrainEdit()->minHeight;
-					northeastQuadrantData.maxHeight = northeastQuadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-					northeastQuadrantData.heights16Buffer = &northeastHeights16Buffer;
-					northeastQuadrantData.heights32Buffer = &northeastHeights32Buffer;
-					northeastQuadrantData.normalsBuffer = nullptr;
-					northeastQuadrantData.splatmapBuffer = nullptr;
-					northeastQuadrantData.colormapBuffer = nullptr;
-					northeastQuadrantData.globalmapBuffer = nullptr;
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+					threads[5] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &northeastQuadTree, &northeastPos, &northeastQuadrantData, &northeastTerrainEditValuesBuffer, &northeastHeights16Buffer, &northeastHeights32Buffer);
+					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+					//northeastQuadTree = prepareHeightsForQuadrantBlend(&northeastPos, &northeastQuadrantData, &northeastTerrainEditValuesBuffer, &northeastHeights16Buffer, &northeastHeights32Buffer);
 				}
-				else
-					northeastQuadTree = nullptr;
 
 				TheWorld_Utils::MemoryBuffer southwestTerrainEditValuesBuffer;
 				TheWorld_Utils::MemoryBuffer southwestHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer southwestHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southwestQuadrantData;
-				p = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlusXMinus);
-				QuadTree* southwestQuadTree = m_viewer->getQuadTree(p);
-				if (southwestQuadTree != nullptr)
+				QuadrantPos southwestPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlusXMinus);
+				QuadTree* southwestQuadTree = nullptr;
 				{
-					southwestQuadTree->getQuadrant()->lockInternalData();
-
-					southwestQuadTree->getQuadrant()->getTerrainEdit()->serialize(southwestTerrainEditValuesBuffer);
-					southwestHeights16Buffer.copyFrom(southwestQuadTree->getQuadrant()->getFloat16HeightsBuffer());
-					southwestHeights32Buffer.copyFrom(southwestQuadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-					southwestQuadrantData.meshId = southwestQuadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-					southwestQuadrantData.terrainEditValues = &southwestTerrainEditValuesBuffer;
-					southwestQuadrantData.minHeight = southwestQuadTree->getQuadrant()->getTerrainEdit()->minHeight;
-					southwestQuadrantData.maxHeight = southwestQuadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-					southwestQuadrantData.heights16Buffer = &southwestHeights16Buffer;
-					southwestQuadrantData.heights32Buffer = &southwestHeights32Buffer;
-					southwestQuadrantData.normalsBuffer = nullptr;
-					southwestQuadrantData.splatmapBuffer = nullptr;
-					southwestQuadrantData.colormapBuffer = nullptr;
-					southwestQuadrantData.globalmapBuffer = nullptr;
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+					threads[6] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &southwestQuadTree, &southwestPos, &southwestQuadrantData, &southwestTerrainEditValuesBuffer, &southwestHeights16Buffer, &southwestHeights32Buffer);
+					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+					//southwestQuadTree = prepareHeightsForQuadrantBlend(&southwestPos, &southwestQuadrantData, &southwestTerrainEditValuesBuffer, &southwestHeights16Buffer, &southwestHeights32Buffer);
 				}
-				else
-					southwestQuadTree = nullptr;
 
 				TheWorld_Utils::MemoryBuffer southeastTerrainEditValuesBuffer;
 				TheWorld_Utils::MemoryBuffer southeastHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer southeastHeights32Buffer;
-
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southeastQuadrantData;
-				p = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlusXPlus);
-				QuadTree* southeastQuadTree = m_viewer->getQuadTree(p);
-				if (southeastQuadTree != nullptr)
+				QuadrantPos southeastPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlusXPlus);
+				QuadTree* southeastQuadTree = nullptr;
 				{
-					southeastQuadTree->getQuadrant()->lockInternalData();
-
-					southeastQuadTree->getQuadrant()->getTerrainEdit()->serialize(southeastTerrainEditValuesBuffer);
-					southeastHeights16Buffer.copyFrom(southeastQuadTree->getQuadrant()->getFloat16HeightsBuffer());
-					southeastHeights32Buffer.copyFrom(southeastQuadTree->getQuadrant()->getFloat32HeightsBuffer());
-
-					southeastQuadrantData.meshId = southeastQuadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
-					southeastQuadrantData.terrainEditValues = &southeastTerrainEditValuesBuffer;
-					southeastQuadrantData.minHeight = southeastQuadTree->getQuadrant()->getTerrainEdit()->minHeight;
-					southeastQuadrantData.maxHeight = southeastQuadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-					southeastQuadrantData.heights16Buffer = &southeastHeights16Buffer;
-					southeastQuadrantData.heights32Buffer = &southeastHeights32Buffer;
-					southeastQuadrantData.normalsBuffer = nullptr;
-					southeastQuadrantData.splatmapBuffer = nullptr;
-					southeastQuadrantData.colormapBuffer = nullptr;
-					southeastQuadrantData.globalmapBuffer = nullptr;
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+					threads[7] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &southeastQuadTree, &southeastPos, &southeastQuadrantData, &southeastTerrainEditValuesBuffer, &southeastHeights16Buffer, &southeastHeights32Buffer);
+					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+					//southeastQuadTree = prepareHeightsForQuadrantBlend(&southeastPos, &southeastQuadrantData, &southeastTerrainEditValuesBuffer, &southeastHeights16Buffer, &southeastHeights32Buffer);
 				}
-				else
-					southeastQuadTree = nullptr;
+
+				for (auto& t : threads)
+					t.join();
 
 				bool lastPhase = false;
 				if (round == numRounds - 1)
 					lastPhase = true;
-				
-				bool updated = quadTree->getQuadrant()->getMeshCacheBuffer().blendQuadrant(pos.getNumVerticesPerSize(), pos.getGridStepInWU(), lastPhase,
-					quadrantData,
-					northQuadrantData,
-					southQuadrantData,
-					westQuadrantData,
-					eastQuadrantData,
-					northwestQuadrantData,
-					northeastQuadrantData,
-					southwestQuadrantData,
-					southeastQuadrantData);
 
-				manageUpdatedHeights(quadrantData, quadTree, terrainEditValuesBuffer, heights16Buffer, heights32Buffer);
-				quadTree->getQuadrant()->unlockInternalData();
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.3 ") + __FUNCTION__, "Single QuadTree blendQuadrant");
+
+					bool updated = quadTree->getQuadrant()->getMeshCacheBuffer().blendQuadrant(pos.getNumVerticesPerSize(), pos.getGridStepInWU(), lastPhase,
+						quadrantData,
+						northQuadrantData,
+						southQuadrantData,
+						westQuadrantData,
+						eastQuadrantData,
+						northwestQuadrantData,
+						northeastQuadrantData,
+						southwestQuadrantData,
+						southeastQuadrantData);
+				}
+
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(quadrantData, quadTree, terrainEditValuesBuffer, heights16Buffer, heights32Buffer);
+					quadTree->getQuadrant()->unlockInternalData();
+				}
 
 				if (northQuadTree != nullptr)
 				{
-					manageUpdatedHeights(northQuadrantData, northQuadTree, northTerrainEditValuesBuffer, northHeights16Buffer, northHeights32Buffer);
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(northQuadrantData, northQuadTree, northTerrainEditValuesBuffer, northHeights16Buffer, northHeights32Buffer);
 					northQuadTree->getQuadrant()->unlockInternalData();
 				}
 				if (southQuadTree != nullptr)
 				{
-					manageUpdatedHeights(southQuadrantData, southQuadTree, southTerrainEditValuesBuffer, southHeights16Buffer, southHeights32Buffer);
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(southQuadrantData, southQuadTree, southTerrainEditValuesBuffer, southHeights16Buffer, southHeights32Buffer);
 					southQuadTree->getQuadrant()->unlockInternalData();
 				}
 				if (westQuadTree != nullptr)
 				{
-					manageUpdatedHeights(westQuadrantData, westQuadTree, westTerrainEditValuesBuffer, westHeights16Buffer, westHeights32Buffer);
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(westQuadrantData, westQuadTree, westTerrainEditValuesBuffer, westHeights16Buffer, westHeights32Buffer);
 					westQuadTree->getQuadrant()->unlockInternalData();
 				}
 				if (eastQuadTree != nullptr)
 				{
-					manageUpdatedHeights(eastQuadrantData, eastQuadTree, eastTerrainEditValuesBuffer, eastHeights16Buffer, eastHeights32Buffer);
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(eastQuadrantData, eastQuadTree, eastTerrainEditValuesBuffer, eastHeights16Buffer, eastHeights32Buffer);
 					eastQuadTree->getQuadrant()->unlockInternalData();
 				}
 				if (northwestQuadTree != nullptr)
 				{
-					manageUpdatedHeights(northwestQuadrantData, northwestQuadTree, northwestTerrainEditValuesBuffer, northwestHeights16Buffer, northwestHeights32Buffer);
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(northwestQuadrantData, northwestQuadTree, northwestTerrainEditValuesBuffer, northwestHeights16Buffer, northwestHeights32Buffer);
 					northwestQuadTree->getQuadrant()->unlockInternalData();
 				}
 				if (northeastQuadTree != nullptr)
 				{
-					manageUpdatedHeights(northeastQuadrantData, northeastQuadTree, northeastTerrainEditValuesBuffer, northeastHeights16Buffer, northeastHeights32Buffer);
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(northeastQuadrantData, northeastQuadTree, northeastTerrainEditValuesBuffer, northeastHeights16Buffer, northeastHeights32Buffer);
 					northeastQuadTree->getQuadrant()->unlockInternalData();
 				}
 				if (southwestQuadTree != nullptr)
 				{
-					manageUpdatedHeights(southwestQuadrantData, southwestQuadTree, southwestTerrainEditValuesBuffer, southwestHeights16Buffer, southwestHeights32Buffer);
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(southwestQuadrantData, southwestQuadTree, southwestTerrainEditValuesBuffer, southwestHeights16Buffer, southwestHeights32Buffer);
 					southwestQuadTree->getQuadrant()->unlockInternalData();
 				}
 				if (southeastQuadTree != nullptr)
 				{
-					manageUpdatedHeights(southeastQuadrantData, southeastQuadTree, southeastTerrainEditValuesBuffer, southeastHeights16Buffer, southeastHeights32Buffer);
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+					manageUpdatedHeightsAfterQuadrantBlend(southeastQuadrantData, southeastQuadTree, southeastTerrainEditValuesBuffer, southeastHeights16Buffer, southeastHeights32Buffer);
 					southeastQuadTree->getQuadrant()->unlockInternalData();
 				}
 
@@ -3291,16 +3777,64 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 
 	setMessage(godot::String("Completed!"), true);
 
-	editModeApplyTextures_1(false, false);
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.2 ") + __FUNCTION__, "Apply Textures");
+		editModeApplyTextures_1(false, false);
+	}
+}
+void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer)
+{
+	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending in thread");
+	*quadTree = prepareHeightsForQuadrantBlend(pos, quadrantData, terrainEditValuesBuffer, heights16Buffer, heights32Buffer);
 }
 
-void GDN_TheWorld_Edit::manageUpdatedHeights(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer)
+QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer)
+{
+	QuadTree* quadTree = nullptr;
+
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+		quadTree = m_viewer->getQuadTree(*pos);
+	}
+
+	if (quadTree != nullptr)
+	{
+		quadTree->getQuadrant()->lockInternalData();
+
+		quadTree->getQuadrant()->getTerrainEdit()->serialize(*terrainEditValuesBuffer);
+		// ATTENZIONE
+		//heights16Buffer->copyFrom(quadTree->getQuadrant()->getFloat16HeightsBuffer());
+		//heights32Buffer->copyFrom(quadTree->getQuadrant()->getFloat32HeightsBuffer());
+
+		quadrantData->meshId = quadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
+		quadrantData->terrainEditValues = terrainEditValuesBuffer;
+		quadrantData->minHeight = quadTree->getQuadrant()->getTerrainEdit()->minHeight;
+		quadrantData->maxHeight = quadTree->getQuadrant()->getTerrainEdit()->maxHeight;
+		// ATTENZIONE
+		//quadrantData->heights16Buffer = heights16Buffer;
+		//quadrantData->heights32Buffer = heights32Buffer;
+		TheWorld_Utils::MemoryBuffer& h16Buffer = quadTree->getQuadrant()->getFloat16HeightsBuffer();
+		quadrantData->heights16Buffer = &h16Buffer;	// ATTENZIONE
+		TheWorld_Utils::MemoryBuffer& h32Buffer = quadTree->getQuadrant()->getFloat32HeightsBuffer();
+		quadrantData->heights32Buffer = &h32Buffer;	// ATTENZIONE
+		quadrantData->normalsBuffer = nullptr;
+		quadrantData->splatmapBuffer = nullptr;
+		quadrantData->colormapBuffer = nullptr;
+		quadrantData->globalmapBuffer = nullptr;
+	}
+
+	return quadTree;
+}
+
+void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer)
 {
 	if (quadrantData.heightsUpdated)
 	{
 		quadTree->getQuadrant()->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
-		quadTree->getQuadrant()->getFloat16HeightsBuffer().copyFrom(heights16Buffer);
-		quadTree->getQuadrant()->getFloat32HeightsBuffer().copyFrom(heights32Buffer);
+		
+		// ATTENZIONE
+		//quadTree->getQuadrant()->getFloat16HeightsBuffer().copyFrom(heights16Buffer);
+		//quadTree->getQuadrant()->getFloat32HeightsBuffer().copyFrom(heights32Buffer);
 
 		m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
 		quadTree->getQuadrant()->setEmpty(false);
@@ -3498,16 +4032,18 @@ void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool eva
 
 void GDN_TheWorld_Edit::editModeGenNormals_2(QuadTree* quadTree)
 {
+	TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.2.1 ") + __FUNCTION__, "getNormalsBuffer single quad");
+
 	TheWorld_Utils::MemoryBuffer* pn = nullptr;
 	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.2.1 ") + __FUNCTION__, "getNormalsBuffer quad");
+		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.2.1.1 ") + __FUNCTION__, "getNormalsBuffer quad");
 		TheWorld_Utils::MemoryBuffer& n = quadTree->getQuadrant()->getNormalsBuffer(true);
 		pn = &n;
 	}
 	TheWorld_Utils::MemoryBuffer& normalsBuffer = *pn;
 	if (normalsBuffer.size() == 0 || quadTree->getQuadrant()->getTerrainEdit()->normalsNeedRegen)
 	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.2.2 ") + __FUNCTION__, "Single QuadTree");
+		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.2.1.2 ") + __FUNCTION__, "Single QuadTree");
 
 		QuadrantPos pos = quadTree->getQuadrant()->getPos();
 		
@@ -3536,7 +4072,7 @@ void GDN_TheWorld_Edit::editModeGenNormals_2(QuadTree* quadTree)
 		TheWorld_Utils::MemoryBuffer& float32HeigthsBuffer = quadTree->getQuadrant()->getFloat32HeightsBuffer(true);
 
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.2.2.2 ") + __FUNCTION__, "Single QuadTree - GPU");
+			TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.2.1.2.1 ") + __FUNCTION__, "Single QuadTree - GPU");
 
 			TheWorld_Utils::MemoryBuffer* westHeights32Buffer = nullptr;
 			TheWorld_Utils::MemoryBuffer* northHeights32Buffer = nullptr;
@@ -3582,6 +4118,28 @@ void GDN_TheWorld_Edit::editModeGenNormals_2(QuadTree* quadTree)
 
 		quadTree->materialParamsNeedReset(true);
 	}
+}
+
+void GDN_TheWorld_Edit::generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* globalmapBuffer)
+{
+	my_assert(m_mapModder != nullptr);
+
+	size_t numHeights = (size_t)sqrt(float(quadrantData->heights32Buffer->size() / sizeof(float)));
+	my_assert(size_t(pow((float)numHeights, 2) * sizeof(float)) == quadrantData->heights32Buffer->size());
+
+	while (!m_mapModder->ready())
+		Sleep(5);
+
+	m_mapModder->initForGlobalMap(quadtree, quadrantData);
+	while (m_mapModder->working())
+		Sleep(5);
+	TheWorld_Utils::MemoryBuffer* globalmap = m_mapModder->getOutBuffer();
+
+	my_assert(size_t(pow((float)numHeights, 2) * sizeof(TheWorld_Utils::_RGB)) == globalmap->size());
+	globalmapBuffer->reserve(globalmap->size());
+	memcpy(globalmapBuffer->ptr(), globalmap->ptr(), globalmap->size());
+	globalmapBuffer->adjustSize(globalmap->size());
+	m_mapModder->deinitRequired(true);
 }
 
 void GDN_TheWorld_Edit::generateNormals(size_t numVerticesPerSize, float gridStepInWU,
@@ -3880,6 +4438,27 @@ void GDN_TheWorld_Edit::editModeApplyTextures_2(QuadTree* quadTree)
 				highElevationFactor(),
 				lowEleveationFactor(),
 				splatMapMode());
+
+			{
+				// DEBUG
+				TheWorld_Utils::MemoryBuffer globalmap;
+				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData quadrantData;
+				quadTree->getQuadrant()->lockInternalData();
+				quadrantData.terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
+				quadrantData.meshId = quadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
+				quadrantData.minHeight = quadTree->getQuadrant()->getTerrainEdit()->minHeight;
+				quadrantData.maxHeight = quadTree->getQuadrant()->getTerrainEdit()->maxHeight;
+				TheWorld_Utils::MemoryBuffer& h16Buffer = quadTree->getQuadrant()->getFloat16HeightsBuffer();
+				quadrantData.heights16Buffer = &h16Buffer;
+				TheWorld_Utils::MemoryBuffer& h32Buffer = quadTree->getQuadrant()->getFloat32HeightsBuffer();
+				quadrantData.heights32Buffer = &h32Buffer;
+				TheWorld_Utils::MemoryBuffer& normals = quadTree->getQuadrant()->getNormalsBuffer();
+				quadrantData.normalsBuffer = &normals;
+				TheWorld_Utils::MemoryBuffer& splatmap = quadTree->getQuadrant()->getSplatmapBuffer();
+				quadrantData.splatmapBuffer = &splatmap;
+				generateGlobalmap(quadTree, &quadrantData, &globalmap);
+				quadTree->getQuadrant()->unlockInternalData();
+			}
 		}
 
 		m_mapQuadToSave[pos] = "";
@@ -3894,10 +4473,14 @@ void GDN_TheWorld_Edit::editModeApplyTextures_2(QuadTree* quadTree)
 		quadTree->materialParamsNeedReset(true);
 
 		{
-			quadTree->getQuadrant()->getTerrainEdit()->setTextureNameForTerrainType(TheWorld_Utils::TerrainEdit::TextureType::lowElevation);
-			quadTree->getQuadrant()->getTerrainEdit()->setTextureNameForTerrainType(TheWorld_Utils::TerrainEdit::TextureType::highElevation);
-			quadTree->getQuadrant()->getTerrainEdit()->setTextureNameForTerrainType(TheWorld_Utils::TerrainEdit::TextureType::dirt);
-			quadTree->getQuadrant()->getTerrainEdit()->setTextureNameForTerrainType(TheWorld_Utils::TerrainEdit::TextureType::rocks);
+			if (strlen(quadTree->getQuadrant()->getTerrainEdit()->extraValues.lowElevationTexName_r) == 0)
+				quadTree->getQuadrant()->getTerrainEdit()->setTextureNameForTerrainType(TheWorld_Utils::TerrainEdit::TextureType::lowElevation);
+			if (strlen(quadTree->getQuadrant()->getTerrainEdit()->extraValues.highElevationTexName_g) == 0)
+				quadTree->getQuadrant()->getTerrainEdit()->setTextureNameForTerrainType(TheWorld_Utils::TerrainEdit::TextureType::highElevation);
+			if (strlen(quadTree->getQuadrant()->getTerrainEdit()->extraValues.dirtTexName_b) == 0)
+				quadTree->getQuadrant()->getTerrainEdit()->setTextureNameForTerrainType(TheWorld_Utils::TerrainEdit::TextureType::dirt);
+			if (strlen(quadTree->getQuadrant()->getTerrainEdit()->extraValues.rocksTexName_a) == 0)
+				quadTree->getQuadrant()->getTerrainEdit()->setTextureNameForTerrainType(TheWorld_Utils::TerrainEdit::TextureType::rocks);
 		}
 	}
 }

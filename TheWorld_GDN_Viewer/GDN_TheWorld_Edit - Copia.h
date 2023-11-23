@@ -2,7 +2,6 @@
 #include "Viewer_Utils.h"
 
 #pragma warning (push, 0)
-#include <godot_cpp/classes/v_box_container.hpp>
 #include <godot_cpp/classes/margin_container.hpp>
 #include <godot_cpp/classes/panel_container.hpp>
 #include <godot_cpp/classes/tab_container.hpp>
@@ -68,6 +67,7 @@ namespace godot
 								float minHeigth,
 								float maxHeigth,
 								size_t tileSize, size_t viewportBorder = 0);
+		void initForGlobalMap(QuadTree* quadtree, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData);
 		void deinit(void);
 		void startProcessing(void);
 		bool working(void);
@@ -85,6 +85,7 @@ namespace godot
 		const int32_t c_uninitialized = 0;
 		const int32_t c_initializedForNormals = 1;
 		const int32_t c_initializedForSplatmap = 2;
+		const int32_t c_initializedForGlobalmap = 3;
 		int32_t m_initialized = c_uninitialized;
 
 		bool m_startProcessingRequired = false;
@@ -92,6 +93,7 @@ namespace godot
 
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		GDN_TheWorld_Edit* m_edit = nullptr;
+		int32_t m_numProcessExecutions = 0;
 		size_t m_tileSize = 0;
 		size_t m_viewportBorder = 0;
 		size_t m_imageSize = 0;
@@ -106,8 +108,13 @@ namespace godot
 		float m_lowElevationFactor = 0;
 		float m_minHeigth = 0;
 		float m_maxHeigth = 0;
+		QuadTree* m_quadTree = nullptr;
+		TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* m_quadrantData;
 		godot::SubViewport* m_viewport = nullptr;
 		godot::Sprite2D* m_map = nullptr;
+		godot::MeshInstance3D* m_plane = nullptr;
+		godot::Camera3D* m_camera = nullptr;
+		godot::Vector3 m_displacementPlane;
 
 		const int16_t c_tileStatusWaiting = 0;
 		const int16_t c_tileStatusProcessing = 1;
@@ -228,7 +235,7 @@ namespace godot
 				m_dirtTexSelected = false;
 				m_rocksTexSelected = false;
 				m_onGoing = false;
-				m_mouseInsideMainPanel = false;
+				m_mouseInsideEditPanel = false;
 				m_slopeVerticalFactor = nullptr;
 				m_slopeFlatFactor = nullptr;
 				m_dirtOnRocksFactor = nullptr;
@@ -247,10 +254,10 @@ namespace godot
 
 			godot::Control* m_mainPanelContainer;
 			godot::Control* m_mainTabContainer;
-			godot::VBoxContainer* m_mainVBoxContainer = nullptr;
-			godot::VBoxContainer* m_mainFixedVBoxContainer = nullptr;
 			godot::ScrollContainer* m_mainTerrainScrollContainer;
-			godot::VBoxContainer* m_mainScrolledVBoxContainer = nullptr;
+			godot::Control* m_mainScrolledVBoxContainer = nullptr;
+			godot::Control* m_mainFixedVBoxContainer = nullptr;
+			godot::Label* m_dummyLabel = nullptr;
 
 			godot::Label* m_elapsedLabel;
 			godot::Label* m_elapsed1Label;
@@ -324,7 +331,7 @@ namespace godot
 
 			std::unique_ptr<SelTexturePanel> m_selTexturePanel;
 
-			bool m_mouseInsideMainPanel;
+			bool m_mouseInsideEditPanel;
 		};
 
 		enum Margin {
@@ -423,14 +430,17 @@ namespace godot
 			float highElevationFactor,	// if higher high elevation amount will be higher at lower altitude
 			float lowElevationFactor,	// if higher low elevation amount will be higher at higher altitude
 			size_t splatMapMode);
+		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
 
-		void manageUpdatedHeights(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer);
+		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer);
+		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
+		QuadTree* prepareHeightsForQuadrantBlend(QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
 
 		void setEmptyTerrainEditValues(void);
 		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
 
-		void editModeMouseEnteredMainPanel(void);
-		void editModeMouseExitedMainPanel(void);
+		void editModeMouseEnteredEditPanel(void);
+		void editModeMouseExitedEditPanel(void);
 		void setUIAcceptFocus(bool b);
 		bool UIAcceptingFocus(void);
 
@@ -494,6 +504,10 @@ namespace godot
 
 		void setMessage(std::string text, bool add = false);
 		void setMessage(godot::String text, bool add = false);
+		bool mouseInsideEditPanel(void)
+		{
+			return m_innerData->m_mouseInsideEditPanel;
+		}
 
 		//std::map<QuadrantPos, bool>& getMapQuadToSave(void)
 		//{
@@ -507,7 +521,7 @@ namespace godot
 			return m_viewer->Globals();
 		}
 
-		godot::Size2 getTerrainScrollPanelSize(void);
+		godot::Size2 getTerrainScrolledPanelSize(void);
 		size_t getNumWorkingThread(void)
 		{
 			size_t maxThreads;

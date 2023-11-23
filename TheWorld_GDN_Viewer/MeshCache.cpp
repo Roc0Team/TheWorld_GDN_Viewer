@@ -35,7 +35,10 @@ namespace godot
 
 			for (int idxLod = 0; idxLod < m_viewer->Globals()->numLods(); idxLod++)
 			{
-				m_meshCache[seams][idxLod] = makeFlatChunk(numVerticesPerChuckSide, idxLod, seams);
+				m_viewer->getMainProcessingMutex().lock();
+				float strideInWUs = m_viewer->Globals()->strideInWorldGridWUs(idxLod);
+				m_meshCache[seams][idxLod] = makeFlatChunk(numVerticesPerChuckSide, seams, strideInWUs);
+				m_viewer->getMainProcessingMutex().unlock();
 			}
 		}
 	}
@@ -53,11 +56,9 @@ namespace godot
 		m_meshCache.clear();
 	}
 
-	Ref<Mesh> MeshCache::makeFlatChunk(int numVerticesPerChuckSide, int idxLod, int seams)
+	Ref<Mesh> MeshCache::makeFlatChunk(int numVerticesPerChuckSide, int seams, float strideInWUs)
 	{
 		//	https://gist.github.com/bnolan/01a7d240774f1e02056d6607e5b621da
-
-		float strideInWUs = m_viewer->Globals()->strideInWorldGridWUs(idxLod);
 
 		// Determines the vertices in a flat mesh at the required lod using World Grid vertices: coordinates are expressed in WUs and are realtive to the lower vertex of the chunk
 		PackedVector3Array positions;
@@ -123,16 +124,16 @@ namespace godot
 		arrays[ArrayMesh::ARRAY_COLOR] = colors;
 		arrays[ArrayMesh::ARRAY_INDEX] = indices;
 
-		m_viewer->getMainProcessingMutex().lock();
+		//m_viewer->getMainProcessingMutex().lock();
 		Ref<ArrayMesh> mesh = memnew(ArrayMesh);
-		m_viewer->getMainProcessingMutex().unlock();
+		//m_viewer->getMainProcessingMutex().unlock();
 		int32_t surf_idx = mesh->get_surface_count();	// next surface added will have this surf_idx
 		mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
 
 		// Initial Material
-		m_viewer->getMainProcessingMutex().lock();
+		//m_viewer->getMainProcessingMutex().lock();
 		Ref<StandardMaterial3D> initialMaterial = memnew(StandardMaterial3D);
-		m_viewer->getMainProcessingMutex().unlock();
+		//m_viewer->getMainProcessingMutex().unlock();
 		initialMaterial->set_flag(BaseMaterial3D::Flags::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
 		initialMaterial->set_albedo(initialVertexColor);
 		mesh->surface_set_material(surf_idx, initialMaterial);

@@ -31,8 +31,9 @@ namespace godot
 		void initCache(int numVerticesPerChuckSide, int numLods);
 		Mesh* getMesh(int seams, int lod);
 
+		static Ref<Mesh> makeFlatChunk(int numVerticesPerChuckSide, int seams, float strideInWUs);
+
 	private:
-		Ref<Mesh> makeFlatChunk(int numVerticesPerChuckSide, int lod, int seams);
 		void resetCache(void);
 
 	private:

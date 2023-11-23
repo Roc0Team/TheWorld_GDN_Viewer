@@ -67,6 +67,7 @@ namespace godot
 								float minHeigth,
 								float maxHeigth,
 								size_t tileSize, size_t viewportBorder = 0);
+		void initForGlobalMap(QuadTree* quadtree, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData);
 		void deinit(void);
 		void startProcessing(void);
 		bool working(void);
@@ -84,6 +85,7 @@ namespace godot
 		const int32_t c_uninitialized = 0;
 		const int32_t c_initializedForNormals = 1;
 		const int32_t c_initializedForSplatmap = 2;
+		const int32_t c_initializedForGlobalmap = 3;
 		int32_t m_initialized = c_uninitialized;
 
 		bool m_startProcessingRequired = false;
@@ -91,6 +93,7 @@ namespace godot
 
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		GDN_TheWorld_Edit* m_edit = nullptr;
+		int32_t m_numProcessExecutions = 0;
 		size_t m_tileSize = 0;
 		size_t m_viewportBorder = 0;
 		size_t m_imageSize = 0;
@@ -105,8 +108,13 @@ namespace godot
 		float m_lowElevationFactor = 0;
 		float m_minHeigth = 0;
 		float m_maxHeigth = 0;
+		QuadTree* m_quadTree = nullptr;
+		TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* m_quadrantData;
 		godot::SubViewport* m_viewport = nullptr;
 		godot::Sprite2D* m_map = nullptr;
+		godot::MeshInstance3D* m_plane = nullptr;
+		godot::Camera3D* m_camera = nullptr;
+		godot::Vector3 m_displacementPlane;
 
 		const int16_t c_tileStatusWaiting = 0;
 		const int16_t c_tileStatusProcessing = 1;
@@ -422,6 +430,7 @@ namespace godot
 			float highElevationFactor,	// if higher high elevation amount will be higher at lower altitude
 			float lowElevationFactor,	// if higher low elevation amount will be higher at higher altitude
 			size_t splatMapMode);
+		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
 
 		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer);
 		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);

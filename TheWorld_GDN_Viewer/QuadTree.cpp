@@ -23,6 +23,7 @@
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/color_rect.hpp>
 #include <godot_cpp/classes/viewport_texture.hpp>
+#include <godot_cpp/classes/rendering_server.hpp>
 #pragma warning(pop)
 
 using namespace godot;
@@ -1563,6 +1564,36 @@ void ShaderTerrainData::releaseGlobals(void)
 	}
 
 	s_groundTextures.clear();
+}
+
+godot::Ref<godot::ImageTexture> ShaderTerrainData::getAlbedoBumpTexture(std::string textureName)
+{
+	std::recursive_mutex& viewerMainProcessingMutex = m_viewer->getMainProcessingMutex();
+	std::lock_guard<std::recursive_mutex> lock(viewerMainProcessingMutex);
+	
+	if (!s_groundTextures.contains(textureName) || !s_groundTextures[textureName]->initialized)
+	{
+		s_groundTextures[textureName] = std::make_unique<ShaderTerrainData::GroundTexture>();
+		ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[textureName].get();
+		getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
+	}
+
+	return s_groundTextures[textureName]->m_albedo_bump_tex;
+}
+
+godot::Ref<godot::ImageTexture> ShaderTerrainData::getNormalRoughnessTexture(std::string textureName)
+{
+	std::recursive_mutex& viewerMainProcessingMutex = m_viewer->getMainProcessingMutex();
+	std::lock_guard<std::recursive_mutex> lock(viewerMainProcessingMutex);
+
+	if (!s_groundTextures.contains(textureName) || !s_groundTextures[textureName]->initialized)
+	{
+		s_groundTextures[textureName] = std::make_unique<ShaderTerrainData::GroundTexture>();
+		ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[textureName].get();
+		getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
+	}
+
+	return s_groundTextures[textureName]->m_normal_roughness_tex;
 }
 
 // it is expected that globals and World Datas are loaded

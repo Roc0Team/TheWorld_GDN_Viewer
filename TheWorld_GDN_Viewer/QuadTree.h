@@ -586,6 +586,11 @@ namespace godot
 			return occupation;
 		}
 
+		std::string getCacheFilePath(void)
+		{
+			return m_cache.getCacheFilePath();
+		}
+
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
 
@@ -652,6 +657,7 @@ namespace godot
 #define SHADER_PARAM_INVERSE_TRANSFORM	"u_terrain_inverse_transform"
 #define SHADER_PARAM_NORMAL_BASIS		"u_terrain_normal_basis"
 #define SHADER_PARAM_GRID_STEP			"u_grid_step"
+#define SHADER_PARAM_FORCE_ELEVATION_0	"u_force_height_0"
 
 #define SHADER_PARAM_EDITMODE_SELECTED	"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT			"u_mouse_hit"
@@ -752,6 +758,9 @@ namespace godot
 		{
 			s_groundTexturesNeedProcessing = b;
 		}
+		godot::Ref<godot::ImageTexture> getAlbedoBumpTexture(std::string textureName);
+		godot::Ref<godot::ImageTexture> getNormalRoughnessTexture(std::string textureName);
+
 		void mouseHitChanged(godot::Vector2 mouseHit);
 
 	private:

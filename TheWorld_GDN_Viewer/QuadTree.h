@@ -23,8 +23,9 @@ namespace godot
 {
 	class GDN_TheWorld_Viewer;
 	class GDN_TheWorld_Quadrant;
-	class QuadTree;
-	class TerrainEdit;
+	class GDN_TheWorld_MapModder;
+	//class QuadTree;
+	//class TerrainEdit;
 
 	class QuadrantPos
 	{
@@ -378,7 +379,7 @@ namespace godot
 		{
 			if (m_colormapBuffer.empty() && reloadFromCache)
 			{
-				if (!getTerrainEdit()->extraValues.emptyColormap)
+				if (!getTerrainEdit()->extraValues.colormapNeedRegen)
 				{
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 					float minAltitude, maxAltitude;
@@ -392,7 +393,7 @@ namespace godot
 		{
 			if (m_globalmapBuffer.empty() && reloadFromCache)
 			{
-				if (!getTerrainEdit()->extraValues.emptyGlobalmap)
+				if (!getTerrainEdit()->extraValues.globalmapNeedRegen)
 				{
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 					float minAltitude, maxAltitude;
@@ -457,14 +458,14 @@ namespace godot
 		void resetColormapBuffer(void)
 		{
 			getColormapBuffer(false).clear();
-			getTerrainEdit()->extraValues.emptyColormap = true;
+			getTerrainEdit()->extraValues.colormapNeedRegen = true;
 			setColorsUpdated(true);
 		}
 
 		void resetGlobalmapBuffer(void)
 		{
 			getGlobalmapBuffer(false).clear();
-			getTerrainEdit()->extraValues.emptyGlobalmap = true;
+			getTerrainEdit()->extraValues.globalmapNeedRegen = true;
 			setGlobalmapUpdated(true);
 		}
 
@@ -488,14 +489,29 @@ namespace godot
 			return m_needUploadToServer;
 		}
 
-		void lockInternalData(void)
+		bool needSaveToCache(void);
+
+		bool lockInternalData(void)
 		{
-			m_internalDataLocked = true;
+			bool lockAcquired = false;
+			{
+				std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
+				if (!m_internalDataLocked)
+				{
+					m_internalDataLocked = true;
+					lockAcquired = true;
+				}
+			}
+			return lockAcquired;
 		}
 
 		void unlockInternalData(void)
 		{
-			m_internalDataLocked = false;
+			std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
+			if (m_internalDataLocked)
+				m_internalDataLocked = false;
+			else
+				m_internalDataLocked = false;
 		}
 
 		bool internalDataLocked()
@@ -567,7 +583,7 @@ namespace godot
 
 		void releaseTerrainValuesMemory(bool visible)
 		{
-			if (needUploadToServer() || internalDataLocked())
+			if (internalDataLocked() || needUploadToServer() || needSaveToCache())
 				return;
 			
 			if (!visible)
@@ -591,6 +607,15 @@ namespace godot
 			return m_cache.getCacheFilePath();
 		}
 
+		void process_mapModder(double _delta);
+
+		GDN_TheWorld_MapModder* getMapModder(void)
+		{
+			return m_mapModder;
+		}
+
+		void saveQuadrantToDiskCache(void);
+
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
 
@@ -604,7 +629,10 @@ namespace godot
 		std::unique_ptr<ShaderTerrainData> m_shaderTerrainData;
 		bool m_needUploadToServer;
 		bool m_internalDataLocked;
+		std::recursive_mutex m_mtxInternalData;
 		bool m_empty;
+
+		GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
 		// Terrain Values
 		std::string m_meshId;
@@ -740,8 +768,11 @@ namespace godot
 		}
 		void updateMaterialParams(LookDev lookdev);
 		Ref<Material> getRegularMaterial(bool reload = false);
+		void releaseRegularMaterial(void);
 		Ref<Material> getLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, bool reload = false);
+		void releaseLookDevMaterial(void);
 		std::map<int, godot::Ref<godot::ShaderMaterial>>& getLookDevChunkLodMaterials(void);
+		void releaseLookDevChunkLodMaterials(void);
 		godot::Ref<godot::Material> getLookDevChunkLodMaterial(int lod, bool reload = false);
 		static void freeLookDevSubViewport(void);
 		static void releaseGlobals(void);
@@ -770,6 +801,7 @@ namespace godot
 	private:
 		GDN_TheWorld_Viewer* m_viewer;
 		QuadTree* m_quadTree;
+
 		godot::Ref<godot::ShaderMaterial> m_regularMaterial;
 		godot::Ref<godot::ShaderMaterial> m_lookDevMaterial;
 		//static godot::SubViewport* g_lookDevSubviewport;

@@ -75,6 +75,7 @@ namespace godot
 
 	godot::Error GDN_TheWorld_Globals::connectSignal(godot::Node* node, godot::String nodeType, godot::String signal, godot::Object* callableObject, godot::String callableMethod, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
 	{
+		// parameters added to those inserted by the emit method
 		godot::Array args;
 		args.append(node);
 		args.append(signal);

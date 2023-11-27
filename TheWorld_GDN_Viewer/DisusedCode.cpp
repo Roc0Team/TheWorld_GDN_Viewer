@@ -22,3 +22,17 @@
 							//end = mouseHit + Vector3Back * lineSize;
 							//m_normalDrawer->drawLine(mouseHit, end);
 							//m_normalDrawer->drawSphere(end, radius, GDN_TheWorld_Globals::g_color_blue);
+
+				//TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData quadrantData;
+				//quadrantData.terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
+				//quadrantData.meshId = quadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
+				//quadrantData.minHeight = quadTree->getQuadrant()->getTerrainEdit()->minHeight;
+				//quadrantData.maxHeight = quadTree->getQuadrant()->getTerrainEdit()->maxHeight;
+				//TheWorld_Utils::MemoryBuffer& h16Buffer = quadTree->getQuadrant()->getFloat16HeightsBuffer();
+				//quadrantData.heights16Buffer = &h16Buffer;
+				//TheWorld_Utils::MemoryBuffer& h32Buffer = quadTree->getQuadrant()->getFloat32HeightsBuffer();
+				//quadrantData.heights32Buffer = &h32Buffer;
+				//TheWorld_Utils::MemoryBuffer& normals = quadTree->getQuadrant()->getNormalsBuffer();
+				//quadrantData.normalsBuffer = &normals;
+				//TheWorld_Utils::MemoryBuffer& splatmap = quadTree->getQuadrant()->getSplatmapBuffer();
+				//quadrantData.splatmapBuffer = &splatmap;

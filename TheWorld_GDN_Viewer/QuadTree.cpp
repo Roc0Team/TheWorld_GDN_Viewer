@@ -5,6 +5,7 @@
 #include "GDN_TheWorld_Globals.h"
 #include "GDN_TheWorld_Viewer.h"
 #include "GDN_TheWorld_Quadrant.h"
+#include "GDN_TheWorld_Edit.h"
 
 #include "Profiler.h"
 #include "half.h"
@@ -14,6 +15,7 @@
 #include <filesystem>
 
 #pragma warning(push, 0)
+#include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
@@ -826,6 +828,8 @@ void QuadTree::setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev,
 	getQuadrant()->setHeightsUpdated(true);
 	getQuadrant()->setNormalsUpdated(true);
 	getQuadrant()->setSplatmapUpdated(true);
+	getQuadrant()->setColorsUpdated(true);
+	getQuadrant()->setGlobalmapUpdated(true);
 
 	materialParamsNeedReset(true);
 	
@@ -851,11 +855,16 @@ void QuadTree::setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev,
 				}
 			}
 		}
+
+		getQuadrant()->getShaderTerrainData()->releaseRegularMaterial();
+		getQuadrant()->getShaderTerrainData()->releaseLookDevMaterial();
 	}
 	else
 	{
 		Chunk::SetMaterialChunkAction action(getQuadrant()->getShaderTerrainData()->getLookDevMaterial(lookDev, reload));
 		ForAllChunk(action);
+		getQuadrant()->getShaderTerrainData()->releaseRegularMaterial();
+		getQuadrant()->getShaderTerrainData()->releaseLookDevChunkLodMaterials();
 	}
 }
 
@@ -866,11 +875,16 @@ void QuadTree::setRegularMaterial(bool reload)
 	getQuadrant()->setHeightsUpdated(true);
 	getQuadrant()->setNormalsUpdated(true);
 	getQuadrant()->setSplatmapUpdated(true);
+	getQuadrant()->setColorsUpdated(true);
+	getQuadrant()->setGlobalmapUpdated(true);
 
 	Chunk::SetMaterialChunkAction action(getQuadrant()->getShaderTerrainData()->getRegularMaterial(reload));
 	ForAllChunk(action);
 
 	m_lookDev = ShaderTerrainData::LookDev::NotSet;
+
+	getQuadrant()->getShaderTerrainData()->releaseLookDevMaterial();
+	getQuadrant()->getShaderTerrainData()->releaseLookDevChunkLodMaterials();
 }
 
 Ref<Material> QuadTree::getCurrentMaterial(int lod)
@@ -906,9 +920,13 @@ bool QuadTree::resetMaterialParams(bool force)
 
 	if (force)
 	{
-		getQuadrant()->getShaderTerrainData()->resetMaterialParams(m_lookDev);
-		materialParamsNeedReset(false);
-		reset = true;
+		materialParamsNeedReset(true);
+		if (!getQuadrant()->internalDataLocked())
+		{
+			getQuadrant()->getShaderTerrainData()->resetMaterialParams(m_lookDev);
+			materialParamsNeedReset(false);
+			reset = true;
+		}
 	}
 	else if (materialParamsNeedReset() && !getQuadrant()->internalDataLocked())
 	{
@@ -1147,6 +1165,11 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularMaterial(bool reload)
 	return m_regularMaterial;
 }
 
+void ShaderTerrainData::releaseRegularMaterial(void)
+{
+	m_regularMaterial.unref();
+}
+
 void ShaderTerrainData::freeLookDevSubViewport(void)
 {
 	if (g_lookDevShaderTexture != nullptr)
@@ -1166,7 +1189,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevMaterial(enum class Sha
 		|| lookDev == ShaderTerrainData::LookDev::FlaringStar
 		|| lookDev == ShaderTerrainData::LookDev::AnimatedDiamond
 		|| lookDev == ShaderTerrainData::LookDev::PlasmaWaves)
-		{
+	{
 		if (g_lookDevShaderTexture == nullptr || reload)
 		{
 			freeLookDevSubViewport();
@@ -1226,9 +1249,22 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevMaterial(enum class Sha
 	return m_lookDevMaterial;
 }
 
+void ShaderTerrainData::releaseLookDevMaterial(void)
+{
+	m_lookDevMaterial.unref();
+}
+
 std::map<int, godot::Ref<godot::ShaderMaterial>>& ShaderTerrainData::getLookDevChunkLodMaterials(void)
 {
 	return m_lookDevChunkLodMaterials;
+}
+
+void ShaderTerrainData::releaseLookDevChunkLodMaterials(void)
+{
+	for (auto& item : m_lookDevChunkLodMaterials)
+	{
+		item.second.unref();
+	}
 }
 
 godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lod, bool reload)
@@ -1890,12 +1926,12 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 
 		if (colormapBufferSize == 0)
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Create empty Image for colors");
-			m_viewer->getMainProcessingMutex().lock();
-			godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGBA8);
-			m_viewer->getMainProcessingMutex().unlock();
-			image = im;
-			image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Create empty Image for colors");
+			//m_viewer->getMainProcessingMutex().lock();
+			//godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGBA8);
+			//m_viewer->getMainProcessingMutex().unlock();
+			//image = im;
+			//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
 		}
 		else
 		{
@@ -1914,6 +1950,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 			image = im;
 		}
 
+		if (image != nullptr)
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Create Texture from colormap image");
 
@@ -1925,9 +1962,9 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 			m_colorMapTexture = tex;
 			m_colorMapTexModified = true;
 			//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colorMapTexture);
-		}
 
-		image.unref();
+			image.unref();
+		}
 
 		m_quadTree->getQuadrant()->setColorsUpdated(false);
 	}
@@ -1941,12 +1978,12 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 
 		if (globalmapBufferSize == 0)
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Create empty Image for globalmap");
-			m_viewer->getMainProcessingMutex().lock();
-			godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
-			m_viewer->getMainProcessingMutex().unlock();
-			image = im;
-			image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Create empty Image for globalmap");
+			//m_viewer->getMainProcessingMutex().lock();
+			//godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
+			//m_viewer->getMainProcessingMutex().unlock();
+			//image = im;
+			//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
 		}
 		else
 		{
@@ -1965,6 +2002,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 			image = im;
 		}
 
+		if (image != nullptr)
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Create Texture from globalmap image");
 
@@ -1976,9 +2014,9 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 			m_globalMapTexture = tex;
 			m_globalMapTexModified = true;
 			//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colorMapTexture);
+			
+			image.unref();
 		}
-
-		image.unref();
 
 		m_quadTree->getQuadrant()->setGlobalmapUpdated(false);
 	}
@@ -2384,10 +2422,24 @@ Quadrant::Quadrant(QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTr
 	m_needUploadToServer = false;
 	m_internalDataLocked = false;
 	m_empty = true;
+
+	m_mapModder = memnew(GDN_TheWorld_MapModder);
+	m_mapModder->custom_ready(m_viewer, m_viewer, false);
+	godot::Error e = m_mapModder->connect("tw_modder_work_done", Callable(m_viewer, "quadrant_modder_work_done"));
+
 }
 
 Quadrant::~Quadrant()
 {
+	if (m_mapModder != nullptr)
+	{
+		Node* parent = m_mapModder->get_parent();
+		if (parent != nullptr)
+			parent->remove_child(m_mapModder);
+		m_mapModder->queue_free();
+		m_mapModder = nullptr;
+	}
+
 	//TheWorld_Viewer_Utils::TimerMs clock;
 	//clock.tick();
 	m_shaderTerrainData.reset();
@@ -2395,6 +2447,81 @@ Quadrant::~Quadrant()
 	m_terrainEdit.reset();
 	//clock.tock();
 	//godot::GDN_TheWorld_Globals::s_elapsed1 += clock.duration().count();
+}
+
+void Quadrant::process_mapModder(double _delta)
+{
+	if (m_mapModder == nullptr)
+		return;
+
+	if (m_mapModder->startProcessRequired())
+	{
+		m_mapModder->startProcessing();
+		//m_mapModder->startProcessRequired(false);
+	}
+
+	if (m_mapModder->deinitRequired())
+	{
+		m_mapModder->deinit();
+		//m_mapModder->deinitRequired(false);
+	}
+
+	m_mapModder->debug_process(_delta);
+
+	//if (GDN_TheWorld_MapModder::getNumWorking() > 0)
+	//	return;
+
+	if (internalDataLocked())
+		return;
+
+	if (m_quadTree->currentStatus() != QuadrantStatus::initialized)
+		return;
+
+	if (!m_quadTree->isValid())
+		return;
+
+	if (!m_quadTree->isVisible())
+		return;
+
+	if (!m_mapModder->ready())
+		return;
+
+	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
+
+	if (terrainEdit->normalsNeedRegen)
+	{
+		bool lockAcquired = lockInternalData();
+		if (lockAcquired)
+		{
+			m_mapModder->initForNormals(m_quadTree, &getFloat32HeightsBuffer(), 1024, 1, true);		// atm border = 0 will be the same
+		}
+		return;
+	}
+
+	if (terrainEdit->extraValues.splatmapNeedRegen)
+	{
+		bool lockAcquired = lockInternalData();
+		if (lockAcquired)
+		{
+			m_mapModder->initForSplatmap(m_quadTree, &getFloat32HeightsBuffer(), &getNormalsBuffer(), terrainEdit->extraValues.slopeVerticalFactor, terrainEdit->extraValues.slopeFlatFactor, terrainEdit->extraValues.dirtOnRocksFactor, terrainEdit->extraValues.highElevationFactor, terrainEdit->extraValues.lowElevationFactor, terrainEdit->minHeight, terrainEdit->maxHeight, 1024, true);
+		}
+		return;
+	}
+
+	//if (terrainEdit->extraValues.colormapNeedRegen)
+	//{
+	//	// TODO
+	//}
+
+	if (terrainEdit->extraValues.globalmapNeedRegen)
+	{
+		bool lockAcquired = lockInternalData();
+		if (lockAcquired)
+		{
+			m_mapModder->initForGlobalMap(m_quadTree, true);
+		}
+		return;
+	}
 }
 
 TheWorld_Utils::MeshCacheBuffer& Quadrant::getMeshCacheBuffer(void)
@@ -2435,6 +2562,46 @@ float Quadrant::getPosZFromHeigthmap(size_t index)
 {
 	size_t numStepsZAxis = size_t(index / m_quadrantPos.getNumVerticesPerSize());
 	return m_quadrantPos.getLowerZGridVertex() + numStepsZAxis * m_quadrantPos.getGridStepInWU();
+}
+
+void Quadrant::saveQuadrantToDiskCache(void)
+{
+	setNeedUploadToServer(true);
+	
+	TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
+	cacheQuadrantData.meshId = m_cache.getMeshId();
+	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
+	terrainEdit->needUploadToServer = true;
+	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer((BYTE*)terrainEdit, terrainEdit->size);
+	cacheQuadrantData.minHeight = terrainEdit->minHeight;
+	cacheQuadrantData.maxHeight = terrainEdit->maxHeight;
+	cacheQuadrantData.terrainEditValues = &terrainEditValuesBuffer;
+	cacheQuadrantData.heights16Buffer = &getFloat16HeightsBuffer(false);
+	cacheQuadrantData.heights32Buffer = &getFloat32HeightsBuffer(false);
+	cacheQuadrantData.normalsBuffer = &getNormalsBuffer(false);
+	cacheQuadrantData.splatmapBuffer = &getSplatmapBuffer(false);
+	cacheQuadrantData.colormapBuffer = &getColormapBuffer(false);
+	cacheQuadrantData.globalmapBuffer = &getGlobalmapBuffer(false);
+	QuadrantPos pos = getPos();
+	TheWorld_Utils::MemoryBuffer buffer;
+	m_cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
+	m_cache.writeBufferToDiskCache(buffer);
+}
+
+bool Quadrant::needSaveToCache(void)
+{
+	bool needToSave = false;
+
+	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
+	if (editModeUIControl != nullptr)
+	{
+		//editModeUIControl->eraseQuadToSave(pos);
+		QuadrantPos pos = getPos();
+		if (editModeUIControl->isQuadToSave(pos))
+			needToSave = true;
+	}
+
+	return needToSave;
 }
 
 godot::Vector3 Quadrant::getNormalFromNormalmap(size_t index, bool& ok)

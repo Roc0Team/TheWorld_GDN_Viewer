@@ -40,6 +40,9 @@ using namespace godot;
 
 namespace fs = std::filesystem;
 
+int32_t GDN_TheWorld_MapModder::s_numWorking = 0;
+std::recursive_mutex GDN_TheWorld_MapModder::s_mtxInternal;
+
 // TODO
 // . passare allo shader (nuova texture ?):
 //		- il numero dei vertici di un quad (u_num_vertices_per_chunk_side=32)
@@ -57,6 +60,1025 @@ namespace fs = std::filesystem;
 // World Node Local Coordinate System is the same as MapManager coordinate system
 // Viewer Node origin is in the lower corner (X and Z) of the vertex bitmap at altitude 0
 // Chunk and QuadTree coordinates are in Viewer Node local coordinate System
+
+void GDN_TheWorld_MapModder::_bind_methods()
+{
+	godot::ClassDB::bind_method(D_METHOD("frame_post_draw"), &GDN_TheWorld_MapModder::framePostDraw);
+
+	ADD_SIGNAL(godot::MethodInfo("tw_modder_work_done", godot::PropertyInfo(godot::Variant::INT, "map_type"), godot::PropertyInfo(godot::Variant::FLOAT, "x"), godot::PropertyInfo(godot::Variant::FLOAT, "z"), godot::PropertyInfo(godot::Variant::INT, "num_vertices_per_side"), godot::PropertyInfo(godot::Variant::INT, "level"), godot::PropertyInfo(godot::Variant::FLOAT, "grid_step")));
+}
+
+GDN_TheWorld_MapModder::GDN_TheWorld_MapModder()
+{
+}
+
+GDN_TheWorld_MapModder::~GDN_TheWorld_MapModder()
+{
+	deinit();
+
+	if (m_debugSprite != nullptr)
+	{
+		Node* parent = m_debugSprite->get_parent();
+		if (parent != nullptr)
+			parent->remove_child(m_debugSprite);
+		m_debugSprite->queue_free();
+		m_debugSprite = nullptr;
+	}
+}
+
+void GDN_TheWorld_MapModder::framePostDraw(void)
+{
+	m_frameAvailable = true;
+}
+
+void GDN_TheWorld_MapModder::initForNormals(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, size_t tileSize, size_t viewportBorder, bool signalRequired)
+{
+	my_assert(m_initialized == MapType::uninitialized);
+
+	if (m_initialized == MapType::uninitialized)
+	{
+		GDN_TheWorld_MapModder::incNumWorking();
+		
+		m_signalRequired = signalRequired;
+		m_quadTree = quadtree;
+		m_float32HeigthsBuffer = float32HeigthsBuffer;
+		m_numHeights = (size_t)sqrt(float(m_float32HeigthsBuffer->size() / sizeof(float)));
+		my_assert(size_t(pow((float)m_numHeights, 2) * sizeof(float)) == m_float32HeigthsBuffer->size());
+
+		m_tileSize = tileSize;
+		m_viewportBorder = viewportBorder;
+		deinitRequired(false);
+		m_initialized = MapType::initializedForNormals;
+
+		startProcessRequired(true);
+	}
+}
+
+void GDN_TheWorld_MapModder::initForSplatmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer,
+	float slopeVerticalFactor,
+	float slopeFlatFactor,
+	float dirtOnRocksFactor,
+	float highElevationFactor,
+	float lowElevationFactor,
+	float minHeigth,
+	float maxHeigth,
+	size_t tileSize, size_t viewportBorder, bool signalRequired)
+{
+	my_assert(m_initialized == MapType::uninitialized);
+
+	if (m_initialized == MapType::uninitialized)
+	{
+		GDN_TheWorld_MapModder::incNumWorking();
+		
+		m_signalRequired = signalRequired;
+		m_quadTree = quadtree;
+		m_float32HeigthsBuffer = float32HeigthsBuffer;
+		m_numHeights = (size_t)sqrt(float(m_float32HeigthsBuffer->size() / sizeof(float)));
+		my_assert(size_t(pow((float)m_numHeights, 2) * sizeof(float)) == m_float32HeigthsBuffer->size());
+		m_normalsBuffer = normalsBuffer;
+		m_numNormals = (size_t)sqrt(float(m_normalsBuffer->size() / sizeof(TheWorld_Utils::_RGB)));
+		my_assert(size_t(pow((float)m_numNormals, 2) * sizeof(TheWorld_Utils::_RGB)) == m_normalsBuffer->size());
+		my_assert(m_numNormals == 0 || m_numHeights == m_numNormals);
+		m_slopeVerticalFactor = slopeVerticalFactor;
+		m_slopeFlatFactor = slopeFlatFactor;
+		m_dirtOnRocksFactor = dirtOnRocksFactor;
+		m_highElevationFactor = highElevationFactor;
+		m_lowElevationFactor = lowElevationFactor;
+		m_tileSize = tileSize;
+		m_viewportBorder = viewportBorder;
+		m_minHeigth = minHeigth;
+		m_maxHeigth = maxHeigth;
+		deinitRequired(false);
+		m_initialized = MapType::initializedForSplatmap;
+
+		startProcessRequired(true);
+	}
+}
+
+void GDN_TheWorld_MapModder::initForGlobalMap(QuadTree* quadtree, bool signalRequired)
+{
+	my_assert(m_initialized == MapType::uninitialized);
+
+	if (m_initialized == MapType::uninitialized)
+	{
+		GDN_TheWorld_MapModder::incNumWorking();
+
+		m_signalRequired = signalRequired;
+		m_quadTree = quadtree;
+		deinitRequired(false);
+		m_tileSize = 512;
+		while (m_tileSize > m_viewer->Globals()->heightmapResolution())
+			m_tileSize /= 2;
+		//m_tileSize = m_viewer->Globals()->heightmapResolution();
+		m_viewportBorder = 0;
+		m_initialized = MapType::initializedForGlobalmap;
+		startProcessRequired(true);
+	}
+}
+
+bool GDN_TheWorld_MapModder::ready(void)
+{
+	if (working())
+		return false;
+
+	my_assert(m_initialized == MapType::uninitialized || deinitRequired());
+
+	if (m_initialized != MapType::uninitialized)
+		return false;
+
+	return true;
+}
+
+bool GDN_TheWorld_MapModder::working(void)
+{
+	if (startProcessRequired())
+		return true;
+
+	if (m_processingTile)
+		return true;
+
+	return workToDo();
+}
+
+bool GDN_TheWorld_MapModder::workToDo(void)
+{
+	if (m_tilesQueue.size() > 0)
+		return true;
+	else
+		return false;
+}
+
+TheWorld_Utils::MemoryBuffer* GDN_TheWorld_MapModder::getOutBuffer(void)
+{
+	TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1 ") + __FUNCTION__, "ALL");
+
+	if (!m_outImageValid)
+		return nullptr;
+
+	m_outBuffer.reset();
+	m_outBuffer = std::make_unique< TheWorld_Utils::MemoryBuffer>();
+
+	if (m_initialized == MapType::initializedForNormals)
+	{
+		godot::Image::Format outImageFormat = m_outImage->get_format();
+
+		// DEBUG CHECK DO NOT REMOVE
+		//{
+		//	float originalHeight, pongHeinght;
+		//	size_t numVerticesPerSize = m_viewer->Globals()->numVerticesPerQuadrantSize();
+		//	int32_t w = m_outImage->get_width();
+		//	int32_t h = m_outImage->get_height();
+		//	if (outImageFormat == godot::Image::FORMAT_RGBA8)	// debug pong shader which reply in each pixel exactly the heigth in input to the fragment
+		//	{	// for rgba8 must be set m_viewport->set_transparent_background(true);
+		//		godot::Ref<godot::Image> image = godot::Image::create_from_data(w, h, false, godot::Image::FORMAT_RF, m_outImage->get_data());
+		//		for (int x = 0; x < w; x++)
+		//			for (int y = 0; y < h; y++)
+		//			{
+		//				originalHeight = m_float32HeigthsBuffer->at<float>(x, y, numVerticesPerSize);
+		//				pongHeinght = image->get_pixel(x, y).r;
+		//			}
+		//	}
+		//}
+		// DEBUG CHECK DO NOT REMOVE
+
+		if (outImageFormat != godot::Image::FORMAT_RGB8)
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1.2 ") + __FUNCTION__, "convert format");
+			m_outImage->convert(godot::Image::FORMAT_RGB8);
+		}
+
+		{
+			// normals from shader are in format RGB8: shader calculate and pack them filling COLOR.rgb with values in the range 0.0/1.0 then the engine trasform them in sequences of three byte (first for r, second for g, third for b)
+			// multiplied by 255 ==> to have normals we have to divide each byte (integer in the range 0-255) by 255 obtaining three floats and unpack the relative vector of floats
+
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1.2 ") + __FUNCTION__, "copy normals out buffer");
+			godot::PackedByteArray data = m_outImage->get_data();
+			int64_t bufferSize = data.size();
+			m_outBuffer->reserve(bufferSize);
+			memcpy(m_outBuffer->ptr(), data.ptr(), bufferSize);
+			m_outBuffer->adjustSize(bufferSize);
+		}
+
+		// DEBUG CHECK DO NOT REMOVE
+		//{
+		//	godot::Color c;
+		//	float originalHeight;
+		//	size_t numVerticesPerSize = m_viewer->Globals()->numVerticesPerQuadrantSize();
+		//	int32_t w = m_outImage->get_width();
+		//	int32_t h = m_outImage->get_height();
+		//	for (int x = 0; x < w; x++)
+		//		for (int y = 0; y < h; y++)
+		//		{
+		//			originalHeight = m_float32HeigthsBuffer->at<float>(x, y, numVerticesPerSize);
+		//			c = m_outImage->get_pixel(x, y);	// packed normal 0.0-1.0
+		//			float normX, normY, normZ;
+		//			TheWorld_Utils::unpackNormal(c.r, c.g, c.b, normX, normY, normZ);	// unpacked normal 0.0-1.0
+		//			TheWorld_Utils::_RGB rgb = m_outBuffer->at<TheWorld_Utils::_RGB>(x, y, numVerticesPerSize);	// 0-255
+		//			float _normX, _normY, _normZ;
+		//			TheWorld_Utils::unpackNormal(float(rgb.r) / 255, float(rgb.g) / 255, float(rgb.b) / 255, _normX, _normY, _normZ);	// unpacked normal 0.0-1.0
+		//			my_assert(normX == _normX && normY == _normY && normZ == _normZ);
+		//		}
+		//}
+		// DEBUG CHECK DO NOT REMOVE
+	}
+	else if (m_initialized == MapType::initializedForSplatmap)
+	{
+		godot::Image::Format outImageFormat = m_outImage->get_format();
+		my_assert(outImageFormat == godot::Image::FORMAT_RGBA8);
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1.2 ") + __FUNCTION__, "copy splatmap out buffer");
+			godot::PackedByteArray data = m_outImage->get_data();
+			int64_t bufferSize = data.size();
+			m_outBuffer->reserve(bufferSize);
+			memcpy(m_outBuffer->ptr(), data.ptr(), bufferSize);
+			m_outBuffer->adjustSize(bufferSize);
+		}
+	}
+	else if (m_initialized == MapType::initializedForGlobalmap)
+	{
+		godot::Image::Format outImageFormat = m_outImage->get_format();
+
+		if (m_debugSprite != nullptr)
+		{
+			std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".globalmap.png";
+			m_outImage->save_png(outFileName.c_str());
+		}
+
+		if (outImageFormat != godot::Image::FORMAT_RGB8)
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1.2 ") + __FUNCTION__, "convert format");
+			m_outImage->convert(godot::Image::FORMAT_RGB8);
+		}
+
+		{
+			// global map is an ALBEDO map so color in format RGB
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder getOutBuffer 1.2 ") + __FUNCTION__, "copy globalmap out buffer");
+			godot::PackedByteArray data = m_outImage->get_data();
+			int64_t bufferSize = data.size();
+			m_outBuffer->reserve(bufferSize);
+			memcpy(m_outBuffer->ptr(), data.ptr(), bufferSize);
+			m_outBuffer->adjustSize(bufferSize);
+		}
+	}
+
+	return m_outBuffer.get();
+}
+
+void GDN_TheWorld_MapModder::startProcessing(void)
+{
+	TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1 ") + __FUNCTION__, "ALL");
+
+	//if (m_initialized == MapType::uninitialized)
+	my_assert(!(m_initialized == MapType::uninitialized));
+
+	set_process(false);
+
+	// clear
+	m_tiles.clear();
+	std::queue<godot::Vector2i> empty;
+	std::swap(m_tilesQueue, empty);
+	m_processingTile = false;
+
+	godot::Node* parent = get_parent();
+	if (parent != nullptr)
+		parent->remove_child(this);
+	m_parent->add_child(this);
+	my_assert(is_inside_tree());
+
+	m_viewport = memnew(godot::SubViewport);
+	add_child(m_viewport);
+	m_viewport->set_clear_mode(godot::SubViewport::ClearMode::CLEAR_MODE_ALWAYS);
+	godot::Ref<godot::World3D> w = memnew(godot::World3D);
+	m_viewport->set_world_3d(w);
+	m_viewport->set_use_own_world_3d(true);
+	if (m_initialized == MapType::initializedForGlobalmap)
+	{
+		m_viewport->set_size(godot::Vector2i(int32_t(m_tileSize + 1), int32_t(m_tileSize + 1)));
+		m_viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_ALWAYS);
+		m_viewport->set_debug_draw(godot::Viewport::DebugDraw::DEBUG_DRAW_UNSHADED);
+
+		// assume square buffer
+		m_imageSize = (size_t)sqrt(float(m_quadTree->getQuadrant()->getFloat32HeightsBuffer().size() / sizeof(float)));
+		my_assert(size_t(pow((float)m_imageSize, 2) * sizeof(float)) == m_quadTree->getQuadrant()->getFloat32HeightsBuffer().size());	// verify buffer is square
+	}
+	else
+	{
+		m_viewport->set_size(godot::Vector2i(int32_t(m_tileSize + m_viewportBorder * 2), int32_t(m_tileSize + m_viewportBorder * 2)));
+		m_viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_DISABLED);
+		m_map = memnew(godot::Sprite2D);
+		m_map->set_centered(false);
+		m_viewport->add_child(m_map);
+
+		// assume square buffer
+		m_imageSize = (size_t)sqrt(float(m_float32HeigthsBuffer->size() / sizeof(float)));
+		my_assert(size_t(pow((float)m_imageSize, 2) * sizeof(float)) == m_float32HeigthsBuffer->size());	// verify buffer is square
+		my_assert(m_imageSize / m_tileSize * m_tileSize == m_imageSize - 1);								// verify tile can cover all the image with the exception of the left/botton border
+	}
+
+	godot::RenderingServer* vs = godot::RenderingServer::get_singleton();
+	godot::Error e = vs->connect("frame_post_draw", Callable(this, "frame_post_draw"));
+
+	godot::Vector2i viewportSize = m_viewport->get_size();
+	my_assert(viewportSize.x == viewportSize.y);
+	my_assert(m_imageSize >= viewportSize.x);
+
+	size_t numFullTiles = (size_t)std::floor(float(m_imageSize) / float(m_tileSize));
+
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.1 ") + __FUNCTION__, "Put tiles in queue");
+
+		for (int y = 0; y < numFullTiles; y++)
+			for (int x = 0; x < numFullTiles; x++)
+			{
+				godot::Vector2i tilePos(x, y);
+				if (m_tiles.contains(tilePos) && m_tiles[tilePos] == c_tileStatusWaiting)
+					continue;
+				else
+				{
+					m_tiles[tilePos] = c_tileStatusWaiting;
+					m_tilesQueue.push(tilePos);
+				}
+			}
+	}
+
+	if (m_initialized != MapType::initializedForGlobalmap)
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.2 ") + __FUNCTION__, "Create Image/Texture from heights buffer");
+
+		godot::PackedByteArray data;
+		data.resize((int64_t)m_float32HeigthsBuffer->size());
+		{
+			memcpy((char*)data.ptrw(), m_float32HeigthsBuffer->ptr(), m_float32HeigthsBuffer->size());
+		}
+		godot::Ref<godot::Image> image = godot::Image::create_from_data((int32_t)m_imageSize, (int32_t)m_imageSize, false, Image::FORMAT_RF, data);
+		// DEBUG
+		//{
+		//	int32_t x = 0, y = 0;
+		//	Color c = image->get_pixel(x, y);
+		//	size_t numVerticesPerSize = m_viewer->Globals()->numVerticesPerQuadrantSize();
+		//	float height = m_float32HeigthsBuffer->at<float>(x, y, numVerticesPerSize);
+		//	int i = 0;
+		//}
+		// DEBUG
+
+		Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+		//godot::Ref<godot::ImageTexture> heigthTexture;
+		//heigthTexture = tex;
+		//m_map->set_texture(heigthTexture);
+		m_map->set_texture(tex);
+	}
+
+	if (m_initialized == MapType::initializedForNormals)
+	{
+		//m_viewport->set_transparent_background(true);		// needed to have output texture RGBA8
+
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.3 ") + __FUNCTION__, "Normals Material stuff");
+
+			godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
+			godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
+			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2normal.gdshader", "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+			mat->set_shader(shader);
+			float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+			mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+			m_map->set_material(mat);
+		}
+	}
+	else if (m_initialized == MapType::initializedForSplatmap)
+	{
+		m_viewport->set_transparent_background(true);		// needed to have output texture RGBA8
+
+		godot::Ref<godot::ImageTexture> normalTexture;
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.4 ") + __FUNCTION__, "Create Image/Texture from normals buffer");
+			godot::PackedByteArray data;
+			data.resize((int)m_normalsBuffer->size());
+			{
+				memcpy((char*)data.ptrw(), m_normalsBuffer->ptr(), m_normalsBuffer->size());
+			}
+			godot::Ref<godot::Image> image = godot::Image::create_from_data(int32_t(m_imageSize), int32_t(m_imageSize), false, Image::FORMAT_RGB8, data);
+			godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+			normalTexture = tex;
+		}
+
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.5 ") + __FUNCTION__, "splatmap Material stuff");
+
+			godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
+			godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
+			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader", "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+			mat->set_shader(shader);
+			float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+			mat->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, normalTexture);
+			mat->set_shader_parameter(SHADER_PARAM_SLOPE_VERTICAL_FACTOR, m_slopeVerticalFactor);
+			mat->set_shader_parameter(SHADER_PARAM_SLOPE_FLAT_FACTOR, m_slopeFlatFactor);
+			mat->set_shader_parameter(SHADER_PARAM_DIRT_ON_ROCKS_FACTOR, m_dirtOnRocksFactor);
+			mat->set_shader_parameter(SHADER_PARAM_HIGH_ELEVATION_FACTOR, m_highElevationFactor);
+			mat->set_shader_parameter(SHADER_PARAM_LOW_ELEVATION_FACTOR, m_lowElevationFactor);
+			mat->set_shader_parameter(SHADER_PARAM_MIN_HEIGHT, m_minHeigth);
+			mat->set_shader_parameter(SHADER_PARAM_MAX_HEIGHT, m_maxHeigth);
+			mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+			m_map->set_material(mat);
+		}
+	}
+	else if (m_initialized == MapType::initializedForGlobalmap)
+	{
+		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.6 ") + __FUNCTION__, "globalmap generating mesh");
+
+			m_plane = memnew(godot::MeshInstance3D);
+			m_viewport->add_child(m_plane);
+
+			{
+				const int32_t planeResolution = (int32_t)m_tileSize;
+				godot::Ref<godot::Mesh> mesh = MeshCache::makeFlatChunk(planeResolution, 0, float(m_tileSize / planeResolution) * gridStepInWU);
+				//const int32_t planeResolution = 16;	// WARNING: redicing number of vertices result will result very imprecise becasue, for optimizing normal viewport, splatmap is fetched in vertex shader rather than
+														// in fragment shader (less time) but for this reason splatmap values will result from an interpolation of real splatmap values being very imprecise
+														// caluclating globalmap we need more precise calculation of splatmap values so, to use same shader, we have to increment the number of vertices to reduce interpolation effects
+				//godot::Ref<godot::Mesh> mesh = MeshCache::makeFlatChunk(planeResolution, 0, float(m_imageSize / planeResolution) * gridStepInWU);
+				m_displacementPlane = Vector3(0.0f, 0.0f, 0.0f) * gridStepInWU;
+				m_plane->set_mesh(mesh);
+			}
+
+			m_camera = memnew(godot::Camera3D);
+			//m_camera->set_projection(godot::Camera3D::ProjectionType::PROJECTION_ORTHOGONAL);
+			m_camera->set_projection(godot::Camera3D::ProjectionType::PROJECTION_PERSPECTIVE);
+			godot::Vector2i viewportSize = m_viewport->get_size();
+			m_camera->set_size(viewportSize.x);
+			m_camera->set_near(0.1f);
+			m_camera->set_far(20000.0f);
+			m_camera->set_current(true);
+			m_camera->set_rotation(godot::Vector3(-TheWorld_Utils::kPi / 2, 0, 0));
+			m_viewport->add_child(m_camera);
+		}
+
+		godot::Ref<godot::Material> planeMaterial;
+
+		//int shaderType = 0;		// StandardMaterial3D
+		//int shaderType = 1;		// LookDev
+		int shaderType = 2;		// Regular
+
+		//if (shaderType == 0)
+		//{
+		//	godot::Ref<godot::StandardMaterial3D> material = memnew(godot::StandardMaterial3D);
+		//	material->set_albedo(godot::Color(0.0f, 1.0f, 0.0f));
+		//	planeMaterial = material;
+		//}
+		//else if (shaderType == 1)
+		//{
+		//	godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getLookDevMaterial(ShaderTerrainData::LookDev::Splat);		// SHADER_PARAM_LOOKDEV_MAP
+		//	godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
+		//	material->set_shader(currentMaterial->get_shader());
+
+		//	int numVerticesPerQuadrantSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
+
+		//	{
+		//		size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
+		//		godot::PackedByteArray data;
+		//		size_t heightmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
+		//		data.resize((int)heightmapBufferSizeInBytes);
+		//		size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
+		//		assert(heightmapBufferSizeInBytes == heightsBufferSize);
+		//		{
+		//			memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
+		//		}
+		//		godot::Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RH, data);
+		//		// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+		//		//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+		//		Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+		//		material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, tex);
+		//	}
+
+		//	{
+		//		godot::Ref<godot::Image> image;
+		//		size_t normalsBufferSize = 0;
+		//		normalsBufferSize = m_quadTree->getQuadrant()->getNormalsBuffer().size();
+		//		if (normalsBufferSize == 0)
+		//		{
+		//			godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::FORMAT_RGB8);
+		//			image->fill(godot::Color(0, 0, 0, 1.0));
+		//			image = im;
+		//		}
+		//		else
+		//		{
+		//			godot::PackedByteArray data;
+		//			size_t normalmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
+		//			data.resize((int)normalmapBufferSizeInBytes);
+		//			assert(normalmapBufferSizeInBytes == normalsBufferSize);
+		//			{
+		//				memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getNormalsBuffer().ptr(), normalsBufferSize);
+		//			}
+		//			godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGB8, data);
+		//			image = im;
+		//		}
+		//		// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+		//		//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+		//		Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+		//		material->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, tex);
+		//	}
+
+		//	{
+		//		Ref<godot::Image> image;
+		//		size_t splatmapBufferSize = 0;
+		//		splatmapBufferSize = m_quadTree->getQuadrant()->getSplatmapBuffer().size();
+		//		if (splatmapBufferSize == 0)
+		//		{
+		//			Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::FORMAT_RGBA8);
+		//			image = im;
+		//			image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
+		//		}
+		//		else
+		//		{
+		//			godot::PackedByteArray data;
+		//			size_t splatmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+		//			data.resize((int)splatmapBufferSizeInBytes);
+		//			assert(splatmapBufferSizeInBytes == splatmapBufferSize);
+		//			{
+		//				memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getSplatmapBuffer().ptr(), splatmapBufferSizeInBytes);
+		//			}
+		//			Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8, data);
+		//			image = im;
+		//			//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
+		//			//image->save_png(outFileName.c_str());
+		//		}
+		//		Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+		//		material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
+		//	}
+
+		//	godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
+		//	godot::Variant inverseTransform = t.affine_inverse();
+		//	material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
+		//	Basis normalBasis = t.basis.inverse().transposed();
+		//	material->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
+		//	material->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+		//	material->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, true);
+		//	//material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+		//	//material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+		//	//material->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
+
+		//	planeMaterial = material;
+		//}
+		//else if (shaderType == 2)
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.7 ") + __FUNCTION__, "globalmap Material stuff");
+
+			TheWorld_Utils::TerrainEdit* terrainEdit = m_quadTree->getQuadrant()->getTerrainEdit();
+
+			godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getRegularMaterial();
+			//godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getLookDevMaterial(ShaderTerrainData::LookDev::Splat);		// SHADER_PARAM_LOOKDEV_MAP
+			godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
+			material->set_shader(currentMaterial->get_shader());
+
+			//{
+			//	godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
+			//	//godot::TypedArray<godot:Dictionary> params = 
+			//	godot::RID rid = currentMaterial->get_shader()->get_rid();
+			//	godot::TypedArray<godot::Dictionary> params = rs->get_shader_parameter_list(rid);
+			//	int64_t size = params.size();
+			//	for (int i = 0; i < size; i++)
+			//	{
+			//		//std::string paramName = String(params[i].get("name")).utf8().get_data();
+			//		godot::PackedByteArray array = String(params[i].get("name")).to_ascii_buffer();
+			//		std::string paramName((char*)array.ptr(), array.size());
+			//		godot::Variant v = currentMaterial->get_shader_parameter(paramName.c_str());
+			//		material->set_shader_parameter(paramName.c_str(), v);
+			//	}
+
+			//	godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
+			//	godot::Variant inverseTransform = t.affine_inverse();
+			//	material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
+			//	material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			//	material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+			//}
+
+			material->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+			material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+			material->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
+			godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
+			godot::Variant inverseTransform = t.affine_inverse();
+			material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
+			Basis normalBasis = t.basis.inverse().transposed();
+			material->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
+
+			std::string lowElevationTexName = terrainEdit->extraValues.lowElevationTexName_r;
+			if (lowElevationTexName.size() > 0)
+			{
+				godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(lowElevationTexName);
+				if (lowElevation_albedo_bump_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
+
+				godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(lowElevationTexName);
+				if (lowElevation_normal_roughness_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
+			}
+			std::string highElevationTexName = terrainEdit->extraValues.highElevationTexName_g;
+			if (highElevationTexName.size() > 0)
+			{
+				godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(highElevationTexName);
+				if (highElevation_albedo_bump_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
+
+				godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(highElevationTexName);
+				if (highElevation_normal_roughness_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
+			}
+			std::string dirtTexName = terrainEdit->extraValues.dirtTexName_b;
+			if (dirtTexName.size() > 0)
+			{
+				godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(dirtTexName);
+				if (dirt_albedo_bump_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
+
+				godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(dirtTexName);
+				if (dirt_normal_roughness_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
+			}
+			std::string rocksTexName = terrainEdit->extraValues.rocksTexName_a;
+			if (rocksTexName.size() > 0)
+			{
+				godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(rocksTexName);
+				if (rocks_albedo_bump_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
+
+				godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(rocksTexName);
+				if (rocks_normal_roughness_tex != nullptr)
+					material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
+			}
+
+			int numVerticesPerQuadrantSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
+
+			{
+				size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
+				godot::PackedByteArray data;
+				size_t heightmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
+				data.resize((int)heightmapBufferSizeInBytes);
+				size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
+				assert(heightmapBufferSizeInBytes == heightsBufferSize);
+				{
+					memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
+				}
+				godot::Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RH, data);
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, tex);
+			}
+
+			{
+				godot::Ref<godot::Image> image;
+				size_t normalsBufferSize = 0;
+				normalsBufferSize = m_quadTree->getQuadrant()->getNormalsBuffer().size();
+				if (normalsBufferSize == 0)
+				{
+					godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::FORMAT_RGB8);
+					image = im;
+					image->fill(godot::Color(0, 0, 0, 1.0));
+				}
+				else
+				{
+					godot::PackedByteArray data;
+					size_t normalmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
+					data.resize((int)normalmapBufferSizeInBytes);
+					assert(normalmapBufferSizeInBytes == normalsBufferSize);
+					{
+						memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getNormalsBuffer().ptr(), normalsBufferSize);
+					}
+					godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGB8, data);
+					image = im;
+				}
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, tex);
+			}
+
+			{
+				godot::Ref<godot::Image> image;
+
+				size_t splatmapBufferSize = 0;
+				splatmapBufferSize = m_quadTree->getQuadrant()->getSplatmapBuffer().size();
+				if (splatmapBufferSize == 0)
+				{
+					Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::FORMAT_RGBA8);
+					image = im;
+					image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
+				}
+				else
+				{
+					godot::PackedByteArray data;
+					size_t splatmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+					data.resize((int)splatmapBufferSizeInBytes);
+					assert(splatmapBufferSizeInBytes == splatmapBufferSize);
+					{
+						memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getSplatmapBuffer().ptr(), splatmapBufferSizeInBytes);
+					}
+					Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8, data);
+					image = im;
+					//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
+					//image->save_png(outFileName.c_str());
+				}
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, tex);
+				//material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
+			}
+
+			{
+				Ref<Image> image;
+				size_t colormapBufferSize = 0;
+				colormapBufferSize = m_quadTree->getQuadrant()->getColormapBuffer().size();
+				if (colormapBufferSize == 0)
+				{
+					godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8);
+					image = im;
+					image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+				}
+				else
+				{
+					godot::PackedByteArray data;
+					size_t colormapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+					data.resize((int)colormapBufferSizeInBytes);
+					assert(colormapBufferSizeInBytes == colormapBufferSize);
+					{
+						memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getColormapBuffer().ptr(), colormapBufferSizeInBytes);
+					}
+					godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, Image::FORMAT_RGBA8, data);
+					image = im;
+				}
+				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				material->set_shader_parameter(SHADER_PARAM_TERRAIN_COLORMAP, tex);
+			}
+
+			material->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, godot::Plane(200.0f, 200.0f, 200.0f, 200.0f));
+			material->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, true);
+			material->set_shader_parameter(SHADER_PARAM_TRIPLANAR, false);
+			material->set_shader_parameter(SHADER_PARAM_TILE_REDUCTION_PER_TEXTURE, godot::Plane(0.0f, 0.0f, 0.0f, 0.0f));	// disabled for every texture
+			material->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_START, 0);
+			material->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_DISTANCE, 0);	// Disable use of globalmap
+			material->set_shader_parameter(SHADER_PARAM_COLORMAP_OPACITY_PER_TEXTURE, godot::Plane(1.0f, 1.0f, 1.0f, 1.0f));	// Notset
+			material->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, true);
+
+			planeMaterial = material;
+		}
+
+		m_plane->set_material_override(planeMaterial);
+	}
+
+	if (m_debugSprite != nullptr)
+	{
+		m_debugSprite->set_texture(m_viewport->get_texture());
+		m_debugSprite->set_position(m_debugSprite->get_texture()->get_size() / 2);
+	}
+
+	set_process(true);
+	m_numProcessExecutions = 0;
+	startProcessRequired(false);
+}
+
+void GDN_TheWorld_MapModder::deinit(void)
+{
+	if (m_initialized != MapType::uninitialized)
+	{
+		godot::RenderingServer* vs = godot::RenderingServer::get_singleton();
+		if (vs->is_connected("frame_post_draw", Callable(this, "frame_post_draw")))
+			vs->disconnect("frame_post_draw", Callable(this, "frame_post_draw"));
+
+		set_process(false);
+
+		m_outImageValid = false;
+
+		// clear
+		m_tiles.clear();
+		std::queue<godot::Vector2i> empty;
+		std::swap(m_tilesQueue, empty);
+		m_processingTile = false;
+
+		if (m_debugSprite != nullptr)
+			m_debugSprite->set_texture(nullptr);
+
+		Node* parent = m_viewport->get_parent();
+		if (parent != nullptr)
+			parent->remove_child(m_viewport);
+		m_viewport->queue_free();
+		m_viewport = nullptr;
+		m_map = nullptr;
+		m_plane = nullptr;
+		m_camera = nullptr;
+
+		deinitRequired(false);
+		startProcessRequired(false);
+
+		GDN_TheWorld_MapModder::decNumWorking();
+
+		m_initialized = MapType::uninitialized;
+	}
+}
+
+void GDN_TheWorld_MapModder::startProcessRequired(bool b)
+{
+	m_startProcessingRequired = b;
+}
+
+bool GDN_TheWorld_MapModder::startProcessRequired(void)
+{
+	return m_startProcessingRequired;
+}
+
+void GDN_TheWorld_MapModder::deinitRequired(bool b)
+{
+	m_deinitRequired = b;
+}
+
+bool GDN_TheWorld_MapModder::deinitRequired(void)
+{
+	return m_deinitRequired;
+}
+
+void GDN_TheWorld_MapModder::_notification(int p_what)
+{
+}
+
+void GDN_TheWorld_MapModder::_ready(void)
+{
+}
+
+void GDN_TheWorld_MapModder::custom_ready(GDN_TheWorld_Viewer* viewer, Node* parent, bool debug)
+{
+	m_viewer = viewer;
+	m_parent = parent;
+
+	if (m_debugSprite == nullptr && debug)
+	{
+		m_debugSprite = memnew(godot::Sprite2D);
+		m_viewer->add_child(m_debugSprite);
+	}
+
+	//{
+	//	const int32_t c_viewportSize = 512;
+
+	//	godot::SubViewport*  viewport = memnew(godot::SubViewport);
+	//	m_viewer->add_child(viewport);
+	//	viewport->set_clear_mode(godot::SubViewport::ClearMode::CLEAR_MODE_ALWAYS);
+	//	godot::Ref<godot::World3D> w = memnew(godot::World3D);
+	//	viewport->set_world_3d(w);
+	//	viewport->set_use_own_world_3d(true);
+
+	//	viewport->set_size(godot::Vector2i(int32_t(c_viewportSize + 1), int32_t(c_viewportSize + 1)));
+	//	viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_ALWAYS);
+	//	viewport->set_debug_draw(godot::Viewport::DebugDraw::DEBUG_DRAW_UNSHADED);
+
+	//	godot::Ref<godot::StandardMaterial3D> stdMat = memnew(godot::StandardMaterial3D);
+	//	stdMat->set_albedo(godot::Color(0.0f, 1.0f, 0.0f));
+
+	//	godot::Ref<godot::PlaneMesh> mesh = memnew(godot::PlaneMesh);
+	//	mesh->set_size(godot::Vector2((float)c_viewportSize, (float)c_viewportSize));
+	//	mesh->set_subdivide_depth(3);
+	//	mesh->set_subdivide_width(3);
+
+	//	godot::MeshInstance3D* plane = memnew(godot::MeshInstance3D);
+	//	plane->set_material_override(stdMat);
+	//	plane->set_mesh(mesh);
+	//	viewport->add_child(plane);
+
+	//	godot::Camera3D* camera = memnew(godot::Camera3D);
+	//	camera->set_projection(godot::Camera3D::ProjectionType::PROJECTION_ORTHOGONAL);
+	//	godot::Vector2i viewportSize = viewport->get_size();
+	//	camera->set_size(viewportSize.x);
+	//	camera->set_near(0.1f);
+	//	camera->set_far(10.0f);
+	//	camera->set_current(true);
+	//	camera->set_rotation(godot::Vector3(-TheWorld_Utils::kPi/2, 0, 0));
+	//	viewport->add_child(camera);
+
+	//	camera->set_position(godot::Vector3(0.0f, 2.0f, 0.0f));
+
+	//	godot::Sprite2D* sprite = memnew(godot::Sprite2D);
+	//	m_viewer->add_child(sprite);
+	//	sprite->set_position(godot::Vector2(256 + 512 * 2, 256));
+	//	sprite->set_texture(viewport->get_texture());
+	//}
+}
+
+void GDN_TheWorld_MapModder::debug_process(double _delta)
+{
+	{
+		if (m_debugSprite != nullptr)
+		{
+			if (m_viewer->editMode())
+				m_debugSprite->set_visible(true);
+			else
+				m_debugSprite->set_visible(false);
+		}
+	}
+}
+
+void GDN_TheWorld_MapModder::_process(double _delta)
+{
+	if (!is_processing())
+		return;
+
+	m_numProcessExecutions++;
+
+	if (m_processingTile && m_frameAvailable)
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("MapModder _process 1 ") + __FUNCTION__, "Processing tile");
+
+		// DEBUG
+		//godot::Ref<godot::ViewportTexture> viewportTexture = m_viewport->get_texture();
+		//bool b = viewportTexture->has_alpha();
+		//godot::Ref<godot::Image> viewportImageTexture = viewportTexture->get_image();
+		//godot::Image::Format viewportImageTextureFormat = viewportImageTexture->get_format();
+		//godot::Vector2i size = viewportImageTexture->get_size();
+		// DEBUG
+
+		godot::Ref<godot::Image> viewportImage = m_viewport->get_texture()->get_image();
+		godot::Image::Format viewportImageFormat = viewportImage->get_format();
+
+		//if (m_initialized == MapType::initializedForGlobalmap)
+		//{
+		//	godot::Vector2i pos = m_currentTile * (int32_t)m_tileSize; 
+		//	std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.process_" + std::to_string(m_numProcessExecutions) + "_" + std::to_string(pos.x) + "_" + std::to_string(pos.y) + ".png";
+		//	viewportImage->save_png(outFileName.c_str());
+		//}
+
+		// DEBUG
+		//{
+		//	int32_t x = (int32_t)m_viewportBorder, y = (int32_t)m_viewportBorder;
+		//	Color c = viewportImage->get_pixel(x, y);
+		//	size_t numVerticesPerSize = m_viewer->Globals()->numVerticesPerQuadrantSize();
+		//	float height = m_float32HeigthsBuffer->at<float>(x, y, numVerticesPerSize);
+		//}
+		// DEBUG
+
+		if (m_outImage == nullptr || !m_outImageValid)
+		{
+			godot::Ref<godot::Image> im = godot::Image::create((int32_t)m_imageSize, (int32_t)m_imageSize, false, viewportImageFormat);
+			m_outImage = im;
+			m_outImageValid = true;
+		}
+
+		godot::Vector2i pos = m_currentTile * (int32_t)m_tileSize;
+		int32_t w = viewportImage->get_width();
+		int32_t h = viewportImage->get_height();
+		// pixels on border (border size = m_viewportBorder) are colculated but are ignored as they exceed the tile
+		m_outImage->blit_rect(viewportImage, godot::Rect2i((int32_t)m_viewportBorder, (int32_t)m_viewportBorder, w - (int32_t)m_viewportBorder, h - (int32_t)m_viewportBorder), pos);
+
+		if (m_tiles.contains(m_currentTile) && m_tiles[m_currentTile] == c_tileStatusProcessing)
+			m_tiles.erase(m_currentTile);
+
+		m_processingTile = false;
+		m_frameAvailable = false;
+	}
+
+	if (!m_processingTile)
+	{
+		if (workToDo())
+		{
+			godot::Vector2i tile = m_tilesQueue.front();
+			m_tilesQueue.pop();
+			if (m_initialized == MapType::initializedForGlobalmap)
+			{
+				float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+				godot::Vector2 origin = tile * (int32_t)m_tileSize;
+				godot::Vector2 center = origin + (0.5f * godot::Vector2((float)m_viewport->get_size().x, (float)m_viewport->get_size().y));
+				origin *= gridStepInWU;
+				center *= gridStepInWU;
+				m_camera->set_position(godot::Vector3(center.x, (float)m_tileSize * 1.3f, center.y));
+				m_plane->set_position(godot::Vector3(origin.x, 0.0f, origin.y) + m_displacementPlane);
+			}
+			else
+			{
+				godot::Vector2 pos = (godot::Vector2((float)tile.x, (float)tile.y) * (float)m_tileSize * -1) + godot::Vector2((float)m_viewportBorder, (float)m_viewportBorder);
+				m_map->set_position(pos);
+				m_viewport->set_update_mode(godot::SubViewport::UpdateMode::UPDATE_ONCE);
+			}
+			m_currentTile = tile;
+			m_tiles[tile] = c_tileStatusProcessing;
+			m_processingTile = true;
+			m_frameAvailable = false;
+		}
+		else
+		{
+			set_process(false);
+			if (m_signalRequired)
+				call_deferred("emit_signal", "tw_modder_work_done", (int32_t)m_initialized, m_quadTree->getQuadrant()->getPos().getLowerXGridVertex(), m_quadTree->getQuadrant()->getPos().getLowerZGridVertex(), m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize(), m_quadTree->getQuadrant()->getPos().getLevel(), m_quadTree->getQuadrant()->getPos().getGridStepInWU());
+		}
+	}
+}
+
+void GDN_TheWorld_MapModder::_physics_process(double _delta)
+{
+}
+
+void GDN_TheWorld_MapModder::_input(const Ref<InputEvent>& event)
+{
+}
 
 void GDN_TheWorld_Viewer::_bind_methods()
 {
@@ -130,6 +1152,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_shader_parameter"), &GDN_TheWorld_Viewer::setShaderParam);
 	ClassDB::bind_method(D_METHOD("get_viewport_size"), &GDN_TheWorld_Viewer::getViewportSize);
 	ClassDB::bind_method(D_METHOD("viewport_size_changed"), &GDN_TheWorld_Viewer::viewportSizeChanged);
+	ClassDB::bind_method(D_METHOD("quadrant_modder_work_done", "map_type", "x", "z", "num_vertices_per_side", "level", "grid_step"), &GDN_TheWorld_Viewer::quadrantModderWorkDone);
 
 	ADD_SIGNAL(MethodInfo("tw_quadrant_selected_for_edit", PropertyInfo(Variant::BOOL, "value")));
 }
@@ -233,6 +1256,95 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 GDN_TheWorld_Viewer::~GDN_TheWorld_Viewer()
 {
 	deinit();
+}
+
+void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, float z, int32_t num_vertices_per_side, int32_t level, float grid_step)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+
+	QuadTree* quadTree = nullptr;
+	QuadrantPos pos(x, z, level, num_vertices_per_side, grid_step);
+	MapQuadTree::iterator it = m_mapQuadTree.find(pos);
+	if (it != m_mapQuadTree.end())
+		quadTree = it->second.get();
+
+	if (quadTree == nullptr)
+		return;
+
+	GDN_TheWorld_MapModder* mapModder = quadTree->getQuadrant()->getMapModder();
+	if (mapModder == nullptr || mapModder->working())
+		return;
+	
+	bool save = false;
+
+	enum class GDN_TheWorld_MapModder::MapType mapType = (enum class GDN_TheWorld_MapModder::MapType)map_type;
+	if (mapType == GDN_TheWorld_MapModder::MapType::initializedForNormals)
+	{
+		TheWorld_Utils::MemoryBuffer* cookedNormals = mapModder->getOutBuffer();
+		TheWorld_Utils::MemoryBuffer& normalsBuffer = quadTree->getQuadrant()->getNormalsBuffer();
+		size_t numNormals = (size_t)sqrt(float(cookedNormals->size() / sizeof(TheWorld_Utils::_RGB)));
+		normalsBuffer.reserve(cookedNormals->size());
+		memcpy(normalsBuffer.ptr(), cookedNormals->ptr(), cookedNormals->size());
+		normalsBuffer.adjustSize(cookedNormals->size());
+		mapModder->deinitRequired(true);
+
+		TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
+		terrainEdit->normalsNeedRegen = false;
+		terrainEdit->extraValues.splatmapNeedRegen = true;
+
+		quadTree->getQuadrant()->setNormalsUpdated(true);
+		quadTree->materialParamsNeedReset(true);
+		quadTree->getQuadrant()->unlockInternalData();
+	}
+	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForSplatmap)
+	{
+		TheWorld_Utils::MemoryBuffer* cookedSplatmap = mapModder->getOutBuffer();
+		size_t numPixels = (size_t)sqrt(float(cookedSplatmap->size() / sizeof(TheWorld_Utils::_RGBA)));
+		TheWorld_Utils::MemoryBuffer& splatmapBuffer = quadTree->getQuadrant()->getSplatmapBuffer();
+		splatmapBuffer.reserve(cookedSplatmap->size());
+		memcpy(splatmapBuffer.ptr(), cookedSplatmap->ptr(), cookedSplatmap->size());
+		splatmapBuffer.adjustSize(cookedSplatmap->size());
+		mapModder->deinitRequired(true);
+
+		TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
+		terrainEdit->extraValues.splatmapNeedRegen = false;
+		terrainEdit->extraValues.globalmapNeedRegen = true;
+
+		quadTree->getQuadrant()->setSplatmapUpdated(true);
+		quadTree->materialParamsNeedReset(true);
+		quadTree->getQuadrant()->unlockInternalData();
+	}
+	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForGlobalmap)
+	{
+		TheWorld_Utils::MemoryBuffer* cookedGlobalmap = mapModder->getOutBuffer();
+		TheWorld_Utils::MemoryBuffer& globalmapBuffer = quadTree->getQuadrant()->getGlobalmapBuffer();
+		size_t numPixels = (size_t)sqrt(float(cookedGlobalmap->size() / sizeof(TheWorld_Utils::_RGB)));
+		globalmapBuffer.reserve(cookedGlobalmap->size());
+		memcpy(globalmapBuffer.ptr(), cookedGlobalmap->ptr(), cookedGlobalmap->size());
+		globalmapBuffer.adjustSize(cookedGlobalmap->size());
+		mapModder->deinitRequired(true);
+
+		TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
+		terrainEdit->extraValues.globalmapNeedRegen = false;
+		
+		quadTree->getQuadrant()->setGlobalmapUpdated(true);
+		quadTree->materialParamsNeedReset(true);
+		quadTree->getQuadrant()->unlockInternalData();
+
+		save = true;
+
+	}
+
+	if (save)
+	{
+		//quadTree->getQuadrant()->saveQuadrantToDiskCache();	addQuadToSave
+		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+		if (editModeUIControl != nullptr)
+		{
+			//editModeUIControl->eraseQuadToSave(pos);
+			editModeUIControl->addQuadToSave(pos);
+		}
+	}
 }
 
 void GDN_TheWorld_Viewer::setShaderParam(godot::String name, godot::Variant value)
@@ -475,6 +1587,9 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	globals->addNumElementInitialized();
 
+	//m_mapModder = memnew(GDN_TheWorld_MapModder);
+	//m_mapModder->custom_ready(this, this, false);
+
 	m_initialized = true;
 	m_initRequired = false;
 	PLOG_INFO << "TheWorld Viewer Initialized!";
@@ -547,6 +1662,15 @@ void GDN_TheWorld_Viewer::deinit(void)
 			m_gizmo = nullptr;
 		}
 
+		//if (m_mapModder != nullptr)
+		//{
+		//	Node* parent = m_mapModder->get_parent();
+		//	if (parent != nullptr)
+		//		parent->remove_child(m_mapModder);
+		//	m_mapModder->queue_free();
+		//	m_mapModder = nullptr;
+		//}
+		
 		//if (m_initialWordlViewerPosSet)
 		//{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
@@ -2176,9 +3300,12 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	{
 		for (auto& pos : m_toErase)
 		{
+			size_t numErased = 0;
+
 			if (m_mapQuadTree.contains(pos))
 			{
-				size_t numErased = m_mapQuadTree.erase(pos);
+				if (!m_mapQuadTree[pos]->getQuadrant()->internalDataLocked())
+					numErased = m_mapQuadTree.erase(pos);
 			}
 		}
 		m_toErase.clear();
@@ -2188,6 +3315,11 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	//Transform globalTransform = internalTransformGlobalCoord();
 	//Vector3 cameraPosViewerNodeLocalCoord = globalTransform.affine_inverse() * cameraPosGlobalCoord;	// Viewer Node (grid) local coordinates of the camera pos
 
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2 ") + __FUNCTION__, "Modder work");
+		process_mapModder(_delta);
+	}
+	
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2 ") + __FUNCTION__, "Adjust Quadtrees");
 		process_adjustQuadTreeByCamera(globals, cameraPosGlobalCoord);
@@ -2251,6 +3383,31 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	process_dump(globals);
 
 	process_statistics(globals);
+}
+
+void GDN_TheWorld_Viewer::process_mapModder(double _delta)
+{
+	//if (m_mapModder != nullptr)
+	//{
+	//	if (m_mapModder->startProcessRequired())
+	//	{
+	//		m_mapModder->startProcessing();
+	//		m_mapModder->startProcessRequired(false);
+	//	}
+
+	//	if (m_mapModder->deinitRequired())
+	//	{
+	//		m_mapModder->deinit();
+	//		m_mapModder->deinitRequired(false);
+	//	}
+
+	//	m_mapModder->debug_process(_delta);
+	//}
+
+	for (auto& item : m_mapQuadTree)
+	{
+		item.second->getQuadrant()->process_mapModder(_delta);
+	}
 }
 
 void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, Vector3& cameraPosGlobalCoord)
@@ -2330,6 +3487,9 @@ void GDN_TheWorld_Viewer::process_streamingQuadrantStuff(void)
 				if (itQuadTree->second->status() < QuadrantStatus::initialized)
 					allQuadrantInitialized = false;
 
+				if (itQuadTree->second->getQuadrant()->internalDataLocked())
+					continue;
+				
 				if (itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded())
 				{
 					size_t distanceInPerimeterFromCameraQuadrant = itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);

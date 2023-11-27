@@ -15,6 +15,7 @@
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/immediate_mesh.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
+#include <godot_cpp/classes/sprite2d.hpp>
 #pragma warning(pop)
 
 #include <map>
@@ -49,12 +50,138 @@ namespace godot
 #define TIME_INTERVAL_BETWEEN_STATISTICS 100	// ms, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_MOUSE_TRACK 50	// 250	// ms
 
+	class GDN_TheWorld_MapModder : public godot::Node
+	{
+		GDCLASS(GDN_TheWorld_MapModder, Node)
+
+	public:
+		enum class MapType
+		{
+			uninitialized = 0
+			,initializedForNormals = 1
+			,initializedForSplatmap = 2
+			,initializedForGlobalmap = 3
+		};
+
+	protected:
+		static void _bind_methods();
+		void _notification(int p_what);
+
+	public:
+		GDN_TheWorld_MapModder();
+		~GDN_TheWorld_MapModder();
+
+		//
+		// Godot Standard Functions
+		//
+		virtual void _ready(void) override;
+		virtual void _process(double _delta) override;
+		virtual void _physics_process(double _delta) override;
+		virtual void _input(const Ref<InputEvent>& event) override;
+
+		void custom_ready(GDN_TheWorld_Viewer* viewer, Node* parent, bool debug = false);
+		void debug_process(double _delta);
+
+		void framePostDraw(void);
+
+		void initForNormals(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
+		void initForSplatmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer,
+			float slopeVerticalFactor,
+			float slopeFlatFactor,
+			float dirtOnRocksFactor,
+			float highElevationFactor,
+			float lowElevationFactor,
+			float minHeigth,
+			float maxHeigth,
+			size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
+		void initForGlobalMap(QuadTree* quadtree, bool signalRequired = false);
+		void deinit(void);
+		void startProcessing(void);
+		bool working(void);
+		bool ready(void);
+		TheWorld_Utils::MemoryBuffer* getOutBuffer(void);
+		void startProcessRequired(bool b);
+		bool startProcessRequired(void);
+		void deinitRequired(bool b);
+		bool deinitRequired(void);
+		static void incNumWorking()
+		{
+			s_numWorking++;
+		}
+		static void decNumWorking()
+		{
+			std::lock_guard<std::recursive_mutex> lock(s_mtxInternal);
+			if (s_numWorking > 0)
+				s_numWorking--;
+		}
+		static size_t getNumWorking()
+		{
+			return s_numWorking;
+		}
+
+	private:
+		bool workToDo(void);
+
+	private:
+		//const int32_t c_uninitialized = 0;
+		//const int32_t c_initializedForNormals = 1;
+		//const int32_t c_initializedForSplatmap = 2;
+		//const int32_t c_initializedForGlobalmap = 3;
+		enum class MapType m_initialized = MapType::uninitialized;
+
+		bool m_startProcessingRequired = false;
+		bool m_deinitRequired = false;
+
+		static int32_t s_numWorking;
+		static std::recursive_mutex s_mtxInternal;
+
+		bool m_signalRequired = false;
+
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
+		Node* m_parent = nullptr;
+		int32_t m_numProcessExecutions = 0;
+		size_t m_tileSize = 0;
+		size_t m_viewportBorder = 0;
+		size_t m_imageSize = 0;
+		TheWorld_Utils::MemoryBuffer* m_float32HeigthsBuffer = nullptr;
+		size_t m_numHeights = 0;
+		TheWorld_Utils::MemoryBuffer* m_normalsBuffer = nullptr;
+		size_t m_numNormals = 0;
+		float m_slopeVerticalFactor = 0;
+		float m_slopeFlatFactor = 0;
+		float m_dirtOnRocksFactor = 0;
+		float m_highElevationFactor = 0;
+		float m_lowElevationFactor = 0;
+		float m_minHeigth = 0;
+		float m_maxHeigth = 0;
+		QuadTree* m_quadTree = nullptr;
+		godot::SubViewport* m_viewport = nullptr;
+		godot::Sprite2D* m_map = nullptr;
+		godot::MeshInstance3D* m_plane = nullptr;
+		godot::Camera3D* m_camera = nullptr;
+		godot::Vector3 m_displacementPlane;
+
+		const int16_t c_tileStatusWaiting = 0;
+		const int16_t c_tileStatusProcessing = 1;
+		std::map<godot::Vector2i, int16_t> m_tiles;
+		std::queue<godot::Vector2i> m_tilesQueue;
+		godot::Vector2i m_currentTile;
+		bool m_processingTile = false;
+
+		godot::Ref<godot::Image> m_outImage;
+		bool m_outImageValid = false;
+		std::unique_ptr<TheWorld_Utils::MemoryBuffer> m_outBuffer;
+		bool m_frameAvailable = false;
+
+		godot::Sprite2D* m_debugSprite = nullptr;
+	};
+
 	// World Node Local Coordinate System is the same as MapManager coordinate system
 	// Viewer Node origin is in the lower corner (X and Z) of the vertex bitmap at altitude 0
 	// Chunk and QuadTree coordinates are in Viewer Node local coordinate System
 	// X growing on East direction
 	// Z growing on South direction
-	class GDN_TheWorld_Viewer : public Node3D, public TheWorld_ClientServer::ClientCallback
+	class GDN_TheWorld_Viewer : public godot::Node3D, public TheWorld_ClientServer::ClientCallback
 	{
 		GDCLASS(GDN_TheWorld_Viewer, Node3D)
 
@@ -558,6 +685,8 @@ namespace godot
 
 		bool mouseInsideMainEditPanel(void);
 
+		void quadrantModderWorkDone(int32_t map_type, float x, float z, int32_t num_vertices_per_side, int32_t level, float grid_step);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -571,6 +700,7 @@ namespace godot
 		};
 		void printKeyboardMapping(void);
 		void streamer(void);
+		void process_mapModder(double _delta);
 		void process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, Vector3& cameraPosGlobalCoord);
 		void process_streamingQuadrantStuff(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
@@ -606,6 +736,8 @@ namespace godot
 		enum class ShaderTerrainData::LookDev m_desiderdLookDev;
 		bool m_desideredLookDevChanged;
 		bool m_stopDeploy;
+
+		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
 		// Statistics data
 		int m_numProcessExecution;

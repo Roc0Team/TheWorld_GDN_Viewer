@@ -27,110 +27,6 @@ namespace godot
 {
 	//class GDN_TheWorld_Viewer;
 
-	class GDN_TheWorld_MapModder : public godot::Node
-	{
-		GDCLASS(GDN_TheWorld_MapModder, Node)
-
-	public:
-		//enum class outImageFormat
-		//{
-		//};
-
-	protected:
-		static void _bind_methods();
-		void _notification(int p_what);
-
-	public:
-		GDN_TheWorld_MapModder();
-		~GDN_TheWorld_MapModder();
-
-		//
-		// Godot Standard Functions
-		//
-		virtual void _ready(void) override;
-		virtual void _process(double _delta) override;
-		virtual void _physics_process(double _delta) override;
-		virtual void _input(const Ref<InputEvent>& event) override;
-
-		void custom_ready(GDN_TheWorld_Viewer* viewer, GDN_TheWorld_Edit* edit, bool debug = false);
-		void debug_process(double _delta);
-
-		void framePostDraw(void);
-
-		void initForNormals(TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, size_t tileSize, size_t viewportBorder = 0);
-		void initForSplatmap(TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer,
-								float slopeVerticalFactor,
-								float slopeFlatFactor,
-								float dirtOnRocksFactor,
-								float highElevationFactor,
-								float lowElevationFactor,
-								float minHeigth,
-								float maxHeigth,
-								size_t tileSize, size_t viewportBorder = 0);
-		void initForGlobalMap(QuadTree* quadtree, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData);
-		void deinit(void);
-		void startProcessing(void);
-		bool working(void);
-		bool ready(void);
-		TheWorld_Utils::MemoryBuffer* getOutBuffer(void);
-		void startProcessRequired(bool b);
-		bool startProcessRequired(void);
-		void deinitRequired(bool b);
-		bool deinitRequired(void);
-
-	private:
-		bool workToDo(void);
-
-	private:
-		const int32_t c_uninitialized = 0;
-		const int32_t c_initializedForNormals = 1;
-		const int32_t c_initializedForSplatmap = 2;
-		const int32_t c_initializedForGlobalmap = 3;
-		int32_t m_initialized = c_uninitialized;
-
-		bool m_startProcessingRequired = false;
-		bool m_deinitRequired = false;
-
-		GDN_TheWorld_Viewer* m_viewer = nullptr;
-		GDN_TheWorld_Edit* m_edit = nullptr;
-		int32_t m_numProcessExecutions = 0;
-		size_t m_tileSize = 0;
-		size_t m_viewportBorder = 0;
-		size_t m_imageSize = 0;
-		TheWorld_Utils::MemoryBuffer* m_float32HeigthsBuffer = nullptr;
-		size_t m_numHeights = 0;
-		TheWorld_Utils::MemoryBuffer* m_normalsBuffer = nullptr;
-		size_t m_numNormals = 0;
-		float m_slopeVerticalFactor = 0;
-		float m_slopeFlatFactor = 0;
-		float m_dirtOnRocksFactor = 0;
-		float m_highElevationFactor = 0;
-		float m_lowElevationFactor = 0;
-		float m_minHeigth = 0;
-		float m_maxHeigth = 0;
-		QuadTree* m_quadTree = nullptr;
-		TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* m_quadrantData;
-		godot::SubViewport* m_viewport = nullptr;
-		godot::Sprite2D* m_map = nullptr;
-		godot::MeshInstance3D* m_plane = nullptr;
-		godot::Camera3D* m_camera = nullptr;
-		godot::Vector3 m_displacementPlane;
-
-		const int16_t c_tileStatusWaiting = 0;
-		const int16_t c_tileStatusProcessing = 1;
-		std::map<godot::Vector2i, int16_t> m_tiles;
-		std::queue<godot::Vector2i> m_tilesQueue;
-		godot::Vector2i m_currentTile;
-		bool m_processingTile = false;
-
-		godot::Ref<godot::Image> m_outImage;
-		bool m_outImageValid = false;
-		std::unique_ptr<TheWorld_Utils::MemoryBuffer> m_outBuffer;
-		bool m_frameAvailable = false;
-
-		godot::Sprite2D* m_debugSprite = nullptr;
-	};
-
 	class GDN_TheWorld_Edit : public godot::MarginContainer, public TheWorld_Utils::ThreadInitDeinit, public TheWorld_ClientServer::ClientCallback
 	{
 		GDCLASS(GDN_TheWorld_Edit, MarginContainer)
@@ -410,14 +306,8 @@ namespace godot
 		void editModeApplyTextures_2(QuadTree* quadTree);
 		void editModeSave(void);
 		void editModeUpload(void);
-		void generateNormals(size_t numVerticesPerSize, float gridStepInWU,
-			float x, float z, float distance,
-			TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer,
-			TheWorld_Utils::MemoryBuffer* west_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* west_normalsBuffer,
-			TheWorld_Utils::MemoryBuffer* east_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* east_normalsBuffer,
-			TheWorld_Utils::MemoryBuffer* north_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* north_normalsBuffer,
-			TheWorld_Utils::MemoryBuffer* south_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* south_normalsBuffer);
-		void generateSplatmapForBlendedQuadrants(size_t numVerticesPerSize, float gridStepInWU,
+		void generateNormals(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer);
+		void generateSplatmapForBlendedQuadrants(QuadTree* quadtree, size_t numVerticesPerSize, float gridStepInWU,
 			float x, float z, float distance,
 			TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer, TheWorld_Utils::MemoryBuffer* splatmapBuffer, TheWorld_Utils::TerrainEdit* terrainEdit,
 			TheWorld_Utils::MemoryBuffer* west_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* west_normalsBuffer, TheWorld_Utils::MemoryBuffer* west_splatmapBuffer, TheWorld_Utils::TerrainEdit* west_terrainEdit,
@@ -430,7 +320,7 @@ namespace godot
 			float highElevationFactor,	// if higher high elevation amount will be higher at lower altitude
 			float lowElevationFactor,	// if higher low elevation amount will be higher at higher altitude
 			size_t splatMapMode);
-		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
+		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
 
 		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer);
 		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
@@ -481,8 +371,8 @@ namespace godot
 		float dirtOnRocksFactor(void);
 		void setHighElevationFactor(float value);
 		float highElevationFactor(void);
-		void setLowEleveationFactor(float value);
-		float lowEleveationFactor(void);
+		void setLowElevationFactor(float value);
+		float lowElevationFactor(void);
 		void setSplatMapMode(size_t value);
 		size_t splatMapMode(void);
 
@@ -509,10 +399,33 @@ namespace godot
 			return m_innerData->m_mouseInsideEditPanel;
 		}
 
-		//std::map<QuadrantPos, bool>& getMapQuadToSave(void)
+		//std::map<QuadrantPos, std::string>& getMapQuadToSave(void)
 		//{
 		//	return m_mapQuadToSave;
 		//}
+
+		void addQuadToSave(QuadrantPos& pos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+			if (!m_mapQuadToSave.contains(pos))
+				m_mapQuadToSave[pos] = "";
+		}
+
+		void eraseQuadToSave(QuadrantPos& pos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+			if (m_mapQuadToSave.contains(pos))
+				m_mapQuadToSave.erase(pos);
+		}
+		
+		bool isQuadToSave(QuadrantPos& pos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+			if (m_mapQuadToSave.contains(pos))
+				return true;
+			else
+				return false;
+		}
 
 		GDN_TheWorld_Globals* Globals(bool useCache = true)
 		{
@@ -567,6 +480,7 @@ namespace godot
 		bool m_lastMessageChanged;
 
 		std::map<QuadrantPos, std::string> m_mapQuadToSave;
+		std::recursive_mutex m_mtxMapQuadToSave;
 
 		TheWorld_Utils::ThreadPool m_tp;
 		bool m_requestedThreadExit = false;

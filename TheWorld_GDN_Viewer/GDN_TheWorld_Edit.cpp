@@ -327,6 +327,9 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		label = createControl<godot::Label>(hBoxContainer, "", "Quads to upload");
 		m_innerData->m_numQuadrantToUploadLabel = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantToUploadLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
+		label = createControl<godot::Label>(hBoxContainer, "", "Locked");
+		m_innerData->m_numQuadrantLocked = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_numQuadrantLocked->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Save", "pressed", this, "edit_mode_save");
@@ -425,6 +428,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_terrTypeOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_terr_type");
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::unknown).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::unknown);
 		m_innerData->m_terrTypeOptionButton->add_separator();
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::flat).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::flat);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::campaign_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::campaign_1);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::plateau_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::plateau_1);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::low_hills).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::low_hills);
@@ -575,7 +579,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 	size_t numToSave;
 	size_t numToUpload;
-	refreshNumToSaveUpload(numToSave, numToUpload);
+	size_t numLocked;
+	refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 	m_tp.Start("EditModeWorker", 1, this);
 
@@ -1157,7 +1162,12 @@ void GDN_TheWorld_Edit::setNumQuadrantToUpload(size_t num)
 	m_innerData->m_numQuadrantToUploadLabel->set_text(std::to_string(num).c_str());
 }
 
-void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload)
+void GDN_TheWorld_Edit::setNumQuadrantLocked(size_t num)
+{
+	m_innerData->m_numQuadrantLocked->set_text(std::to_string(num).c_str());
+}
+
+void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numLocked)
 {
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
@@ -1165,6 +1175,7 @@ void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToU
 	}
 
 	numToUpload = 0;
+	numLocked = 0;
 
 	std::vector<QuadrantPos> allQuandrantPos;
 	m_viewer->getAllQuadrantPos(allQuandrantPos);
@@ -1172,14 +1183,21 @@ void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToU
 	for (auto& pos : allQuandrantPos)
 	{
 		QuadTree* q = m_viewer->getQuadTree(pos);
-		if (q != nullptr && q->getQuadrant()->getTerrainEdit()->needUploadToServer)
+		if (q != nullptr)
+		{
+			if (q->getQuadrant()->getTerrainEdit()->needUploadToServer)
 			numToUpload++;
-
+		}
+		if (q != nullptr)
+		{
+			if (q->getQuadrant()->internalDataLocked())
+				numLocked++;
+		}
 	}
 
 	setNumQuadrantToSave(numToSave);
 	setNumQuadrantToUpload(numToUpload);
-
+	setNumQuadrantLocked(numLocked);
 }
 
 void GDN_TheWorld_Edit::_init(void)
@@ -1434,8 +1452,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	{
 		m_refreshUI.tick();
 
-		size_t numToSave = 0, numToUpload = 0;
-		refreshNumToSaveUpload(numToSave, numToUpload);
+		size_t numToSave = 0, numToUpload = 0, numLocked = 0;
+		refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 	}
 
 	if (m_requiredUIAcceptFocus != m_UIAcceptingFocus)
@@ -1461,8 +1479,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		{
 			m_innerData->m_message->set_text(m_innerData->m_lastMessage);
 
-			size_t numToSave, numToUpload;
-			refreshNumToSaveUpload(numToSave, numToUpload);
+			size_t numToSave, numToUpload, numLocked;
+			refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 			m_lastMessageChanged = false;
 		}
@@ -2172,7 +2190,8 @@ void GDN_TheWorld_Edit::editModeSave(void)
 
 	//size_t numToSave = 0;
 	//size_t numToUpload = 0;
-	//refreshNumToSaveUpload(numToSave, numToUpload);
+	//size_t numLocked = 0;
+	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 	setMessage(godot::String("Completed!"), true);
 }
@@ -2285,7 +2304,8 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 
 	//size_t numToSave = 0;
 	//size_t numToUpload = 0;
-	//refreshNumToSaveUpload(numToSave, numToUpload);
+	//size_t numLocked = 0;
+	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 	setMessage(godot::String("Completed!"), true);
 }
@@ -2482,7 +2502,8 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	//size_t numToSave = 0;
 	//size_t numToUpload = 0;
-	//refreshNumToSaveUpload(numToSave, numToUpload);
+	//size_t numLocked = 0;
+	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 	setMessage(godot::String("Completed!"), true);
 
@@ -2792,7 +2813,8 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 
 	//size_t numToSave = 0;
 	//size_t numToUpload = 0;
-	//refreshNumToSaveUpload(numToSave, numToUpload);
+	//size_t numLocked = 0;
+	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 	setMessage(godot::String("Completed!"), true);
 
@@ -3054,7 +3076,8 @@ void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool eva
 
 	//size_t numToSave = 0;
 	//size_t numToUpload = 0;
-	//refreshNumToSaveUpload(numToSave, numToUpload);
+	//size_t numLocked = 0;
+	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 	setMessage(godot::String("Completed!"), true);
 }
@@ -3357,7 +3380,8 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 
 	//size_t numToSave = 0;
 	//size_t numToUpload = 0;
-	//refreshNumToSaveUpload(numToSave, numToUpload);
+	//size_t numLocked = 0;
+	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 	setMessage(godot::String("Completed!"), true);
 

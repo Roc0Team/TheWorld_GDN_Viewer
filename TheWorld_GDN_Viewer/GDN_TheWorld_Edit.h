@@ -160,6 +160,7 @@ namespace godot
 
 			godot::Label* m_numQuadrantToSaveLabel;
 			godot::Label* m_numQuadrantToUploadLabel;
+			godot::Label* m_numQuadrantLocked = nullptr;
 
 			godot::Label* m_message;
 			godot::String m_lastMessage;
@@ -389,8 +390,9 @@ namespace godot
 
 		void setNumQuadrantToSave(size_t num);
 		void setNumQuadrantToUpload(size_t num);
+		void setNumQuadrantLocked(size_t num);
 
-		void refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload);
+		void refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numLocked);
 
 		void setMessage(std::string text, bool add = false);
 		void setMessage(godot::String text, bool add = false);

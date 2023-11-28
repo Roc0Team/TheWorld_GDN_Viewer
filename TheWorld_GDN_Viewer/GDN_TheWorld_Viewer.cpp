@@ -1295,6 +1295,8 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		quadTree->getQuadrant()->setNormalsUpdated(true);
 		quadTree->materialParamsNeedReset(true);
 		quadTree->getQuadrant()->unlockInternalData();
+
+		save = true;
 	}
 	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForSplatmap)
 	{
@@ -1313,6 +1315,8 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		quadTree->getQuadrant()->setSplatmapUpdated(true);
 		quadTree->materialParamsNeedReset(true);
 		quadTree->getQuadrant()->unlockInternalData();
+
+		save = true;
 	}
 	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForGlobalmap)
 	{
@@ -1332,7 +1336,6 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		quadTree->getQuadrant()->unlockInternalData();
 
 		save = true;
-
 	}
 
 	if (save)

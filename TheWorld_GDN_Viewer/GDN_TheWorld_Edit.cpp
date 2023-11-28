@@ -157,11 +157,11 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			int level = *_level;
 
 			QuadrantPos pos(lowerXGridVertex, lowerZGridVertex, level, numVerticesPerSize, gridStepInWU);
-			QuadTree* quadTree = m_viewer->getQuadTree(pos);
+			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 			if (quadTree != nullptr)
 			{
-				quadTree->getQuadrant()->setNeedUploadToServer(false);
 				quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+				quadTree->getQuadrant()->setNeedUploadToServer(false);
 			}
 
 			m_completedItems++;
@@ -342,10 +342,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Blend", "pressed", this, "edit_mode_blend");
-		//separator = createControl<godot::VSeparator>(hBoxContainer);
-		button = createControl<godot::Button>(hBoxContainer, "", "Gen. Normals", "pressed", this, "edit_mode_gen_normals");
-		//separator = createControl<godot::VSeparator>(hBoxContainer);
-		button = createControl<godot::Button>(hBoxContainer, "", "Apply Texs", "pressed", this, "edit_mode_apply_textures");
+		//button = createControl<godot::Button>(hBoxContainer, "", "Gen. Normals", "pressed", this, "edit_mode_gen_normals");
+		//button = createControl<godot::Button>(hBoxContainer, "", "Apply Texs", "pressed", this, "edit_mode_apply_textures");
 		m_innerData->m_allCheckBox = createControl<godot::CheckBox>(hBoxContainer);
 		m_innerData->m_allCheckBox->set_text("All");
 		m_innerData->m_allCheckBox->set_toggle_mode(true);
@@ -1182,7 +1180,7 @@ void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToU
 
 	for (auto& pos : allQuandrantPos)
 	{
-		QuadTree* q = m_viewer->getQuadTree(pos);
+		QuadTree* q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr)
 		{
 			if (q->getQuadrant()->getTerrainEdit()->needUploadToServer)
@@ -2141,7 +2139,7 @@ void GDN_TheWorld_Edit::editModeSave(void)
 				break;
 			}
 
-			QuadTree* quadToSave = m_viewer->getQuadTree(item.first);
+			QuadTree* quadToSave = m_viewer->getQuadTree(item.first, false);
 			if (quadToSave != nullptr && !quadToSave->getQuadrant()->empty())
 			{
 				//TheWorld_Utils::MeshCacheBuffer& cache = quadToSave->getQuadrant()->getMeshCacheBuffer();
@@ -2232,7 +2230,7 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 	std::vector<QuadrantPos> quandrantPos;
 	for (auto& pos : allQuandrantPos)
 	{
-		QuadTree* quadTree = m_viewer->getQuadTree(pos);
+		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 		if (quadTree != nullptr)
 		{
 			if (quadTree->getQuadrant()->needUploadToServer())
@@ -2254,7 +2252,7 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 			break;
 		}
 
-		QuadTree* quadTree = m_viewer->getQuadTree(pos);
+		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 		if (quadTree != nullptr)
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1.1 ") + __FUNCTION__, "Single QuadTree");
@@ -2561,7 +2559,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 	std::vector<QuadrantPos> quandrantPos;
 	for (auto& pos : allQuandrantPos)
 	{
-		QuadTree* quadTree = m_viewer->getQuadTree(pos);
+		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 		if (quadTree != nullptr)
 		{
 			if (allCheched || pos == quadrantSelPos)
@@ -2836,7 +2834,7 @@ QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(QuadrantPos* pos, Th
 
 	{
 		//std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
-		quadTree = m_viewer->getQuadTree(*pos);
+		quadTree = m_viewer->getQuadTree(*pos, false);
 	}
 
 	if (quadTree != nullptr)
@@ -3005,7 +3003,7 @@ void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool eva
 			for (auto& pos : allQuandrantPos)
 			{
 				num++;
-				QuadTree* quadTree = m_viewer->getQuadTree(pos);
+				QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 				if (quadTree != nullptr && !quadTree->getQuadrant()->empty())
 				{
 					//quadTree->getQuadrant()->getTerrainEdit()->normalsNeedRegen = true;		// SUPERDEBUGRIC: force to generate normals
@@ -3047,7 +3045,7 @@ void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool eva
 				break;
 			}
 
-			QuadTree* quadTree = m_viewer->getQuadTree(pos);
+			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 			if (quadTree != nullptr)
 			{
 				bool lockAcquired = quadTree->getQuadrant()->lockInternalData();
@@ -3308,7 +3306,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 			{
 				for (auto& pos : allQuandrantPos)
 				{
-					QuadTree* quadTree = m_viewer->getQuadTree(pos);
+					QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 					if (quadTree != nullptr && !quadTree->getQuadrant()->empty())
 					{
 						//quadTree->getQuadrant()->getTerrainEdit()->extraValues.splatmapNeedRegen = true;		// SUPERDEBUGRIC: force to generate textures
@@ -3351,7 +3349,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 				break;
 			}
 
-			QuadTree* quadTree = m_viewer->getQuadTree(pos);
+			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 			if (quadTree != nullptr)
 			{
 				bool lockAcquired = quadTree->getQuadrant()->lockInternalData();
@@ -3517,22 +3515,22 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 	{
 		TheWorld_Utils::TerrainEdit* northSideTerrainEdit = nullptr;
 		QuadrantPos pos = selectedQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::NorthZMinus);
-		QuadTree* q = m_viewer->getQuadTree(pos);
+		QuadTree* q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr && !q->getQuadrant()->empty())
 			northSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		TheWorld_Utils::TerrainEdit* southSideTerrainEdit = nullptr;
 		pos = selectedQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::SouthZPlus);
-		q = m_viewer->getQuadTree(pos);
+		q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr && !q->getQuadrant()->empty())
 			southSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		TheWorld_Utils::TerrainEdit* westSideTerrainEdit = nullptr;
 		pos = selectedQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::WestXMinus);
-		q = m_viewer->getQuadTree(pos);
+		q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr && !q->getQuadrant()->empty())
 			westSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		TheWorld_Utils::TerrainEdit* eastSideTerrainEdit = nullptr;
 		pos = selectedQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::EastXPlus);
-		q = m_viewer->getQuadTree(pos);
+		q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr && !q->getQuadrant()->empty())
 			eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		terrainEdit.adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);

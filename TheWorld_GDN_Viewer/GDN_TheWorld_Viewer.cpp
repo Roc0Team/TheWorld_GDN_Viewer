@@ -2925,12 +2925,12 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("recalcQuadrantsInView 1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants");
 
-	QuadrantPos cameraQuadrant = m_computedCameraQuadrantPos;
-	if (!cameraQuadrant.isInitialized())
+	QuadrantPos cameraQuadrantPos = m_computedCameraQuadrantPos;
+	if (!cameraQuadrantPos.isInitialized())
 		return;
 	
 	vector<QuadrantPos> quadrantPosNeeded;
-	quadrantPosNeeded.push_back(cameraQuadrant);
+	quadrantPosNeeded.push_back(cameraQuadrantPos);
 
 	if (IS_EDITOR_HINT())
 	{
@@ -2946,14 +2946,14 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	
 	//{
 	//	// calculate minimum distance of camera from quad tree borders
-	//	float minimunDistanceOfCameraFromBordersOfQuadrant = cameraPosGlobalCoord.x - cameraQuadrant.getLowerXGridVertex();
-	//	float f = (cameraQuadrant.getLowerXGridVertex() + cameraQuadrant.getSizeInWU()) - cameraPosGlobalCoord.x;
+	//	float minimunDistanceOfCameraFromBordersOfQuadrant = cameraPosGlobalCoord.x - cameraQuadrantPos.getLowerXGridVertex();
+	//	float f = (cameraQuadrantPos.getLowerXGridVertex() + cameraQuadrantPos.getSizeInWU()) - cameraPosGlobalCoord.x;
 	//	if (f < minimunDistanceOfCameraFromBordersOfQuadrant)
 	//		minimunDistanceOfCameraFromBordersOfQuadrant = f;
-	//	f = cameraPosGlobalCoord.z - cameraQuadrant.getLowerZGridVertex();
+	//	f = cameraPosGlobalCoord.z - cameraQuadrantPos.getLowerZGridVertex();
 	//	if (f < minimunDistanceOfCameraFromBordersOfQuadrant)
 	//		minimunDistanceOfCameraFromBordersOfQuadrant = f;
-	//	f = (cameraQuadrant.getLowerZGridVertex() + cameraQuadrant.getSizeInWU()) - cameraPosGlobalCoord.z;
+	//	f = (cameraQuadrantPos.getLowerZGridVertex() + cameraQuadrantPos.getSizeInWU()) - cameraPosGlobalCoord.z;
 	//	if (f < minimunDistanceOfCameraFromBordersOfQuadrant)
 	//		minimunDistanceOfCameraFromBordersOfQuadrant = f;
 
@@ -2961,7 +2961,7 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	//	m_numVisibleQuadrantOnPerimeter = 0;
 	//	if (farHorizon > minimunDistanceOfCameraFromBordersOfQuadrant)
 	//	{
-	//		m_numVisibleQuadrantOnPerimeter = (size_t)floor((farHorizon - minimunDistanceOfCameraFromBordersOfQuadrant) / cameraQuadrant.getSizeInWU()) + 1;
+	//		m_numVisibleQuadrantOnPerimeter = (size_t)floor((farHorizon - minimunDistanceOfCameraFromBordersOfQuadrant) / cameraQuadrantPos.getSizeInWU()) + 1;
 	//		if (m_numVisibleQuadrantOnPerimeter > 3)
 	//			m_numVisibleQuadrantOnPerimeter = 3;
 	//	}
@@ -2984,12 +2984,12 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	// add horizontal (X axis) quadrants on the left and on the right
 	for (int i = 0; i < m_numCacheQuadrantOnPerimeter; i++)
 	{
-		QuadrantPos q = cameraQuadrant.getQuadrantPos(QuadrantPos::DirectionSlot::XPlus, 1 + i);
-		q.setTag(cameraQuadrant.getTag() + " X+" + std::to_string(1 + i));
+		QuadrantPos q = cameraQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::XPlus, 1 + i);
+		q.setTag(cameraQuadrantPos.getTag() + " X+" + std::to_string(1 + i));
 		quadrantPosNeeded.push_back(q);
 		//break;	// SUPERDEBUGRIC only X+1 quadrant
-		q = cameraQuadrant.getQuadrantPos(QuadrantPos::DirectionSlot::XMinus, 1 + i);
-		q.setTag(cameraQuadrant.getTag() + " X-" + std::to_string(1 + i));
+		q = cameraQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::XMinus, 1 + i);
+		q.setTag(cameraQuadrantPos.getTag() + " X-" + std::to_string(1 + i));
 		quadrantPosNeeded.push_back(q);
 	}
 
@@ -3042,7 +3042,7 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 						// extract element from map without destroying it than remembre to destory later (next _process)
 						auto h = m_mapQuadTree.extract(it->first);
 						QuadrantPos pos = h.key();
-						m_toErase.push_back(pos);
+						m_toErase[pos] = true;
 						//m_mapQuadTree.erase(it->first);
 					}
 
@@ -3071,7 +3071,7 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 				if (itQuadTree->second->getRefreshTime().tv_nsec == refreshTime.tv_nsec && itQuadTree->second->getRefreshTime().tv_sec == refreshTime.tv_sec)
 				{
 					bool visibilityChanged = false;
-					if (itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(cameraQuadrant) > m_numVisibleQuadrantOnPerimeter)
+					if (itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(cameraQuadrantPos) > m_numVisibleQuadrantOnPerimeter)
 					{
 						if (itQuadTree->second->isVisible())
 						{
@@ -3301,17 +3301,41 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	
 	// erasing out-of-view quadrants
 	{
-		for (auto& pos : m_toErase)
+		std::vector<QuadrantPos> toErase;
+		
+		for (auto& item : m_toErase)
 		{
 			size_t numErased = 0;
+
+			QuadrantPos pos = item.first;
 
 			if (m_mapQuadTree.contains(pos))
 			{
 				if (!m_mapQuadTree[pos]->getQuadrant()->internalDataLocked())
-					numErased = m_mapQuadTree.erase(pos);
+				{
+					if (editModeUIControl != nullptr)
+					{
+						QuadTree* quadTreeToErase = m_mapQuadTree[pos].get();
+						if (!editModeUIControl->isQuadToSave(pos) && !quadTreeToErase->getQuadrant()->needUploadToServer())
+						{
+							numErased = m_mapQuadTree.erase(pos);
+							toErase.push_back(pos);
+						}
+					}
+					else
+					{
+						numErased = m_mapQuadTree.erase(pos);
+						toErase.push_back(pos);
+					}
+				}
 			}
 		}
-		m_toErase.clear();
+
+		//m_toErase.clear();
+		for (auto& pos : toErase)
+		{
+			m_toErase.erase(pos);
+		}
 	}
 	
 	Vector3 cameraPosGlobalCoord = activeCamera->get_global_transform().get_origin();
@@ -4607,12 +4631,14 @@ void GDN_TheWorld_Viewer::getAllQuadrantPos(std::vector<QuadrantPos>& allQuandra
 		allQuandrantPos.push_back(item.first);
 }
 
-QuadTree* GDN_TheWorld_Viewer::getQuadTree(QuadrantPos pos)
+QuadTree* GDN_TheWorld_Viewer::getQuadTree(QuadrantPos pos, bool excludeToErase)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 
 	auto iter = m_mapQuadTree.find(pos);
-	if (iter == m_mapQuadTree.end() || iter->second->statusToErase())
+	if (iter == m_mapQuadTree.end())
+		return nullptr;
+	if (iter->second->statusToErase() && excludeToErase)
 		return nullptr;
 
 	return iter->second.get();
@@ -5761,7 +5787,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 
 							if (it->second->statusToErase() && !it->second->getQuadrant()->internalDataLocked())
 							{
-								m_toErase.push_back(it->first);
+								m_toErase[it->first] = true;
 								break;
 							}
 						}

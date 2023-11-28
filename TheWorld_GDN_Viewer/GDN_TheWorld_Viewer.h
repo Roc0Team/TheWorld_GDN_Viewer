@@ -419,7 +419,7 @@ namespace godot
 			m_refreshMapQuadTree = true; 
 		}
 		void getAllQuadrantPos(std::vector<QuadrantPos>& allQuandrantPos);
-		QuadTree* getQuadTree(QuadrantPos pos);
+		QuadTree* getQuadTree(QuadrantPos pos, bool excludeToErase = true);
 		Chunk* getActiveChunkAt(QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		bool terrainShiftPermitted(void);
@@ -841,7 +841,7 @@ namespace godot
 		// World Data
 		MapQuadTree m_mapQuadTree;	// Actually only 1 level is managed (to manage more levels we shold have a map for each level)
 		std::recursive_mutex m_mtxQuadTreeAndMainProcessing;
-		std::vector<QuadrantPos> m_toErase;
+		std::map<QuadrantPos, bool> m_toErase;
 		QuadrantPos m_computedCameraQuadrantPos;
 		bool m_recalcQuadrantsInViewNeeded;
 		bool m_refreshMapQuadTree;

@@ -73,6 +73,31 @@ namespace godot
 		return dir;
 	}
 
+	String GDN_TheWorld_Globals::getCacheDir(int level)
+	{
+		std::string clientDataDir = GDN_TheWorld_Globals::getClientDataDir();
+		if (clientDataDir.length() == 0)
+			return "";
+
+		std::string mapName = getMapName();
+		if (mapName.length() == 0)
+			return "";
+
+		std::string cacheDir = TheWorld_Utils::MeshCacheBuffer::cacheDir(clientDataDir, mapName, gridStepInWU(), numVerticesPerQuadrantSize(), level);
+
+		return cacheDir.c_str();
+	}
+
+	String GDN_TheWorld_Globals::getConfigFilename(int level)
+	{
+		String cacheDir = getCacheDir(level);
+		if (cacheDir.length() == 0)
+			return "";
+		
+		return cacheDir + "\\TheWorldConfig.cfg";
+	}
+
+
 	godot::Error GDN_TheWorld_Globals::connectSignal(godot::Node* node, godot::String nodeType, godot::String signal, godot::Object* callableObject, godot::String callableMethod, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
 	{
 		// parameters added to those inserted by the emit method
@@ -290,6 +315,9 @@ namespace godot
 
 	void GDN_TheWorld_Globals::_bind_methods()
 	{
+		ClassDB::bind_method(D_METHOD("get_cache_dir"), &GDN_TheWorld_Globals::getCacheDir);
+		ClassDB::bind_method(D_METHOD("get_config_filename"), &GDN_TheWorld_Globals::getConfigFilename);
+
 		ClassDB::bind_method(D_METHOD("get_status"), &GDN_TheWorld_Globals::get_status);
 		ClassDB::bind_method(D_METHOD("set_status"), &GDN_TheWorld_Globals::set_status);
 

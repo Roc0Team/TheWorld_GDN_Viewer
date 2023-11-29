@@ -167,6 +167,8 @@ namespace godot
 		}
 
 		static std::string getClientDataDir(void);
+		String getCacheDir(int level);
+		String getConfigFilename(int level);
 
 		virtual void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply) override;
 		

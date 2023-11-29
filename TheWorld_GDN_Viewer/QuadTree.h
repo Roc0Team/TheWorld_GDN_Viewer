@@ -615,6 +615,24 @@ namespace godot
 
 		void saveQuadrantToDiskCache(void);
 
+		void renderGlobalMap(bool b)
+		{
+			if (m_renderGlobalMap != b)
+			{
+				m_renderGlobalMap = b;
+				renderGlobalMapChanged(true);
+			}
+		}
+		bool renderGlobalMap(void)
+		{
+			return m_renderGlobalMap;
+		}
+		void renderGlobalMapChanged(bool b);
+		bool renderGlobalMapChanged(void)
+		{
+			return m_renderGlobalMapChanged;
+		}
+
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
 
@@ -652,6 +670,9 @@ namespace godot
 		bool m_globalmapUpdated;
 		bool m_texturesUpdated;
 		//bool m_terrainValuesCanBeCleared;
+
+		bool m_renderGlobalMap = false;
+		bool m_renderGlobalMapChanged = false;
 	};
 
 	class ShaderTerrainData
@@ -685,6 +706,7 @@ namespace godot
 #define SHADER_PARAM_NORMAL_BASIS		"u_terrain_normal_basis"
 #define SHADER_PARAM_GRID_STEP			"u_grid_step"
 #define SHADER_PARAM_FORCE_ELEVATION_0	"u_force_height_0"
+#define SHADER_PARAM_USE_GLOBALMAP		"u_use_globalmap"
 
 #define SHADER_PARAM_EDITMODE_SELECTED	"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT			"u_mouse_hit"

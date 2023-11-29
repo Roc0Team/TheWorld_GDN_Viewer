@@ -3439,10 +3439,12 @@ void GDN_TheWorld_Viewer::process_mapModder(double _delta)
 
 void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, Vector3& cameraPosGlobalCoord)
 {
-	float farHorizon = cameraPosGlobalCoord.y * FAR_HORIZON_MULTIPLIER;
-	if (globals->heightmapSizeInWUs() > farHorizon)
-		farHorizon = globals->heightmapSizeInWUs();
+	//float farHorizon = cameraPosGlobalCoord.y * FAR_HORIZON_MULTIPLIER;
+	//if (globals->heightmapSizeInWUs() > farHorizon)
+	//	farHorizon = globals->heightmapSizeInWUs();
 
+#define THRESHOLD_FOR_GLOBALMAP		20000.0
+	
 	QuadrantPos cameraQuadrant;
 
 	// Look for Camera QuadTree: put it as first element of quadrantPosNeeded
@@ -3457,7 +3459,22 @@ void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* g
 		{
 			cameraQuadrant = itQuadTree->second->getQuadrant()->getPos();
 			cameraQuadrant.setTag("Camera");
-			break;
+			//break;
+		}
+
+		godot::Vector3 quadrantCenter = godot::Vector3(itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex(), 0, itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex()) + 
+										godot::Vector3(globals->heightmapSizeInWUs(), 0, globals->heightmapSizeInWUs()) / 2;
+		quadrantCenter.y = (itQuadTree->second->getQuadrant()->getTerrainEdit()->maxHeight + itQuadTree->second->getQuadrant()->getTerrainEdit()->minHeight) / 2;
+		float distanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
+		if (distanceFromCamera > THRESHOLD_FOR_GLOBALMAP)
+		{
+			if (!itQuadTree->second->getQuadrant()->renderGlobalMap())
+				itQuadTree->second->getQuadrant()->renderGlobalMap(true);
+		}
+		else
+		{
+			if (itQuadTree->second->getQuadrant()->renderGlobalMap())
+				itQuadTree->second->getQuadrant()->renderGlobalMap(false);
 		}
 	}
 

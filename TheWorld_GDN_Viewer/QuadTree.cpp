@@ -1862,7 +1862,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 		m_quadTree->getQuadrant()->setNormalsUpdated(false);
 	}
 
-	if (m_quadTree->getQuadrant()->splatmapUpdated())
+	if (!m_quadTree->getQuadrant()->renderGlobalMap() && (m_quadTree->getQuadrant()->splatmapUpdated() || m_quadTree->getQuadrant()->renderGlobalMapChanged()))
 	{
 		godot::Ref<godot::Image> image;
 
@@ -1914,7 +1914,61 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 
 		image.unref();
 
+		m_quadTree->getQuadrant()->renderGlobalMapChanged(false);
 		m_quadTree->getQuadrant()->setSplatmapUpdated(false);
+	}
+
+	if (m_quadTree->getQuadrant()->renderGlobalMap() && (m_quadTree->getQuadrant()->globalmapUpdated() || m_quadTree->getQuadrant()->renderGlobalMapChanged()))
+	{
+		Ref<Image> image;
+
+		TheWorld_Utils::MemoryBuffer& globalmapBuffer = m_quadTree->getQuadrant()->getGlobalmapBuffer();
+		size_t globalmapBufferSize = globalmapBuffer.size();
+
+		if (globalmapBufferSize == 0)
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Create empty Image for globalmap");
+			//m_viewer->getMainProcessingMutex().lock();
+			//godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
+			//m_viewer->getMainProcessingMutex().unlock();
+			//image = im;
+			//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		}
+		else
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Create Image from globalmap buffer");
+
+			godot::PackedByteArray data;
+			size_t globalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
+			data.resize((int)globalmapBufferSizeInBytes);
+			assert(globalmapBufferSizeInBytes == globalmapBufferSize);
+			{
+				memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
+			}
+			m_viewer->getMainProcessingMutex().lock();
+			godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
+			m_viewer->getMainProcessingMutex().unlock();
+			image = im;
+		}
+
+		if (image != nullptr)
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Create Texture from globalmap image");
+
+			m_viewer->getMainProcessingMutex().lock();
+			// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+			//tex->create_from_image(image, godot::Texture::FLAG_FILTER | godot::Texture::FLAG_MIPMAPS);
+			godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+			m_viewer->getMainProcessingMutex().unlock();
+			m_globalMapTexture = tex;
+			m_globalMapTexModified = true;
+			//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colorMapTexture);
+			
+			image.unref();
+		}
+
+		m_quadTree->getQuadrant()->renderGlobalMapChanged(false);
+		m_quadTree->getQuadrant()->setGlobalmapUpdated(false);
 	}
 
 	if (m_quadTree->getQuadrant()->colorsUpdated())
@@ -1967,58 +2021,6 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 		}
 
 		m_quadTree->getQuadrant()->setColorsUpdated(false);
-	}
-
-	if (m_quadTree->getQuadrant()->globalmapUpdated())
-	{
-		Ref<Image> image;
-
-		TheWorld_Utils::MemoryBuffer& globalmapBuffer = m_quadTree->getQuadrant()->getGlobalmapBuffer();
-		size_t globalmapBufferSize = globalmapBuffer.size();
-
-		if (globalmapBufferSize == 0)
-		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Create empty Image for globalmap");
-			//m_viewer->getMainProcessingMutex().lock();
-			//godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
-			//m_viewer->getMainProcessingMutex().unlock();
-			//image = im;
-			//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
-		}
-		else
-		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Create Image from globalmap buffer");
-
-			godot::PackedByteArray data;
-			size_t globalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
-			data.resize((int)globalmapBufferSizeInBytes);
-			assert(globalmapBufferSizeInBytes == globalmapBufferSize);
-			{
-				memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
-			}
-			m_viewer->getMainProcessingMutex().lock();
-			godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
-			m_viewer->getMainProcessingMutex().unlock();
-			image = im;
-		}
-
-		if (image != nullptr)
-		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Create Texture from globalmap image");
-
-			m_viewer->getMainProcessingMutex().lock();
-			// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-			//tex->create_from_image(image, godot::Texture::FLAG_FILTER | godot::Texture::FLAG_MIPMAPS);
-			godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-			m_viewer->getMainProcessingMutex().unlock();
-			m_globalMapTexture = tex;
-			m_globalMapTexModified = true;
-			//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colorMapTexture);
-			
-			image.unref();
-		}
-
-		m_quadTree->getQuadrant()->setGlobalmapUpdated(false);
 	}
 
 	// _update_all_vertical_bounds ???	// TODORIC mah
@@ -2166,10 +2168,21 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				m_normalMapTexModified = false;
 			}
 
+			if (lookdev == LookDev::NotSet && m_globalMapTexModified && m_globalMapTexture != nullptr)
+			{
+				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_GLOBALMAP));
+				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, m_globalMapTexture);
+				currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, true);
+				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, nullptr);
+				m_globalMapTexModified = false;
+			}
+
 			if (lookdev == LookDev::NotSet && m_splatMapTexModified && m_splatMapTexture != nullptr)
 			{
 				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_SPLATMAP));
 				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, m_splatMapTexture);
+				currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);
+				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, nullptr);
 				m_splatMapTexModified = false;
 			}
 
@@ -2178,13 +2191,6 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_COLORMAP));
 				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_COLORMAP, m_colorMapTexture);
 				m_colorMapTexModified = false;
-			}
-
-			if (lookdev == LookDev::NotSet && m_globalMapTexModified && m_globalMapTexture != nullptr)
-			{
-				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_GLOBALMAP));
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, m_globalMapTexture);
-				m_globalMapTexModified = false;
 			}
 
 			godot::Plane ground_uv_scale = m_viewer->getShaderParamGroundUVScale();
@@ -2486,6 +2492,10 @@ void Quadrant::process_mapModder(double _delta)
 	if (!m_mapModder->ready())
 		return;
 
+	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
+	if (editModeUIControl != nullptr && editModeUIControl->blendingInProgress())
+		return;
+
 	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
 
 	if (terrainEdit->normalsNeedRegen)
@@ -2603,6 +2613,14 @@ bool Quadrant::needSaveToCache(void)
 
 	return needToSave;
 }
+
+void Quadrant::renderGlobalMapChanged(bool b)
+{
+	m_renderGlobalMapChanged = b;
+	if (m_renderGlobalMapChanged)
+		m_quadTree->materialParamsNeedReset(true);
+}
+
 
 godot::Vector3 Quadrant::getNormalFromNormalmap(size_t index, bool& ok)
 {

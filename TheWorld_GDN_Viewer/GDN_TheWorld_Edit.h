@@ -324,8 +324,8 @@ namespace godot
 		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
 
 		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer);
-		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
-		QuadTree* prepareHeightsForQuadrantBlend(QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
+		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
+		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
 
 		void setEmptyTerrainEditValues(void);
 		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
@@ -447,6 +447,11 @@ namespace godot
 			m_requestedThreadExit = true;
 		}
 
+		bool blendingInProgress(void)
+		{
+			return m_blendingInProgress;
+		}
+
 	private:
 		bool m_initialized;
 		bool m_quitting;
@@ -468,6 +473,7 @@ namespace godot
 		size_t m_lastElapsed;
 		bool m_requiredUIAcceptFocus;
 		bool m_UIAcceptingFocus;
+		bool m_blendingInProgress = false;;
 
 		std::unique_ptr<InnerData> m_innerData;
 

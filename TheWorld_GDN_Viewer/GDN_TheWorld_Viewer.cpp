@@ -1242,8 +1242,8 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_editorInterface = nullptr;
 	m_editor3dOverlay = nullptr;
 	m_editorCamera = nullptr;
-	m_depthQuadOnPerimeter = 3;
-	m_cacheQuadOnPerimeter = 1;
+	m_depthQuadOnPerimeter = -1;
+	m_cacheQuadOnPerimeter = -1;
 	m_shaderParam_depthBlending = false;
 	m_shaderParam_triplanar = false;
 	m_shaderParam_globalmapBlendStart = 0.0f;
@@ -1480,13 +1480,17 @@ bool GDN_TheWorld_Viewer::init(void)
 	{
 		if (IS_EDITOR_HINT())
 		{
-			m_depthQuadOnPerimeter = 1;
-			m_cacheQuadOnPerimeter = 1;
+			if (m_depthQuadOnPerimeter == -1)
+				m_depthQuadOnPerimeter = 1;
+			if (m_cacheQuadOnPerimeter == -1)
+				m_cacheQuadOnPerimeter = 1;
 		}
 		else
 		{
-			m_depthQuadOnPerimeter = 3;
-			m_cacheQuadOnPerimeter = 1;
+			if (m_depthQuadOnPerimeter == -1)
+				m_depthQuadOnPerimeter = 3;
+			if (m_cacheQuadOnPerimeter == -1)
+				m_cacheQuadOnPerimeter = 1;
 		}
 
 		m_shaderParam_groundUVScale.set_normal(godot::Vector3(0.0f, 0.0f, 0.0f));	// if every coord is 0.0 the parameter is not passed to the shader
@@ -3443,8 +3447,6 @@ void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* g
 	//if (globals->heightmapSizeInWUs() > farHorizon)
 	//	farHorizon = globals->heightmapSizeInWUs();
 
-#define THRESHOLD_FOR_GLOBALMAP		20000.0
-	
 	QuadrantPos cameraQuadrant;
 
 	// Look for Camera QuadTree: put it as first element of quadrantPosNeeded
@@ -3466,6 +3468,8 @@ void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* g
 										godot::Vector3(globals->heightmapSizeInWUs(), 0, globals->heightmapSizeInWUs()) / 2;
 		quadrantCenter.y = (itQuadTree->second->getQuadrant()->getTerrainEdit()->maxHeight + itQuadTree->second->getQuadrant()->getTerrainEdit()->minHeight) / 2;
 		float distanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
+
+#define THRESHOLD_FOR_GLOBALMAP					20000.0f
 		if (distanceFromCamera > THRESHOLD_FOR_GLOBALMAP)
 		{
 			if (!itQuadTree->second->getQuadrant()->renderGlobalMap())
@@ -3476,6 +3480,26 @@ void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* g
 			if (itQuadTree->second->getQuadrant()->renderGlobalMap())
 				itQuadTree->second->getQuadrant()->renderGlobalMap(false);
 		}
+
+#define THRESHOLD_FOR_TEXTURE_OPTIMIZATION		5000.0f
+#define MIN_RESOLUTION_SHIFT					5	// exponent of 2
+		size_t optimizationLevel = 0;	// 0 ==> no optimization
+		float thresHoldForTextureOptimization = THRESHOLD_FOR_TEXTURE_OPTIMIZATION;
+		if (distanceFromCamera > thresHoldForTextureOptimization && globals->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT)
+		{
+			optimizationLevel++;
+			size_t maxOptimizationLevel = globals->heightmapResolutionShift() - MIN_RESOLUTION_SHIFT;
+			float increment = globals->heightmapSizeInWUs() * 2;
+			thresHoldForTextureOptimization += increment;
+			while (distanceFromCamera > thresHoldForTextureOptimization && optimizationLevel < maxOptimizationLevel)
+			{
+				thresHoldForTextureOptimization += increment;
+				optimizationLevel++;
+			}
+		}
+
+		//optimizationLevel = 0;
+		itQuadTree->second->getQuadrant()->optimizationLevel(optimizationLevel);
 	}
 
 	if (cameraQuadrant.empty())	// boh not found camera-quad-tree (it seems impossible) ...

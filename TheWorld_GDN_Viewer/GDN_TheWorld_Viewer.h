@@ -26,8 +26,8 @@
 #include "QuadTree.h"
 //#include <MapManager.h>
 
-#define MAX_DEPTH_ON_PERIMETER	3
-#define MAX_CACHE_ON_PERIMETER	2
+#define MAX_DEPTH_ON_PERIMETER	6
+#define MAX_CACHE_ON_PERIMETER	4
 
 namespace godot
 {

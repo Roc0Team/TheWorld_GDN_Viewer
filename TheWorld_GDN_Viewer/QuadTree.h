@@ -295,12 +295,7 @@ namespace godot
 			return m_quadrantPos;
 		}
 
-		void setMeshId(std::string meshId)
-		{
-			//if (meshId.length() == 0)
-			//	meshId = "";
-			m_meshId = meshId;
-		}
+		void setMeshId(std::string meshId);
 
 		void refreshGridVerticesFromServer(std::string& buffer, std::string meshId, std::string& meshIdFromBuffer, bool updateCache);
 
@@ -329,6 +324,8 @@ namespace godot
 		{
 			if (m_float16HeigthsBuffer.empty() && reloadFromCache)
 			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getFloat16HeightsBuffer 1 ") + __FUNCTION__, "Heightmap16 reload from disk");
+
 				TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 				float minAltitude, maxAltitude;
 				bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
@@ -340,6 +337,7 @@ namespace godot
 		{
 			if (m_float32HeigthsBuffer.empty() && reloadFromCache)
 			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getFloat32HeightsBuffer 1 ") + __FUNCTION__, "Heightmap32 reload from disk");
 				TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 				float minAltitude, maxAltitude;
 				bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
@@ -353,6 +351,7 @@ namespace godot
 			{
 				if (!getTerrainEdit()->normalsNeedRegen || force)
 				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getNormalsBuffer 1 ") + __FUNCTION__, "Normalmap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 					float minAltitude, maxAltitude;
 					bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
@@ -367,6 +366,7 @@ namespace godot
 			{
 				if (!getTerrainEdit()->extraValues.splatmapNeedRegen)
 				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getSplatmapBuffer 1 ") + __FUNCTION__, "Splatmap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 					float minAltitude, maxAltitude;
 					bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
@@ -381,6 +381,7 @@ namespace godot
 			{
 				if (!getTerrainEdit()->extraValues.colormapNeedRegen)
 				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getColormapBuffer 1 ") + __FUNCTION__, "Colormap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 					float minAltitude, maxAltitude;
 					bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
@@ -395,6 +396,7 @@ namespace godot
 			{
 				if (!getTerrainEdit()->extraValues.globalmapNeedRegen)
 				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getGlobalmapBuffer 1 ") + __FUNCTION__, "Globalmap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 					float minAltitude, maxAltitude;
 					bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
@@ -469,7 +471,7 @@ namespace godot
 			setGlobalmapUpdated(true);
 		}
 
-		TheWorld_Utils::TerrainEdit* getTerrainEdit()
+		TheWorld_Utils::TerrainEdit* getTerrainEdit(void)
 		{
 			if (m_terrainEdit == nullptr)
 			{
@@ -580,20 +582,7 @@ namespace godot
 			return m_empty;
 		}
 
-		void releaseTerrainValuesMemory(bool visible)
-		{
-			if (internalDataLocked() || needUploadToServer() || needSaveToCache())
-				return;
-			
-			if (!visible)
-				m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
-			m_float32HeigthsBuffer.clear();
-			m_normalsBuffer.clear();
-			m_splatmapBuffer.clear();
-			m_colormapBuffer.clear();
-			m_globalmapBuffer.clear();
-			m_heightsForCollider.resize(0);
-		}
+		void releaseTerrainValuesMemory(bool visible);
 
 		size_t calcMemoryOccupation(void)
 		{
@@ -631,6 +620,24 @@ namespace godot
 		bool renderGlobalMapChanged(void)
 		{
 			return m_renderGlobalMapChanged;
+		}
+
+		void optimizationLevel(size_t level)
+		{
+			if (m_optimizationLevel != level)
+			{
+				m_optimizationLevel = level;
+				optimizationLevelChanged(true);
+			}
+		}
+		size_t optimizationLevel(void)
+		{
+			return m_optimizationLevel;
+		}
+		void optimizationLevelChanged(bool b);
+		bool optimizationLevelChanged(void)
+		{
+			return m_optimizationLevelChanged;
 		}
 
 	private:
@@ -673,6 +680,8 @@ namespace godot
 
 		bool m_renderGlobalMap = false;
 		bool m_renderGlobalMapChanged = false;
+		size_t m_optimizationLevel = 0;
+		bool m_optimizationLevelChanged = false;
 	};
 
 	class ShaderTerrainData
@@ -707,6 +716,7 @@ namespace godot
 #define SHADER_PARAM_GRID_STEP			"u_grid_step"
 #define SHADER_PARAM_FORCE_ELEVATION_0	"u_force_height_0"
 #define SHADER_PARAM_USE_GLOBALMAP		"u_use_globalmap"
+#define SHADER_PARAM_OPTIMIZATION_LEVEL	"u_optimization_level"
 
 #define SHADER_PARAM_EDITMODE_SELECTED	"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT			"u_mouse_hit"

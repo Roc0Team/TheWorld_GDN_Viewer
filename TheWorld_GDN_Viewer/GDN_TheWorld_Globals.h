@@ -22,7 +22,7 @@
 #include "Utils.h"
 
 #define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT				5
-#define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT		11	/* 11 */	/* 10 */
+#define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT		11	/* 11 */	/* 10 */	// exponent of 2
 
 #define PLOG_DEFAULT_LEVEL plog::Severity::info
 #define PLOG_DEBUG_LEVEL plog::Severity::verbose
@@ -368,6 +368,11 @@ namespace godot
 		//		same lod : the nearest are at maximun lod (lod value = 0), the farther at lod = numLods - 1
 		// The maximum lod value (lodMaxDepth) is the maximum number of split - 1 that can be done so that all the vertices of all the chunks can be contained in the heightmap : it is computed as the power of 2 of the maximum number
 		//		of chunks of a side of the heightmap (heightmapResolution / numVerticesPerChuckSide), the number of lods (numLods) is equal to lodMaxDepth + 1
+
+		size_t heightmapResolutionShift(void)
+		{
+			return THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT;
+		}
 
 		// Number of vertices of the side of a chunk (-1) which is fixed (not a function of the lod) and is a multiple of 2
 		int numVerticesPerChuckSide(void)

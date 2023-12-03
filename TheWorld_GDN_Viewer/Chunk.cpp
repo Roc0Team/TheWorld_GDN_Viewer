@@ -92,9 +92,11 @@ void Chunk::initVisual(godot::Ref<godot::Material>& mat)
 	if (mat != nullptr)
 		vs->instance_geometry_set_material_override(m_meshInstanceRID, mat->get_rid());
 
-	godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
-	if (world != nullptr && world.is_valid())
-		vs->instance_set_scenario(m_meshInstanceRID, world->get_scenario());
+	// WARNING
+	enterWorld();
+	//godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
+	//if (world != nullptr && world.is_valid())
+	//	vs->instance_set_scenario(m_meshInstanceRID, world->get_scenario());
 
 	vs->instance_set_visible(m_meshInstanceRID, isVisible());
 
@@ -107,6 +109,8 @@ void Chunk::deinit(void)
 {
 	if (m_meshInstanceRID != godot::RID())
 	{
+		exitWorld(); 
+		
 		godot::Ref<godot::Material> nullMaterial;
 		setMaterial(nullMaterial);
 		godot::RenderingServer::get_singleton()->free_rid(m_meshInstanceRID);
@@ -121,16 +125,26 @@ void Chunk::deinit(void)
 
 void Chunk::enterWorld(void)
 {
-	assert(m_meshInstanceRID != godot::RID());
-	godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
-	if (world != nullptr && world.is_valid())
-		godot::RenderingServer::get_singleton()->instance_set_scenario(m_meshInstanceRID, world->get_scenario());
+	if (!m_worldEntered)
+	{
+		assert(m_meshInstanceRID != godot::RID());
+		godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
+		if (world != nullptr && world.is_valid())
+			godot::RenderingServer::get_singleton()->instance_set_scenario(m_meshInstanceRID, world->get_scenario());
+
+		m_worldEntered = true;
+	}
 }
 
 void Chunk::exitWorld(void)
 {
-	assert(m_meshInstanceRID != godot::RID());
-	godot::RenderingServer::get_singleton()->instance_set_scenario(m_meshInstanceRID, godot::RID());
+	if (m_worldEntered)
+	{
+		assert(m_meshInstanceRID != godot::RID());
+		godot::RenderingServer::get_singleton()->instance_set_scenario(m_meshInstanceRID, godot::RID());
+
+		m_worldEntered = false;
+	}
 }
 
 void Chunk::onGlobalTransformChanged(void)
@@ -648,9 +662,11 @@ ChunkDebug::ChunkDebug(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer*
 	RenderingServer* vs = RenderingServer::get_singleton();
 	m_debugMeshInstanceRID = vs->instance_create();
 
-	Ref<World3D> world = m_viewer->get_world_3d();
-	if (world != nullptr && world.is_valid())
-		vs->instance_set_scenario(m_debugMeshInstanceRID, world->get_scenario());
+	// WARNING
+	enterWorld();
+	//Ref<World3D> world = m_viewer->get_world_3d();
+	//if (world != nullptr && world.is_valid())
+	//	vs->instance_set_scenario(m_debugMeshInstanceRID, world->get_scenario());
 
 	vs->instance_set_visible(m_debugMeshInstanceRID, isDebugContentVisible());
 
@@ -673,6 +689,8 @@ ChunkDebug::~ChunkDebug()
 {
 	if (m_debugMeshInstanceRID != godot::RID())
 	{
+		exitWorld();
+		
 		godot::RenderingServer::get_singleton()->free_rid(m_debugMeshInstanceRID);
 		m_debugMeshInstanceRID = godot::RID();
 	}
@@ -682,18 +700,28 @@ void ChunkDebug::enterWorld(void)
 {
 	Chunk::enterWorld();
 
-	assert(m_debugMeshInstanceRID != godot::RID());
-	godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
-	if (world != nullptr && world.is_valid())
-		godot::RenderingServer::get_singleton()->instance_set_scenario(m_debugMeshInstanceRID, world->get_scenario());
+	if (!m_debugWorldEntered)
+	{
+		assert(m_debugMeshInstanceRID != godot::RID());
+		godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
+		if (world != nullptr && world.is_valid())
+			godot::RenderingServer::get_singleton()->instance_set_scenario(m_debugMeshInstanceRID, world->get_scenario());
+
+		m_debugWorldEntered = true;
+	}
 }
 
 void ChunkDebug::exitWorld(void)
 {
 	Chunk::exitWorld();
 	
-	assert(m_debugMeshInstanceRID != godot::RID());
-	godot::RenderingServer::get_singleton()->instance_set_scenario(m_debugMeshInstanceRID, godot::RID());
+	if (m_debugWorldEntered)
+	{
+		assert(m_debugMeshInstanceRID != godot::RID());
+		godot::RenderingServer::get_singleton()->instance_set_scenario(m_debugMeshInstanceRID, godot::RID());
+
+		m_debugWorldEntered = false;
+	}
 }
 
 void ChunkDebug::refresh(bool isVisible)

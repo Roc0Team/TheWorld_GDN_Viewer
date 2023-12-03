@@ -21,8 +21,13 @@
 #include "Viewer_Utils.h"
 #include "Utils.h"
 
-#define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT				5
-#define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT		11	/* 11 */	/* 10 */	// exponent of 2
+#define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT										5
+#define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT								11	/* 11 */	/* 10 */	// exponent of 2
+#define THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP								200000.0f
+#define THEWORLD_DEFAULT_REFRESH_QUADRANT_FACTOR								5.0f
+#define THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION					5000.0f
+#define THEWORLD_DEFAULT_THRESHOLD_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR		2
+#define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				1
 
 #define PLOG_DEFAULT_LEVEL plog::Severity::info
 #define PLOG_DEBUG_LEVEL plog::Severity::verbose
@@ -35,6 +40,8 @@
 #define THEWORLD_VIEWER_NODE_NAME			"GDN_TW_Viewer"
 #define THEWORLD_CAMERA_NODE_NAME			"GDN_TW_Camera"
 #define THEWORLD_EDIT_MODE_UI_CONTROL_NAME	"GDN_TW_EditModeUI"
+
+#define THEWORLD_MEMORY_OPTIMIZATION	false
 
 namespace godot
 {
@@ -530,6 +537,53 @@ namespace godot
 			m_numElementInitialized += num;
 		}
 
+		bool getParamCacheTerrainTextures(void)
+		{
+			return m_paramCacheTerrainTextures;
+		}
+		void setParamCacheTerrainTextures(bool b);
+		bool getParamCacheHeightsForInvisibleQuadrants(void)
+		{
+			return m_paramCacheHeightsForInvisibleQuadrants;
+		}
+		void setParamCacheHeightsForInvisibleQuadrants(bool b);
+		bool getParamDisableTerrainCollisions(void)
+		{
+			return m_paramDisableTerrainCollisions;
+		}
+		void setParamDisableTerrainCollisions(bool b);
+		// WARNING
+		//bool getParamSetColliderForInvisibleQuadrants(void)
+		//{
+		//	return m_paramSetColliderForInvisibleQuadrants;
+		//}
+		//void setParamSetColliderForInvisibleQuadrants(bool b);
+		float getParamRefreshQuadrantsFactor(void)
+		{
+			return m_paramRefreshQuadrantsFactor;
+		}
+		void setParamRefreshQuadrantsFactor(float f);
+		float getParamThresholdForGlobalmap(void)
+		{
+			return m_paramThresholdForGlobalmap;
+		}
+		void setParamThresholdForGlobalmap(float f);
+		float getParamThresholdForMapTextureOptimization(void)
+		{
+			return m_paramThresholdForMapTextureOptimization;
+		}
+		void setParamThresholdForMapTextureOptimization(float f);
+		float getParamThresholdTextureOptimizationIncrementFactor(void)
+		{
+			return m_paramThresholdTextureOptimizationIncrementFactor;
+		}
+		void setParamThresholdTextureOptimizationIncrementFactor(float f);
+		int64_t getParamTextureOptimizationResolutionIncrement(void)
+		{
+			return m_paramTextureOptimizationResolutionIncrement;
+		}
+		void setParamTextureOptimizationResolutionIncrement(int64_t f);
+
 		// DEBUG
 		//static size_t s_num;
 		//static size_t s_elapsed1;
@@ -566,6 +620,17 @@ namespace godot
 
 		// Node cache
 		GDN_TheWorld_Viewer* m_viewer;
+
+		// Node parameters
+		bool m_paramCacheTerrainTextures = true;
+		bool m_paramCacheHeightsForInvisibleQuadrants = true;
+		bool m_paramDisableTerrainCollisions = false;
+		//bool m_paramSetColliderForInvisibleQuadrants = true;
+		float m_paramRefreshQuadrantsFactor = THEWORLD_DEFAULT_REFRESH_QUADRANT_FACTOR;		// 1 ==> very low rate of refresh, the higher the more frequent the refresh is
+		float m_paramThresholdForGlobalmap = THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP;
+		float m_paramThresholdForMapTextureOptimization = THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION;
+		float m_paramThresholdTextureOptimizationIncrementFactor = THEWORLD_DEFAULT_THRESHOLD_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR;
+		int64_t m_paramTextureOptimizationResolutionIncrement = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT;
 	};
 }
 

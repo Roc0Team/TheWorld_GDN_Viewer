@@ -2280,9 +2280,10 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 			int numVerticesPerSize = pos.getNumVerticesPerSize();
 			float gridStepinWU = pos.getGridStepInWU();
 			int lvl = pos.getLevel();
-			quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(quadTree->Viewer()->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepinWU, lvl, buffer);
 
 			cache.writeBufferToDiskCache(buffer);
+
+			quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(quadTree->Viewer()->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepinWU, lvl, buffer);
 
 			//quadTree->getQuadrant()->setNeedUploadToServer(false);
 		}
@@ -2451,7 +2452,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->resetColormapBuffer();
 	quadTreeSel->getQuadrant()->resetGlobalmapBuffer();
 
-	// 6. prepare new heigths for collider (PackedFloat32Array)
+	// 6. prepare new heigths for collider (PackedFloat32Array) - // WARNING useless ? Same instructions are executed in Collider::setData called in QuadTree::updateMaterialParams
 	{
 		PackedFloat32Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
 		heightsForCollider.resize((int)numVertices);
@@ -2477,6 +2478,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->setEmpty(false);
 	quadTreeSel->getQuadrant()->setColorsUpdated(true);
 	quadTreeSel->materialParamsNeedReset(true);
+	quadTreeSel->colliderNeedUpdate(true);
 
 	// 10. unlock internal datas so that they can be passed to the shader/collider
 	quadTreeSel->getQuadrant()->unlockInternalData();
@@ -2876,21 +2878,15 @@ QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(bool* lockAcquired, 
 		if (*lockAcquired)
 		{
 			quadTree->getQuadrant()->getTerrainEdit()->serialize(*terrainEditValuesBuffer);
-			// ATTENZIONE
-			//heights16Buffer->copyFrom(quadTree->getQuadrant()->getFloat16HeightsBuffer());
-			//heights32Buffer->copyFrom(quadTree->getQuadrant()->getFloat32HeightsBuffer());
 
 			quadrantData->meshId = quadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
 			quadrantData->terrainEditValues = terrainEditValuesBuffer;
 			quadrantData->minHeight = quadTree->getQuadrant()->getTerrainEdit()->minHeight;
 			quadrantData->maxHeight = quadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-			// ATTENZIONE
-			//quadrantData->heights16Buffer = heights16Buffer;
-			//quadrantData->heights32Buffer = heights32Buffer;
 			TheWorld_Utils::MemoryBuffer& h16Buffer = quadTree->getQuadrant()->getFloat16HeightsBuffer();
-			quadrantData->heights16Buffer = &h16Buffer;	// ATTENZIONE
+			quadrantData->heights16Buffer = &h16Buffer;
 			TheWorld_Utils::MemoryBuffer& h32Buffer = quadTree->getQuadrant()->getFloat32HeightsBuffer();
-			quadrantData->heights32Buffer = &h32Buffer;	// ATTENZIONE
+			quadrantData->heights32Buffer = &h32Buffer;
 			quadrantData->normalsBuffer = nullptr;
 			quadrantData->splatmapBuffer = nullptr;
 			quadrantData->colormapBuffer = nullptr;
@@ -2909,10 +2905,6 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 	{
 		quadTree->getQuadrant()->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
 		
-		// ATTENZIONE
-		//quadTree->getQuadrant()->getFloat16HeightsBuffer().copyFrom(heights16Buffer);
-		//quadTree->getQuadrant()->getFloat32HeightsBuffer().copyFrom(heights32Buffer);
-
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
 			m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
@@ -2948,6 +2940,7 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 		quadTree->ForAllChunk(action);
 
 		quadTree->materialParamsNeedReset(true);
+		quadTree->colliderNeedUpdate(true);
 	}
 }
 

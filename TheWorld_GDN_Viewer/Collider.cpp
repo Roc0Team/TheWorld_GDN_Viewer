@@ -12,7 +12,7 @@
 
 
 //#define MOCK_COLLIDER true
-#define MOCK_COLLIDER false
+//#define MOCK_COLLIDER false
 
 namespace godot
 {
@@ -32,7 +32,7 @@ namespace godot
 
 	void Collider::init(Node* attachedNode, uint32_t initialLayer, uint32_t initialMask)
 	{
-		if (MOCK_COLLIDER)
+		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
 
 		assert(!m_initialized);
@@ -73,9 +73,11 @@ namespace godot
 
 	void Collider::deinit(void)
 	{
-		if (MOCK_COLLIDER)
+		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
 
+		exitWorld();
+		
 		if (m_initialized)
 		{
 			godot::PhysicsServer3D* ps = godot::PhysicsServer3D::get_singleton();
@@ -92,7 +94,7 @@ namespace godot
 
 	void Collider::enterWorld(void)
 	{
-		if (MOCK_COLLIDER)
+		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
 
 		assert(m_initialized);
@@ -105,28 +107,37 @@ namespace godot
 			godot::PhysicsServer3D* ps = godot::PhysicsServer3D::get_singleton();
 			ps->body_set_space(m_bodyRID, world->get_space());
 		}
+
+		m_enteredWorld = true;
 	}
 
 	void Collider::exitWorld(void)
 	{
-		if (MOCK_COLLIDER)
+		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
 
 		//assert(m_initialized);
 		if (!m_initialized)
 			return;
 
+		if (!m_enteredWorld)
+			return;
+
 		godot::PhysicsServer3D* ps = godot::PhysicsServer3D::get_singleton();
 		ps->body_set_space(m_bodyRID, RID());
+
+		m_enteredWorld = false;
 	}
 
 	void Collider::setData(void)
 	{
-		if (MOCK_COLLIDER)
+		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
 
 		if (!m_initialized)
 			return;
+
+		TheWorld_Utils::GuardProfiler profiler(std::string("Collider ") + __FUNCTION__, "setData");
 
 		int numVerticesPerSize = m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize();
 		int areaSize = numVerticesPerSize * numVerticesPerSize;
@@ -152,19 +163,20 @@ namespace godot
 
 		godot::PhysicsServer3D* ps = godot::PhysicsServer3D::get_singleton();
 		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1.2 ") + __FUNCTION__, "Collider::setData - ps->shape_set_data(m_shapeRID, data)");
 			ps->shape_set_data(m_shapeRID, data);
 		}
 
+		// WARNING
+		heightsForCollider.resize(0);
+
 		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1.3 ") + __FUNCTION__, "Collider::setData - updateTransform");
 			updateTransform();
 		}
 	}
 	
 	void Collider::onGlobalTransformChanged(void)
 	{
-		if (MOCK_COLLIDER)
+		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
 
 		if (!m_initialized)
@@ -175,7 +187,7 @@ namespace godot
 
 	void Collider::onCameraTransformChanged(void)
 	{
-		if (MOCK_COLLIDER)
+		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
 
 		if (!m_initialized)
@@ -197,7 +209,7 @@ namespace godot
 
 	void Collider::updateTransform()
 	{
-		if (MOCK_COLLIDER)
+		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
 
 		assert(m_initialized);

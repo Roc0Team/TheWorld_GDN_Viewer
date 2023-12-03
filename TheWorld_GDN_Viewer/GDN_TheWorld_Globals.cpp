@@ -352,6 +352,38 @@ namespace godot
 
 		ClassDB::bind_method(D_METHOD("viewer"), &GDN_TheWorld_Globals::Viewer);
 
+		
+		// perfparam_
+		ClassDB::bind_method(D_METHOD("set_perfparam_cache_terrain_textures", "p_value"), &GDN_TheWorld_Globals::setParamCacheTerrainTextures);
+		ClassDB::bind_method(D_METHOD("get_perfparam_cache_terrain_textures"), &GDN_TheWorld_Globals::getParamCacheTerrainTextures);
+		ClassDB::bind_method(D_METHOD("set_perfparam_cache_heights_invisible_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCacheHeightsForInvisibleQuadrants);
+		ClassDB::bind_method(D_METHOD("get_perfparam_cache_heights_invisible_quadrants"), &GDN_TheWorld_Globals::getParamCacheHeightsForInvisibleQuadrants);
+		ClassDB::bind_method(D_METHOD("set_perfparam_disable_terrain_collisions", "p_value"), &GDN_TheWorld_Globals::setParamDisableTerrainCollisions);
+		ClassDB::bind_method(D_METHOD("get_perfparam_disable_terrain_collisions"), &GDN_TheWorld_Globals::getParamDisableTerrainCollisions);
+		//ClassDB::bind_method(D_METHOD("set_perfparam_set_collider_for_invisible_quadrants", "p_do_cache"), &GDN_TheWorld_Globals::setParamSetColliderForInvisibleQuadrants);
+		//ClassDB::bind_method(D_METHOD("get_perfparam_set_collider_for_invisible_quadrants"), &GDN_TheWorld_Globals::getParamSetColliderForInvisibleQuadrants);
+		ClassDB::bind_method(D_METHOD("set_perfparam_refresh_quadrants_factor", "p_value"), &GDN_TheWorld_Globals::setParamRefreshQuadrantsFactor);
+		ClassDB::bind_method(D_METHOD("get_perfparam_refresh_quadrants_factor"), &GDN_TheWorld_Globals::getParamRefreshQuadrantsFactor);
+		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_for_globalmap", "p_value"), &GDN_TheWorld_Globals::setParamThresholdForGlobalmap);
+		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_for_globalmap"), &GDN_TheWorld_Globals::getParamThresholdForGlobalmap);
+		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_for_map_texture_optimization", "p_value"), &GDN_TheWorld_Globals::setParamThresholdForMapTextureOptimization);
+		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_for_map_texture_optimization"), &GDN_TheWorld_Globals::getParamThresholdForMapTextureOptimization);
+		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_texture_optimization_increment_factor", "p_value"), &GDN_TheWorld_Globals::setParamThresholdTextureOptimizationIncrementFactor);
+		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_texture_optimization_increment_factor"), &GDN_TheWorld_Globals::getParamThresholdTextureOptimizationIncrementFactor);
+		ClassDB::bind_method(D_METHOD("set_perfparam_texture_optimization_resolution_increment", "p_value"), &GDN_TheWorld_Globals::setParamTextureOptimizationResolutionIncrement);
+		ClassDB::bind_method(D_METHOD("get_perfparam_texture_optimization_resolution_increment"), &GDN_TheWorld_Globals::getParamTextureOptimizationResolutionIncrement);
+
+		ClassDB::add_property_group("GDN_TheWorld_Globals", "Performance", "perfparam_");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures"), "set_perfparam_cache_terrain_textures", "get_perfparam_cache_terrain_textures");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_disable_terrain_collisions"), "set_perfparam_disable_terrain_collisions", "get_perfparam_disable_terrain_collisions");
+		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_set_collider_for_invisible_quadrants"), "set_perfparam_set_collider_for_invisible_quadrants", "get_perfparam_set_collider_for_invisible_quadrants");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_factor"), "set_perfparam_refresh_quadrants_factor", "get_perfparam_refresh_quadrants_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_globalmap"), "set_perfparam_threshold_for_globalmap", "get_perfparam_threshold_for_globalmap");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_map_texture_optimization"), "set_perfparam_threshold_for_map_texture_optimization", "get_perfparam_threshold_for_map_texture_optimization");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_texture_optimization_increment_factor"), "set_perfparam_threshold_texture_optimization_increment_factor", "get_perfparam_threshold_texture_optimization_increment_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_texture_optimization_resolution_increment"), "set_perfparam_texture_optimization_resolution_increment", "get_perfparam_texture_optimization_resolution_increment");
+
 		ADD_SIGNAL(MethodInfo("tw_status_changed", PropertyInfo(Variant::INT, "old_value"), PropertyInfo(Variant::INT, "new_value")));
 	}
 
@@ -648,6 +680,80 @@ namespace godot
 
 		return m_viewer;
 	}
+
+	void GDN_TheWorld_Globals::setParamCacheTerrainTextures(bool b)
+	{
+		m_paramCacheTerrainTextures = b;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamCacheHeightsForInvisibleQuadrants(bool b)
+	{
+		m_paramCacheHeightsForInvisibleQuadrants = b;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamDisableTerrainCollisions(bool b)
+	{
+		m_paramDisableTerrainCollisions = b;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamRefreshQuadrantsFactor(float f)
+	{
+		if (f <= 0)
+			f = 1.0f;
+		m_paramRefreshQuadrantsFactor = f;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamThresholdForGlobalmap(float f)
+	{
+		m_paramThresholdForGlobalmap = f;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamThresholdForMapTextureOptimization(float f)
+	{
+		m_paramThresholdForMapTextureOptimization = f;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamThresholdTextureOptimizationIncrementFactor(float f)
+	{
+		m_paramThresholdTextureOptimizationIncrementFactor = f;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamTextureOptimizationResolutionIncrement(int64_t f)
+	{
+		m_paramTextureOptimizationResolutionIncrement = f;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	//void GDN_TheWorld_Globals::setParamSetColliderForInvisibleQuadrants(bool b)
+	//{
+	//	m_paramSetColliderForInvisibleQuadrants = b;
+	//	GDN_TheWorld_Viewer* viewver = Viewer();
+	//	if (viewver != nullptr)
+	//		viewver->resetMaterialParamsForEveryQuadrant();
+	//}
 
 	void GDN_TheWorld_Globals::setDebugEnabled(bool b)
 	{

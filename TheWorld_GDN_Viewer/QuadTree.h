@@ -584,11 +584,8 @@ namespace godot
 
 		void releaseTerrainValuesMemory(bool visible);
 
-		size_t calcMemoryOccupation(void)
-		{
-			size_t occupation = m_float16HeigthsBuffer.reserved() + m_float32HeigthsBuffer.reserved() + m_normalsBuffer.reserved() + m_splatmapBuffer.reserved() + m_colormapBuffer.reserved() + m_globalmapBuffer.reserved() + (m_terrainEdit == nullptr ? 0 : m_terrainEdit->size) + m_heightsForCollider.size() * sizeof(real_t);
-			return occupation;
-		}
+		size_t calcMapMemoryOccupation(void);
+		size_t calcTexMemoryOccupation(void);
 
 		std::string getCacheFilePath(void)
 		{
@@ -640,6 +637,11 @@ namespace godot
 			return m_optimizationLevelChanged;
 		}
 
+		godot::Vector3 getCenter(void)
+		{
+			return m_quadrantCenter;
+		}
+
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
 
@@ -657,6 +659,8 @@ namespace godot
 		bool m_empty;
 
 		GDN_TheWorld_MapModder* m_mapModder = nullptr;
+
+		godot::Vector3 m_quadrantCenter;
 
 		// Terrain Values
 		std::string m_meshId;
@@ -824,6 +828,16 @@ namespace godot
 		godot::Ref<godot::ImageTexture> getNormalRoughnessTexture(std::string textureName);
 
 		void mouseHitChanged(godot::Vector2 mouseHit);
+		
+		size_t calcTexMemoryOccupation(void)
+		{
+			size_t occupation = m_heightmapImage == nullptr ? 0 : m_heightmapImage->get_data().size();
+			occupation += m_normalmapImage == nullptr ? 0 : m_normalmapImage->get_data().size();
+			occupation += m_splatmapImage == nullptr ? 0 : m_splatmapImage->get_data().size();
+			occupation += m_globalmapImage == nullptr ? 0 : m_globalmapImage->get_data().size();
+			occupation += m_colormapImage == nullptr ? 0 : m_colormapImage->get_data().size();
+			return occupation;
+		}
 
 	private:
 		//void debugPrintTexture(std::string tex_name, Ref<Texture> tex);
@@ -841,20 +855,25 @@ namespace godot
 		bool m_materialParamsNeedUpdate;
 		bool m_materialParamsNeedReset;
 
-		Ref<Texture> m_heightMapTexture;
+		godot::Ref<godot::Texture> m_heightmapTexture;
 		bool m_heightMapTexModified;
+		godot::Ref<godot::Image> m_heightmapImage;
 
-		Ref<Texture> m_normalMapTexture;
+		godot::Ref<godot::Texture> m_normalmapTexture;
 		bool m_normalMapTexModified;
+		godot::Ref<godot::Image> m_normalmapImage;
 
-		Ref<Texture> m_splatMapTexture;
+		godot::Ref<godot::Texture> m_splatmapTexture;
 		bool m_splatMapTexModified;
+		godot::Ref<godot::Image> m_splatmapImage;
 
-		Ref<Texture> m_colorMapTexture;
+		godot::Ref<godot::Texture> m_colormapTexture;
 		bool m_colorMapTexModified;
+		godot::Ref<godot::Image> m_globalmapImage;
 
-		Ref<Texture> m_globalMapTexture;
+		godot::Ref<godot::Texture> m_globalmapTexture;
 		bool m_globalMapTexModified;
+		godot::Ref<godot::Image> m_colormapImage;
 
 		static std::map<std::string, std::unique_ptr<GroundTexture>> s_groundTextures;
 		static bool s_groundTexturesNeedProcessing;
@@ -1039,9 +1058,13 @@ namespace godot
 		void setRegularMaterial(bool reload = false);
 		Ref<Material> getCurrentMaterial(int lod);
 		void reloadCurrentMaterial(void);
+		void setOptimizations(godot::Vector3& cameraPosGlobalCoord);
 		bool resetMaterialParams(bool force = false);
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
+		void updateCollider(void);
+		bool colliderNeedUpdate(void);
+		void colliderNeedUpdate(bool b);
 		bool updateMaterialParams(void);
 		bool materialParamsNeedUpdate(void);
 		void materialParamsNeedUpdate(bool b);
@@ -1183,6 +1206,7 @@ namespace godot
 		bool m_editModeQuadrantSelected = false;
 		bool m_hitByMouse = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
+		bool m_colliderNeedUpdate = false;
 
 		// Statistics
 		int m_numSplits;

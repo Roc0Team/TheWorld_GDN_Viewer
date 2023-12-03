@@ -399,6 +399,7 @@ namespace godot
 		int getNumEmptyQuadrant(void);
 		int getNumFlushedQuadrant(void);
 		void refreshQuadTreeStatistics(void);
+		void resetMaterialParamsForEveryQuadrant(void);
 		void updateMaterialParamsForEveryQuadrant(void);
 		GDN_TheWorld_Globals::ChunkDebugMode getRequiredChunkDebugMode(void)
 		{
@@ -687,6 +688,19 @@ namespace godot
 
 		void quadrantModderWorkDone(int32_t map_type, float x, float z, int32_t num_vertices_per_side, int32_t level, float grid_step);
 
+		void incNumVisibleQuadrantsStreamed()
+		{
+			m_numVisibleQuadrantsStreamed++;
+		}
+		void incNumInvisibleQuadrantsStreamed()
+		{
+			m_numInvisibleQuadrantsStreamed++;
+		}
+		void incNumTextureResize()
+		{
+			m_numTextureResize++;
+		}
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -701,13 +715,13 @@ namespace godot
 		void printKeyboardMapping(void);
 		void streamer(void);
 		void process_mapModder(double _delta);
-		void process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, Vector3& cameraPosGlobalCoord);
+		void process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
 		void process_streamingQuadrantStuff(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
-		void process_updateQuads(Vector3& cameraPosGlobalCoord);
+		void process_updateQuads(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
 		void process_updateChunks(void);
 		void process_lookDev(void);
-		void process_materialParam(void);
+		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
@@ -717,6 +731,7 @@ namespace godot
 
 	private:
 		bool m_initialized;
+		bool m_worldEntered = false;
 		bool m_quitting;
 		bool m_visibleInTree;
 		bool m_initRequired;
@@ -777,6 +792,9 @@ namespace godot
 		int m_numFlushedQuadrant;
 		int m_numinitializedVisibleQuadrant;
 		TheWorld_Utils::TimerMs m_streamingTime;
+		size_t m_numVisibleQuadrantsStreamed = 0;
+		size_t m_numInvisibleQuadrantsStreamed = 0;
+		size_t m_numTextureResize = 0;
 		// Statistics data
 
 		std::map<enum class TrackedInputEvent, bool> m_trackedInputEventsForProcess;
@@ -879,6 +897,8 @@ namespace godot
 		godot::Control* m_editor3dOverlay;
 		size_t m_depthQuadOnPerimeter;
 		size_t m_cacheQuadOnPerimeter;
+
+		godot::Vector3 m_lastProcessedCameraPos;
 	};
 }
 

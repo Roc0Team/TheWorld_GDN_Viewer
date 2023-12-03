@@ -32,6 +32,7 @@ namespace godot
 
 	private:
 		bool m_initialized;
+		bool m_enteredWorld = false;
 		bool m_dataSet;
 		QuadTree* m_quadTree;
 		RID m_shapeRID;

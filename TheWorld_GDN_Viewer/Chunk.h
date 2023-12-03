@@ -559,6 +559,7 @@ namespace godot
 		void setMesh(Ref<Mesh> mesh);
 
 	protected:
+		bool m_worldEntered = false;
 		//GDN_Chunk_MeshInstance* m_meshInstance;
 		enum PosInQuad m_posInQuad;
 		GDN_TheWorld_Viewer* m_viewer;
@@ -640,6 +641,7 @@ namespace godot
 
 	private:
 		MeshInstance3D* m_debugMeshInstance;
+		bool m_debugWorldEntered = false;
 		RID m_debugMeshInstanceRID;
 		RID m_debugMeshRID;
 		Ref<Mesh> m_debugMesh;

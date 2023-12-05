@@ -92,11 +92,7 @@ void Chunk::initVisual(godot::Ref<godot::Material>& mat)
 	if (mat != nullptr)
 		vs->instance_geometry_set_material_override(m_meshInstanceRID, mat->get_rid());
 
-	// WARNING
 	enterWorld();
-	//godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
-	//if (world != nullptr && world.is_valid())
-	//	vs->instance_set_scenario(m_meshInstanceRID, world->get_scenario());
 
 	vs->instance_set_visible(m_meshInstanceRID, isVisible());
 
@@ -662,11 +658,7 @@ ChunkDebug::ChunkDebug(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer*
 	RenderingServer* vs = RenderingServer::get_singleton();
 	m_debugMeshInstanceRID = vs->instance_create();
 
-	// WARNING
 	enterWorld();
-	//Ref<World3D> world = m_viewer->get_world_3d();
-	//if (world != nullptr && world.is_valid())
-	//	vs->instance_set_scenario(m_debugMeshInstanceRID, world->get_scenario());
 
 	vs->instance_set_visible(m_debugMeshInstanceRID, isDebugContentVisible());
 

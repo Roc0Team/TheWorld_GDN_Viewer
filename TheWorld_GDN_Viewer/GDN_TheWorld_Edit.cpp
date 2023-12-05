@@ -424,9 +424,10 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		m_innerData->m_terrTypeOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_terr_type");
-		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::unknown).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::unknown);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::notset).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset);
 		m_innerData->m_terrTypeOptionButton->add_separator();
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::flat).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::flat);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::empty).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::empty);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::campaign_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::campaign_1);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::plateau_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::plateau_1);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::low_hills).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::low_hills);
@@ -460,7 +461,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Amplitude");
 		m_innerData->m_amplitudeLabel = createControl<godot::LineEdit>(hBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Scale");
+		label = createControl<godot::Label>(hBoxContainer, "", "Jag Level");
 		m_innerData->m_scaleFactorLabel = createControl<godot::LineEdit>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Start H");
 		m_innerData->m_desideredMinHeightLabel = createControl<godot::LineEdit>(hBoxContainer);
@@ -700,7 +701,7 @@ void GDN_TheWorld_Edit::setSizeUI(void)
 
 void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 {
-	m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)TheWorld_Utils::TerrainEdit::TerrainType::unknown));
+	m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset));
 
 	setSeed(0);
 	setFrequency(0.0f);
@@ -2485,6 +2486,13 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	setMinHeight(terrainEdit->minHeight);
 	setMaxHeight(terrainEdit->maxHeight);
+
+	// 11. set texture according to editor
+	strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
+	strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
+	strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
+	strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
+
 
 	m_completedItems++;
 	size_t partialCount = m_actionClock.partialDuration().count();

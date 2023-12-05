@@ -47,7 +47,7 @@ namespace godot
 
 #define MIN_MAP_SCALE 0.01F
 #define TIME_INTERVAL_BETWEEN_DUMP 0			// secs, 0 = diasble periodic dump
-#define TIME_INTERVAL_BETWEEN_STATISTICS 100	// ms, 0 = diasble periodic dump
+#define TIME_INTERVAL_BETWEEN_STATISTICS 500	// ms, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_MOUSE_TRACK 50	// 250	// ms
 
 	class GDN_TheWorld_MapModder : public godot::Node
@@ -700,6 +700,10 @@ namespace godot
 		{
 			m_numTextureResize++;
 		}
+		void addToTextureResizingElapsed(size_t elapsed)
+		{
+			m_elapsedTextureResizing += elapsed;
+		}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -795,6 +799,7 @@ namespace godot
 		size_t m_numVisibleQuadrantsStreamed = 0;
 		size_t m_numInvisibleQuadrantsStreamed = 0;
 		size_t m_numTextureResize = 0;
+		size_t m_elapsedTextureResizing = 0;
 		// Statistics data
 
 		std::map<enum class TrackedInputEvent, bool> m_trackedInputEventsForProcess;

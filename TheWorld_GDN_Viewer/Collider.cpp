@@ -166,7 +166,6 @@ namespace godot
 			ps->shape_set_data(m_shapeRID, data);
 		}
 
-		// WARNING
 		heightsForCollider.resize(0);
 
 		{

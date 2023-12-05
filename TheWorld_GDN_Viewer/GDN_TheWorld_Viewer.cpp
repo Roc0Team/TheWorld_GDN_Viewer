@@ -494,7 +494,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			{
 				const int32_t planeResolution = (int32_t)m_tileSize;
 				godot::Ref<godot::Mesh> mesh = MeshCache::makeFlatChunk(planeResolution, 0, float(m_tileSize / planeResolution) * gridStepInWU);
-				//const int32_t planeResolution = 16;	// WARNING: reducing number of vertices result will result very imprecise becasue, for optimizing normal viewport, splatmap is fetched in vertex shader rather than
+				//const int32_t planeResolution = 16;	// WARNING: reducing number of vertices will result very imprecise because, for optimizing normal viewport, splatmap is fetched in vertex shader rather than
 														// in fragment shader (less time) but for this reason splatmap values will result from an interpolation of real splatmap values being very imprecise
 														// caluclating globalmap we need more precise calculation of splatmap values so, to use same shader, we have to increment the number of vertices to reduce interpolation effects
 				//godot::Ref<godot::Mesh> mesh = MeshCache::makeFlatChunk(planeResolution, 0, float(m_imageSize / planeResolution) * gridStepInWU);
@@ -1458,40 +1458,20 @@ bool GDN_TheWorld_Viewer::init(void)
 		globals->debugPrint("Enter world");
 	}
 
-	// WARNING: useless, to remove
-	////if (m_initialWordlViewerPosSet)
-	////{
-	//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
-	//for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
-	//{
-	//	if (!itQuadTree->second->isValid())
-	//		continue;
-
-	//	if (!itQuadTree->second->isVisible())
-	//		continue;
-
-	//	Chunk::EnterWorldChunkAction action;
-	//	itQuadTree->second->ForAllChunk(action);
-
-	//	itQuadTree->second->getQuadrant()->getCollider()->enterWorld();
-	//}
-	////}
-
-	// From _ready
 	{
 		if (IS_EDITOR_HINT())
 		{
 			if (m_depthQuadOnPerimeter == -1)
-				m_depthQuadOnPerimeter = 1;
+				m_depthQuadOnPerimeter = THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER_IN_EDITOR;
 			if (m_cacheQuadOnPerimeter == -1)
-				m_cacheQuadOnPerimeter = 1;
+				m_cacheQuadOnPerimeter = THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER_IN_EDITOR;
 		}
 		else
 		{
 			if (m_depthQuadOnPerimeter == -1)
-				m_depthQuadOnPerimeter = 3;
+				m_depthQuadOnPerimeter = THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER;
 			if (m_cacheQuadOnPerimeter == -1)
-				m_cacheQuadOnPerimeter = 1;
+				m_cacheQuadOnPerimeter = THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER;
 		}
 
 		m_shaderParam_groundUVScale.set_normal(godot::Vector3(0.0f, 0.0f, 0.0f));	// if every coord is 0.0 the parameter is not passed to the shader
@@ -1503,23 +1483,7 @@ bool GDN_TheWorld_Viewer::init(void)
 
 		set_notify_transform(true);
 
-		//if (globals->status() != TheWorldStatus::sessionInitialized)
-		//	return;
-
-		//get_tree()->get_root()->connect("size_changed", this, "viewport_resizing");
-
-		//get_node(NodePath("/root/Main/Reset"))->connect("pressed", this, "on_Reset_pressed");
-
-		// Camera stuff
-		//if (!IS_EDITOR_HINT())
 		{
-			//if (WorldCamera())
-			//{
-			//	WorldCamera()->deactivateCamera();
-			//	WorldCamera()->queue_free();
-			//}
-			//assignWorldCamera(GDN_TheWorld_Camera::_new());
-
 			GDN_TheWorld_Camera* camera = CameraNode(false);
 			if (camera == nullptr)
 				camera = memnew(GDN_TheWorld_Camera);
@@ -1688,15 +1652,11 @@ void GDN_TheWorld_Viewer::deinit(void)
 			if (!itQuadTree->second->isValid())
 				continue;
 
-			//if (!itQuadTree->second->isVisible())
-			//	continue;
-
 			// WARNING
 			//Chunk::ExitWorldChunkAction action;
 			//itQuadTree->second->ForAllChunk(action);
 
 			itQuadTree->second->getQuadrant()->getCollider()->exitWorld();
-			//itQuadTree->second->getQuadrant()->getCollider()->onGlobalTransformChanged();
 		}
 		//}
 
@@ -2232,14 +2192,6 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					if (!itQuadTree->second->isValid())
 						continue;
 
-					// WARNING
-					//if (!itQuadTree->second->isVisible())
-					//	continue;
-
-					// WARNING
-					//Chunk::ExitWorldChunkAction action;
-					//itQuadTree->second->ForAllChunk(action);
-
 					itQuadTree->second->getQuadrant()->getCollider()->exitWorld();
 					//itQuadTree->second->getQuadrant()->getCollider()->onGlobalTransformChanged();
 				}
@@ -2337,9 +2289,6 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				{
 					if (!itQuadTree->second->isValid())
 						continue;
-
-					//if (!itQuadTree->second->isVisible())
-					//	continue;
 
 					QuadrantPos pos = itQuadTree->second->getQuadrant()->getPos();
 					if (pos.isInitialized()
@@ -2712,9 +2661,6 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 			//	if (!itQuadTree->second->isValid())
 			//		continue;
 
-			//	//if (!itQuadTree->second->isVisible())
-			//	//	continue;
-
 			//	Chunk::EnterWorldChunkAction action;
 			//	itQuadTree->second->ForAllChunk(action);
 			//	
@@ -2735,9 +2681,6 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 			//{
 			//	if (!itQuadTree->second->isValid())
 			//		continue;
-
-			//	//if (!itQuadTree->second->isVisible())
-			//	//	continue;
 
 			//	Chunk::ExitWorldChunkAction action;
 			//	itQuadTree->second->ForAllChunk(action);
@@ -3063,6 +3006,7 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 						m_numVisibleQuadrantsStreamed = 0;
 						m_numInvisibleQuadrantsStreamed = 0;
 						m_numTextureResize = 0;
+						m_elapsedTextureResizing = 0;
 						m_streamingTime.tick();
 					}
 					//return;	// ???
@@ -3100,9 +3044,6 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 						{
 							visibilityChanged = true;
 							itQuadTree->second->setVisible(true);
-							// WARNING
-							//itQuadTree->second->materialParamsNeedReset(true);
-							//itQuadTree->second->materialParamsNeedUpdate(true);
 						}
 					}
 
@@ -3333,7 +3274,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 			if (m_mapQuadTree.contains(pos))
 			{
-				if (!m_mapQuadTree[pos]->getQuadrant()->internalDataLocked())
+				bool locked = m_mapQuadTree[pos]->getQuadrant()->lockInternalData();
+				if (locked)
 				{
 					if (editModeUIControl != nullptr)
 					{
@@ -3343,6 +3285,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 							numErased = m_mapQuadTree.erase(pos);
 							toErase.push_back(pos);
 						}
+						else
+							m_mapQuadTree[pos]->getQuadrant()->unlockInternalData();
 					}
 					else
 					{
@@ -3414,8 +3358,6 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 				{
 					if (!itQuadTree->second->isValid())
 						continue;
-					//if (!itQuadTree->second->isVisible())
-					//	continue;
 					Chunk::DebugVisibilityChangedChunkAction action(m_debugContentVisibility);
 					itQuadTree->second->ForAllChunk(action);
 				}
@@ -3593,7 +3535,7 @@ void GDN_TheWorld_Viewer::process_streamingQuadrantStuff(void)
 			if (m_streamingTime.counterStarted())
 			{
 				m_streamingTime.tock();
-				PLOG_DEBUG << "Initialization of last stream of quadrant in " << m_streamingTime.duration().count() << " ms (visible = " << std::to_string(m_numVisibleQuadrantsStreamed) << ", invisible = " << std::to_string(m_numInvisibleQuadrantsStreamed) << ", texture resize = " << m_numTextureResize << ")";
+				PLOG_DEBUG << "Initialization of last stream of quadrant in " << m_streamingTime.duration().count() << " ms (visible = " << std::to_string(m_numVisibleQuadrantsStreamed) << ", invisible = " << std::to_string(m_numInvisibleQuadrantsStreamed) << ", texture resize = " << m_numTextureResize << ", elapsed = " << std::to_string(m_elapsedTextureResizing) << ")";
 			}
 		}
 	}
@@ -5475,10 +5417,6 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 		if (!itQuadTree->second->isValid())
 			continue;
 		
-		// WARNING
-		//if (!itQuadTree->second->isVisible())
-		//	continue;
-		
 		Chunk::TransformChangedChunkAction action;
 		itQuadTree->second->ForAllChunk(action);
 
@@ -5502,10 +5440,6 @@ void GDN_TheWorld_Viewer::resetMaterialParamsForEveryQuadrant(void)
 		if (!itQuadTree->second->isValid())
 			continue;
 
-		// WARNING
-		//if (!itQuadTree->second->isVisible())
-		//	continue;
-
 		if (itQuadTree->second->status() != QuadrantStatus::uninitialized && itQuadTree->second->status() != QuadrantStatus::toErase)
 			itQuadTree->second->materialParamsNeedReset(true);
 	}
@@ -5524,10 +5458,6 @@ void GDN_TheWorld_Viewer::updateMaterialParamsForEveryQuadrant(void)
 	{
 		if (!itQuadTree->second->isValid())
 			continue;
-
-		// WARNING
-		//if (!itQuadTree->second->isVisible())
-		//	continue;
 
 		if (itQuadTree->second->status() != QuadrantStatus::uninitialized && itQuadTree->second->status() != QuadrantStatus::toErase)
 			itQuadTree->second->materialParamsNeedUpdate(true);
@@ -5754,23 +5684,78 @@ void GDN_TheWorld_Viewer::dump()
 	Globals()->debugPrint("FPS: " + String(std::to_string(f).c_str()));
 
 	{
+		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+		if (editModeUIControl != nullptr && !editModeUIControl->initilized())
+			editModeUIControl = nullptr;
+
 		std::map<size_t, size_t> mapOptimizationLevels;
-		size_t mapMemoryOccupation = 0, texMemoryOccupation = 0;
+		std::map<int, size_t> mapQuadrantsToSaveTerrainType;
+		std::map<int, size_t> mapQuadrantsToUploadTerrainType;
+		size_t mapMemoryOccupation = 0, heightmap16MemoryOccupation = 0, heightmap32MemoryOccupation = 0, normalmapMemoryOccupation = 0, splatmapMemoryOccupation = 0, globalmapMemoryOccupation = 0, colormapMemoryOccupation = 0, terrainEditMemoryOccupation = 0, colliderHeightsMemoryOccupation = 0;
+		size_t texMemoryOccupation = 0;
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 		for (auto& quadTree : m_mapQuadTree)
 		{
 			mapMemoryOccupation += quadTree.second->getQuadrant()->calcMapMemoryOccupation();
+			heightmap16MemoryOccupation += quadTree.second->getQuadrant()->calcHeightmap16MemoryOccupation();
+			heightmap32MemoryOccupation += quadTree.second->getQuadrant()->calcHeightmap32MemoryOccupation();
+			normalmapMemoryOccupation += quadTree.second->getQuadrant()->calcNormalmapMemoryOccupation();
+			splatmapMemoryOccupation += quadTree.second->getQuadrant()->calcSplatmapMemoryOccupation();
+			globalmapMemoryOccupation += quadTree.second->getQuadrant()->calcGlobalmapMemoryOccupation();
+			colormapMemoryOccupation += quadTree.second->getQuadrant()->calcColormapMemoryOccupation();
+			terrainEditMemoryOccupation += quadTree.second->getQuadrant()->calcTerrainEditMemoryOccupation();
+			colliderHeightsMemoryOccupation += quadTree.second->getQuadrant()->calcColliderHeightsMemoryOccupation();
+
 			texMemoryOccupation += quadTree.second->getQuadrant()->calcTexMemoryOccupation();
+			
 			size_t optimizationLevel = quadTree.second->getQuadrant()->optimizationLevel();
 			if (mapOptimizationLevels.contains(optimizationLevel))
 				mapOptimizationLevels[optimizationLevel]++;
 			else
 				mapOptimizationLevels[optimizationLevel] = 1;
+
+			int terrainType = (int)quadTree.second->getQuadrant()->getTerrainEdit()->terrainType;
+			QuadrantPos pos = quadTree.second->getQuadrant()->getPos();
+			if (editModeUIControl != nullptr && editModeUIControl->isQuadToSave(pos))
+			{
+				if (mapQuadrantsToSaveTerrainType.contains(terrainType))
+					mapQuadrantsToSaveTerrainType[terrainType]++;
+				else
+					mapQuadrantsToSaveTerrainType[terrainType] = 1;
+			}
+			
+			if (quadTree.second->getQuadrant()->getTerrainEdit()->needUploadToServer)
+			{
+				if (mapQuadrantsToUploadTerrainType.contains(terrainType))
+					mapQuadrantsToUploadTerrainType[terrainType]++;
+				else
+					mapQuadrantsToUploadTerrainType[terrainType] = 1;
+			}
 		}
+
 		Globals()->debugPrint(String("All quadrants : ") + String(std::to_string(m_mapQuadTree.size()).c_str()) + ", map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("   Heigthmap16 : ") + String(std::to_string((float)heightmap16MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("   Heigthmap32 : ") + String(std::to_string((float)heightmap32MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("   Normalmap : ") + String(std::to_string((float)normalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("   Splatmap : ") + String(std::to_string((float)splatmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("   Globalmap : ") + String(std::to_string((float)globalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("   Colormap : ") + String(std::to_string((float)colormapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("   TerrainEdit : ") + String(std::to_string((float)terrainEditMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("   Collider Heights : ") + String(std::to_string((float)colliderHeightsMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		for (auto& item : mapOptimizationLevels)
 		{
-			std::string msg = "Num quadrants with optimization level " + std::to_string(item.first) + " : " + std::to_string(item.second);
+			size_t resizedMapSize = Globals()->heightmapResolution() / (size_t)pow(2, item.first);
+			std::string msg = "Num quadrants with optimization level " + std::to_string(item.first) + " : " + std::to_string(item.second) + " - map size : " + std::to_string(resizedMapSize);
+			Globals()->debugPrint(msg.c_str());
+		}
+		for (auto& item : mapQuadrantsToSaveTerrainType)
+		{
+			std::string msg = "Num quadrants to save with terrain type <" + TheWorld_Utils::TerrainEdit::terrainTypeString((TheWorld_Utils::TerrainEdit::TerrainType)item.first) + "> : " + std::to_string(item.second);
+			Globals()->debugPrint(msg.c_str());
+		}
+		for (auto& item : mapQuadrantsToUploadTerrainType)
+		{
+			std::string msg = "Num quadrants to upload with terrain type <" + TheWorld_Utils::TerrainEdit::terrainTypeString((TheWorld_Utils::TerrainEdit::TerrainType)item.first) + "> : " + std::to_string(item.second);
 			Globals()->debugPrint(msg.c_str());
 		}
 	}

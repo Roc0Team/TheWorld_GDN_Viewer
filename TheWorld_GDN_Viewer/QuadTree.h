@@ -297,7 +297,7 @@ namespace godot
 
 		void setMeshId(std::string meshId);
 
-		void refreshGridVerticesFromServer(std::string& buffer, std::string meshId, std::string& meshIdFromBuffer, bool updateCache);
+		void refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache);
 
 		AABB& getGlobalCoordAABB(void)
 		{
@@ -428,16 +428,16 @@ namespace godot
 			quadrantData.texturesUpdated = textureUpdated();
 		}
 
-		void resetHeightsBuffer(void)
-		{
-			getFloat16HeightsBuffer(false).clear();
-			getFloat32HeightsBuffer(false).clear();
-			setEmpty(true);
-			setHeightsUpdated(true);
+		//void resetHeightsBuffer(void)
+		//{
+		//	getFloat16HeightsBuffer(false).clear();
+		//	getFloat32HeightsBuffer(false).clear();
+		//	setEmpty(true);
+		//	setHeightsUpdated(true);
 
-			resetNormalsBuffer();
-			resetColormapBuffer();
-		}
+		//	resetNormalsBuffer();
+		//	resetColormapBuffer();
+		//}
 
 		void resetNormalsBuffer(void)
 		{
@@ -585,6 +585,15 @@ namespace godot
 		void releaseTerrainValuesMemory(bool visible);
 
 		size_t calcMapMemoryOccupation(void);
+		size_t calcHeightmap16MemoryOccupation(void);
+		size_t calcHeightmap32MemoryOccupation(void);
+		size_t calcNormalmapMemoryOccupation(void);
+		size_t calcSplatmapMemoryOccupation(void);
+		size_t calcGlobalmapMemoryOccupation(void);
+		size_t calcColormapMemoryOccupation(void);
+		size_t calcTerrainEditMemoryOccupation(void);
+		size_t calcColliderHeightsMemoryOccupation(void);
+
 		size_t calcTexMemoryOccupation(void);
 
 		std::string getCacheFilePath(void)

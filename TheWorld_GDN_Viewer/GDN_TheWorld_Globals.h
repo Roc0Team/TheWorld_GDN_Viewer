@@ -23,6 +23,13 @@
 
 #define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT										5
 #define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT								11	/* 11 */	/* 10 */	// exponent of 2
+#define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER_IN_EDITOR						1
+#define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER_IN_EDITOR						1
+#define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER								6	// 3
+#define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER								2	// 1
+#define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES									true
+#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOT_INVISIBLE_QUADRANTS					true
+#define THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS								false
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP								200000.0f
 #define THEWORLD_DEFAULT_REFRESH_QUADRANT_FACTOR								5.0f
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION					5000.0f
@@ -552,12 +559,6 @@ namespace godot
 			return m_paramDisableTerrainCollisions;
 		}
 		void setParamDisableTerrainCollisions(bool b);
-		// WARNING
-		//bool getParamSetColliderForInvisibleQuadrants(void)
-		//{
-		//	return m_paramSetColliderForInvisibleQuadrants;
-		//}
-		//void setParamSetColliderForInvisibleQuadrants(bool b);
 		float getParamRefreshQuadrantsFactor(void)
 		{
 			return m_paramRefreshQuadrantsFactor;
@@ -622,10 +623,9 @@ namespace godot
 		GDN_TheWorld_Viewer* m_viewer;
 
 		// Node parameters
-		bool m_paramCacheTerrainTextures = true;
-		bool m_paramCacheHeightsForInvisibleQuadrants = true;
-		bool m_paramDisableTerrainCollisions = false;
-		//bool m_paramSetColliderForInvisibleQuadrants = true;
+		bool m_paramCacheTerrainTextures = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES;
+		bool m_paramCacheHeightsForInvisibleQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOT_INVISIBLE_QUADRANTS;
+		bool m_paramDisableTerrainCollisions = THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS;
 		float m_paramRefreshQuadrantsFactor = THEWORLD_DEFAULT_REFRESH_QUADRANT_FACTOR;		// 1 ==> very low rate of refresh, the higher the more frequent the refresh is
 		float m_paramThresholdForGlobalmap = THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP;
 		float m_paramThresholdForMapTextureOptimization = THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION;

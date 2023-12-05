@@ -360,8 +360,6 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_cache_heights_invisible_quadrants"), &GDN_TheWorld_Globals::getParamCacheHeightsForInvisibleQuadrants);
 		ClassDB::bind_method(D_METHOD("set_perfparam_disable_terrain_collisions", "p_value"), &GDN_TheWorld_Globals::setParamDisableTerrainCollisions);
 		ClassDB::bind_method(D_METHOD("get_perfparam_disable_terrain_collisions"), &GDN_TheWorld_Globals::getParamDisableTerrainCollisions);
-		//ClassDB::bind_method(D_METHOD("set_perfparam_set_collider_for_invisible_quadrants", "p_do_cache"), &GDN_TheWorld_Globals::setParamSetColliderForInvisibleQuadrants);
-		//ClassDB::bind_method(D_METHOD("get_perfparam_set_collider_for_invisible_quadrants"), &GDN_TheWorld_Globals::getParamSetColliderForInvisibleQuadrants);
 		ClassDB::bind_method(D_METHOD("set_perfparam_refresh_quadrants_factor", "p_value"), &GDN_TheWorld_Globals::setParamRefreshQuadrantsFactor);
 		ClassDB::bind_method(D_METHOD("get_perfparam_refresh_quadrants_factor"), &GDN_TheWorld_Globals::getParamRefreshQuadrantsFactor);
 		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_for_globalmap", "p_value"), &GDN_TheWorld_Globals::setParamThresholdForGlobalmap);
@@ -377,7 +375,6 @@ namespace godot
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures"), "set_perfparam_cache_terrain_textures", "get_perfparam_cache_terrain_textures");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_disable_terrain_collisions"), "set_perfparam_disable_terrain_collisions", "get_perfparam_disable_terrain_collisions");
-		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_set_collider_for_invisible_quadrants"), "set_perfparam_set_collider_for_invisible_quadrants", "get_perfparam_set_collider_for_invisible_quadrants");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_factor"), "set_perfparam_refresh_quadrants_factor", "get_perfparam_refresh_quadrants_factor");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_globalmap"), "set_perfparam_threshold_for_globalmap", "get_perfparam_threshold_for_globalmap");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_map_texture_optimization"), "set_perfparam_threshold_for_map_texture_optimization", "get_perfparam_threshold_for_map_texture_optimization");

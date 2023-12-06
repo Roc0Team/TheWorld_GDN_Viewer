@@ -2253,6 +2253,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				item.second->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, editMode);
 				item.second->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
+				item.second->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, m_quadTree->getQuadrant()->optimizationLevel());
 				if (m_heightMapTexModified && m_heightmapTexture != nullptr)
 					item.second->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
 		
@@ -2382,10 +2383,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, ground_uv_scale);
 			}
 
-			if (lookdev == LookDev::NotSet)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, m_quadTree->getQuadrant()->optimizationLevel());
-			}
+			currentMaterial->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, m_quadTree->getQuadrant()->optimizationLevel());
 
 			bool depthBlending = m_viewer->getShaderParamDepthBlening();
 			if (lookdev == LookDev::NotSet)

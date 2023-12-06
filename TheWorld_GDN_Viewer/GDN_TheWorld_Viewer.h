@@ -333,6 +333,7 @@ namespace godot
 		void toggleEditMode(void);
 		void toggleDebugVisibility(void);
 		void rotateChunkDebugMode(void);
+		void toggleWireframe(void);
 		void rotateDrawingMode(void);
 		bool getTrackMouseState(void)
 		{
@@ -759,34 +760,25 @@ namespace godot
 		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
 		// Statistics data
-		int m_numProcessExecution;
-		long long m_processDuration;
-		int m_averageProcessDuration;
-		int m_numRefreshMapQuad;
-		long long m_RefreshMapQuadDuration;
-		int m_averageRefreshMapQuadDuration;
-		int m_numUpdateQuads1;
-		long long m_updateQuads1Duration;
-		int m_averageUpdateQuads1Duration;
-		int m_numUpdateQuads2;
-		long long m_updateQuads2Duration;
-		int m_averageUpdateQuads2Duration;
-		int m_numUpdateQuads3;
-		long long m_updateQuads3Duration;
-		int m_averageUpdateQuads3Duration;
-		int m_numUpdateChunks;
-		long long m_updateChunksDuration;
-		int m_averageUpdateChunksDuration;
-		int m_numUpdateMaterialParams;
-		long long m_updateMaterialParamsDuration;
-		int m_averageUpdateMaterialParamsDuration;
-		int m_numMouseTrackHit;
-		long long m_mouseTrackHitDuration;
-		int m_averageMouseTrackHitDuration;
+		size_t m_numProcessExecution = 0;		long long m_sumProcessDuration = 0;					size_t m_averageProcessDuration = 0;				size_t m_lastProcessDuration = 0;
+		size_t m_numRefreshMapQuad = 0;			long long m_sumRefreshMapQuadDuration = 0;			size_t m_averageRefreshMapQuadDuration = 0;			size_t m_lastRefreshMapQuadDuration = 0;
+		size_t m_numUpdateQuads1 = 0;			long long m_sumUpdateQuads1Duration = 0;			size_t m_averageUpdateQuads1Duration = 0;			size_t m_lastUpdateQuads1Duration = 0;
+		size_t m_numUpdateQuads2 = 0;			long long m_sumUpdateQuads2Duration = 0;			size_t m_averageUpdateQuads2Duration = 0;			size_t m_lastUpdateQuads2Duration = 0;
+		size_t m_numUpdateQuads3 = 0;			long long m_sumUpdateQuads3Duration = 0;			size_t m_averageUpdateQuads3Duration = 0;			size_t m_lastUpdateQuads3Duration = 0;
+		size_t m_numUpdateChunks = 0;			long long m_sumUpdateChunksDuration = 0;			size_t m_averageUpdateChunksDuration = 0;			size_t m_lastUpdateChunksDuration = 0;
+		size_t m_numUpdateMaterialParams = 0;	long long m_sumUpdateMaterialParamsDuration = 0;	size_t m_averageUpdateMaterialParamsDuration = 0;	size_t m_lastUpdateMaterialParamsDuration = 0;
+		size_t m_numMouseTrackHit = 0;			long long m_sumMouseTrackHitDuration = 0;			size_t m_averageMouseTrackHitDuration = 0;			size_t m_lastMouseTrackHitDuration = 0;
+	
+		size_t m_numEraseQuads = 0;				long long m_sumEraseQuads = 0;						size_t m_averageEraseQuads = 0;						size_t m_lastEraseQuads = 0;
+		size_t m_numProcessMapModder = 0;		long long m_sumProcessMapModder = 0;				size_t m_averageProcessMapModder = 0;				size_t m_lastProcessMapModder = 0;
+		size_t m_numAdjustQuadTreeByCamera = 0;	long long m_sumAdjustQuadTreeByCamera = 0;			size_t m_averageAdjustQuadTreeByCamera = 0;			size_t m_lastAdjustQuadTreeByCamera = 0;
+		size_t m_numStreamingQuadrantStuff = 0;	long long m_sumStreamingQuadrantStuff = 0;			size_t m_averageStreamingQuadrantStuff = 0;			size_t m_lastStreamingQuadrantStuff = 0;
+
 		int64_t m_timeElapsedFromLastStatistic;
 		int m_numSplits;
 		int m_numJoins;
-		int m_numChunks;
+		int m_numChunks = 0;
+		map<int, size_t> m_mapNumActiveChunksPerLod;
 		int m_numActiveChunks;
 		int m_numProcessNotOwnsLock;
 		int m_numQuadrant;
@@ -903,7 +895,8 @@ namespace godot
 		size_t m_depthQuadOnPerimeter;
 		size_t m_cacheQuadOnPerimeter;
 
-		godot::Vector3 m_lastProcessedCameraPos;
+		godot::Vector3 m_lastProcessedCameraPosForQuadrants;
+		godot::Vector3 m_lastProcessedCameraPosForChunks;
 	};
 }
 

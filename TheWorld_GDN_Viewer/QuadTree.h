@@ -1027,12 +1027,12 @@ namespace godot
 				return 0;
 			return m_numJoins;
 		}
-		int getNumChunks(void)
+		int getNumChunks(bool onlyVisible)
 		{
 			if (!isValid())
 				return 0;
 
-			if (!isVisible())
+			if (onlyVisible && !isVisible())
 				return 0;
 
 			int num = 0;
@@ -1043,8 +1043,31 @@ namespace godot
 				num += (int)itMapChunk->second.size();
 			return num;
 		}
-		int getNumActiveChunks(void)
+		//int getNumChunks(bool onlyVisible, map<int, size_t>& mapNumVisibleChunksPerLod)
+		//{
+		//	mapNumVisibleChunksPerLod.clear();
+
+		//	if (!isValid())
+		//		return 0;
+
+		//	if (onlyVisible && !isVisible())
+		//		return 0;
+
+		//	int num = 0;
+		//	//for (int i = 0; i < (int)m_mapChunk.size(); i++)
+		//	//	num += (int)m_mapChunk[i].size();
+		//	Chunk::MapChunk::iterator itMapChunk;
+		//	for (Chunk::MapChunk::iterator itMapChunk = m_mapChunk.begin(); itMapChunk != m_mapChunk.end(); itMapChunk++)
+		//	{
+		//		mapNumVisibleChunksPerLod[itMapChunk->first] = itMapChunk->second.size();
+		//		num += (int)itMapChunk->second.size();
+		//	}
+		//	return num;
+		//}
+		int getNumActiveChunks(map<int, size_t>& mapNumActiveChunksPerLod)
 		{
+			mapNumActiveChunksPerLod.clear();
+
 			if (!isValid())
 				return 0;
 
@@ -1054,9 +1077,18 @@ namespace godot
 			int num = 0;
 			Chunk::MapChunk::iterator itMapChunk;
 			for (Chunk::MapChunk::iterator itMapChunk = m_mapChunk.begin(); itMapChunk != m_mapChunk.end(); itMapChunk++)
+			{
+				int numPerLod = 0;
 				for (Chunk::MapChunkPerLod::iterator itMapChunkPerLod = itMapChunk->second.begin(); itMapChunkPerLod != itMapChunk->second.end(); itMapChunkPerLod++)
+				{
 					if (itMapChunkPerLod->second->isActive())
+					{
 						num++;
+						numPerLod++;
+					}
+				}
+				mapNumActiveChunksPerLod[itMapChunk->first] = numPerLod;
+			}
 			return num;
 		}
 		Quadrant* getQuadrant(void)

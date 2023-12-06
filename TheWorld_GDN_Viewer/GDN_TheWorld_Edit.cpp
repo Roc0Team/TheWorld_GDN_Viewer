@@ -461,7 +461,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Amplitude");
 		m_innerData->m_amplitudeLabel = createControl<godot::LineEdit>(hBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Jag Level");
+		label = createControl<godot::Label>(hBoxContainer, "", "Jag Int.");
 		m_innerData->m_scaleFactorLabel = createControl<godot::LineEdit>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Start H");
 		m_innerData->m_desideredMinHeightLabel = createControl<godot::LineEdit>(hBoxContainer);
@@ -753,8 +753,8 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	setGain(terrainEdit.noise.fractalGain);
 	setWeightedStrength(terrainEdit.noise.fractalWeightedStrength);
 	setPingPongStrength(terrainEdit.noise.fractalPingPongStrength);
-	setAmplitude(terrainEdit.noise.amplitude);
-	setScaleFactor(terrainEdit.noise.scaleFactor);
+	setAmplitude(terrainEdit.noise.heightsAmplitude);
+	setScaleFactor(terrainEdit.noise.scaleFactor_JagIntensity);
 	setDesideredMinHeight(terrainEdit.noise.desideredMinHeight);
 	setMinHeight(terrainEdit.minHeight);
 	setMaxHeight(terrainEdit.maxHeight);
@@ -2366,8 +2366,8 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	terrainEdit->noise.fractalGain = gain();
 	terrainEdit->noise.fractalWeightedStrength = weightedStrength();
 	terrainEdit->noise.fractalPingPongStrength = pingPongStrength();
-	terrainEdit->noise.amplitude = amplitude();
-	terrainEdit->noise.scaleFactor = scaleFactor();
+	terrainEdit->noise.heightsAmplitude = amplitude();
+	terrainEdit->noise.scaleFactor_JagIntensity = scaleFactor();
 	terrainEdit->noise.desideredMinHeight = desideredMinHeight();
 	//terrainEdit->needUploadToServer = true;
 

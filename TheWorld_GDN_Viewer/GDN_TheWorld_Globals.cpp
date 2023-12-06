@@ -362,6 +362,8 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_disable_terrain_collisions"), &GDN_TheWorld_Globals::getParamDisableTerrainCollisions);
 		ClassDB::bind_method(D_METHOD("set_perfparam_refresh_quadrants_factor", "p_value"), &GDN_TheWorld_Globals::setParamRefreshQuadrantsFactor);
 		ClassDB::bind_method(D_METHOD("get_perfparam_refresh_quadrants_factor"), &GDN_TheWorld_Globals::getParamRefreshQuadrantsFactor);
+		ClassDB::bind_method(D_METHOD("set_perfparam_refresh_chunks_factor", "p_value"), &GDN_TheWorld_Globals::setParamRefreshChunksFactor);
+		ClassDB::bind_method(D_METHOD("get_perfparam_refresh_chunks_factor"), &GDN_TheWorld_Globals::getParamRefreshChunksFactor);
 		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_for_globalmap", "p_value"), &GDN_TheWorld_Globals::setParamThresholdForGlobalmap);
 		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_for_globalmap"), &GDN_TheWorld_Globals::getParamThresholdForGlobalmap);
 		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_for_map_texture_optimization", "p_value"), &GDN_TheWorld_Globals::setParamThresholdForMapTextureOptimization);
@@ -376,6 +378,7 @@ namespace godot
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_disable_terrain_collisions"), "set_perfparam_disable_terrain_collisions", "get_perfparam_disable_terrain_collisions");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_factor"), "set_perfparam_refresh_quadrants_factor", "get_perfparam_refresh_quadrants_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunks_factor"), "set_perfparam_refresh_chunks_factor", "get_perfparam_refresh_chunks_factor");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_globalmap"), "set_perfparam_threshold_for_globalmap", "get_perfparam_threshold_for_globalmap");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_map_texture_optimization"), "set_perfparam_threshold_for_map_texture_optimization", "get_perfparam_threshold_for_map_texture_optimization");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_texture_optimization_increment_factor"), "set_perfparam_threshold_texture_optimization_increment_factor", "get_perfparam_threshold_texture_optimization_increment_factor");
@@ -707,6 +710,16 @@ namespace godot
 		if (f <= 0)
 			f = 1.0f;
 		m_paramRefreshQuadrantsFactor = f;
+		GDN_TheWorld_Viewer* viewver = Viewer();
+		if (viewver != nullptr)
+			viewver->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamRefreshChunksFactor(float f)
+	{
+		if (f <= 0)
+			f = 1.0f;
+		m_paramRefreshChunksFactor = f;
 		GDN_TheWorld_Viewer* viewver = Viewer();
 		if (viewver != nullptr)
 			viewver->resetMaterialParamsForEveryQuadrant();

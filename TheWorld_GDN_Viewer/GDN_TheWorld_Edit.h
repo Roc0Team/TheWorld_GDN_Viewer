@@ -184,6 +184,7 @@ namespace godot
 			godot::LineEdit* m_fractalGain;
 			godot::LineEdit* m_fractalWeightedStrength;
 			godot::LineEdit* m_fractalPingPongStrength;
+			godot::LineEdit* m_amplitudeBlendFactor = nullptr;
 			godot::LineEdit* m_amplitudeLabel;
 			godot::LineEdit* m_scaleFactorLabel;
 			godot::LineEdit* m_desideredMinHeightLabel;
@@ -288,6 +289,7 @@ namespace godot
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
 		void editModeBlendAction(void);
+		void editModeResetNormalsSplatmapAction(void);
 		void editModeGenNormalsAction(void);
 		void editModeApplyTexturesAction(void);
 		void editModeSaveAction(void);
@@ -299,6 +301,7 @@ namespace godot
 
 		void editModeGenerate(void);
 		void editModeBlend(void);
+		void editModeResetNormalsSplatmap(void);
 		void editModeGenNormals(void);
 		void editModeGenNormals_1(bool forceGenSelectedQuad, bool evaluateSelectedQuadOnly);
 		void editModeGenNormals_2(QuadTree* quadTree);
@@ -349,6 +352,8 @@ namespace godot
 		float weightedStrength(void);
 		void setPingPongStrength(float pingPongStrength);
 		float pingPongStrength(void);
+		void setAmplitudeBlendFactor(float amplitudeBlendFactor);
+		float amplitudeBlendFactor(void);
 		void setAmplitude(unsigned int amplitude);
 		unsigned int amplitude(void);
 		void setScaleFactor(float scaleFactor);
@@ -494,6 +499,8 @@ namespace godot
 		bool m_requestedThreadExit = false;
 
 		GDN_TheWorld_MapModder* m_mapModder = nullptr;
+
+		godot::Vector2 m_size;
 	};
 }
 

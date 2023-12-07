@@ -421,7 +421,7 @@ namespace godot
 			m_refreshMapQuadTree = true; 
 		}
 		void getAllQuadrantPos(std::vector<QuadrantPos>& allQuandrantPos);
-		QuadTree* getQuadTree(QuadrantPos pos, bool excludeToErase = true);
+		QuadTree* getQuadTree(QuadrantPos pos, bool excludeToErase = true, bool lockQuadrant = false);
 		Chunk* getActiveChunkAt(QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		bool terrainShiftPermitted(void);

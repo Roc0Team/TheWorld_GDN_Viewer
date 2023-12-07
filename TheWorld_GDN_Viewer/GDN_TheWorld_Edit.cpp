@@ -52,8 +52,9 @@ void GDN_TheWorld_Edit::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("edit_mode_generate"), &GDN_TheWorld_Edit::editModeGenerateAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_blend"), &GDN_TheWorld_Edit::editModeBlendAction);
-	ClassDB::bind_method(D_METHOD("edit_mode_gen_normals"), &GDN_TheWorld_Edit::editModeGenNormalsAction);
-	ClassDB::bind_method(D_METHOD("edit_mode_apply_textures"), &GDN_TheWorld_Edit::editModeApplyTexturesAction);
+	ClassDB::bind_method(D_METHOD("edit_mode_reset_normals_splatmap"), &GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction);
+	//ClassDB::bind_method(D_METHOD("edit_mode_gen_normals"), &GDN_TheWorld_Edit::editModeGenNormalsAction);
+	//ClassDB::bind_method(D_METHOD("edit_mode_apply_textures"), &GDN_TheWorld_Edit::editModeApplyTexturesAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_save"), &GDN_TheWorld_Edit::editModeSaveAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_upload"), &GDN_TheWorld_Edit::editModeUploadAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_stop"), &GDN_TheWorld_Edit::editModeStopAction);
@@ -234,6 +235,7 @@ void GDN_TheWorld_Edit::setUIAcceptFocus(bool b)
 	m_innerData->m_desideredMinHeightLabel->set_focus_mode(focusMode);
 	m_innerData->m_fractalWeightedStrength->set_focus_mode(focusMode);
 	m_innerData->m_fractalPingPongStrength->set_focus_mode(focusMode);
+	m_innerData->m_amplitudeBlendFactor->set_focus_mode(focusMode);
 	m_innerData->m_slopeVerticalFactor->set_focus_mode(focusMode);
 	m_innerData->m_slopeFlatFactor->set_focus_mode(focusMode);
 	m_innerData->m_dirtOnRocksFactor->set_focus_mode(focusMode);
@@ -342,7 +344,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Blend", "pressed", this, "edit_mode_blend");
-		//button = createControl<godot::Button>(hBoxContainer, "", "Gen. Normals", "pressed", this, "edit_mode_gen_normals");
+		button = createControl<godot::Button>(hBoxContainer, "", "Reset Normals/Textures", "pressed", this, "edit_mode_reset_normals_splatmap");
 		//button = createControl<godot::Button>(hBoxContainer, "", "Apply Texs", "pressed", this, "edit_mode_apply_textures");
 		m_innerData->m_allCheckBox = createControl<godot::CheckBox>(hBoxContainer);
 		m_innerData->m_allCheckBox->set_text("All");
@@ -459,7 +461,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_fractalLacunarity = createControl<godot::LineEdit>(hBoxContainer);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Amplitude");
+		label = createControl<godot::Label>(hBoxContainer, "", "Ampl.");
 		m_innerData->m_amplitudeLabel = createControl<godot::LineEdit>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Jag Int.");
 		m_innerData->m_scaleFactorLabel = createControl<godot::LineEdit>(hBoxContainer);
@@ -467,12 +469,14 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_desideredMinHeightLabel = createControl<godot::LineEdit>(hBoxContainer);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Weighted Strength");
+		label = createControl<godot::Label>(hBoxContainer, "", "Weighted Str.");
 		m_innerData->m_fractalWeightedStrength = createControl<godot::LineEdit>(hBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Ping Pong Str.");
+		m_innerData->m_fractalPingPongStrength = createControl<godot::LineEdit>(hBoxContainer);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Ping Pong Strength");
-		m_innerData->m_fractalPingPongStrength = createControl<godot::LineEdit>(hBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Ampl. Blend factor");
+		m_innerData->m_amplitudeBlendFactor = createControl<godot::LineEdit>(hBoxContainer);
 
 		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);	// TEST
 	}
@@ -710,6 +714,7 @@ void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 	setGain(0.0f);
 	setWeightedStrength(0.0f);
 	setPingPongStrength(0.0f);
+	setAmplitudeBlendFactor(0.0f);
 	setAmplitude(0);
 	setScaleFactor(1.0f);
 	setMinHeight(0.0f);
@@ -753,6 +758,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	setGain(terrainEdit.noise.fractalGain);
 	setWeightedStrength(terrainEdit.noise.fractalWeightedStrength);
 	setPingPongStrength(terrainEdit.noise.fractalPingPongStrength);
+	setAmplitudeBlendFactor(terrainEdit.extraValues.amplitudeBlendFactor);
 	setAmplitude(terrainEdit.noise.heightsAmplitude);
 	setScaleFactor(terrainEdit.noise.scaleFactor_JagIntensity);
 	setDesideredMinHeight(terrainEdit.noise.desideredMinHeight);
@@ -895,6 +901,17 @@ float GDN_TheWorld_Edit::pingPongStrength(void)
 	//const char* str = s.utf8().get_data();
 	//float ret = std::stof(std::string(str));
 	float ret = std::stof(std::string(m_innerData->m_fractalPingPongStrength->get_text().utf8().get_data()));
+	return ret;
+}
+
+void GDN_TheWorld_Edit::setAmplitudeBlendFactor(float amplitudeBlendFactor)
+{
+	m_innerData->m_amplitudeBlendFactor->set_text(std::to_string(amplitudeBlendFactor).c_str());
+}
+
+float GDN_TheWorld_Edit::amplitudeBlendFactor(void)
+{
+	float ret = std::stof(std::string(m_innerData->m_amplitudeBlendFactor->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1320,7 +1337,9 @@ void GDN_TheWorld_Edit::_notification(int p_what)
 	case NOTIFICATION_RESIZED:
 	{
 		//setSizeUI();
+		godot::Vector2 newSize = get_size();
 		controlNeedResize();
+		m_size = newSize;
 	}
 	break;
 	}
@@ -1374,12 +1393,14 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 
 	godot::Size2 ret;
 
+#define	MIN_WIDTH	425
+
 	if (scrollableContentRect.position.y + scrollableContentHeightCalc < viewportSize.y)
 	{
-		ret = godot::Size2(0, scrollableContentHeightCalc);
+		ret = godot::Size2(MIN_WIDTH, scrollableContentHeightCalc);
 	}
 	else
-		ret = godot::Size2(0, viewportSize.y - scrollableContentRect.position.y);
+		ret = godot::Size2(MIN_WIDTH, viewportSize.y - scrollableContentRect.position.y);
 	
 	//godot::Size2 ret = viewportSize;
 	//if (contentSize != godot::Size2(0.0f, 0.0f))
@@ -2885,6 +2906,7 @@ QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(bool* lockAcquired, 
 
 		if (*lockAcquired)
 		{
+			quadTree->getQuadrant()->getTerrainEdit()->extraValues.amplitudeBlendFactor  = amplitudeBlendFactor();
 			quadTree->getQuadrant()->getTerrainEdit()->serialize(*terrainEditValuesBuffer);
 
 			quadrantData->meshId = quadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();
@@ -2952,6 +2974,81 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 	}
 }
 
+void GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction(void)
+{
+	if (m_actionInProgress)
+		return;
+
+	m_actionInProgress = true;
+	m_allItems = 0;
+	setElapsed(0, true);
+	setNote1(0);
+
+	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeResetNormalsSplatmap, this);
+	m_tp.QueueJob(f);
+}
+
+void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
+{
+	if (m_actionClock.counterStarted())
+	{
+		m_actionInProgress = false;
+		return;
+	}
+
+	setMessage(godot::String("Reset in progress..."));
+
+	m_actionClock.tick();
+
+	QuadTree* quadTreeSel = nullptr;
+	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+	if (!allCheched && quadrantSelPos.empty())
+	{
+		m_actionClock.tock();
+		m_actionInProgress = false;
+		setMessage(godot::String("Completed!"), true);
+		return;
+	}
+
+	std::vector<QuadrantPos> quandrantPosToRegen;
+	if (allCheched)
+		m_viewer->getAllQuadrantPos(quandrantPosToRegen);
+	else
+		quandrantPosToRegen.push_back(quadrantSelPos);
+
+	for (auto& pos : quandrantPosToRegen)
+	{
+		if (m_actionStopRequested)
+		{
+			m_actionStopRequested = false;
+			break;
+		}
+
+		QuadTree* quadTree = m_viewer->getQuadTree(pos, true, true);
+		if (quadTree != nullptr)
+		{
+			quadTree->getQuadrant()->getTerrainEdit()->normalsNeedRegen = true;
+			quadTree->getQuadrant()->getNormalsBuffer().clear();
+			quadTree->getQuadrant()->unlockInternalData();
+
+			m_completedItems++;
+			size_t partialCount = m_actionClock.partialDuration().count();
+			m_lastElapsed = partialCount - m_elapsedCompleted;
+			m_elapsedCompleted = partialCount;
+		}
+	}
+
+	m_actionClock.tock();
+	m_actionInProgress = false;
+	size_t duration = m_actionClock.duration().count();
+	setElapsed(duration, false);
+	setCounter(m_completedItems, m_allItems);
+	setNote1(m_lastElapsed);
+
+	setMessage(godot::String("Reset completed!"));
+}
+
 void GDN_TheWorld_Edit::editModeGenNormalsAction(void)
 {
 	if (m_actionInProgress)
@@ -2973,6 +3070,8 @@ void GDN_TheWorld_Edit::editModeGenNormals(void)
 
 void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool evaluateSelectedQuadOnly)
 {
+	// TO BE FIXED: IT IS IN CONFLICT WITH QUADRANT MODDER
+	
 	if (m_actionClock.counterStarted())
 	{
 		m_actionInProgress = false;
@@ -3029,8 +3128,8 @@ void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool eva
 		}
 		else
 		{
-			if (quadTreeSel != nullptr && forceGenSelectedQuad)
-				quadTreeSel->getQuadrant()->getTerrainEdit()->normalsNeedRegen = true;
+			//if (quadTreeSel != nullptr && forceGenSelectedQuad)
+			//	quadTreeSel->getQuadrant()->getTerrainEdit()->normalsNeedRegen = true;
 
 			int num = 0;
 			for (auto& pos : allQuandrantPos)
@@ -3275,6 +3374,8 @@ void GDN_TheWorld_Edit::editModeApplyTextures(void)
 
 void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, bool evaluateSelectedQuadOnly)
 {
+	// TO BE FIXED: IT IS IN CONFLICT WITH QUADRANT MODDER
+
 	if (m_actionClock.counterStarted())
 	{
 		m_actionInProgress = false;

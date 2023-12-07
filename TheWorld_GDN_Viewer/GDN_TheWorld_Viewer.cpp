@@ -4739,7 +4739,7 @@ void GDN_TheWorld_Viewer::getAllQuadrantPos(std::vector<QuadrantPos>& allQuandra
 		allQuandrantPos.push_back(item.first);
 }
 
-QuadTree* GDN_TheWorld_Viewer::getQuadTree(QuadrantPos pos, bool excludeToErase)
+QuadTree* GDN_TheWorld_Viewer::getQuadTree(QuadrantPos pos, bool excludeToErase, bool lockQuadrant)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 
@@ -4748,6 +4748,13 @@ QuadTree* GDN_TheWorld_Viewer::getQuadTree(QuadrantPos pos, bool excludeToErase)
 		return nullptr;
 	if (iter->second->statusToErase() && excludeToErase)
 		return nullptr;
+
+	if (lockQuadrant)
+	{
+		bool locked = iter->second->getQuadrant()->lockInternalData();
+		if (!locked)
+			return nullptr;
+	}
 
 	return iter->second.get();
 }

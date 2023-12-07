@@ -36,3 +36,10 @@
 				//quadrantData.normalsBuffer = &normals;
 				//TheWorld_Utils::MemoryBuffer& splatmap = quadTree->getQuadrant()->getSplatmapBuffer();
 				//quadrantData.splatmapBuffer = &splatmap;
+
+			//srand((unsigned int)time(NULL));			// random seed
+			//int random_i = (rand() % 100) + 1;			// random integer between 1 and 100
+			//float random_f = (float)random_i / 100;		// random float from 0.01 and 1.0 (step 0.01)
+			//random_f += 0.5f;							// random float from 0.51 and 1.5 (step 0.01)
+			//numVerticesToAdjustInEachQuadrant = (size_t)ceilf(heightGapForEachQuandrantOnBorder * random_f);
+

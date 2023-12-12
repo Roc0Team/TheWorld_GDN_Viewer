@@ -37,9 +37,13 @@
 #include <string>
 #include <iostream>
 
+#define	SECTION_BUTTON_COLOR	GDN_TheWorld_Globals::g_color_pink_amaranth
+#define	BUTTON_COLOR			GDN_TheWorld_Globals::g_color_yellow_amber
+
 #define INFO_BUTTON_TEXT L"Info"
 #define NOISE_BUTTON_TEXT L"Terrain Generation"
-#define TERRAIN_EDIT_BUTTON_TEXT L"Terrain Edit"
+#define TERRAIN_EDIT_BUTTON_TEXT L"Texture Edit"
+#define TERRAIN_BLENDING_BUTTON_TEXT L"Terrain Blending"
 
 using namespace godot;
 
@@ -232,10 +236,16 @@ void GDN_TheWorld_Edit::setUIAcceptFocus(bool b)
 	m_innerData->m_fractalGain->set_focus_mode(focusMode);
 	m_innerData->m_amplitudeLabel->set_focus_mode(focusMode);
 	m_innerData->m_scaleFactorLabel->set_focus_mode(focusMode);
+	m_innerData->m_ignoreDesideredMinHeightLabel->set_focus_mode(focusMode);
 	m_innerData->m_desideredMinHeightLabel->set_focus_mode(focusMode);
+	m_innerData->m_postGenerateElevationLabel->set_focus_mode(focusMode);
 	m_innerData->m_fractalWeightedStrength->set_focus_mode(focusMode);
 	m_innerData->m_fractalPingPongStrength->set_focus_mode(focusMode);
 	m_innerData->m_amplitudeBlendFactor->set_focus_mode(focusMode);
+	m_innerData->m_blendCycles->set_focus_mode(focusMode);
+	m_innerData->m_blendingBendingFactor->set_focus_mode(focusMode);
+	m_innerData->m_minRandomBendingExtension->set_focus_mode(focusMode);
+	m_innerData->m_maxRandomBendingExtension->set_focus_mode(focusMode);
 	m_innerData->m_slopeVerticalFactor->set_focus_mode(focusMode);
 	m_innerData->m_slopeFlatFactor->set_focus_mode(focusMode);
 	m_innerData->m_dirtOnRocksFactor->set_focus_mode(focusMode);
@@ -335,17 +345,21 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Save", "pressed", this, "edit_mode_save");
+		button->set_self_modulate(BUTTON_COLOR);
 		//separator = createControl<godot::VSeparator>(hBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Upload", "pressed", this, "edit_mode_upload");
+		button->set_self_modulate(BUTTON_COLOR);
 		//separator = createControl<godot::VSeparator>(hBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Stop", "pressed", this, "edit_mode_stop");
-		//separator = createControl<godot::VSeparator>(hBoxContainer);
-		button = createControl<godot::Button>(hBoxContainer, "", "Reload shader", "pressed", this, "edit_mode_reload_shader");
+		button->set_self_modulate(BUTTON_COLOR);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
-		button = createControl<godot::Button>(hBoxContainer, "", "Blend", "pressed", this, "edit_mode_blend");
+		button = createControl<godot::Button>(hBoxContainer, "", "Reload shader", "pressed", this, "edit_mode_reload_shader");
+		button->set_self_modulate(BUTTON_COLOR);
 		button = createControl<godot::Button>(hBoxContainer, "", "Reset Normals/Textures", "pressed", this, "edit_mode_reset_normals_splatmap");
+		button->set_self_modulate(BUTTON_COLOR);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Apply Texs", "pressed", this, "edit_mode_apply_textures");
+		//button->set_self_modulate(BUTTON_COLOR);
 		m_innerData->m_allCheckBox = createControl<godot::CheckBox>(hBoxContainer);
 		m_innerData->m_allCheckBox->set_text("All");
 		m_innerData->m_allCheckBox->set_toggle_mode(true);
@@ -363,6 +377,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	{
 		m_innerData->m_infoButton = createControl<godot::Button>(m_innerData->m_mainFixedVBoxContainer, "InfoPanelToggle", (std::wstring(DOWN_ARROW) + L" " + INFO_BUTTON_TEXT).c_str(), "pressed", this, "void_signal_manager");
 		m_innerData->m_infoButton->set_text_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_LEFT);
+		m_innerData->m_infoButton->set_self_modulate(SECTION_BUTTON_COLOR);
 
 		m_innerData->m_infoVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 
@@ -418,11 +433,12 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	{
 		m_innerData->m_noiseButton = createControl<godot::Button>(m_innerData->m_mainScrolledVBoxContainer, "NoisePanelToggle", (std::wstring(RIGHT_ARROW) + L" " + NOISE_BUTTON_TEXT).c_str(), "pressed", this, "void_signal_manager");
 		m_innerData->m_noiseButton->set_text_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_LEFT);
+		m_innerData->m_noiseButton->set_self_modulate(SECTION_BUTTON_COLOR);
 
 		m_innerData->m_noiseVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
 		m_innerData->m_noiseVBoxContainer->hide();
 
-		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);	// TEST
+		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);
 		
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		m_innerData->m_terrTypeOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_terr_type");
@@ -444,6 +460,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::noise_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::noise_1);
 		separator = createControl<godot::VSeparator>(hBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Generate", "pressed", this, "edit_mode_generate");
+		button->set_self_modulate(BUTTON_COLOR);
 		separator = createControl<godot::VSeparator>(hBoxContainer);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
@@ -461,39 +478,98 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_fractalLacunarity = createControl<godot::LineEdit>(hBoxContainer);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Ampl.");
-		m_innerData->m_amplitudeLabel = createControl<godot::LineEdit>(hBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Jag Int.");
-		m_innerData->m_scaleFactorLabel = createControl<godot::LineEdit>(hBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Start H");
-		m_innerData->m_desideredMinHeightLabel = createControl<godot::LineEdit>(hBoxContainer);
-
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Weighted Str.");
 		m_innerData->m_fractalWeightedStrength = createControl<godot::LineEdit>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Ping Pong Str.");
 		m_innerData->m_fractalPingPongStrength = createControl<godot::LineEdit>(hBoxContainer);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Ampl. Blend factor");
-		m_innerData->m_amplitudeBlendFactor = createControl<godot::LineEdit>(hBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Ampl.");
+		m_innerData->m_amplitudeLabel = createControl<godot::LineEdit>(hBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Jag Int.");
+		m_innerData->m_scaleFactorLabel = createControl<godot::LineEdit>(hBoxContainer);
 
-		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);	// TEST
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Min Height");
+		m_innerData->m_desideredMinHeightLabel = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_ignoreDesideredMinHeightLabel = createControl<godot::CheckBox>(hBoxContainer);
+		m_innerData->m_ignoreDesideredMinHeightLabel->set_text("Ignore Min Height");
+		m_innerData->m_ignoreDesideredMinHeightLabel->set_toggle_mode(true);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Post Generate Elevation");
+		m_innerData->m_postGenerateElevationLabel = createControl<godot::LineEdit>(hBoxContainer);
+
+		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);
 	}
 
 	{
-		//m_innerData->m_terrEditButton = createControl<godot::Button>(m_innerData->m_mainScrolledVBoxContainer, "", (std::wstring(RIGHT_ARROW) + L" " + TERRAIN_EDIT_BUTTON_TEXT).c_str(), "pressed", this, "edit_mode_terredit_panel");
+		m_innerData->m_terrBlendingButton = createControl<godot::Button>(m_innerData->m_mainScrolledVBoxContainer, "TerrBlendingPanelToggle", (std::wstring(RIGHT_ARROW) + L" " + TERRAIN_BLENDING_BUTTON_TEXT).c_str(), "pressed", this, "void_signal_manager");
+		m_innerData->m_terrBlendingButton->set_text_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_LEFT);
+		m_innerData->m_terrBlendingButton->set_self_modulate(SECTION_BUTTON_COLOR);
+		//m_innerData->m_terrBlendingButton->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_yellow_apricot);
+
+		m_innerData->m_terrBlendingVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
+		m_innerData->m_terrBlendingVBoxContainer->hide();
+
+		separator = createControl<HSeparator>(m_innerData->m_terrBlendingVBoxContainer);
+
+		godot::Size2 labelMinimumSize(250, 0);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
+		button = createControl<godot::Button>(hBoxContainer, "", "Blend", "pressed", this, "edit_mode_blend");
+		button->set_self_modulate(BUTTON_COLOR);
+		m_innerData->m_blendAllCheckBox = createControl<godot::CheckBox>(hBoxContainer);
+		m_innerData->m_blendAllCheckBox->set_text("All");
+		m_innerData->m_blendAllCheckBox->set_toggle_mode(true);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Amplitude Factor");
+		label->set_custom_minimum_size(labelMinimumSize);
+		m_innerData->m_amplitudeBlendFactor = createControl<godot::LineEdit>(hBoxContainer);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Cycles");
+		label->set_custom_minimum_size(labelMinimumSize);
+		m_innerData->m_blendCycles = createControl<godot::LineEdit>(hBoxContainer);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Bending Modifier Factor");
+		label->set_custom_minimum_size(labelMinimumSize);
+		label->set_visible(false);		// DISABLED
+		m_innerData->m_blendingBendingFactor = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_blendingBendingFactor->set_visible(false);		// DISABLED
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Min Rand. Bending Extension");
+		label->set_visible(false);		// DISABLED
+		label->set_custom_minimum_size(labelMinimumSize);
+		m_innerData->m_minRandomBendingExtension = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_minRandomBendingExtension->set_visible(false);		// DISABLED
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Max Rand. Bending Extension");
+		label->set_visible(false);		// DISABLED
+		label->set_custom_minimum_size(labelMinimumSize);
+		m_innerData->m_maxRandomBendingExtension = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_maxRandomBendingExtension->set_visible(false);		// DISABLED
+
+		separator = createControl<HSeparator>(m_innerData->m_terrBlendingVBoxContainer);
+	}
+
+	{
 		m_innerData->m_terrEditButton = createControl<godot::Button>(m_innerData->m_mainScrolledVBoxContainer, "TerrEditPanelToggle", (std::wstring(RIGHT_ARROW) + L" " + TERRAIN_EDIT_BUTTON_TEXT).c_str(), "pressed", this, "void_signal_manager");
 		m_innerData->m_terrEditButton->set_text_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_LEFT);
+		m_innerData->m_terrEditButton->set_self_modulate(SECTION_BUTTON_COLOR);
 
 		m_innerData->m_terrEditVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
 		m_innerData->m_terrEditVBoxContainer->hide();
 
 		godot::Vector2 size(70, 70);
 		
-		separator = createControl<HSeparator>(m_innerData->m_terrEditVBoxContainer);	// TEST
+		separator = createControl<HSeparator>(m_innerData->m_terrEditVBoxContainer);
 
-		godot::Size2 labelMinimumSize(150, 0);
+		godot::Size2 labelMinimumSize(180, 0);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "High Elev. Factor");
 		label->set_custom_minimum_size(labelMinimumSize);
@@ -533,6 +609,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_highElevationTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_highElevationTexName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
+		//button->set_self_modulate(BUTTON_COLOR);
 
 		label = createControl<godot::Label>(m_innerData->m_terrEditVBoxContainer, "", c_lowElevationEditTextureName.c_str());
 		m_innerData->m_lowElevationTexPanel = createControl<godot::PanelContainer>(m_innerData->m_terrEditVBoxContainer, "LowElevationTexPanel");
@@ -546,6 +623,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_lowElevationTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_lowElevationTexName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
+		//button->set_self_modulate(BUTTON_COLOR);
 
 		label = createControl<godot::Label>(m_innerData->m_terrEditVBoxContainer, "", c_rocksEditTextureName.c_str());
 		m_innerData->m_rocksTexPanel = createControl<godot::PanelContainer>(m_innerData->m_terrEditVBoxContainer, "RocksTexPanel");
@@ -559,6 +637,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_rocksTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_rocksTexName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
+		//button->set_self_modulate(BUTTON_COLOR);
 
 		label = createControl<godot::Label>(m_innerData->m_terrEditVBoxContainer, "", c_dirtEditTextureName.c_str());
 		m_innerData->m_dirtTexPanel = createControl<godot::PanelContainer>(m_innerData->m_terrEditVBoxContainer, "DirtTexPanel");
@@ -572,8 +651,9 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_dirtTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_dirtTexName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
+		//button->set_self_modulate(BUTTON_COLOR);
 
-		separator = createControl<HSeparator>(m_innerData->m_terrEditVBoxContainer);	// TEST
+		separator = createControl<HSeparator>(m_innerData->m_terrEditVBoxContainer);
 	}
 	
 	m_innerData->m_dummyLabel = createControl<Label>(m_innerData->m_mainScrolledVBoxContainer, "", " ");
@@ -715,8 +795,15 @@ void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 	setWeightedStrength(0.0f);
 	setPingPongStrength(0.0f);
 	setAmplitudeBlendFactor(0.0f);
+	setBlendingCycles(0);
+	setBlendingBendingFactor(0.0f);
+	setMinRandomBendingExtension(0.0f);
+	setMaxRandomBendingExtension(0.0f);
 	setAmplitude(0);
 	setScaleFactor(1.0f);
+	setIgnoreDesideredMinHeight(false);
+	setDesideredMinHeight(0.0f);
+	setPostGenerateElevation(0.0f);
 	setMinHeight(0.0f);
 	setMaxHeight(0.0f);
 	setSlopeVerticalFactor(0.0f);
@@ -759,9 +846,15 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	setWeightedStrength(terrainEdit.noise.fractalWeightedStrength);
 	setPingPongStrength(terrainEdit.noise.fractalPingPongStrength);
 	setAmplitudeBlendFactor(terrainEdit.extraValues.amplitudeBlendFactor);
+	setBlendingCycles(terrainEdit.extraValues1.numBlendingCycles);
+	setBlendingBendingFactor(terrainEdit.extraValues1.blendingBendingFactor);
+	setMinRandomBendingExtension(terrainEdit.extraValues1.minRandomBendingExtension);
+	setMaxRandomBendingExtension(terrainEdit.extraValues1.maxRandomBendingExtension);
 	setAmplitude(terrainEdit.noise.heightsAmplitude);
 	setScaleFactor(terrainEdit.noise.scaleFactor_JagIntensity);
+	setIgnoreDesideredMinHeight(terrainEdit.extraValues1.ignoreDesideredMinHeight);
 	setDesideredMinHeight(terrainEdit.noise.desideredMinHeight);
+	setPostGenerateElevation(terrainEdit.extraValues1.postGenerateElevation);
 	setMinHeight(terrainEdit.minHeight);
 	setMaxHeight(terrainEdit.maxHeight);
 
@@ -915,6 +1008,50 @@ float GDN_TheWorld_Edit::amplitudeBlendFactor(void)
 	return ret;
 }
 
+void GDN_TheWorld_Edit::setBlendingCycles(size_t blendingCycles)
+{
+	m_innerData->m_blendCycles->set_text(std::to_string(blendingCycles).c_str());
+}
+
+size_t GDN_TheWorld_Edit::blendingCycles(void)
+{
+	size_t ret = (size_t)std::stol(std::string(m_innerData->m_blendCycles->get_text().utf8().get_data()));
+	return ret;
+}
+
+void GDN_TheWorld_Edit::setBlendingBendingFactor(float blendingBendingFactor)
+{
+	m_innerData->m_blendingBendingFactor->set_text(std::to_string(blendingBendingFactor).c_str());
+}
+
+float GDN_TheWorld_Edit::blendingBendingFactor(void)
+{
+	float ret = std::stof(std::string(m_innerData->m_blendingBendingFactor->get_text().utf8().get_data()));
+	return ret;
+}
+
+void GDN_TheWorld_Edit::setMinRandomBendingExtension(float minRandomBendingExtension)
+{
+	m_innerData->m_minRandomBendingExtension->set_text(std::to_string(minRandomBendingExtension).c_str());
+}
+
+float GDN_TheWorld_Edit::minRandomBendingExtension(void)
+{
+	float ret = std::stof(std::string(m_innerData->m_minRandomBendingExtension->get_text().utf8().get_data()));
+	return ret;
+}
+
+void GDN_TheWorld_Edit::setMaxRandomBendingExtension(float maxRandomBendingExtension)
+{
+	m_innerData->m_maxRandomBendingExtension->set_text(std::to_string(maxRandomBendingExtension).c_str());
+}
+
+float GDN_TheWorld_Edit::maxRandomBendingExtension(void)
+{
+	float ret = std::stof(std::string(m_innerData->m_maxRandomBendingExtension->get_text().utf8().get_data()));
+	return ret;
+}
+
 void GDN_TheWorld_Edit::setAmplitude(unsigned int amplitude)
 {
 	m_innerData->m_amplitudeLabel->set_text(std::to_string(amplitude).c_str());
@@ -943,6 +1080,16 @@ float GDN_TheWorld_Edit::scaleFactor(void)
 	return ret;
 }
 
+void GDN_TheWorld_Edit::setIgnoreDesideredMinHeight(bool ignoreDesideredMinHeight)
+{
+	m_innerData->m_ignoreDesideredMinHeightLabel->set_pressed(ignoreDesideredMinHeight);
+}
+
+bool GDN_TheWorld_Edit::ignoreDesideredMinHeight(void)
+{
+	return m_innerData->m_ignoreDesideredMinHeightLabel->is_pressed();
+}
+
 void GDN_TheWorld_Edit::setDesideredMinHeight(float desideredMinHeight)
 {
 	m_innerData->m_desideredMinHeightLabel->set_text(std::to_string(desideredMinHeight).c_str());
@@ -950,10 +1097,18 @@ void GDN_TheWorld_Edit::setDesideredMinHeight(float desideredMinHeight)
 
 float GDN_TheWorld_Edit::desideredMinHeight(void)
 {
-	//godot::String s = m_innerData->m_desideredMinHeightLabel->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
 	float ret = std::stof(std::string(m_innerData->m_desideredMinHeightLabel->get_text().utf8().get_data()));
+	return ret;
+}
+
+void GDN_TheWorld_Edit::setPostGenerateElevation(float postGenerateElevation)
+{
+	m_innerData->m_postGenerateElevationLabel->set_text(std::to_string(postGenerateElevation).c_str());
+}
+
+float GDN_TheWorld_Edit::postGenerateElevation(void)
+{
+	float ret = std::stof(std::string(m_innerData->m_postGenerateElevationLabel->get_text().utf8().get_data()));
 	return ret;
 }
 
@@ -1358,6 +1513,7 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 
 	float lookdevOptionButtonHeight = m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
 	float noiseButtonHeight = m_innerData->m_noiseButton->get_rect().size.height + 3;
+	float terrBlendingButtonHeight = m_innerData->m_terrBlendingButton->get_rect().size.height + 3;
 	float terrEditButtonHeight = m_innerData->m_terrEditButton->get_rect().size.height + 3;
 	float dummyLabelHeight = m_innerData->m_dummyLabel->get_rect().size.height + 3;
 
@@ -1373,7 +1529,19 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	}
 	else
 		noiseVBoxCHeight = 0;
-	//float noiseVBoxCHeight = m_innerData->m_noiseVBoxContainer->is_visible() ? m_innerData->m_noiseVBoxContainer->get_rect().size.height + 4 : 0;
+
+	static float terrBlendingVBoxcExpandedHeight = 0;
+	float terrBlendingVBoxcHeight;
+	if (m_innerData->m_terrBlendingVBoxContainer->is_visible())
+	{
+		if (terrBlendingVBoxcExpandedHeight == 0)
+		{
+			terrBlendingVBoxcExpandedHeight = m_innerData->m_terrBlendingVBoxContainer->get_rect().size.height + 4;
+		}
+		terrBlendingVBoxcHeight = terrBlendingVBoxcExpandedHeight;
+	}
+	else
+		terrBlendingVBoxcHeight = 0;
 
 	static float terrEditVBoxcExpandedHeight = 0;
 	float terrEditVBoxcHeight;
@@ -1387,9 +1555,8 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	}
 	else
 		terrEditVBoxcHeight = 0;
-	//float terrEditVBoxcHeight = m_innerData->m_terrEditVBoxContainer->is_visible() ? m_innerData->m_terrEditVBoxContainer->get_rect().size.height + 4 : 0;
 
-	float scrollableContentHeightCalc = lookdevOptionButtonHeight + noiseButtonHeight + noiseVBoxCHeight + terrEditButtonHeight + terrEditVBoxcHeight + dummyLabelHeight;
+	float scrollableContentHeightCalc = lookdevOptionButtonHeight + noiseButtonHeight + noiseVBoxCHeight + terrBlendingButtonHeight + terrBlendingVBoxcHeight + terrEditButtonHeight + terrEditVBoxcHeight + dummyLabelHeight;
 
 	godot::Size2 ret;
 
@@ -1774,6 +1941,21 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 			{
 				m_innerData->m_infoVBoxContainer->show();
 				((godot::Button*)obj)->set_text((std::wstring(DOWN_ARROW) + L" " + INFO_BUTTON_TEXT).c_str());
+			}
+
+			m_scrollPanelsNeedResize = true;
+		}
+		else if (_objectName == "TerrBlendingPanelToggle" && _className == "class godot::Button")
+		{
+			if (m_innerData->m_terrBlendingVBoxContainer->is_visible())
+			{
+				m_innerData->m_terrBlendingVBoxContainer->hide();
+				((godot::Button*)obj)->set_text((std::wstring(RIGHT_ARROW) + L" " + TERRAIN_BLENDING_BUTTON_TEXT).c_str());
+			}
+			else
+			{
+				m_innerData->m_terrBlendingVBoxContainer->show();
+				((godot::Button*)obj)->set_text((std::wstring(DOWN_ARROW) + L" " + TERRAIN_BLENDING_BUTTON_TEXT).c_str());
 			}
 
 			m_scrollPanelsNeedResize = true;
@@ -2390,6 +2572,8 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	terrainEdit->noise.heightsAmplitude = amplitude();
 	terrainEdit->noise.scaleFactor_JagIntensity = scaleFactor();
 	terrainEdit->noise.desideredMinHeight = desideredMinHeight();
+	terrainEdit->extraValues1.ignoreDesideredMinHeight = ignoreDesideredMinHeight();
+	terrainEdit->extraValues1.postGenerateElevation = postGenerateElevation();
 	//terrainEdit->needUploadToServer = true;
 
 	int level = quadrantSelPos.getLevel();
@@ -2571,7 +2755,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 
 	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1 ") + __FUNCTION__, "ALL");
 
-	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+	bool allCheched = m_innerData->m_blendAllCheckBox->is_pressed();
 
 	QuadTree* quadTreeSel = nullptr;
 	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
@@ -2609,7 +2793,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 
 	m_blendingInProgress = true;
 
-	size_t numRounds = 2;
+	size_t numRounds = blendingCycles();
 	for (size_t round = 0; round < numRounds; round++)
 	{
 		bool lastPhase = false;
@@ -2776,6 +2960,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.3 ") + __FUNCTION__, "Single QuadTree blendQuadrant");
 
+					//lastPhase = false;	// DEBUG
 					bool updated = quadTree->getQuadrant()->getMeshCacheBuffer().blendQuadrant(pos.getNumVerticesPerSize(), pos.getGridStepInWU(), lastPhase,
 						quadrantData,
 						northQuadrantData,
@@ -2787,8 +2972,8 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 						southwestQuadrantData,
 						southeastQuadrantData);
 
-					if (updated && lastPhase)
-						cannotExitLoop = true;
+					//if (updated && lastPhase)
+					//	cannotExitLoop = true;
 				}
 
 				{
@@ -2907,6 +3092,10 @@ QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(bool* lockAcquired, 
 		if (*lockAcquired)
 		{
 			quadTree->getQuadrant()->getTerrainEdit()->extraValues.amplitudeBlendFactor  = amplitudeBlendFactor();
+			quadTree->getQuadrant()->getTerrainEdit()->extraValues1.numBlendingCycles = blendingCycles();
+			quadTree->getQuadrant()->getTerrainEdit()->extraValues1.blendingBendingFactor = blendingBendingFactor();
+			quadTree->getQuadrant()->getTerrainEdit()->extraValues1.minRandomBendingExtension = minRandomBendingExtension();
+			quadTree->getQuadrant()->getTerrainEdit()->extraValues1.maxRandomBendingExtension = maxRandomBendingExtension();
 			quadTree->getQuadrant()->getTerrainEdit()->serialize(*terrainEditValuesBuffer);
 
 			quadrantData->meshId = quadTree->getQuadrant()->getMeshCacheBuffer().getMeshId();

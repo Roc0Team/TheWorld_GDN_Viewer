@@ -105,7 +105,6 @@ namespace godot
 				m_fractalPingPongStrength = nullptr;
 				m_amplitudeLabel = nullptr;
 				m_scaleFactorLabel = nullptr;
-				m_desideredMinHeightLabel = nullptr;
 				m_elapsedLabel = nullptr;
 				m_elapsed1Label = nullptr;
 				m_numQuadrantToSaveLabel = nullptr;
@@ -185,9 +184,19 @@ namespace godot
 			godot::LineEdit* m_fractalWeightedStrength;
 			godot::LineEdit* m_fractalPingPongStrength;
 			godot::LineEdit* m_amplitudeBlendFactor = nullptr;
+			godot::LineEdit* m_blendCycles = nullptr;
+			godot::LineEdit* m_blendingBendingFactor = nullptr;
+			godot::LineEdit* m_minRandomBendingExtension = nullptr;
+			godot::LineEdit* m_maxRandomBendingExtension = nullptr;
 			godot::LineEdit* m_amplitudeLabel;
 			godot::LineEdit* m_scaleFactorLabel;
-			godot::LineEdit* m_desideredMinHeightLabel;
+			godot::CheckBox* m_ignoreDesideredMinHeightLabel = nullptr;
+			godot::LineEdit* m_desideredMinHeightLabel = nullptr;
+			godot::LineEdit* m_postGenerateElevationLabel = nullptr;
+
+			godot::Button* m_terrBlendingButton = nullptr;
+			godot::Control* m_terrBlendingVBoxContainer = nullptr;
+			godot::CheckBox* m_blendAllCheckBox;
 
 			godot::Control* m_terrEditVBoxContainer;
 			godot::Button* m_terrEditButton;
@@ -354,12 +363,24 @@ namespace godot
 		float pingPongStrength(void);
 		void setAmplitudeBlendFactor(float amplitudeBlendFactor);
 		float amplitudeBlendFactor(void);
+		void setBlendingCycles(size_t blendingCycles);
+		size_t blendingCycles(void);
+		void setBlendingBendingFactor(float blendingBendingFactor);
+		float blendingBendingFactor(void);
+		void setMinRandomBendingExtension(float minRandomBendingExtension);
+		float minRandomBendingExtension(void);
+		void setMaxRandomBendingExtension(float maxRandomBendingExtension);
+		float maxRandomBendingExtension(void);
 		void setAmplitude(unsigned int amplitude);
 		unsigned int amplitude(void);
 		void setScaleFactor(float scaleFactor);
 		float scaleFactor(void);
+		void setIgnoreDesideredMinHeight(bool ignoreDesideredMinHeight);
+		bool ignoreDesideredMinHeight(void);
 		void setDesideredMinHeight(float desideredMinHeight);
 		float desideredMinHeight(void);
+		void setPostGenerateElevation(float postGenerateElevation);
+		float postGenerateElevation(void);
 		void setMinHeight(float minHeight);
 		float minHeight(void);
 		void setMaxHeight(float maxHeight);

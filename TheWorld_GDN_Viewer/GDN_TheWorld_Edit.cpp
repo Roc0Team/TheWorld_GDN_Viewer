@@ -536,23 +536,23 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Bending Modifier Factor");
 		label->set_custom_minimum_size(labelMinimumSize);
-		label->set_visible(false);		// DISABLED
+		//label->set_visible(false);		// DISABLED
 		m_innerData->m_blendingBendingFactor = createControl<godot::LineEdit>(hBoxContainer);
-		m_innerData->m_blendingBendingFactor->set_visible(false);		// DISABLED
+		//m_innerData->m_blendingBendingFactor->set_visible(false);		// DISABLED
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Min Rand. Bending Extension");
-		label->set_visible(false);		// DISABLED
+		//label->set_visible(false);		// DISABLED
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_minRandomBendingExtension = createControl<godot::LineEdit>(hBoxContainer);
-		m_innerData->m_minRandomBendingExtension->set_visible(false);		// DISABLED
+		//m_innerData->m_minRandomBendingExtension->set_visible(false);		// DISABLED
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Max Rand. Bending Extension");
-		label->set_visible(false);		// DISABLED
+		//label->set_visible(false);		// DISABLED
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_maxRandomBendingExtension = createControl<godot::LineEdit>(hBoxContainer);
-		m_innerData->m_maxRandomBendingExtension->set_visible(false);		// DISABLED
+		//m_innerData->m_maxRandomBendingExtension->set_visible(false);		// DISABLED
 
 		separator = createControl<HSeparator>(m_innerData->m_terrBlendingVBoxContainer);
 	}

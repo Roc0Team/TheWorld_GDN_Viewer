@@ -8,6 +8,7 @@
 #include <godot_cpp/classes/cylinder_mesh.hpp>
 #include <godot_cpp/classes/label.hpp>
 #include <godot_cpp/classes/label3d.hpp>
+#include <godot_cpp/classes/label.hpp>
 #include <godot_cpp/classes/camera3d.hpp>
 #include <godot_cpp/classes/sub_viewport.hpp>
 #include <godot_cpp/classes/viewport_texture.hpp>
@@ -61,17 +62,25 @@ namespace godot
 		}
 
 	private:
+		godot::Basis m_localTransformBasis;
+
 		godot::MeshInstance3D* m_xAzisMesh = nullptr;
 		godot::MeshInstance3D* m_xAxisArrowheadMesh = nullptr;
-		godot::Label3D* m_xAxisLabel = nullptr;
+		godot::Vector3 m_xAxisLabelPosIn3d;
+		//godot::Label3D* m_xAxisLabel3d = nullptr;
+		godot::Label* m_xAxisLabel2d = nullptr;
 
 		godot::MeshInstance3D* m_yAzisMesh = nullptr;
 		godot::MeshInstance3D* m_yAxisArrowheadMesh = nullptr;
-		godot::Label3D* m_yAxisLabel = nullptr;
+		godot::Vector3 m_yAxisLabelPosIn3d;
+		//godot::Label3D* m_yAxisLabel3d = nullptr;
+		godot::Label* m_yAxisLabel2d = nullptr;
 
 		godot::MeshInstance3D* m_zAzisMesh = nullptr;
 		godot::MeshInstance3D* m_zAxisArrowheadMesh = nullptr;
-		godot::Label3D* m_zAxisLabel = nullptr;
+		godot::Vector3 m_zAxisLabelPosIn3d;
+		//godot::Label3D* m_zAxisLabel3d = nullptr;
+		godot::Label* m_zAxisLabel2d = nullptr;
 
 		//godot::MeshInstance3D* m_normalMesh = nullptr;
 		//godot::MeshInstance3D* m_normalArrowheadMesh = nullptr;

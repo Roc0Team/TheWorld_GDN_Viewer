@@ -122,24 +122,21 @@ void GDN_TheWorld_Gizmo3d::_ready(void)
 	m_xAxisArrowheadMesh->set_rotation_degrees(godot::Vector3(0.0f, 0.0f, 270.0f));
 	m_xAxisArrowheadMesh->set_position(godot::Vector3(m_arrowheadSize / 2 + m_arrowSize, 0.0f, 0.0f));
 
-	m_xAxisLabel = memnew(godot::Label3D);
-	add_child(m_xAxisLabel);
-	m_xAxisLabel->set_text("X");
-	m_xAxisLabel->set_position(godot::Vector3(m_arrowheadSize + m_arrowSize + 5, 0.0f, 0.0f));
-	m_xAxisLabel->set_font_size(font_size);
-	m_xAxisLabel->set_pixel_size(pixel_size);
-	m_xAxisLabel->set_outline_size(outline_size);
-	m_xAxisLabel->set_modulate(GDN_TheWorld_Globals::g_color_red);
-	m_xAxisLabel->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
-
-	//godot::SphereMesh* xAxisSphereMesh = memnew(godot::SphereMesh);
-	//xAxisSphereMesh->set_height(m_arrowRadius * m_arrowheadRadiusMultiplier);
-	//xAxisSphereMesh->set_radius((m_arrowRadius * m_arrowheadRadiusMultiplier) / 2);
-	//godot::MeshInstance3D* xAxisSphereMeshI3d = memnew(godot::MeshInstance3D);
-	//xAxisSphereMeshI3d->set_mesh(xAxisSphereMesh);
-	//xAxisSphereMeshI3d->set_material_override(xAxisMat);
-	//add_child(xAxisSphereMeshI3d);
-	//xAxisSphereMeshI3d->set_position(godot::Vector3(m_arrowheadSize + m_arrowSize + 5, 0.0f, 0.0f));
+	m_xAxisLabelPosIn3d = godot::Vector3(m_arrowheadSize + m_arrowSize + 5, 0.0f, 0.0f);
+	//m_xAxisLabel3d = memnew(godot::Label3D);
+	//add_child(m_xAxisLabel3d);
+	//m_xAxisLabel3d->set_text("X");
+	//m_xAxisLabel3d->set_position(m_xAxisLabelPosIn3d);
+	//m_xAxisLabel3d->set_font_size(font_size);
+	//m_xAxisLabel3d->set_pixel_size(pixel_size);
+	//m_xAxisLabel3d->set_outline_size(outline_size);
+	//m_xAxisLabel3d->set_modulate(GDN_TheWorld_Globals::g_color_red);
+	//m_xAxisLabel3d->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
+	m_xAxisLabel2d = memnew(godot::Label);
+	add_child(m_xAxisLabel2d);
+	m_xAxisLabel2d->set_text("X");
+	m_xAxisLabel2d->set_modulate(GDN_TheWorld_Globals::g_color_red);
+	//m_xAxisLabel2d->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_red);
 
 	// Y Axis GDN_TheWorld_Globals::g_color_green 
 	godot::Ref<godot::CylinderMesh> yAzisMesh = memnew(godot::CylinderMesh);
@@ -168,15 +165,21 @@ void GDN_TheWorld_Gizmo3d::_ready(void)
 	add_child(m_yAxisArrowheadMesh);
 	m_yAxisArrowheadMesh->set_position(godot::Vector3(0.0f, m_arrowheadSize / 2 + m_arrowSize, 0.0f));
 
-	m_yAxisLabel = memnew(godot::Label3D);
-	add_child(m_yAxisLabel);
-	m_yAxisLabel->set_text("Y");
-	m_yAxisLabel->set_position(godot::Vector3(0.0f, m_arrowheadSize + m_arrowSize + 5, 0.0f));
-	m_yAxisLabel->set_font_size(font_size);
-	m_yAxisLabel->set_pixel_size(pixel_size);
-	m_yAxisLabel->set_outline_size(outline_size);
-	m_yAxisLabel->set_modulate(GDN_TheWorld_Globals::g_color_green);
-	m_yAxisLabel->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
+	m_yAxisLabelPosIn3d = godot::Vector3(0.0f, m_arrowheadSize + m_arrowSize + 5, 0.0f);
+	//m_yAxisLabel3d = memnew(godot::Label3D);
+	//add_child(m_yAxisLabel3d);
+	//m_yAxisLabel3d->set_text("Y");
+	//m_yAxisLabel3d->set_position(m_yAxisLabelPosIn3d);
+	//m_yAxisLabel3d->set_font_size(font_size);
+	//m_yAxisLabel3d->set_pixel_size(pixel_size);
+	//m_yAxisLabel3d->set_outline_size(outline_size);
+	//m_yAxisLabel3d->set_modulate(GDN_TheWorld_Globals::g_color_green);
+	//m_yAxisLabel3d->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
+	m_yAxisLabel2d = memnew(godot::Label);
+	add_child(m_yAxisLabel2d);
+	m_yAxisLabel2d->set_text("Y");
+	m_yAxisLabel2d->set_modulate(GDN_TheWorld_Globals::g_color_green);
+	//m_yAxisLabel2d->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_green);
 
 	// Z Axis GDN_TheWorld_Globals::g_color_blue 
 	godot::Ref<godot::CylinderMesh> zAzisMesh = memnew(godot::CylinderMesh);
@@ -207,28 +210,79 @@ void GDN_TheWorld_Gizmo3d::_ready(void)
 	m_zAxisArrowheadMesh->set_rotation_degrees(godot::Vector3(90.0f, 0.0f, 0.0f));
 	m_zAxisArrowheadMesh->set_position(godot::Vector3(0.0f, 0.0f, m_arrowheadSize / 2 + m_arrowSize));
 
-	m_zAxisLabel = memnew(godot::Label3D);
-	add_child(m_zAxisLabel);
-	m_zAxisLabel->set_text("Z");
-	m_zAxisLabel->set_position(godot::Vector3(0.0f, 0.0f, m_arrowheadSize + m_arrowSize + 5));
-	m_zAxisLabel->set_font_size(font_size);
-	m_zAxisLabel->set_pixel_size(pixel_size);
-	m_zAxisLabel->set_outline_size(outline_size);
-	m_zAxisLabel->set_modulate(GDN_TheWorld_Globals::g_color_blue);
-	m_zAxisLabel->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
+	m_zAxisLabelPosIn3d = godot::Vector3(0.0f, 0.0f, m_arrowheadSize + m_arrowSize + 5);
+	//m_zAxisLabel3d = memnew(godot::Label3D);
+	//add_child(m_zAxisLabel3d);
+	//m_zAxisLabel3d->set_text("Z");
+	//m_zAxisLabel3d->set_position(m_zAxisLabelPosIn3d);
+	//m_zAxisLabel3d->set_font_size(font_size);
+	//m_zAxisLabel3d->set_pixel_size(pixel_size);
+	//m_zAxisLabel3d->set_outline_size(outline_size);
+	//m_zAxisLabel3d->set_modulate(GDN_TheWorld_Globals::g_color_blue);
+	//m_zAxisLabel3d->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
+	m_zAxisLabel2d = memnew(godot::Label);
+	add_child(m_zAxisLabel2d);
+	m_zAxisLabel2d->set_text("Z");
+	m_zAxisLabel2d->set_modulate(GDN_TheWorld_Globals::g_color_blue);
+	//m_zAxisLabel2d->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_blue);
+
+	m_localTransformBasis = get_transform().basis;
 }
 
 void GDN_TheWorld_Gizmo3d::_process(double _delta)
 {
-	if (m_camera != nullptr)
+	if (m_camera != nullptr && is_visible())
 	{
 		godot::Vector3 cameraPos = m_camera->get_global_transform().origin;
-		m_xAxisLabel->look_at(cameraPos, godot::Vector3(0, 1, 0));
-		m_xAxisLabel->rotate_y(TheWorld_Utils::kPi);
-		m_yAxisLabel->look_at(cameraPos, godot::Vector3(0, 1, 0));
-		m_yAxisLabel->rotate_y(TheWorld_Utils::kPi);
-		m_zAxisLabel->look_at(cameraPos, godot::Vector3(0, 1, 0));
-		m_zAxisLabel->rotate_y(TheWorld_Utils::kPi);
+		
+		//m_xAxisLabel3d->look_at(cameraPos, godot::Vector3(0, 1, 0));
+		//m_xAxisLabel3d->rotate_y(TheWorld_Utils::kPi);
+		//m_yAxisLabel3d->look_at(cameraPos, godot::Vector3(0, 1, 0));
+		//m_yAxisLabel3d->rotate_y(TheWorld_Utils::kPi);
+		//m_zAxisLabel3d->look_at(cameraPos, godot::Vector3(0, 1, 0));
+		//m_zAxisLabel3d->rotate_y(TheWorld_Utils::kPi);
+
+		float distanceFromCamera = cameraPos.distance_to(get_global_transform().origin);
+		float scaleFactor = 1.2f;
+		if (distanceFromCamera > 5000)
+			scaleFactor = distanceFromCamera / 400.0f;
+		else if (distanceFromCamera > 1000)
+				scaleFactor = distanceFromCamera / 350.0f;
+		else if (distanceFromCamera > 500)
+			scaleFactor = distanceFromCamera / 300.0f;
+
+		godot::Transform3D t = godot::Transform3D(m_localTransformBasis.scaled(godot::Vector3(scaleFactor, scaleFactor, scaleFactor)), get_transform().origin);
+		set_transform(t);
+
+		godot::Vector2 offset(0.0f, -15.0f);
+		godot::Vector3 xAxisLabelGlobalPosIn3d = m_xAxisLabelPosIn3d * scaleFactor + get_global_position();
+		if (m_xAxisLabel2d != nullptr && !m_camera->is_position_behind(xAxisLabelGlobalPosIn3d))
+		{
+			godot::Vector2 viewportPos = m_camera->unproject_position(xAxisLabelGlobalPosIn3d) + offset;
+			m_xAxisLabel2d->set_position(viewportPos);
+			m_xAxisLabel2d->set_visible(true);
+		}
+		godot::Vector3 yAxisLabelGlobalPosIn3d = m_yAxisLabelPosIn3d * scaleFactor + get_global_position();
+		if (m_yAxisLabel2d != nullptr && !m_camera->is_position_behind(yAxisLabelGlobalPosIn3d))
+		{
+			godot::Vector2 viewportPos = m_camera->unproject_position(yAxisLabelGlobalPosIn3d) + offset;
+			m_yAxisLabel2d->set_position(viewportPos);
+			m_yAxisLabel2d->set_visible(true);
+		}
+		godot::Vector3 zAxisLabelGlobalPosIn3d = m_zAxisLabelPosIn3d * scaleFactor + get_global_position();
+		if (m_zAxisLabel2d != nullptr && !m_camera->is_position_behind(zAxisLabelGlobalPosIn3d))
+		{
+			godot::Vector2 viewportPos = m_camera->unproject_position(zAxisLabelGlobalPosIn3d) + offset;
+			m_zAxisLabel2d->set_position(viewportPos);
+			m_zAxisLabel2d->set_visible(true);
+		}
+	}
+
+	if (!is_visible())
+	{
+		m_xAxisLabel2d->set_visible(false);
+		m_yAxisLabel2d->set_visible(false);
+		m_zAxisLabel2d->set_visible(false);
 	}
 }
 

@@ -130,6 +130,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\..\godot-cpp-4.0\include;$(MSBuildProjectDirectory)\..\..\godot-cpp-4.0\gdextension;$(MSBuildProjectDirectory)\..\..\godot-cpp-4.0\gen\include;$(MSBuildProjectDirectory)\..\..\TheWorld_MapManager;$(MSBuildProjectDirectory)\..\..\GSL\include;$(MSBuildProjectDirectory)\..\plog\include;$(MSBuildProjectDirectory)\..\..\boost_1_74_0;..\..\TheWorld_Utils;..\..\eigen-3.3.9</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

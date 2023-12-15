@@ -2887,6 +2887,7 @@ void Quadrant::optimizationLevelChanged(bool b)
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant optimizationLevelChanged 1 ") + __FUNCTION__, "ALL");
 		m_quadTree->materialParamsNeedReset(true);
+		m_viewer->incNumOptimizationLevelChange();
 	}
 }
 
@@ -3053,7 +3054,8 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Grid Vertices not of the correct size").c_str()));
 
 	{
-		//TheWorld_Utils::GuardProfiler profiler(std::string("SetColliderHeights ") + __FUNCTION__, "ALL");
+		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.3 ") + __FUNCTION__, "SetColliderHeights");
+
 		m_heightsForCollider.resize((int)numFloat32Heights);
 		memcpy((char*)m_heightsForCollider.ptrw(), m_float32HeigthsBuffer.ptr(), m_float32HeigthsBuffer.size());
 		//{

@@ -48,11 +48,12 @@ const godot::Color godot::GDN_TheWorld_Globals::g_color_black = godot::Color(0.0
 //size_t godot::GDN_TheWorld_Globals::s_elapsed4 = 0;
 //size_t godot::GDN_TheWorld_Globals::s_elapsed5 = 0;
 
+const std::string godot::GDN_TheWorld_Globals::c_groundTexturesDir = "res://assets/textures/ground/";
+const std::string godot::GDN_TheWorld_Globals::c_albedo_bump_file_ext = "_albedo_bump.ground";
+const std::string godot::GDN_TheWorld_Globals::c_normal_roughness_file_ext = "_normal_roughness.ground";
+
 namespace godot
 {
-	const std::string GDN_TheWorld_Globals::c_groundTexturesDir = "res://assets/textures/ground/";
-	const std::string GDN_TheWorld_Globals::c_albedo_bump_file_ext = "_albedo_bump.ground";
-	const std::string GDN_TheWorld_Globals::c_normal_roughness_file_ext = "_normal_roughness.ground";
 
 	std::string GDN_TheWorld_Globals::getClientDataDir(void)
 	{

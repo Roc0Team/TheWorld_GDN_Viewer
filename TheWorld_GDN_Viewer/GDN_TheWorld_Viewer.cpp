@@ -2954,6 +2954,9 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 
 	vector<QuadrantPos> quadrantToDelete;
 
+	bool addedQuandrantsForInititalization = false;
+	bool counterStartedNow = false;
+	
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 
@@ -2990,12 +2993,13 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 
 					m_mapQuadTree[quadrantPosNeeded[idx]] = make_unique<QuadTree>(this, quadrantPosNeeded[idx]);
 					m_mapQuadTree[quadrantPosNeeded[idx]]->refreshTime(refreshTime);
+					addedQuandrantsForInititalization = true;
 					if (!m_streamingTime.counterStarted())
 					{
+						counterStartedNow = true;
 						m_numVisibleQuadrantsStreamed = 0;
 						m_numInvisibleQuadrantsStreamed = 0;
-						m_numTextureResize = 0;
-						m_elapsedTextureResizing = 0;
+						PLOG_DEBUG << "Start initializing of a stream of quadrant";
 						m_streamingTime.tick();
 					}
 					//return;	// ???
@@ -3071,6 +3075,11 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 				//m_mapQuadTree.erase(quadrantToDelete[idx]);
 			}
 		}
+	}
+	
+	if (addedQuandrantsForInititalization && !counterStartedNow)
+	{
+		PLOG_DEBUG << "STREAMER WARNING: streaming process too slow to satisfy camera movement (added new quadrant to list but older quadrants were still intializing)";
 	}
 	
 	quadrantToDelete.clear();
@@ -3209,7 +3218,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	if (m_lastProcessDuration > 100000 && Globals()->status() == TheWorldStatus::worldDeployed)
 	{
 		size_t extra = m_lastProcessDuration - (m_lastRefreshMapQuadDuration + m_lastUpdateQuads1Duration + m_lastUpdateQuads2Duration + m_lastUpdateQuads3Duration + m_lastUpdateChunksDuration + m_lastUpdateMaterialParamsDuration + m_lastMouseTrackHitDuration + m_lastEraseQuads + m_lastProcessMapModder + m_lastAdjustQuadTreeByCamera + m_lastStreamingQuadrantStuff);
-		std::string msg = "PROCESS DURATION: "
+		std::string msg = "PROCESS DURATION WARNING: "
 			+ std::to_string(m_lastProcessDuration / 1000)
 			+ ", Refresh Map Quad: " + std::to_string(m_lastRefreshMapQuadDuration / 1000)
 			+ ", Update Quads Stage 1: " + std::to_string(m_lastUpdateQuads1Duration / 1000)
@@ -3221,7 +3230,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			+ ", Erase Quads: " + std::to_string(m_lastEraseQuads / 1000)
 			+ ", Process Mapmodder: " + std::to_string(m_lastProcessMapModder / 1000)
 			+ ", Adjust QuadTree By Camera: " + std::to_string(m_lastAdjustQuadTreeByCamera / 1000)
-			+ ", Streaming Quads: " + std::to_string(m_lastStreamingQuadrantStuff / 1000)
+			+ ", Check For Quads To Stream: " + std::to_string(m_lastStreamingQuadrantStuff / 1000)
 			+ ", Extra: " + std::to_string(extra / 1000);
 		Globals()->debugPrint(msg.c_str());
 	}
@@ -3381,7 +3390,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.04 ") + __FUNCTION__, "Init new quadrants");
-		process_streamingQuadrantStuff();
+		process_checkForQuadrantToStream();
 	}
 
 	{
@@ -3557,9 +3566,9 @@ void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* g
 	}
 }
 
-void GDN_TheWorld_Viewer::process_streamingQuadrantStuff(void)
+void GDN_TheWorld_Viewer::process_checkForQuadrantToStream(void)
 {
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Streaming Quadrant Stuff", false, false);
+	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Check for quadrant to stream", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();
@@ -3617,7 +3626,11 @@ void GDN_TheWorld_Viewer::process_streamingQuadrantStuff(void)
 			if (m_streamingTime.counterStarted())
 			{
 				m_streamingTime.tock();
-				PLOG_DEBUG << "Initialization of last stream of quadrant in " << m_streamingTime.duration().count() << " ms (visible = " << std::to_string(m_numVisibleQuadrantsStreamed) << ", invisible = " << std::to_string(m_numInvisibleQuadrantsStreamed) << ", texture resize = " << m_numTextureResize << ", elapsed = " << std::to_string(m_elapsedTextureResizing) << ")";
+				size_t num = m_numVisibleQuadrantsStreamed + m_numInvisibleQuadrantsStreamed;
+				PLOG_DEBUG << "Initialization of last stream of quadrant in " << m_streamingTime.duration().count() << " ms (num = " << std::to_string (num) << ", average = " << std::to_string (m_streamingTime.duration().count() / num) << ", visible = " << std::to_string(m_numVisibleQuadrantsStreamed) << ", invisible = " << std::to_string(m_numInvisibleQuadrantsStreamed) << ", texture resize = " << m_numTextureResize << ", elapsed = " << std::to_string(m_elapsedTextureResizing) << ", opt. level change = " << std::to_string(m_numOptimizationLevelChange) << ")";
+				m_numTextureResize = 0;
+				m_elapsedTextureResizing = 0;
+				m_numOptimizationLevelChange = 0;
 			}
 		}
 	}

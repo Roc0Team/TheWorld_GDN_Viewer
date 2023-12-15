@@ -705,6 +705,10 @@ namespace godot
 		{
 			m_elapsedTextureResizing += elapsed;
 		}
+		void incNumOptimizationLevelChange(void)
+		{
+			m_numOptimizationLevelChange++;
+		}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -721,7 +725,7 @@ namespace godot
 		void streamer(void);
 		void process_mapModder(double _delta);
 		void process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
-		void process_streamingQuadrantStuff(void);
+		void process_checkForQuadrantToStream(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
 		void process_updateQuads(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
 		void process_updateChunks(void);
@@ -791,6 +795,7 @@ namespace godot
 		size_t m_numVisibleQuadrantsStreamed = 0;
 		size_t m_numInvisibleQuadrantsStreamed = 0;
 		size_t m_numTextureResize = 0;
+		size_t m_numOptimizationLevelChange = 0;
 		size_t m_elapsedTextureResizing = 0;
 		// Statistics data
 

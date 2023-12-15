@@ -107,6 +107,7 @@ namespace godot
 		//const float c_splitScale = 2.0F;
 		//const float c_splitScale = 1.5F;
 
+	public:
 		static const std::string c_groundTexturesDir;
 		static const std::string c_albedo_bump_file_ext;
 		static const std::string c_normal_roughness_file_ext;

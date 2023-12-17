@@ -295,6 +295,15 @@ namespace godot
 			return m_quadrantPos;
 		}
 
+		size_t getLastDistanceInPerimeterFromCameraQuadrant(void)
+		{
+			return m_lastDistanceInPerimeterFromCameraQuadrant;
+		}
+		void setLastDistanceInPerimeterFromCameraQuadrant(size_t value)
+		{
+			m_lastDistanceInPerimeterFromCameraQuadrant = value;
+		}
+
 		void setMeshId(std::string meshId);
 
 		void refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache);
@@ -695,6 +704,8 @@ namespace godot
 		bool m_renderGlobalMapChanged = false;
 		size_t m_optimizationLevel = 0;
 		bool m_optimizationLevelChanged = false;
+
+		size_t m_lastDistanceInPerimeterFromCameraQuadrant = -1;
 	};
 
 	class ShaderTerrainData

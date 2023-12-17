@@ -22,6 +22,7 @@
 #include <godot_cpp/classes/input.hpp>
 #include <godot_cpp/classes/input_event_mouse_button.hpp>
 #include <godot_cpp/classes/config_file.hpp>
+#include <godot_cpp/classes/performance.hpp>
 #pragma warning(pop)
 
 #include <filesystem>
@@ -3230,7 +3231,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			+ ", Erase Quads: " + std::to_string(m_lastEraseQuads / 1000)
 			+ ", Process Mapmodder: " + std::to_string(m_lastProcessMapModder / 1000)
 			+ ", Adjust QuadTree By Camera: " + std::to_string(m_lastAdjustQuadTreeByCamera / 1000)
-			+ ", Check For Quads To Stream: " + std::to_string(m_lastStreamingQuadrantStuff / 1000)
+			+ ", Init New Quads: " + std::to_string(m_lastStreamingQuadrantStuff / 1000)
 			+ ", Extra: " + std::to_string(extra / 1000);
 		Globals()->debugPrint(msg.c_str());
 	}
@@ -3357,20 +3358,30 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	if (Globals()->status() == TheWorldStatus::worldDeployed)
 	{
 		processCameraPosForQuadrants = false;
-		float distance = cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForQuadrants);
-		float threshold = globals->heightmapSizeInWUs() / globals->getParamRefreshQuadrantsFactor();
-		if (m_lastProcessedCameraPosForQuadrants == godot::Vector3() || distance > threshold)
-		{
-			m_lastProcessedCameraPosForQuadrants = cameraPosGlobalCoord;
-			processCameraPosForQuadrants = true;
-		}
 		processCameraPosForChunks = false;
-		distance = cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForChunks);
-		threshold = (globals->numVerticesPerChuckSide() * globals->gridStepInHeightmapWUs(0)) / globals->getParamRefreshChunksFactor();
-		if (m_lastProcessedCameraPosForChunks == godot::Vector3() || distance > threshold)
+		int64_t timeElapsed = TIME()->get_ticks_msec();
+		if (timeElapsed - m_timeElapsedFromLastProcessCameraPosForQuadrants > TIME_INTERVAL_BETWEEN_ELAB_CAMERA)
 		{
-			m_lastProcessedCameraPosForChunks = cameraPosGlobalCoord;
+			m_timeElapsedFromLastProcessCameraPosForQuadrants = timeElapsed;
+			processCameraPosForQuadrants = true;
 			processCameraPosForChunks = true;
+		}
+		else
+		{
+			float distance = cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForQuadrants);
+			float threshold = globals->heightmapSizeInWUs() / globals->getParamRefreshQuadrantsFactor();
+			if (m_lastProcessedCameraPosForQuadrants == godot::Vector3() || distance > threshold)
+			{
+				m_lastProcessedCameraPosForQuadrants = cameraPosGlobalCoord;
+				processCameraPosForQuadrants = true;
+			}
+			distance = cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForChunks);
+			threshold = (globals->numVerticesPerChuckSide() * globals->gridStepInHeightmapWUs(0)) / globals->getParamRefreshChunksFactor();
+			if (m_lastProcessedCameraPosForChunks == godot::Vector3() || distance > threshold)
+			{
+				m_lastProcessedCameraPosForChunks = cameraPosGlobalCoord;
+				processCameraPosForChunks = true;
+			}
 		}
 	}
 
@@ -3390,7 +3401,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.04 ") + __FUNCTION__, "Init new quadrants");
-		process_checkForQuadrantToStream();
+		process_initNewQuads();
 	}
 
 	{
@@ -3566,9 +3577,9 @@ void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* g
 	}
 }
 
-void GDN_TheWorld_Viewer::process_checkForQuadrantToStream(void)
+void GDN_TheWorld_Viewer::process_initNewQuads(void)
 {
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Check for quadrant to stream", false, false);
+	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Init new quads", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();
@@ -3592,12 +3603,15 @@ void GDN_TheWorld_Viewer::process_checkForQuadrantToStream(void)
 				if (itQuadTree->second->status() < QuadrantStatus::initialized)
 					allQuadrantInitialized = false;
 
-				if (itQuadTree->second->getQuadrant()->internalDataLocked())
+				Quadrant* quadrant = itQuadTree->second->getQuadrant();
+
+				if (quadrant->internalDataLocked())
 					continue;
 				
 				if (itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded())
 				{
-					size_t distanceInPerimeterFromCameraQuadrant = itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
+					size_t distanceInPerimeterFromCameraQuadrant = quadrant->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
+					quadrant->setLastDistanceInPerimeterFromCameraQuadrant(distanceInPerimeterFromCameraQuadrant);
 					if (distanceInPerimeterFromCameraQuadrant == distance)
 					{
 						float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
@@ -3627,6 +3641,8 @@ void GDN_TheWorld_Viewer::process_checkForQuadrantToStream(void)
 			{
 				m_streamingTime.tock();
 				size_t num = m_numVisibleQuadrantsStreamed + m_numInvisibleQuadrantsStreamed;
+				if (num == 0)
+					num = 1;
 				PLOG_DEBUG << "Initialization of last stream of quadrant in " << m_streamingTime.duration().count() << " ms (num = " << std::to_string (num) << ", average = " << std::to_string (m_streamingTime.duration().count() / num) << ", visible = " << std::to_string(m_numVisibleQuadrantsStreamed) << ", invisible = " << std::to_string(m_numInvisibleQuadrantsStreamed) << ", texture resize = " << m_numTextureResize << ", elapsed = " << std::to_string(m_elapsedTextureResizing) << ", opt. level change = " << std::to_string(m_numOptimizationLevelChange) << ")";
 				m_numTextureResize = 0;
 				m_elapsedTextureResizing = 0;
@@ -5887,6 +5903,8 @@ void GDN_TheWorld_Viewer::dump()
 			}
 		}
 
+		godot::Performance* perf = godot::Performance::get_singleton();
+
 		Globals()->debugPrint(String("All quadrants : ") + String(std::to_string(m_mapQuadTree.size()).c_str()) + ", map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Heigthmap16 : ") + String(std::to_string((float)heightmap16MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Heigthmap32 : ") + String(std::to_string((float)heightmap32MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
@@ -5896,6 +5914,9 @@ void GDN_TheWorld_Viewer::dump()
 		Globals()->debugPrint(String("   Colormap : ") + String(std::to_string((float)colormapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   TerrainEdit : ") + String(std::to_string((float)terrainEditMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Collider Heights : ") + String(std::to_string((float)colliderHeightsMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("Engine monitor : "));
+		Globals()->debugPrint(String("   Static memory in use : ") + std::to_string(perf->get_monitor(godot::Performance::Monitor::MEMORY_STATIC) / (1024 * 1024 * 1024)).c_str() + " GB");
+		Globals()->debugPrint(String("   Render video memory in use : ") + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_VIDEO_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB, for texture " + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_TEXTURE_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB, for buffers " + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_BUFFER_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB");
 		for (auto& item : mapOptimizationLevels)
 		{
 			size_t resizedMapSize = Globals()->heightmapResolution() / (size_t)pow(2, item.first);

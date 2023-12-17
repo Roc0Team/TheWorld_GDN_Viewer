@@ -181,34 +181,55 @@ void QuadTree::refreshTerrainData(float cameraX, float cameraY, float cameraZ, f
 
 void QuadTree::init(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced)
 {
+	//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "ALL");
+
 	my_assert(status() == QuadrantStatus::uninitialized);
 	if (status() != QuadrantStatus::uninitialized)
 		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Quadrant status not comply: " + std::to_string((int)status())).c_str()));
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrant);
 
-	m_viewer->getMainProcessingMutex().lock();
-	m_GDN_Quadrant = memnew(GDN_TheWorld_Quadrant);
-	m_viewer->getMainProcessingMutex().unlock();
-	m_GDN_Quadrant->init(this);
-	std::string quadrantNodeName = m_worldQuadrant->getPos().getName();
-	m_GDN_Quadrant->set_name(quadrantNodeName.c_str());
-	//m_viewer->add_child(m_GDN_Quadrant);
-	m_viewer->call_deferred("add_child", m_GDN_Quadrant);
-	onGlobalTransformChanged();
+	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Inside Mutex");
 
-	setStatus(QuadrantStatus::getTerrainDataInProgress);
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 1");
 
-	m_worldQuadrant->populateGridVertices(cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll, setCamera, cameraDistanceFromTerrainForced);
+			m_viewer->getMainProcessingMutex().lock();
+			m_GDN_Quadrant = memnew(GDN_TheWorld_Quadrant);
+			m_viewer->getMainProcessingMutex().unlock();
+			m_GDN_Quadrant->init(this);
+			std::string quadrantNodeName = m_worldQuadrant->getPos().getName();
+			m_GDN_Quadrant->set_name(quadrantNodeName.c_str());
+			//m_viewer->add_child(m_GDN_Quadrant);
+			m_viewer->call_deferred("add_child", m_GDN_Quadrant);
+			onGlobalTransformChanged();
 
-	getQuadrant()->getShaderTerrainData()->init();
+			setStatus(QuadrantStatus::getTerrainDataInProgress);
+		}
 
-	m_root = make_unique<Quad>(0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "m_worldQuadrant->populateGridVertices");
+			m_worldQuadrant->populateGridVertices(cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll, setCamera, cameraDistanceFromTerrainForced);
+		}
 
-	if (isVisible())
-		m_viewer->incNumVisibleQuadrantsStreamed();
-	else
-		m_viewer->incNumInvisibleQuadrantsStreamed();
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 2");
+
+			getQuadrant()->getShaderTerrainData()->init();
+		}
+		
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 3");
+
+			m_root = make_unique<Quad>(0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
+
+			if (isVisible())
+				m_viewer->incNumVisibleQuadrantsStreamed();
+			else
+				m_viewer->incNumInvisibleQuadrantsStreamed();
+		}
+	}
 }
 
 void QuadTree::onGlobalTransformChanged(void)
@@ -963,16 +984,25 @@ void QuadTree::updateCollider(void)
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4 ") + __FUNCTION__, "Quadrant updateCollider");
 
-		m_worldQuadrant->getCollider()->exitWorld();
-		m_worldQuadrant->getCollider()->deinit();
-		m_worldQuadrant->getCollider()->init(m_GDN_Quadrant, 1, 1);
-		m_worldQuadrant->getCollider()->enterWorld();
-		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1 ") + __FUNCTION__, "QuadTree set data for collider");
-			m_worldQuadrant->getCollider()->setData();
-		}
+		QuadrantPos pos = getQuadrant()->getPos();
+		bool colliderCanHaveCollisionInfo = false;
+		int64_t depthForCollider = m_viewer->Globals()->getParamDepthQuadWithCollisionInfo();
+		if (depthForCollider == 0 || getQuadrant()->getLastDistanceInPerimeterFromCameraQuadrant() <= (size_t)depthForCollider)
+			colliderCanHaveCollisionInfo = true;
 
-		colliderNeedUpdate(false);
+		if (colliderCanHaveCollisionInfo)
+		{
+			m_worldQuadrant->getCollider()->exitWorld();
+			m_worldQuadrant->getCollider()->deinit();
+			m_worldQuadrant->getCollider()->init(m_GDN_Quadrant, 1, 1);
+			m_worldQuadrant->getCollider()->enterWorld();
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1 ") + __FUNCTION__, "QuadTree set data for collider");
+				m_worldQuadrant->getCollider()->setData();
+			}
+
+			colliderNeedUpdate(false);
+		}
 	}
 }
 

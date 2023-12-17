@@ -47,8 +47,9 @@ namespace godot
 
 #define MIN_MAP_SCALE 0.01F
 #define TIME_INTERVAL_BETWEEN_DUMP 0			// secs, 0 = diasble periodic dump
-#define TIME_INTERVAL_BETWEEN_STATISTICS 500	// ms, 0 = diasble periodic dump
+#define TIME_INTERVAL_BETWEEN_STATISTICS 1000	// ms, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_MOUSE_TRACK 50	// 250	// ms
+#define TIME_INTERVAL_BETWEEN_ELAB_CAMERA 2000	// ms
 
 	class GDN_TheWorld_MapModder : public godot::Node
 	{
@@ -725,7 +726,7 @@ namespace godot
 		void streamer(void);
 		void process_mapModder(double _delta);
 		void process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
-		void process_checkForQuadrantToStream(void);
+		void process_initNewQuads(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
 		void process_updateQuads(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
 		void process_updateChunks(void);
@@ -901,6 +902,7 @@ namespace godot
 		size_t m_cacheQuadOnPerimeter;
 
 		godot::Vector3 m_lastProcessedCameraPosForQuadrants;
+		int64_t m_timeElapsedFromLastProcessCameraPosForQuadrants = 0;
 		godot::Vector3 m_lastProcessedCameraPosForChunks;
 	};
 }

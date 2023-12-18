@@ -388,23 +388,26 @@ void QuadTree::update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updat
 	assert(!m_root->isLeaf() || m_root->getChunk() != nullptr);
 }
 
-void QuadTree::internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quad, enum class UpdateStage updateStage, int& numSplitRequired)
+void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, enum class UpdateStage updateStage, int& numSplitRequired)
 {
 	if (updateStage == UpdateStage::Stage1)
 	{
+		quad->setJustSplitted(false);
+		quad->setJustJoined(false);
+
 		// cameraPosViewerNodeLocalCoord are in grid local coordinates (WUs)
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		float chunkSizeInWUs = globals->gridStepInHeightmapWUs(quad->Lod()) * globals->numVerticesPerChuckSide();									// chunk size in World Units
 		AABB chunkAABB = quad->getChunkAABB();
-		Vector3 quadCenterGlobal(real_t((quad->slotPosX() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerXGridVertex() + chunkSizeInWUs / 2),
+		m_quadCenterGlobal = godot::Vector3(real_t((quad->slotPosX() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerXGridVertex() + chunkSizeInWUs / 2),
 			(chunkAABB.position + chunkAABB.size / 2).y,
 			real_t((quad->slotPosZ() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerZGridVertex() + chunkSizeInWUs / 2));
 
 		Transform3D gt = m_viewer->get_global_transform();
-		Transform3D t = gt * Transform3D(Basis(), quadCenterGlobal);
-		quadCenterGlobal = t.origin;
+		Transform3D t = gt * Transform3D(Basis(), m_quadCenterGlobal);
+		m_quadCenterGlobal = t.origin;
 
-		real_t splitDistance = chunkSizeInWUs * globals->splitScale();
+		m_splitDistance = chunkSizeInWUs * globals->splitScale();
 		//real_t splitDistance = m_worldQuadrant->getPos().getSizeInWU() * globals->splitScale();
 		if (quad->isLeaf())
 		{
@@ -416,9 +419,9 @@ void QuadTree::internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quad, enum cla
 			m_numLeaf++;
 			if (quad->Lod() > 0)
 			{
-				real_t distance = quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+				real_t distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
 				quad->getChunk()->setDistanceFromCamera(distance);
-				if (distance < splitDistance)
+				if (distance < m_splitDistance)
 				{
 					// Split
 					quad->split();
@@ -429,6 +432,7 @@ void QuadTree::internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quad, enum cla
 							quad->getChild(i)->getChunk()->checkMouseHit();
 						quad->getChild(i)->getChunk()->setDistanceFromCamera(distance);
 					}
+					quad->setJustSplitted(true);
 					splitted = true;
 					m_numSplits++;
 				}
@@ -448,21 +452,21 @@ void QuadTree::internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quad, enum cla
 					allChildrenAreLeaf = false;
 			}
 
-
-			if (allChildrenAreLeaf)
-			{
-				real_t distance = quadCenterGlobal.distance_to(cameraPosGlobalCoord);
-				if (distance > splitDistance)
-				{
-					// Join
-					quad->clearChildren();
-					quad->assignChunk();
-					quad->getChunk()->setJustJoined(true);
-					m_numJoins++;
-					quad->getChunk()->checkMouseHit();
-					quad->getChunk()->setDistanceFromCamera(distance);
-				}
-			}
+			//if (allChildrenAreLeaf)
+			//{
+			//	real_t distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+			//	if (distance > m_splitDistance)
+			//	{
+			//		// Join
+			//		quad->clearChildren();
+			//		quad->assignChunk();
+			//		quad->getChunk()->setJustJoined(true);
+			//		quad->setJustJoined(true);
+			//		m_numJoins++;
+			//		quad->getChunk()->checkMouseHit();
+			//		quad->getChunk()->setDistanceFromCamera(distance);
+			//	}
+			//}
 		}
 
 		// after all if quad is leaf: just joined or was leaf and it has not been splitted
@@ -576,9 +580,9 @@ void QuadTree::internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quad, enum cla
 		}
 
 	}
-	else
+	else	// (updateStage == UpdateStage::Stage3)
 	{
-		// (updateStage == UpdateStage::Stage3)
+		bool splitted = false;
 		if (quad->isLeaf())
 		{
 			bool trackChunk = false;
@@ -596,13 +600,40 @@ void QuadTree::internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quad, enum cla
 						quad->getChild(i)->getChunk()->checkMouseHit();
 					quad->getChild(i)->getChunk()->setDistanceFromCamera(0);
 				}
+				quad->setJustSplitted(true);
+				splitted = true;
 				m_numSplits++;
 			}
+
+			if (!splitted && trackChunk)
+				quad->getChunk()->checkMouseHit();
 		}
 		else
 		{
+			bool allChildrenAreLeaf = true;
 			for (int i = 0; i < 4; i++)
-				internalUpdate(cameraPosGlobalCoord, quad->getChild(i), updateStage, numSplitRequired);
+			{
+				Quad* child = quad->getChild(i);
+				internalUpdate(cameraPosGlobalCoord, child, updateStage, numSplitRequired);
+				if (!child->isLeaf())
+					allChildrenAreLeaf = false;
+			}
+
+			if (allChildrenAreLeaf)
+			{
+				real_t distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+				if (distance > m_splitDistance && !quad->gotJustSplitted())
+				{
+					// Join
+					quad->clearChildren();
+					quad->assignChunk();
+					quad->getChunk()->setJustJoined(true);
+					quad->setJustJoined(true);
+					m_numJoins++;
+					quad->getChunk()->checkMouseHit();
+					quad->getChunk()->setDistanceFromCamera(distance);
+				}
+			}
 		}
 
 		quad->setSplitRequired(false);
@@ -1668,7 +1699,7 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 	{
 		std::map<int, godot::Ref<godot::ShaderMaterial>>& lookDevChunkLodMaterials = getLookDevChunkLodMaterials();
 		for (auto& item : lookDevChunkLodMaterials)
-			if (m_viewer->positionVisible())
+			if (item.second != nullptr && m_viewer->positionVisible())
 				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
 			else
 				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
@@ -1676,7 +1707,7 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 	else
 	{
 		godot::Ref<godot::ShaderMaterial> currentMaterial = (lookdev == LookDev::NotSet ? getRegularMaterial() : getLookDevMaterial(lookdev));
-		if (m_viewer->positionVisible())
+		if (currentMaterial != nullptr && m_viewer->positionVisible())
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
 		else
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));

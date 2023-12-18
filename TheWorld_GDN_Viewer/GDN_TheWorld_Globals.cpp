@@ -363,8 +363,10 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_depth_quad_with_collision_info"), &GDN_TheWorld_Globals::getParamDepthQuadWithCollisionInfo);
 		ClassDB::bind_method(D_METHOD("set_perfparam_disable_terrain_collisions", "p_value"), &GDN_TheWorld_Globals::setParamDisableTerrainCollisions);
 		ClassDB::bind_method(D_METHOD("get_perfparam_disable_terrain_collisions"), &GDN_TheWorld_Globals::getParamDisableTerrainCollisions);
+		ClassDB::bind_method(D_METHOD("get_perfparam_refresh_quadrants_threshold"), &GDN_TheWorld_Globals::getRefreshQuadrantTreeThreshold);
 		ClassDB::bind_method(D_METHOD("set_perfparam_refresh_quadrants_factor", "p_value"), &GDN_TheWorld_Globals::setParamRefreshQuadrantsFactor);
 		ClassDB::bind_method(D_METHOD("get_perfparam_refresh_quadrants_factor"), &GDN_TheWorld_Globals::getParamRefreshQuadrantsFactor);
+		ClassDB::bind_method(D_METHOD("get_perfparam_refresh_chunk_lod_threshold"), &GDN_TheWorld_Globals::getRefreshChunkLodThreshold);
 		ClassDB::bind_method(D_METHOD("set_perfparam_refresh_chunks_factor", "p_value"), &GDN_TheWorld_Globals::setParamRefreshChunksFactor);
 		ClassDB::bind_method(D_METHOD("get_perfparam_refresh_chunks_factor"), &GDN_TheWorld_Globals::getParamRefreshChunksFactor);
 		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_for_globalmap", "p_value"), &GDN_TheWorld_Globals::setParamThresholdForGlobalmap);
@@ -379,10 +381,13 @@ namespace godot
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "Performance", "perfparam_");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures"), "set_perfparam_cache_terrain_textures", "get_perfparam_cache_terrain_textures");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_depth_quad_with_collision_info"), "set_perfparam_depth_quad_with_collision_info", "get_perfparam_depth_quad_with_collision_info");
+		// WARNING: 0 mean that all quadrants have collider data set consuming a lot of memory in the engine, but setting this value permit less memory usage but more time to read data from disk to set data
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_depth_quad_with_collision"), "set_perfparam_depth_quad_with_collision_info", "get_perfparam_depth_quad_with_collision_info");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_disable_terrain_collisions"), "set_perfparam_disable_terrain_collisions", "get_perfparam_disable_terrain_collisions");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_factor"), "set_perfparam_refresh_quadrants_factor", "get_perfparam_refresh_quadrants_factor");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunks_factor"), "set_perfparam_refresh_chunks_factor", "get_perfparam_refresh_chunks_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_factor", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.5, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_perfparam_refresh_quadrants_factor", "get_perfparam_refresh_quadrants_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_threshold", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY), "", "get_perfparam_refresh_quadrants_threshold");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunks_factor", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_perfparam_refresh_chunks_factor", "get_perfparam_refresh_chunks_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunk_lod_threshold", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY), "", "get_perfparam_refresh_chunk_lod_threshold");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_globalmap"), "set_perfparam_threshold_for_globalmap", "get_perfparam_threshold_for_globalmap");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_map_texture_optimization"), "set_perfparam_threshold_for_map_texture_optimization", "get_perfparam_threshold_for_map_texture_optimization");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_texture_optimization_increment_factor"), "set_perfparam_threshold_texture_optimization_increment_factor", "get_perfparam_threshold_texture_optimization_increment_factor");

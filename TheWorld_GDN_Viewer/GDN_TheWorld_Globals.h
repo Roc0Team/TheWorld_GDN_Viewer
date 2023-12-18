@@ -21,7 +21,7 @@
 #include "Viewer_Utils.h"
 #include "Utils.h"
 
-#define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT										4	// 5
+#define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT										3	// 4	// 5
 #define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT								11	/* 11 */	/* 10 */	// exponent of 2
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER_IN_EDITOR						1
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER_IN_EDITOR						1
@@ -34,7 +34,7 @@
 #define THEWORLD_DEFAULT_REFRESH_QUADRANTS_FACTOR								1.0f
 #define THEWORLD_DEFAULT_REFRESH_CHUNKS_FACTOR									0.5f
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION					5000.0f
-#define THEWORLD_DEFAULT_THRESHOLD_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR		3
+#define THEWORLD_DEFAULT_THRESHOLD_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR		4
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				2
 #define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
@@ -396,7 +396,7 @@ namespace godot
 		{
 			if (m_numVerticesPerChuckSide == 0)
 				PLOG_DEBUG << "Ahi ahi m_numVerticesPerChuckSide == 0";
-			return m_numVerticesPerChuckSide; /* m_numVerticesPerChuckSide = 32 con THEWORLD_VIEWER_CHUNK_SIZE_SHIFT = 5 */
+			return m_numVerticesPerChuckSide; /* m_numVerticesPerChuckSide ==> 32 con THEWORLD_VIEWER_CHUNK_SIZE_SHIFT = 5, 16 con THEWORLD_VIEWER_CHUNK_SIZE_SHIFT = 4, 8 con THEWORLD_VIEWER_CHUNK_SIZE_SHIFT = 3 */
 		}	// Chunk num vertices -1
 		
 		// m_mapManager->gridStepInWU();
@@ -562,11 +562,27 @@ namespace godot
 			return m_paramDisableTerrainCollisions;
 		}
 		void setParamDisableTerrainCollisions(bool b);
+		float getRefreshQuadrantTreeThreshold(void)
+		{
+			float factor = getParamRefreshQuadrantsFactor();
+			if (factor == 0)
+				return 0;
+			else
+				return heightmapSizeInWUs() / factor;
+		}
 		float getParamRefreshQuadrantsFactor(void)
 		{
 			return m_paramRefreshQuadrantsFactor;
 		}
 		void setParamRefreshQuadrantsFactor(float f);
+		float getRefreshChunkLodThreshold(void)
+		{
+			float factor = getParamRefreshChunksFactor();
+			if (factor == 0)
+				return 0;
+			else
+				return  (numVerticesPerChuckSide() * gridStepInHeightmapWUs(0)) / factor;
+		}
 		float getParamRefreshChunksFactor(void)
 		{
 			return m_paramRefreshChunksFactor;

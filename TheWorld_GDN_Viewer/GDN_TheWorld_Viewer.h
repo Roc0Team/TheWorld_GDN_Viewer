@@ -398,6 +398,7 @@ namespace godot
 		int getNuminitializedQuadrant(void);
 		int getNumVisibleQuadrant(void);
 		int getNuminitializedVisibleQuadrant(void);
+		int getNumNeedShaderResetQuadrant(void);
 		int getNumEmptyQuadrant(void);
 		int getNumFlushedQuadrant(void);
 		void refreshQuadTreeStatistics(void);
@@ -724,12 +725,13 @@ namespace godot
 		};
 		void printKeyboardMapping(void);
 		void streamer(void);
+		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModder(double _delta);
-		void process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
+		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
 		void process_initNewQuads(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
-		void process_updateQuads(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
-		void process_updateChunks(void);
+		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
+		void process_updateMeshForUpdatedChunks(void);
 		void process_lookDev(void);
 		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
 		void process_dump(GDN_TheWorld_Globals* globals);
@@ -765,19 +767,19 @@ namespace godot
 		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
 		// Statistics data
-		size_t m_numProcessExecution = 0;		long long m_sumProcessDuration = 0;					size_t m_averageProcessDuration = 0;				size_t m_lastProcessDuration = 0;
-		size_t m_numRefreshMapQuad = 0;			long long m_sumRefreshMapQuadDuration = 0;			size_t m_averageRefreshMapQuadDuration = 0;			size_t m_lastRefreshMapQuadDuration = 0;
-		size_t m_numUpdateQuads1 = 0;			long long m_sumUpdateQuads1Duration = 0;			size_t m_averageUpdateQuads1Duration = 0;			size_t m_lastUpdateQuads1Duration = 0;
-		size_t m_numUpdateQuads2 = 0;			long long m_sumUpdateQuads2Duration = 0;			size_t m_averageUpdateQuads2Duration = 0;			size_t m_lastUpdateQuads2Duration = 0;
-		size_t m_numUpdateQuads3 = 0;			long long m_sumUpdateQuads3Duration = 0;			size_t m_averageUpdateQuads3Duration = 0;			size_t m_lastUpdateQuads3Duration = 0;
-		size_t m_numUpdateChunks = 0;			long long m_sumUpdateChunksDuration = 0;			size_t m_averageUpdateChunksDuration = 0;			size_t m_lastUpdateChunksDuration = 0;
-		size_t m_numUpdateMaterialParams = 0;	long long m_sumUpdateMaterialParamsDuration = 0;	size_t m_averageUpdateMaterialParamsDuration = 0;	size_t m_lastUpdateMaterialParamsDuration = 0;
-		size_t m_numMouseTrackHit = 0;			long long m_sumMouseTrackHitDuration = 0;			size_t m_averageMouseTrackHitDuration = 0;			size_t m_lastMouseTrackHitDuration = 0;
+		size_t m_numProcessExecution = 0;				long long m_sumProcessDuration = 0;					size_t m_averageProcessDuration = 0;				size_t m_lastProcessDuration = 0;
+		//size_t m_numRefreshMapQuad = 0;					long long m_sumRefreshMapQuadDuration = 0;			size_t m_averageRefreshMapQuadDuration = 0;			size_t m_lastRefreshMapQuadDuration = 0;
+		size_t m_numUpdateQuads1 = 0;					long long m_sumUpdateQuads1Duration = 0;			size_t m_averageUpdateQuads1Duration = 0;			size_t m_lastUpdateQuads1Duration = 0;
+		size_t m_numUpdateQuads2 = 0;					long long m_sumUpdateQuads2Duration = 0;			size_t m_averageUpdateQuads2Duration = 0;			size_t m_lastUpdateQuads2Duration = 0;
+		size_t m_numUpdateQuads3 = 0;					long long m_sumUpdateQuads3Duration = 0;			size_t m_averageUpdateQuads3Duration = 0;			size_t m_lastUpdateQuads3Duration = 0;
+		size_t m_numUpdateChunks = 0;					long long m_sumUpdateChunksDuration = 0;			size_t m_averageUpdateChunksDuration = 0;			size_t m_lastUpdateChunksDuration = 0;
+		size_t m_numUpdateMaterialParams = 0;			long long m_sumUpdateMaterialParamsDuration = 0;	size_t m_averageUpdateMaterialParamsDuration = 0;	size_t m_lastUpdateMaterialParamsDuration = 0;
+		size_t m_numMouseTrackHit = 0;					long long m_sumMouseTrackHitDuration = 0;			size_t m_averageMouseTrackHitDuration = 0;			size_t m_lastMouseTrackHitDuration = 0;
 	
-		size_t m_numEraseQuads = 0;				long long m_sumEraseQuads = 0;						size_t m_averageEraseQuads = 0;						size_t m_lastEraseQuads = 0;
-		size_t m_numProcessMapModder = 0;		long long m_sumProcessMapModder = 0;				size_t m_averageProcessMapModder = 0;				size_t m_lastProcessMapModder = 0;
-		size_t m_numAdjustQuadTreeByCamera = 0;	long long m_sumAdjustQuadTreeByCamera = 0;			size_t m_averageAdjustQuadTreeByCamera = 0;			size_t m_lastAdjustQuadTreeByCamera = 0;
-		size_t m_numStreamingQuadrantStuff = 0;	long long m_sumStreamingQuadrantStuff = 0;			size_t m_averageStreamingQuadrantStuff = 0;			size_t m_lastStreamingQuadrantStuff = 0;
+		size_t m_numEraseQuads = 0;						long long m_sumEraseQuads = 0;						size_t m_averageEraseQuads = 0;						size_t m_lastEraseQuads = 0;
+		size_t m_numProcessMapModder = 0;				long long m_sumProcessMapModder = 0;				size_t m_averageProcessMapModder = 0;				size_t m_lastProcessMapModder = 0;
+		size_t m_numUpdateCameraQuad = 0;				long long m_sumUpdateCameraQuad = 0;				size_t m_averageUpdateCameraQuad = 0;				size_t m_lastUpdateCameraQuad = 0;
+		size_t m_numStreamingQuadrantStuff = 0;			long long m_sumStreamingQuadrantStuff = 0;			size_t m_averageStreamingQuadrantStuff = 0;			size_t m_lastStreamingQuadrantStuff = 0;
 
 		int64_t m_timeElapsedFromLastStatistic;
 		int m_numSplits;
@@ -792,6 +794,7 @@ namespace godot
 		int m_numEmptyQuadrant;
 		int m_numFlushedQuadrant;
 		int m_numinitializedVisibleQuadrant;
+		int m_numQuadrantNeedResetMaterialParam = 0;
 		TheWorld_Utils::TimerMs m_streamingTime;
 		size_t m_numVisibleQuadrantsStreamed = 0;
 		size_t m_numInvisibleQuadrantsStreamed = 0;

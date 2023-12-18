@@ -134,7 +134,7 @@ void GDN_TheWorld_Gizmo3d::_ready(void)
 	//m_xAxisLabel3d->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
 	m_xAxisLabel2d = memnew(godot::Label);
 	add_child(m_xAxisLabel2d);
-	m_xAxisLabel2d->set_text("X");
+	m_xAxisLabel2d->set_text("X EAST");
 	m_xAxisLabel2d->set_modulate(GDN_TheWorld_Globals::g_color_red);
 	//m_xAxisLabel2d->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_red);
 
@@ -177,7 +177,7 @@ void GDN_TheWorld_Gizmo3d::_ready(void)
 	//m_yAxisLabel3d->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
 	m_yAxisLabel2d = memnew(godot::Label);
 	add_child(m_yAxisLabel2d);
-	m_yAxisLabel2d->set_text("Y");
+	m_yAxisLabel2d->set_text("Y UP");
 	m_yAxisLabel2d->set_modulate(GDN_TheWorld_Globals::g_color_green);
 	//m_yAxisLabel2d->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_green);
 
@@ -222,7 +222,7 @@ void GDN_TheWorld_Gizmo3d::_ready(void)
 	//m_zAxisLabel3d->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
 	m_zAxisLabel2d = memnew(godot::Label);
 	add_child(m_zAxisLabel2d);
-	m_zAxisLabel2d->set_text("Z");
+	m_zAxisLabel2d->set_text("Z SOUTH");
 	m_zAxisLabel2d->set_modulate(GDN_TheWorld_Globals::g_color_blue);
 	//m_zAxisLabel2d->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_blue);
 

@@ -601,7 +601,7 @@ namespace godot
 		bool m_active;
 		bool m_visible;
 		bool m_pendingUpdate;
-		bool m_justJoined;
+		bool m_justJoined = false;
 		RID m_meshInstanceRID;
 		RID m_meshRID;
 		Ref<Mesh> m_mesh;

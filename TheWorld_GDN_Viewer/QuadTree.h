@@ -930,7 +930,23 @@ namespace godot
 		void split(void);
 		void clearChildren(void);
 		void assignChunk(void);
-		Chunk* getChunk(void) 
+		bool gotJustSplitted(void)
+		{
+			return m_justSplitted;
+		}
+		void setJustSplitted(bool b)
+		{
+			m_justSplitted = b;
+		}
+		bool gotJustJoined(void)
+		{
+			return m_justJoined;
+		}
+		void setJustJoined(bool b)
+		{
+			m_justJoined = b;
+		}
+		Chunk* getChunk(void)
 		{
 			return m_chunk; 
 		}
@@ -980,6 +996,8 @@ namespace godot
 		AABB m_chunkAABB;
 		float m_chunkSizeInWUs;
 		bool m_splitRequired;
+		bool m_justSplitted = false;
+		bool m_justJoined = false;
 	};
 
 	enum class QuadrantStatus
@@ -1259,6 +1277,8 @@ namespace godot
 		bool m_hitByMouse = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
 		bool m_colliderNeedUpdate = false;
+		godot::Vector3 m_quadCenterGlobal;
+		real_t m_splitDistance = 0;
 
 		// Statistics
 		int m_numSplits;

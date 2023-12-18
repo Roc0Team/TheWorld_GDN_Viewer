@@ -1126,11 +1126,12 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_initialized_quadrant"), &GDN_TheWorld_Viewer::getNuminitializedQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_visible_quadrant"), &GDN_TheWorld_Viewer::getNumVisibleQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_initialized_visible_quadrant"), &GDN_TheWorld_Viewer::getNuminitializedVisibleQuadrant);
+	ClassDB::bind_method(D_METHOD("get_num_need_shader_reset_quadrant"), &GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_empty_quadrant"), &GDN_TheWorld_Viewer::getNumEmptyQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_flushed_quadrant"), &GDN_TheWorld_Viewer::getNumFlushedQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_process_not_owns_lock"), &GDN_TheWorld_Viewer::getProcessNotOwnsLock);
 	ClassDB::bind_method(D_METHOD("get_process_duration"), &GDN_TheWorld_Viewer::getProcessDuration);
-	ClassDB::bind_method(D_METHOD("get_refresh_quads_duration"), &GDN_TheWorld_Viewer::getRefreshMapQuadDuration);
+	//ClassDB::bind_method(D_METHOD("get_refresh_quads_duration"), &GDN_TheWorld_Viewer::getRefreshMapQuadDuration);
 	ClassDB::bind_method(D_METHOD("get_update_quads1_duration"), &GDN_TheWorld_Viewer::getUpdateQuads1Duration);
 	ClassDB::bind_method(D_METHOD("get_update_quads2_duration"), &GDN_TheWorld_Viewer::getUpdateQuads2Duration);
 	ClassDB::bind_method(D_METHOD("get_update_quads3_duration"), &GDN_TheWorld_Viewer::getUpdateQuads3Duration);
@@ -3021,6 +3022,9 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 			// look for the quadrant to delete (the ones not refreshed)
 			for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 			{
+				size_t distanceInPerimeterFromCameraQuadrant = itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
+				itQuadTree->second->getQuadrant()->setLastDistanceInPerimeterFromCameraQuadrant(distanceInPerimeterFromCameraQuadrant);
+
 				if (itQuadTree->second->getRefreshTime().tv_nsec == refreshTime.tv_nsec && itQuadTree->second->getRefreshTime().tv_sec == refreshTime.tv_sec)
 				{
 					bool visibilityChanged = false;
@@ -3094,7 +3098,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	TheWorld_Utils::GuardProfiler profiler(std::string("_process 1 ") + __FUNCTION__, "ALL");
 
 	m_lastProcessDuration = 0;
-	m_lastRefreshMapQuadDuration = 0;
+	//m_lastRefreshMapQuadDuration = 0;
 	m_lastUpdateQuads1Duration = 0;
 	m_lastUpdateQuads2Duration = 0;
 	m_lastUpdateQuads3Duration = 0;
@@ -3103,7 +3107,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	m_lastMouseTrackHitDuration = 0;;
 	m_lastEraseQuads = 0;
 	m_lastProcessMapModder = 0;
-	m_lastAdjustQuadTreeByCamera = 0;
+	m_lastUpdateCameraQuad = 0;
 	m_lastStreamingQuadrantStuff = 0;
 
 	{
@@ -3218,10 +3222,10 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 
 	if (m_lastProcessDuration > 100000 && Globals()->status() == TheWorldStatus::worldDeployed)
 	{
-		size_t extra = m_lastProcessDuration - (m_lastRefreshMapQuadDuration + m_lastUpdateQuads1Duration + m_lastUpdateQuads2Duration + m_lastUpdateQuads3Duration + m_lastUpdateChunksDuration + m_lastUpdateMaterialParamsDuration + m_lastMouseTrackHitDuration + m_lastEraseQuads + m_lastProcessMapModder + m_lastAdjustQuadTreeByCamera + m_lastStreamingQuadrantStuff);
+		size_t extra = m_lastProcessDuration - (/*m_lastRefreshMapQuadDuration + */m_lastUpdateQuads1Duration + m_lastUpdateQuads2Duration + m_lastUpdateQuads3Duration + m_lastUpdateChunksDuration + m_lastUpdateMaterialParamsDuration + m_lastMouseTrackHitDuration + m_lastEraseQuads + m_lastProcessMapModder + m_lastUpdateCameraQuad + m_lastStreamingQuadrantStuff);
 		std::string msg = "PROCESS DURATION WARNING: "
 			+ std::to_string(m_lastProcessDuration / 1000)
-			+ ", Refresh Map Quad: " + std::to_string(m_lastRefreshMapQuadDuration / 1000)
+			//+ ", Refresh Map Quad: " + std::to_string(m_lastRefreshMapQuadDuration / 1000)
 			+ ", Update Quads Stage 1: " + std::to_string(m_lastUpdateQuads1Duration / 1000)
 			+ ", Update Quads Stage 2: " + std::to_string(m_lastUpdateQuads2Duration / 1000)
 			+ ", Update Quads Stage 3: " + std::to_string(m_lastUpdateQuads3Duration / 1000)
@@ -3230,7 +3234,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			+ ", Mouse Track Collisions: " + std::to_string(m_lastMouseTrackHitDuration / 1000)
 			+ ", Erase Quads: " + std::to_string(m_lastEraseQuads / 1000)
 			+ ", Process Mapmodder: " + std::to_string(m_lastProcessMapModder / 1000)
-			+ ", Adjust QuadTree By Camera: " + std::to_string(m_lastAdjustQuadTreeByCamera / 1000)
+			+ ", Update Camera Quad: " + std::to_string(m_lastUpdateCameraQuad / 1000)
 			+ ", Init New Quads: " + std::to_string(m_lastStreamingQuadrantStuff / 1000)
 			+ ", Extra: " + std::to_string(extra / 1000);
 		Globals()->debugPrint(msg.c_str());
@@ -3302,54 +3306,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	// erase out-of-view quadrants
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.01 ") + __FUNCTION__, "Erase out-of-view quadrants");
-
-		TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Erase Out-Of-View Quadrants", false, false);
-		clock1.tick();
-		auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
-			clock1.tock();
-			this->m_lastEraseQuads = clock1.duration().count();
-			this->m_numEraseQuads++;
-			this->m_sumEraseQuads += this->m_lastEraseQuads;
-			});
-
-		std::vector<QuadrantPos> toErase;
 		
-		for (auto& item : m_toErase)
-		{
-			size_t numErased = 0;
-
-			QuadrantPos pos = item.first;
-
-			if (m_mapQuadTree.contains(pos))
-			{
-				bool locked = m_mapQuadTree[pos]->getQuadrant()->lockInternalData();
-				if (locked)
-				{
-					if (editModeUIControl != nullptr)
-					{
-						QuadTree* quadTreeToErase = m_mapQuadTree[pos].get();
-						if (!editModeUIControl->isQuadToSave(pos) && !quadTreeToErase->getQuadrant()->needUploadToServer())
-						{
-							numErased = m_mapQuadTree.erase(pos);
-							toErase.push_back(pos);
-						}
-						else
-							m_mapQuadTree[pos]->getQuadrant()->unlockInternalData();
-					}
-					else
-					{
-						numErased = m_mapQuadTree.erase(pos);
-						toErase.push_back(pos);
-					}
-				}
-			}
-		}
-
-		//m_toErase.clear();
-		for (auto& pos : toErase)
-		{
-			m_toErase.erase(pos);
-		}
+		process_eraseOutOfViewQuads(editModeUIControl);
 	}
 	
 	godot::Vector3 cameraPosGlobalCoord = activeCamera->get_global_transform().get_origin();
@@ -3369,14 +3327,14 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		else
 		{
 			float distance = cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForQuadrants);
-			float threshold = globals->heightmapSizeInWUs() / globals->getParamRefreshQuadrantsFactor();
+			float threshold = globals->getRefreshQuadrantTreeThreshold();
 			if (m_lastProcessedCameraPosForQuadrants == godot::Vector3() || distance > threshold)
 			{
 				m_lastProcessedCameraPosForQuadrants = cameraPosGlobalCoord;
 				processCameraPosForQuadrants = true;
 			}
 			distance = cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForChunks);
-			threshold = (globals->numVerticesPerChuckSide() * globals->gridStepInHeightmapWUs(0)) / globals->getParamRefreshChunksFactor();
+			threshold = globals->getRefreshChunkLodThreshold();
 			if (m_lastProcessedCameraPosForChunks == godot::Vector3() || distance > threshold)
 			{
 				m_lastProcessedCameraPosForChunks = cameraPosGlobalCoord;
@@ -3396,7 +3354,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.03 ") + __FUNCTION__, "Adjust Quadtrees");
 		if (processCameraPosForQuadrants)
-			process_adjustQuadTreeByCamera(globals, cameraPosGlobalCoord, processCameraPosForQuadrants);
+			process_updateCameraQuad(globals, cameraPosGlobalCoord, processCameraPosForQuadrants);
 	}
 
 	{
@@ -3412,13 +3370,13 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.06 ") + __FUNCTION__, "Update quadrants");
 		if (processCameraPosForChunks)
-			process_updateQuads(cameraPosGlobalCoord, processCameraPosForChunks);
+			process_updateLodInQuads(cameraPosGlobalCoord, processCameraPosForChunks);
 	}
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.07 ") + __FUNCTION__, "Update chunks");
 		if (processCameraPosForChunks)
-			process_updateChunks();
+			process_updateMeshForUpdatedChunks();
 	}
 
 	{
@@ -3473,6 +3431,57 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	}
 }
 
+void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl)
+{
+	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Erase Out-Of-View Quadrants", false, false);
+	clock1.tick();
+	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
+		clock1.tock();
+		this->m_lastEraseQuads = clock1.duration().count();
+		this->m_numEraseQuads++;
+		this->m_sumEraseQuads += this->m_lastEraseQuads;
+		});
+
+	std::vector<QuadrantPos> toErase;
+
+	for (auto& item : m_toErase)
+	{
+		size_t numErased = 0;
+
+		QuadrantPos pos = item.first;
+
+		if (m_mapQuadTree.contains(pos))
+		{
+			bool locked = m_mapQuadTree[pos]->getQuadrant()->lockInternalData();
+			if (locked)
+			{
+				if (editModeUIControl != nullptr)
+				{
+					QuadTree* quadTreeToErase = m_mapQuadTree[pos].get();
+					if (!editModeUIControl->isQuadToSave(pos) && !quadTreeToErase->getQuadrant()->needUploadToServer())
+					{
+						numErased = m_mapQuadTree.erase(pos);
+						toErase.push_back(pos);
+					}
+					else
+						m_mapQuadTree[pos]->getQuadrant()->unlockInternalData();
+				}
+				else
+				{
+					numErased = m_mapQuadTree.erase(pos);
+					toErase.push_back(pos);
+				}
+			}
+		}
+	}
+
+	//m_toErase.clear();
+	for (auto& pos : toErase)
+	{
+		m_toErase.erase(pos);
+	}
+}
+
 void GDN_TheWorld_Viewer::process_mapModder(double _delta)
 {
 	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Process Map Modder", false, false);
@@ -3507,15 +3516,15 @@ void GDN_TheWorld_Viewer::process_mapModder(double _delta)
 	}
 }
 
-void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos)
+void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos)
 {
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Adjust QuadTree By Camera", false, false);
+	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Camera Quad", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();
-		this->m_lastAdjustQuadTreeByCamera = clock1.duration().count();
-		this->m_numAdjustQuadTreeByCamera++;
-		this->m_sumAdjustQuadTreeByCamera += this->m_lastAdjustQuadTreeByCamera;
+		this->m_lastUpdateCameraQuad = clock1.duration().count();
+		this->m_numUpdateCameraQuad++;
+		this->m_sumUpdateCameraQuad += this->m_lastUpdateCameraQuad;
 		});
 
 	//float farHorizon = cameraPosGlobalCoord.y * FAR_HORIZON_MULTIPLIER;
@@ -3558,16 +3567,16 @@ void GDN_TheWorld_Viewer::process_adjustQuadTreeByCamera(GDN_TheWorld_Globals* g
 	//m_computedCameraQuadrantPos = quadrantPosNeeded[0];	// DEBUG
 	if ((m_refreshMapQuadTree || m_computedCameraQuadrantPos != cameraQuadrantPos) && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants");
+		//TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants");
 
-		TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Recalc in memory map of quadrants", false, false);
-		clock1.tick();
-		auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
-			clock1.tock();
-			this->m_lastRefreshMapQuadDuration = clock1.duration().count();
-			this->m_numRefreshMapQuad++;
-			this->m_sumRefreshMapQuadDuration += this->m_lastRefreshMapQuadDuration;
-			});
+		//TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Recalc in memory map of quadrants", false, false);
+		//clock1.tick();
+		//auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
+		//	clock1.tock();
+		//	this->m_lastRefreshMapQuadDuration = clock1.duration().count();
+		//	this->m_numRefreshMapQuad++;
+		//	this->m_sumRefreshMapQuadDuration += this->m_lastRefreshMapQuadDuration;
+		//	});
 
 		m_refreshMapQuadTree = false;
 		m_computedCameraQuadrantPos = cameraQuadrantPos;
@@ -3611,7 +3620,7 @@ void GDN_TheWorld_Viewer::process_initNewQuads(void)
 				if (itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded())
 				{
 					size_t distanceInPerimeterFromCameraQuadrant = quadrant->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
-					quadrant->setLastDistanceInPerimeterFromCameraQuadrant(distanceInPerimeterFromCameraQuadrant);
+					//quadrant->setLastDistanceInPerimeterFromCameraQuadrant(distanceInPerimeterFromCameraQuadrant);
 					if (distanceInPerimeterFromCameraQuadrant == distance)
 					{
 						float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
@@ -3919,7 +3928,7 @@ bool GDN_TheWorld_Viewer::mouseInsideMainEditPanel(void)
 		return false;
 }
 
-void GDN_TheWorld_Viewer::process_updateQuads(Vector3& cameraPosGlobalCoord, bool processCameraPos)
+void GDN_TheWorld_Viewer::process_updateLodInQuads(Vector3& cameraPosGlobalCoord, bool processCameraPos)
 {
 	// UPDATE QUADS - Stage 1
 	{
@@ -4005,7 +4014,7 @@ void GDN_TheWorld_Viewer::process_updateQuads(Vector3& cameraPosGlobalCoord, boo
 	}
 }
 
-void GDN_TheWorld_Viewer::process_updateChunks(void)
+void GDN_TheWorld_Viewer::process_updateMeshForUpdatedChunks(void)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.07.1 ") + __FUNCTION__, "Update Chunks");
 
@@ -4605,12 +4614,12 @@ void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 			else
 				m_averageProcessDuration = 0;
 
-			if (m_numRefreshMapQuad > 10)
-			{
-				m_averageRefreshMapQuadDuration = int(m_sumRefreshMapQuadDuration / m_numRefreshMapQuad);
-				m_sumRefreshMapQuadDuration = 0;
-				m_numRefreshMapQuad = 0;
-			}
+			//if (m_numRefreshMapQuad > 10)
+			//{
+			//	m_averageRefreshMapQuadDuration = int(m_sumRefreshMapQuadDuration / m_numRefreshMapQuad);
+			//	m_sumRefreshMapQuadDuration = 0;
+			//	m_numRefreshMapQuad = 0;
+			//}
 
 			if (m_numMouseTrackHit > 10)
 			{
@@ -4682,14 +4691,14 @@ void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 			else
 				m_averageProcessMapModder = 0;
 
-			if (m_numAdjustQuadTreeByCamera > 0)
+			if (m_numUpdateCameraQuad > 0)
 			{
-				m_averageAdjustQuadTreeByCamera = int(m_sumAdjustQuadTreeByCamera / m_numAdjustQuadTreeByCamera);
-				m_sumAdjustQuadTreeByCamera = 0;
-				m_numAdjustQuadTreeByCamera = 0;
+				m_averageUpdateCameraQuad = int(m_sumUpdateCameraQuad / m_numUpdateCameraQuad);
+				m_sumUpdateCameraQuad = 0;
+				m_numUpdateCameraQuad = 0;
 			}
 			else
-				m_averageAdjustQuadTreeByCamera = 0;
+				m_averageUpdateCameraQuad = 0;
 
 			if (m_numStreamingQuadrantStuff > 0)
 			{
@@ -5702,30 +5711,34 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	int numEmptyQuadrant = 0;
 	int numFlushedQuadrant = 0;
 	int numinitializedVisibleQuadrant = 0;
+	int numQuadrantNeedResetMaterialParams = 0;
 	m_mapNumActiveChunksPerLod.clear();
 
-	for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
+	//for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
+	for (auto& itQuadTree : m_mapQuadTree)
 	{
-		if (itQuadTree->second->isVisible())
+		if (itQuadTree.second->isVisible())
 		{
 			numVisibleQuadrant++;
-			if (itQuadTree->second->statusInitialized())
+			if (itQuadTree.second->statusInitialized())
 				numinitializedVisibleQuadrant++;
+			if (itQuadTree.second->materialParamsNeedReset())
+				numQuadrantNeedResetMaterialParams++;
 		}
 		
-		if (itQuadTree->second->statusInitialized())
+		if (itQuadTree.second->statusInitialized())
 		{
-			numSplits += itQuadTree->second->getNumSplits();
-			numJoins += itQuadTree->second->getNumJoins();
-			numVisibleChunks += itQuadTree->second->getNumChunks(true);
-			numActiveChunks += itQuadTree->second->getNumActiveChunks(mapNumActiveChunksPerLod);
+			numSplits += itQuadTree.second->getNumSplits();
+			numJoins += itQuadTree.second->getNumJoins();
+			numVisibleChunks += itQuadTree.second->getNumChunks(true);
+			numActiveChunks += itQuadTree.second->getNumActiveChunks(mapNumActiveChunksPerLod);
 			numinitializedQuadrant++;
 		}
 
-		if (itQuadTree->second->getQuadrant()->empty())
+		if (itQuadTree.second->getQuadrant()->empty())
 			numEmptyQuadrant++;
 
-		if (itQuadTree->second->getQuadrant()->getFloat16HeightsBuffer(false).size() == 0 || itQuadTree->second->getQuadrant()->getFloat32HeightsBuffer(false).size() == 0)
+		if (itQuadTree.second->getQuadrant()->getFloat16HeightsBuffer(false).size() == 0 || itQuadTree.second->getQuadrant()->getFloat32HeightsBuffer(false).size() == 0)
 			numFlushedQuadrant++;
 		
 		for (auto& item : mapNumActiveChunksPerLod)
@@ -5747,6 +5760,7 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	m_numEmptyQuadrant = numEmptyQuadrant;
 	m_numFlushedQuadrant = numFlushedQuadrant;
 	m_numinitializedVisibleQuadrant = numinitializedVisibleQuadrant;
+	m_numQuadrantNeedResetMaterialParam = numQuadrantNeedResetMaterialParams;
 }
 
 int GDN_TheWorld_Viewer::getProcessNotOwnsLock(void)
@@ -5805,15 +5819,20 @@ int GDN_TheWorld_Viewer::getNuminitializedVisibleQuadrant(void)
 	return m_numinitializedVisibleQuadrant;
 }
 
+int GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrant(void)
+{
+	return m_numQuadrantNeedResetMaterialParam;
+}
+
 int GDN_TheWorld_Viewer::getProcessDuration(void)
 {
 	return (int)m_averageProcessDuration;
 }
 
-int GDN_TheWorld_Viewer::getRefreshMapQuadDuration(void)
-{
-	return (int)m_averageRefreshMapQuadDuration;
-}
+//int GDN_TheWorld_Viewer::getRefreshMapQuadDuration(void)
+//{
+//	return (int)m_averageRefreshMapQuadDuration;
+//}
 
 int GDN_TheWorld_Viewer::getUpdateQuads1Duration(void)
 {

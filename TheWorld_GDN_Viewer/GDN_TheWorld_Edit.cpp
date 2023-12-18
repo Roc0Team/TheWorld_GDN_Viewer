@@ -3042,6 +3042,9 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 			round--;
 	}
 
+	setMinHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->minHeight);
+	setMaxHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->maxHeight);
+
 	m_blendingInProgress = false;
 	
 	size_t partialCount = m_actionClock.partialDuration().count();

@@ -245,10 +245,12 @@ void Chunk::update(bool isVisible)
 	int seams = 0;
 
 	// Seams are against grater chunks (greater lod = less resolution)
-	ChunkPos posGreaterChunkContainingThisOne(m_slotPosX / 2, m_slotPosZ / 2, m_lod + 1);
-	int numGreaterChunksPerSide = 0;
-	if (posGreaterChunkContainingThisOne.getLod() <= m_viewer->Globals()->lodMaxDepth())
-		numGreaterChunksPerSide = m_viewer->Globals()->numChunksPerHeightmapSide(posGreaterChunkContainingThisOne.getLod());
+	ChunkPos posGreaterLodChunkContainingThisOne(m_slotPosX / 2, m_slotPosZ / 2, m_lod + 1);
+	int numChunksPerSideAtGreaterLod = 0;
+	if (posGreaterLodChunkContainingThisOne.getLod() <= m_viewer->Globals()->lodMaxDepth())
+		numChunksPerSideAtGreaterLod = m_viewer->Globals()->numChunksPerHeightmapSide(posGreaterLodChunkContainingThisOne.getLod());
+
+	int numChunksPerSideAtCurrentLod = m_viewer->Globals()->numChunksPerHeightmapSide(m_lod);
 
 	switch (m_posInQuad)
 	{
@@ -259,34 +261,38 @@ void Chunk::update(bool isVisible)
 		//	= =
 		//  
 
-		Chunk* chunk = m_quadTree->getChunkAt(posGreaterChunkContainingThisOne, Chunk::DirectionSlot::XMinusChunk);
+		// check left chunk
+		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XMinusChunk);
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_LEFT;
 
-		if (numGreaterChunksPerSide > 0)
+		// if we are on left border of quadrant
+		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosX == 0)
 		{
 			QuadrantPos XMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
 			QuadTree* XMinusQuadTree = m_viewer->getQuadTree(XMinusQuadrantPos);
 			if (XMinusQuadTree != nullptr && XMinusQuadTree->isValid())
 			{
-				ChunkPos posGreaterChunkOnAdjacentQuadrant(numGreaterChunksPerSide - 1, posGreaterChunkContainingThisOne.getSlotPosZ(), posGreaterChunkContainingThisOne.getLod());
+				ChunkPos posGreaterChunkOnAdjacentQuadrant(numChunksPerSideAtGreaterLod - 1, posGreaterLodChunkContainingThisOne.getSlotPosZ(), posGreaterLodChunkContainingThisOne.getLod());
 				chunk = XMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_LEFT;
 			}
 		}
 
-		chunk = m_quadTree->getChunkAt(posGreaterChunkContainingThisOne, Chunk::DirectionSlot::ZMinusChunk);
+		// check up chunk
+		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZMinusChunk);
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_BOTTOM;
 
-		if (numGreaterChunksPerSide > 0)
+		// if we are on top border of quadrant
+		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosZ == 0)
 		{
 			QuadrantPos ZMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
 			QuadTree* ZMinusQuadTree = m_viewer->getQuadTree(ZMinusQuadrantPos);
 			if (ZMinusQuadTree != nullptr && ZMinusQuadTree->isValid())
 			{
-				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterChunkContainingThisOne.getSlotPosX(), numGreaterChunksPerSide - 1, posGreaterChunkContainingThisOne.getLod());
+				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterLodChunkContainingThisOne.getSlotPosX(), numChunksPerSideAtGreaterLod - 1, posGreaterLodChunkContainingThisOne.getLod());
 				chunk = ZMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_BOTTOM;
@@ -301,34 +307,38 @@ void Chunk::update(bool isVisible)
 		//	= =
 		//  
 
-		Chunk* chunk = m_quadTree->getChunkAt(posGreaterChunkContainingThisOne, Chunk::DirectionSlot::XPlusChunk);
+		// check right chunk
+		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XPlusChunk);
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_RIGHT;
 
-		if (numGreaterChunksPerSide > 0)
+		// if we are on right border of quadrant
+		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosX == numChunksPerSideAtCurrentLod - 1)
 		{
 			QuadrantPos XPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
 			QuadTree* XPlusQuadTree = m_viewer->getQuadTree(XPlusQuadrantPos);
 			if (XPlusQuadTree != nullptr && XPlusQuadTree->isValid())
 			{
-				ChunkPos posGreaterChunkOnAdjacentQuadrant(0, posGreaterChunkContainingThisOne.getSlotPosZ(), posGreaterChunkContainingThisOne.getLod());
+				ChunkPos posGreaterChunkOnAdjacentQuadrant(0, posGreaterLodChunkContainingThisOne.getSlotPosZ(), posGreaterLodChunkContainingThisOne.getLod());
 				chunk = XPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_RIGHT;
 			}
 		}
 
-		chunk = m_quadTree->getChunkAt(posGreaterChunkContainingThisOne, Chunk::DirectionSlot::ZMinusChunk);
+		// check up chunk
+		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZMinusChunk);
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_BOTTOM;
 
-		if (numGreaterChunksPerSide > 0)
+		// if we are on top border of quadrant
+		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosZ == 0)
 		{
 			QuadrantPos ZMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
 			QuadTree* ZMinusQuadTree = m_viewer->getQuadTree(ZMinusQuadrantPos);
 			if (ZMinusQuadTree != nullptr && ZMinusQuadTree->isValid())
 			{
-				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterChunkContainingThisOne.getSlotPosX(), numGreaterChunksPerSide - 1, posGreaterChunkContainingThisOne.getLod());
+				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterLodChunkContainingThisOne.getSlotPosX(), numChunksPerSideAtGreaterLod - 1, posGreaterLodChunkContainingThisOne.getLod());
 				chunk = ZMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_BOTTOM;
@@ -343,34 +353,38 @@ void Chunk::update(bool isVisible)
 		//	o =
 		//  
 		
-		Chunk* chunk = m_quadTree->getChunkAt(posGreaterChunkContainingThisOne, Chunk::DirectionSlot::XMinusChunk);
+		// check left chunk
+		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XMinusChunk);
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_LEFT;
 
-		if (numGreaterChunksPerSide > 0)
+		// if we are on left border of quadrant
+		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosX == 0)
 		{
 			QuadrantPos XMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
 			QuadTree* XMinusQuadTree = m_viewer->getQuadTree(XMinusQuadrantPos);
 			if (XMinusQuadTree != nullptr && XMinusQuadTree->isValid())
 			{
-				ChunkPos posGreaterChunkOnAdjacentQuadrant(numGreaterChunksPerSide - 1, posGreaterChunkContainingThisOne.getSlotPosZ(), posGreaterChunkContainingThisOne.getLod());
+				ChunkPos posGreaterChunkOnAdjacentQuadrant(numChunksPerSideAtGreaterLod - 1, posGreaterLodChunkContainingThisOne.getSlotPosZ(), posGreaterLodChunkContainingThisOne.getLod());
 				chunk = XMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_LEFT;
 			}
 		}
 
-		chunk = m_quadTree->getChunkAt(posGreaterChunkContainingThisOne, Chunk::DirectionSlot::ZPlusChunk);
+		// check down chunk
+		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZPlusChunk);
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_TOP;
 
-		if (numGreaterChunksPerSide > 0)
+		// if we are on bottom border of quadrant
+		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosZ == numChunksPerSideAtCurrentLod - 1)
 		{
 			QuadrantPos ZPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
 			QuadTree* ZPlusQuadTree = m_viewer->getQuadTree(ZPlusQuadrantPos);
 			if (ZPlusQuadTree != nullptr && ZPlusQuadTree->isValid())
 			{
-				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterChunkContainingThisOne.getSlotPosX(), 0, posGreaterChunkContainingThisOne.getLod());
+				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterLodChunkContainingThisOne.getSlotPosX(), 0, posGreaterLodChunkContainingThisOne.getLod());
 				chunk = ZPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_TOP;
@@ -385,34 +399,38 @@ void Chunk::update(bool isVisible)
 		//	= o
 		//  
 		
-		Chunk* chunk = m_quadTree->getChunkAt(posGreaterChunkContainingThisOne, Chunk::DirectionSlot::XPlusChunk);
+		// check right chunk
+		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XPlusChunk);
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_RIGHT;
 
-		if (numGreaterChunksPerSide > 0)
+		// if we are on right border of quadrant
+		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosX == numChunksPerSideAtCurrentLod - 1)
 		{
 			QuadrantPos XPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
 			QuadTree* XPlusQuadTree = m_viewer->getQuadTree(XPlusQuadrantPos);
 			if (XPlusQuadTree != nullptr && XPlusQuadTree->isValid())
 			{
-				ChunkPos posGreaterChunkOnAdjacentQuadrant(0, posGreaterChunkContainingThisOne.getSlotPosZ(), posGreaterChunkContainingThisOne.getLod());
+				ChunkPos posGreaterChunkOnAdjacentQuadrant(0, posGreaterLodChunkContainingThisOne.getSlotPosZ(), posGreaterLodChunkContainingThisOne.getLod());
 				chunk = XPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_RIGHT;
 			}
 		}
 
-		chunk = m_quadTree->getChunkAt(posGreaterChunkContainingThisOne, Chunk::DirectionSlot::ZPlusChunk);
+		// check down chunk
+		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZPlusChunk);
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_TOP;
 
-		if (numGreaterChunksPerSide > 0)
+		// if we are on bottom border of quadrant
+		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosZ == numChunksPerSideAtCurrentLod - 1)
 		{
 			QuadrantPos ZPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
 			QuadTree* ZPlusQuadTree = m_viewer->getQuadTree(ZPlusQuadrantPos);
 			if (ZPlusQuadTree != nullptr && ZPlusQuadTree->isValid())
 			{
-				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterChunkContainingThisOne.getSlotPosX(), 0, posGreaterChunkContainingThisOne.getLod());
+				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterLodChunkContainingThisOne.getSlotPosX(), 0, posGreaterLodChunkContainingThisOne.getLod());
 				chunk = ZPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_TOP;

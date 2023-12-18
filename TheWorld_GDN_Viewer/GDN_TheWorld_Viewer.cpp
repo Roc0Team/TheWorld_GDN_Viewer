@@ -2805,6 +2805,8 @@ void GDN_TheWorld_Viewer::setDepthQuadOnPerimeter(int depth)
 	if (depth >= 0 && depth <= MAX_DEPTH_ON_PERIMETER)
 	{
 		m_depthQuadOnPerimeter = depth;
+		m_lastProcessedCameraPosForQuadrants = godot::Vector3();
+		m_lastProcessedCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 			m_recalcQuadrantsInViewNeeded = true;
 	}
@@ -2820,6 +2822,8 @@ void GDN_TheWorld_Viewer::setCacheQuadOnPerimeter(int cache)
 	if (cache >= 0 && cache <= MAX_CACHE_ON_PERIMETER)
 	{
 		m_cacheQuadOnPerimeter = cache;
+		m_lastProcessedCameraPosForQuadrants = godot::Vector3();
+		m_lastProcessedCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 			m_recalcQuadrantsInViewNeeded = true;
 	}
@@ -3318,7 +3322,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		processCameraPosForQuadrants = false;
 		processCameraPosForChunks = false;
 		int64_t timeElapsed = TIME()->get_ticks_msec();
-		if (timeElapsed - m_timeElapsedFromLastProcessCameraPosForQuadrants > TIME_INTERVAL_BETWEEN_ELAB_CAMERA)
+		if (TIME_INTERVAL_BETWEEN_ELAB_CAMERA != -1 && timeElapsed - m_timeElapsedFromLastProcessCameraPosForQuadrants > TIME_INTERVAL_BETWEEN_ELAB_CAMERA)
 		{
 			m_timeElapsedFromLastProcessCameraPosForQuadrants = timeElapsed;
 			processCameraPosForQuadrants = true;
@@ -3354,7 +3358,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.03 ") + __FUNCTION__, "Adjust Quadtrees");
 		if (processCameraPosForQuadrants)
-			process_updateCameraQuad(globals, cameraPosGlobalCoord, processCameraPosForQuadrants);
+			process_updateCameraQuad(globals, cameraPosGlobalCoord);
 	}
 
 	{
@@ -3370,12 +3374,12 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.06 ") + __FUNCTION__, "Update quadrants");
 		if (processCameraPosForChunks)
-			process_updateLodInQuads(cameraPosGlobalCoord, processCameraPosForChunks);
+			process_updateLodInQuads(cameraPosGlobalCoord);
 	}
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.07 ") + __FUNCTION__, "Update chunks");
-		if (processCameraPosForChunks)
+		//if (processCameraPosForChunks)
 			process_updateMeshForUpdatedChunks();
 	}
 
@@ -3419,7 +3423,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.10 ") + __FUNCTION__, "Process Material Params");
-		process_materialParam(cameraPosGlobalCoord, processCameraPosForQuadrants);
+		process_materialParam(cameraPosGlobalCoord);
 	}
 
 	//m_desideredLookDevChanged = false;
@@ -3516,7 +3520,7 @@ void GDN_TheWorld_Viewer::process_mapModder(double _delta)
 	}
 }
 
-void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos)
+void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord)
 {
 	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Camera Quad", false, false);
 	clock1.tick();
@@ -3928,7 +3932,7 @@ bool GDN_TheWorld_Viewer::mouseInsideMainEditPanel(void)
 		return false;
 }
 
-void GDN_TheWorld_Viewer::process_updateLodInQuads(Vector3& cameraPosGlobalCoord, bool processCameraPos)
+void GDN_TheWorld_Viewer::process_updateLodInQuads(Vector3& cameraPosGlobalCoord)
 {
 	// UPDATE QUADS - Stage 1
 	{
@@ -4042,8 +4046,8 @@ void GDN_TheWorld_Viewer::process_updateMeshForUpdatedChunks(void)
 		std::vector<Chunk*> vectChunkUpdate = itQuadTree->second->getChunkUpdate();
 
 		// Forcing update to all neighboring chunks to readjust the seams (by populating vectAdditionalUpdateChunk)
-		// chunks affected are neighboring ones with same lod or less (more definded) ==> neighboring chunks with greater lod (less defined) are not selcted
-		// as the seams are calculated on chunks with lessere lof (more defined chunks) if the neighborings have different lod
+		// chunks affected are neighboring ones with same lod or less (more definded) ==> neighboring chunks with greater lod (less defined) are not selected
+		// as the seams are calculated on chunks with lesser lod (more defined chunks) if the neighborings have different lod
 		std::vector<Chunk*> vectAdditionalUpdateChunk;
 		for (std::vector<Chunk*>::iterator itChunk = vectChunkUpdate.begin(); itChunk != vectChunkUpdate.end(); itChunk++)
 		{
@@ -4501,7 +4505,7 @@ void GDN_TheWorld_Viewer::process_lookDev(void)
 	m_desideredLookDevChanged = false;
 }
 
-void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos)
+void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord)
 {
 	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Material Params", false, false);
 	clock1.tick();

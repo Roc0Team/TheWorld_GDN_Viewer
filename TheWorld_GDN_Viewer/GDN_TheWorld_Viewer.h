@@ -49,7 +49,7 @@ namespace godot
 #define TIME_INTERVAL_BETWEEN_DUMP 0			// secs, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_STATISTICS 1000	// ms, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_MOUSE_TRACK 50	// 250	// ms
-#define TIME_INTERVAL_BETWEEN_ELAB_CAMERA 2000	// ms
+#define TIME_INTERVAL_BETWEEN_ELAB_CAMERA -1	// 2000	// ms
 
 	class GDN_TheWorld_MapModder : public godot::Node
 	{
@@ -727,13 +727,13 @@ namespace godot
 		void streamer(void);
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModder(double _delta);
-		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
+		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord);
 		void process_initNewQuads(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
-		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
+		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord);
 		void process_updateMeshForUpdatedChunks(void);
 		void process_lookDev(void);
-		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPos);
+		void process_materialParam(godot::Vector3& cameraPosGlobalCoord);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 

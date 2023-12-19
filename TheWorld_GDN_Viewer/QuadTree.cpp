@@ -113,14 +113,25 @@ void Quad::clearChildren(void)
 
 void Quad::assignChunk(void)
 {
+	//TheWorld_Utils::GuardProfiler profiler(std::string("Quad::assignChunk ") + __FUNCTION__, "ALL");
+
 	assert(m_chunk == nullptr);
 	
-	m_chunk = m_quadTree->getChunkAt(Chunk::ChunkPos(m_slotPosX, m_slotPosZ, m_lod));
+	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("Quad::assignChunk ") + __FUNCTION__, "m_quadTree->getChunkAt");
+		m_chunk = m_quadTree->getChunkAt(Chunk::ChunkPos(m_slotPosX, m_slotPosZ, m_lod));
+	}
 
-	Ref<Material> mat = m_quadTree->getCurrentMaterial(m_lod);
+	Ref<Material> mat;
+	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("Quad::assignChunk ") + __FUNCTION__, "m_quadTree->getCurrentMaterial");
+		Ref<Material> m = m_quadTree->getCurrentMaterial(m_lod);
+		mat = m;
+	}
 
 	if (m_chunk == nullptr)
 	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("Quad::assignChunk ") + __FUNCTION__, "new Chunk");
 		// create chunk for current quad because this is the first time that is needed for current lod and pos
 		if (_DEBUG_AAB)
 			m_chunk = new ChunkDebug(m_slotPosX, m_slotPosZ, m_lod, m_viewer, m_quadTree, mat);
@@ -132,13 +143,20 @@ void Quad::assignChunk(void)
 		m_quadTree->addChunk(m_chunk);
 	}
 	else
+	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("Quad::assignChunk ") + __FUNCTION__, "m_chunk->setMaterial");
 		m_chunk->setMaterial(mat);
+	}
 
-	m_chunk->setPosInQuad(m_posInQuad, this);
-	m_quadTree->addChunkUpdate(m_chunk);
-	m_chunk->setActive(true);
-	m_chunkAABB = m_chunk->getAABB();
-	m_chunkSizeInWUs = m_chunk->getChunkSizeInWUs();
+	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("Quad::assignChunk ") + __FUNCTION__, "set chunk values");
+
+		m_chunk->setPosInQuad(m_posInQuad, this);
+		m_quadTree->addChunkUpdate(m_chunk);
+		m_chunk->setActive(true);
+		m_chunkAABB = m_chunk->getAABB();
+		m_chunkSizeInWUs = m_chunk->getChunkSizeInWUs();
+	}
 }
 
 void Quad::setCameraPos(Vector3 globalCoordCameraLastPos)
@@ -215,7 +233,6 @@ void QuadTree::init(float cameraX, float cameraY, float cameraZ, float cameraYaw
 
 		{
 			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 2");
-
 			getQuadrant()->getShaderTerrainData()->init();
 		}
 		
@@ -1278,7 +1295,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularMaterial(bool reload)
 		m_viewer->getMainProcessingMutex().unlock();
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
 		String shaderPath = "res://addons/twviewer/shaders/regularChunk.gdshader";		// from simple4.gdshader
-		godot::Ref<godot::Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+		//godot::Ref<godot::Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+		godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
 		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
@@ -1362,7 +1380,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevMaterial(enum class Sha
 		m_viewer->getMainProcessingMutex().unlock();
 		ResourceLoader* resLoader = ResourceLoader::get_singleton();
 		String shaderPath = "res://addons/twviewer/shaders/lookdevChunk.gdshader";
-		Ref<Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+		//Ref<Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+		Ref<Shader> shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
 		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
@@ -1401,7 +1420,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lo
 		m_viewer->getMainProcessingMutex().unlock();
 		ResourceLoader* resLoader = ResourceLoader::get_singleton();
 		String shaderPath = "res://addons/twviewer/shaders/lookdevChunkLod.gdshader";
-		Ref<Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+		//Ref<Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+		Ref<Shader> shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
 		float numVerticesPerChuckSide = (float)m_viewer->Globals()->numVerticesPerChuckSide();
 		float gridStepInWU = m_viewer->Globals()->gridStepInWU();

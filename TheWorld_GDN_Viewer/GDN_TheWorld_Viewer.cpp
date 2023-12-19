@@ -438,7 +438,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
 			godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
-			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2normal.gdshader", "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+			//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2normal.gdshader", "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2normal.gdshader");
 			mat->set_shader(shader);
 			float gridStepInWU = m_viewer->Globals()->gridStepInWU();
 			mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
@@ -467,7 +468,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
 			godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
-			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader", "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+			//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader", "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
+			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader");
 			mat->set_shader(shader);
 			float gridStepInWU = m_viewer->Globals()->gridStepInWU();
 			mat->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, normalTexture);
@@ -3446,6 +3448,8 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 		this->m_sumEraseQuads += this->m_lastEraseQuads;
 		});
 
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+
 	std::vector<QuadrantPos> toErase;
 
 	for (auto& item : m_toErase)
@@ -3466,6 +3470,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 					{
 						numErased = m_mapQuadTree.erase(pos);
 						toErase.push_back(pos);
+						break;
 					}
 					else
 						m_mapQuadTree[pos]->getQuadrant()->unlockInternalData();
@@ -3474,6 +3479,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 				{
 					numErased = m_mapQuadTree.erase(pos);
 					toErase.push_back(pos);
+					break;
 				}
 			}
 		}

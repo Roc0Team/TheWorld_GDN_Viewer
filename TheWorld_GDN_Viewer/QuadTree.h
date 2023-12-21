@@ -272,6 +272,13 @@ namespace godot
 		friend class GDN_TheWorld_Edit;
 		friend class QuadTree;
 
+		enum class ResolutionLevel
+		{
+			not_set = -1
+			, low = 0
+			, high = 1
+		};
+
 	public:
 		Quadrant(QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 
@@ -294,6 +301,15 @@ namespace godot
 		{
 			return m_quadrantPos;
 		}
+
+		enum class ResolutionLevel getResolutionLevel(void);
+		
+		bool isFlushed(void);
+
+		bool hasHeigthsForChunks(void);
+
+		void lockInternalDataUntilCompleteProcessExecution(bool b = true);
+		bool internalDataLockedUntilCompleteProcessExecution(void);
 
 		size_t getLastDistanceInPerimeterFromCameraQuadrant(void)
 		{
@@ -660,13 +676,17 @@ namespace godot
 			return m_quadrantCenter;
 		}
 
+		bool canHaveCollisionInfo(void);
+
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
+		void loadTerrainDataFromCache(void);
 
 	private:
 		QuadrantPos m_quadrantPos;
 		GDN_TheWorld_Viewer* m_viewer;
 		QuadTree* m_quadTree;
+		bool m_lockInternalDataUntilCompleteProcessExecution = false;
 		TheWorld_Utils::MeshCacheBuffer m_cache;
 		godot::AABB m_globalCoordAABB;
 		std::unique_ptr<Collider> m_collider;
@@ -1022,7 +1042,9 @@ namespace godot
 
 	enum class QuadrantStatus
 	{
-		refreshTerrainDataNeeded = -2
+		loadTerrainDataFromCacheNeeded = -4
+		,loadTerrainDataFromCacheInProgress = -3
+		,refreshTerrainDataNeeded = -2
 		,refreshTerrainDataInProgress = -1
 		,uninitialized = 0
 		,getTerrainDataInProgress = 1
@@ -1153,14 +1175,22 @@ namespace godot
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
 		void updateCollider(void);
-		bool colliderNeedUpdate(void);
-		void colliderNeedUpdate(bool b);
+		bool colliderNeedReset(void);
+		void colliderNeedReset(bool b);
 		bool updateMaterialParams(void);
 		bool materialParamsNeedUpdate(void);
 		void materialParamsNeedUpdate(bool b);
 		bool statusInitialized(void)
 		{
 			return status() == QuadrantStatus::initialized;
+		}
+		bool loadTerrainDataFromCacheInProgress(void)
+		{
+			return status() == QuadrantStatus::loadTerrainDataFromCacheInProgress;
+		}
+		bool loadTerrainDataFromCacheNeeded(void)
+		{
+			return status() == QuadrantStatus::loadTerrainDataFromCacheNeeded;
 		}
 		bool statusGetTerrainDataInProgress(void)
 		{
@@ -1206,6 +1236,9 @@ namespace godot
 		{
 			m_lastStatusChange = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 			m_status = status;
+			Quadrant* quadrant = getQuadrant();
+			if (quadrant != nullptr)
+				quadrant->lockInternalDataUntilCompleteProcessExecution();
 		}
 		bool isValid(void)
 		{
@@ -1277,6 +1310,11 @@ namespace godot
 		void mouseHitChanged(godot::Vector3 mouseHit, bool hit);
 		void getAdjacentQuadrants(std::list<QuadTree*>& adjacentQuadrantsHit);
 
+		Quad* getRoot(void)
+		{
+			return m_root.get();
+		}
+
 	private:
 		void internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired);
 
@@ -1296,7 +1334,7 @@ namespace godot
 		bool m_editModeQuadrantSelected = false;
 		bool m_hitByMouse = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
-		bool m_colliderNeedUpdate = false;
+		bool m_colliderNeedReset = false;
 		godot::Vector3 m_quadCenterGlobal;
 		real_t m_splitDistance = 0;
 

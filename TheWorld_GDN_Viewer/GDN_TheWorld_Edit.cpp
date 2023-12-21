@@ -2684,7 +2684,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->setEmpty(false);
 	quadTreeSel->getQuadrant()->setColorsUpdated(true);
 	quadTreeSel->materialParamsNeedReset(true);
-	quadTreeSel->colliderNeedUpdate(true);
+	quadTreeSel->colliderNeedReset(true);
 
 	// 10. unlock internal datas so that they can be passed to the shader/collider
 	quadTreeSel->getQuadrant()->unlockInternalData();
@@ -3162,7 +3162,7 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 		quadTree->ForAllChunk(action);
 
 		quadTree->materialParamsNeedReset(true);
-		quadTree->colliderNeedUpdate(true);
+		quadTree->colliderNeedReset(true);
 	}
 }
 

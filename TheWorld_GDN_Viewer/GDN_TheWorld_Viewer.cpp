@@ -1131,6 +1131,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_need_shader_reset_quadrant"), &GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_empty_quadrant"), &GDN_TheWorld_Viewer::getNumEmptyQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_flushed_quadrant"), &GDN_TheWorld_Viewer::getNumFlushedQuadrant);
+	ClassDB::bind_method(D_METHOD("get_num_with_collider_quadrant"), &GDN_TheWorld_Viewer::getNumWithColliderQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_process_not_owns_lock"), &GDN_TheWorld_Viewer::getProcessNotOwnsLock);
 	ClassDB::bind_method(D_METHOD("get_process_duration"), &GDN_TheWorld_Viewer::getProcessDuration);
 	//ClassDB::bind_method(D_METHOD("get_refresh_quads_duration"), &GDN_TheWorld_Viewer::getRefreshMapQuadDuration);
@@ -1541,6 +1542,8 @@ bool GDN_TheWorld_Viewer::init(void)
 	//m_mapModder = memnew(GDN_TheWorld_MapModder);
 	//m_mapModder->custom_ready(this, this, false);
 
+	m_tpClientWorker.Start("ClientWorker", 10, this);
+
 	m_initialized = true;
 	m_initRequired = false;
 	PLOG_INFO << "TheWorld Viewer Initialized!";
@@ -1581,6 +1584,8 @@ void GDN_TheWorld_Viewer::deinit(void)
 	{
 		PLOG_INFO << "TheWorld Viewer Deinitializing...";
 
+		m_tpClientWorker.Stop();
+		
 		// from _notification EXIT_WORLD
 		GDN_TheWorld_Globals* globals = Globals();
 		if (globals != nullptr)
@@ -1895,7 +1900,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 							{
 								quadTree->materialParamsNeedReset(true);
-								quadTree->colliderNeedUpdate(true);
+								quadTree->colliderNeedReset(true);
 							}
 
 							if (setCamera)
@@ -3294,6 +3299,11 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		m_firstProcess = false;
 	}
 
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.02 ") + __FUNCTION__, "Modder work");
+		process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(_delta);
+	}
+
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 	if (editModeUIControl != nullptr && editModeUIControl->initilized())
 	{
@@ -3312,7 +3322,6 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	// erase out-of-view quadrants
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.01 ") + __FUNCTION__, "Erase out-of-view quadrants");
-		
 		process_eraseOutOfViewQuads(editModeUIControl);
 	}
 	
@@ -3352,11 +3361,6 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	//Transform globalTransform = internalTransformGlobalCoord();
 	//Vector3 cameraPosViewerNodeLocalCoord = globalTransform.affine_inverse() * cameraPosGlobalCoord;	// Viewer Node (grid) local coordinates of the camera pos
 
-	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.02 ") + __FUNCTION__, "Modder work");
-		process_mapModder(_delta);
-	}
-	
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.03 ") + __FUNCTION__, "Adjust Quadtrees");
 		if (processCameraPosForQuadrants)
@@ -3492,7 +3496,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 	}
 }
 
-void GDN_TheWorld_Viewer::process_mapModder(double _delta)
+void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta)
 {
 	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Process Map Modder", false, false);
 	clock1.tick();
@@ -3522,6 +3526,7 @@ void GDN_TheWorld_Viewer::process_mapModder(double _delta)
 
 	for (auto& item : m_mapQuadTree)
 	{
+		item.second->getQuadrant()->lockInternalDataUntilCompleteProcessExecution(false);
 		item.second->getQuadrant()->process_mapModder(_delta);
 	}
 }
@@ -3636,11 +3641,18 @@ void GDN_TheWorld_Viewer::process_initNewQuads(void)
 						float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
 						if (itQuadTree->second->statusUninitialized())
 							itQuadTree->second->init(x, y, z, yaw, pitch, roll, false, 0.0f);
-						else
+						else	// itQuadTree->second->statusRefreshTerrainDataNeeded()
 							itQuadTree->second->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
 						exitForNow = true;
 						break;
 					}
+				}
+
+				if (itQuadTree->second->loadTerrainDataFromCacheNeeded())
+				{
+					itQuadTree->second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
+					std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, itQuadTree->second->getQuadrant());
+					m_tpClientWorker.QueueJob(f);
 				}
 			}
 
@@ -5720,6 +5732,7 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	int numVisibleQuadrant = 0;
 	int numEmptyQuadrant = 0;
 	int numFlushedQuadrant = 0;
+	int numWithColliderQuadrant = 0;
 	int numinitializedVisibleQuadrant = 0;
 	int numQuadrantNeedResetMaterialParams = 0;
 	m_mapNumActiveChunksPerLod.clear();
@@ -5748,8 +5761,11 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 		if (itQuadTree.second->getQuadrant()->empty())
 			numEmptyQuadrant++;
 
-		if (itQuadTree.second->getQuadrant()->getFloat16HeightsBuffer(false).size() == 0 || itQuadTree.second->getQuadrant()->getFloat32HeightsBuffer(false).size() == 0)
+		if (itQuadTree.second->getQuadrant()->isFlushed())
 			numFlushedQuadrant++;
+		
+		if (itQuadTree.second->getQuadrant()->getCollider() != nullptr && itQuadTree.second->getQuadrant()->getCollider()->hasData())
+			numWithColliderQuadrant++;
 		
 		for (auto& item : mapNumActiveChunksPerLod)
 		{
@@ -5769,6 +5785,7 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	m_numVisibleQuadrant = numVisibleQuadrant;
 	m_numEmptyQuadrant = numEmptyQuadrant;
 	m_numFlushedQuadrant = numFlushedQuadrant;
+	m_numWithColliderQuadrant = numWithColliderQuadrant;
 	m_numinitializedVisibleQuadrant = numinitializedVisibleQuadrant;
 	m_numQuadrantNeedResetMaterialParam = numQuadrantNeedResetMaterialParams;
 }
@@ -5824,6 +5841,10 @@ int GDN_TheWorld_Viewer::getNumFlushedQuadrant(void)
 	return m_numFlushedQuadrant;
 }
 
+int GDN_TheWorld_Viewer::getNumWithColliderQuadrant(void)
+{
+	return m_numWithColliderQuadrant;
+}
 int GDN_TheWorld_Viewer::getNuminitializedVisibleQuadrant(void)
 {
 	return m_numinitializedVisibleQuadrant;

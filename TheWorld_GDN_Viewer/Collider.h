@@ -26,6 +26,13 @@ namespace godot
 		void onCameraTransformChanged(void);
 		void setTransform(Transform3D t);
 		Transform3D getTransform(void);
+		bool hasData(void)
+		{
+			if (m_initialized && m_hasData)
+				return true;
+			else
+				return false;
+		}
 
 	private:
 		inline float getColliderAltitude(void);
@@ -33,7 +40,7 @@ namespace godot
 	private:
 		bool m_initialized;
 		bool m_enteredWorld = false;
-		bool m_dataSet;
+		bool m_hasData = false;
 		QuadTree* m_quadTree;
 		RID m_shapeRID;
 		RID m_bodyRID;

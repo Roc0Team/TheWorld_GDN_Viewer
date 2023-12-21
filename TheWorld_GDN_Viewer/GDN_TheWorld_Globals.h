@@ -28,7 +28,9 @@
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER								6	// 3
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER								2	// 1
 #define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES									true
-#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOT_INVISIBLE_QUADRANTS					true
+#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS					true
+#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS						true
+#define THEWORLD_DEFAULT_COLLISION_DATA_FOR_LOWRES_QUADRANTS					true
 #define THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS								false
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP								200000.0f
 #define THEWORLD_DEFAULT_REFRESH_QUADRANTS_FACTOR								1.0f
@@ -557,6 +559,16 @@ namespace godot
 			return m_paramCacheHeightsForInvisibleQuadrants;
 		}
 		void setParamCacheHeightsForInvisibleQuadrants(bool b);
+		bool getParamCacheHeightsForLowResQuadrants(void)
+		{
+			return m_paramCacheHeightsForLowResQuadrants;
+		}
+		void setParamCacheHeightsForLowResQuadrants(bool b);
+		bool getParamCollisionDataForLowResQuadrants(void)
+		{
+			return m_paramCollisionDataForLowResQuadrants;
+		}
+		void setParamCollisionDataForLowResQuadrants(bool b);
 		bool getParamDisableTerrainCollisions(void)
 		{
 			return m_paramDisableTerrainCollisions;
@@ -653,7 +665,9 @@ namespace godot
 
 		// Node parameters
 		bool m_paramCacheTerrainTextures = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES;
-		bool m_paramCacheHeightsForInvisibleQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOT_INVISIBLE_QUADRANTS;
+		bool m_paramCacheHeightsForInvisibleQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS;
+		bool m_paramCacheHeightsForLowResQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS;
+		bool m_paramCollisionDataForLowResQuadrants = THEWORLD_DEFAULT_COLLISION_DATA_FOR_LOWRES_QUADRANTS;
 		bool m_paramDisableTerrainCollisions = THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS;
 		float m_paramRefreshQuadrantsFactor = THEWORLD_DEFAULT_REFRESH_QUADRANTS_FACTOR;		// 1 ==> very low rate of refresh, the higher the more frequent the refresh is
 		float m_paramRefreshChunksFactor = THEWORLD_DEFAULT_REFRESH_CHUNKS_FACTOR;		// 1 ==> very low rate of refresh, the higher the more frequent the refresh is

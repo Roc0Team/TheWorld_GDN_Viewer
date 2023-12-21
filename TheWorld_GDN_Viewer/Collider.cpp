@@ -19,7 +19,6 @@ namespace godot
 	Collider::Collider(QuadTree* quadTree)
 	{
 		m_initialized = false;
-		m_dataSet = false;
 		m_quadTree = quadTree;
 		m_shapeRID = RID();
 		m_bodyRID = RID();
@@ -68,6 +67,7 @@ namespace godot
 		// This makes collision hits report the provided object as `collider`
 		ps->body_attach_object_instance_id(m_bodyRID, attachedNode->get_instance_id());
 			
+		m_hasData = false;
 		m_initialized = true;
 	}
 
@@ -87,7 +87,7 @@ namespace godot
 			if (m_shapeRID != RID())
 				ps->free_rid(m_shapeRID);
 
-			m_dataSet = false;
+			m_hasData = false;
 			m_initialized = false;
 		}
 	}
@@ -171,6 +171,8 @@ namespace godot
 		{
 			updateTransform();
 		}
+
+		m_hasData = true;
 	}
 	
 	void Collider::onGlobalTransformChanged(void)

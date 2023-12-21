@@ -440,18 +440,25 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 				quad->getChunk()->setDistanceFromCamera(distance);
 				if (distance < m_splitDistance)
 				{
-					// Split
-					quad->split();
-					for (int i = 0; i < 4; i++)
+					if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunks())
 					{
-						quad->getChild(i)->setCameraPos(cameraPosGlobalCoord);
-						if (trackChunk)
-							quad->getChild(i)->getChunk()->checkMouseHit();
-						quad->getChild(i)->getChunk()->setDistanceFromCamera(distance);
+						setStatus(QuadrantStatus::refreshTerrainDataNeeded);
 					}
-					quad->setJustSplitted(true);
-					splitted = true;
-					m_numSplits++;
+					else if (status() == QuadrantStatus::initialized)
+					{
+						// Split
+						quad->split();
+						for (int i = 0; i < 4; i++)
+						{
+							quad->getChild(i)->setCameraPos(cameraPosGlobalCoord);
+							if (trackChunk)
+								quad->getChild(i)->getChunk()->checkMouseHit();
+							quad->getChild(i)->getChunk()->setDistanceFromCamera(distance);
+						}
+						quad->setJustSplitted(true);
+						splitted = true;
+						m_numSplits++;
+					}
 				}
 			}
 
@@ -608,18 +615,25 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 
 			if (quad->splitRequired() && quad->Lod() > 0)
 			{
-				// Split
-				quad->split();
-				for (int i = 0; i < 4; i++)
+				if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunks())
 				{
-					quad->getChild(i)->setCameraPos(cameraPosGlobalCoord);
-					if (trackChunk)
-						quad->getChild(i)->getChunk()->checkMouseHit();
-					quad->getChild(i)->getChunk()->setDistanceFromCamera(0);
+					setStatus(QuadrantStatus::refreshTerrainDataNeeded);
 				}
-				quad->setJustSplitted(true);
-				splitted = true;
-				m_numSplits++;
+				else if (status() == QuadrantStatus::initialized)
+				{
+					// Split
+					quad->split();
+					for (int i = 0; i < 4; i++)
+					{
+						quad->getChild(i)->setCameraPos(cameraPosGlobalCoord);
+						if (trackChunk)
+							quad->getChild(i)->getChunk()->checkMouseHit();
+						quad->getChild(i)->getChunk()->setDistanceFromCamera(0);
+					}
+					quad->setJustSplitted(true);
+					splitted = true;
+					m_numSplits++;
+				}
 			}
 
 			if (!splitted && trackChunk)
@@ -995,7 +1009,6 @@ bool QuadTree::resetMaterialParams(bool force)
 	}
 	else if (materialParamsNeedReset() && !getQuadrant()->internalDataLocked())
 	{
-		//if (status() == QuadrantStatus::getTerrainDataInProgress || status() == QuadrantStatus::uninitialized || status() == QuadrantStatus::initializationStopped)
 		if (status() != QuadrantStatus::initialized)
 		{
 		}
@@ -1028,40 +1041,62 @@ void QuadTree::updateCollider(void)
 	if (getQuadrant()->internalDataLocked())
 		return;
 
-	if (colliderNeedUpdate())
+	if (getQuadrant()->internalDataLockedUntilCompleteProcessExecution())
+		return;
+	
+	Collider* collider = m_worldQuadrant->getCollider();
+	
+	if (collider == nullptr)
+		return;
+
+	if (colliderNeedReset())
 	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4 ") + __FUNCTION__, "Quadrant updateCollider");
+		collider->exitWorld();
+		collider->deinit();
+		colliderNeedReset(false);
+	}
 
-		QuadrantPos pos = getQuadrant()->getPos();
-		bool colliderCanHaveCollisionInfo = false;
-		int64_t depthForCollider = m_viewer->Globals()->getParamDepthQuadWithCollisionInfo();
-		if (depthForCollider == 0 || getQuadrant()->getLastDistanceInPerimeterFromCameraQuadrant() <= (size_t)depthForCollider)
-			colliderCanHaveCollisionInfo = true;
+	bool colliderCanHaveCollisionInfo = getQuadrant()->canHaveCollisionInfo();
 
-		if (colliderCanHaveCollisionInfo)
+	if (colliderCanHaveCollisionInfo)
+	{
+		if (!collider->hasData())
 		{
-			m_worldQuadrant->getCollider()->exitWorld();
-			m_worldQuadrant->getCollider()->deinit();
-			m_worldQuadrant->getCollider()->init(m_GDN_Quadrant, 1, 1);
-			m_worldQuadrant->getCollider()->enterWorld();
+			if (status() == QuadrantStatus::initialized && getQuadrant()->isFlushed())
 			{
-				//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1 ") + __FUNCTION__, "QuadTree set data for collider");
-				m_worldQuadrant->getCollider()->setData();
+				setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 			}
+			else if (status() == QuadrantStatus::initialized)
+			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4 ") + __FUNCTION__, "Quadrant updateCollider");
 
-			colliderNeedUpdate(false);
+				collider->init(m_GDN_Quadrant, 1, 1);
+				collider->enterWorld();
+				{
+					//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1 ") + __FUNCTION__, "QuadTree set data for collider");
+					collider->setData();
+				}
+			}
+		}
+	}
+	else
+	{
+		if (collider->hasData() && m_viewer->Globals()->status() == TheWorldStatus::worldDeployed)
+		{
+			collider->exitWorld();
+			collider->deinit();
 		}
 	}
 }
 
-bool QuadTree::colliderNeedUpdate(void)
+bool QuadTree::colliderNeedReset(void)
 {
-	return m_colliderNeedUpdate;
+	return m_colliderNeedReset;
 }
 
-void QuadTree::colliderNeedUpdate(bool b)
+void QuadTree::colliderNeedReset(bool b)
 {
-	m_colliderNeedUpdate = b;
+	m_colliderNeedReset = b;
 }
 
 bool QuadTree::updateMaterialParams(void)
@@ -1912,6 +1947,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
 				m_viewer->getMainProcessingMutex().unlock();
 				m_heightmapImage = im;
+				m_ResizedHeightmapImageMap.clear();
 			}
 		}
 		
@@ -1943,6 +1979,26 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 
 					im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
 
+					{
+						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
+
+						int32_t newStep = 1 << optimizationLevel;
+						int32_t realImageWidth = m_heightmapImage->get_width();
+						int32_t realImageHeight = m_heightmapImage->get_height();
+						int32_t resizedImageWidth = im->get_width();
+						int32_t resizedImageHeight = im->get_height();
+						for (int32_t x = 0; x < resizedImageWidth; x++)
+						{
+							im->set_pixel(x, 0, m_heightmapImage->get_pixel(x * newStep, 0));
+							im->set_pixel(x, resizedImageHeight - 1, m_heightmapImage->get_pixel(x * newStep, realImageHeight - 1));
+						}
+						for (int32_t y = 0; y < resizedImageHeight; y++)
+						{
+							im->set_pixel(0, y, m_heightmapImage->get_pixel(0, y * newStep));
+							im->set_pixel(resizedImageWidth - 1, y, m_heightmapImage->get_pixel(realImageWidth - 1, y * newStep));
+						}
+					}
+					
 					//outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".heightmap." + std::to_string(newResolution) + ".png";		// DEBUG
 					//image->save_png(outFileName.c_str());		
 
@@ -1993,8 +2049,10 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				m_viewer->getMainProcessingMutex().lock();
 				godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGB8);
 				m_viewer->getMainProcessingMutex().unlock();
-				im->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed noromal vertical pointing up
+				im->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
 				m_normalmapImage = im;
+				m_ResizedNormalmapImageMap.clear();
+
 			}
 			else
 			{
@@ -2011,6 +2069,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
 				m_viewer->getMainProcessingMutex().unlock();
 				m_normalmapImage = im;
+				m_ResizedNormalmapImageMap.clear();
 
 				//{
 				//	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
@@ -2047,6 +2106,26 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 					m_viewer->getMainProcessingMutex().unlock();
 
 					im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
+
+					{
+						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
+
+						int32_t newStep = 1 << optimizationLevel;
+						int32_t realImageWidth = m_normalmapImage->get_width();
+						int32_t realImageHeight = m_normalmapImage->get_height();
+						int32_t resizedImageWidth = im->get_width();
+						int32_t resizedImageHeight = im->get_height();
+						for (int32_t x = 0; x < resizedImageWidth; x++)
+						{
+							im->set_pixel(x, 0, m_normalmapImage->get_pixel(x * newStep, 0));
+							im->set_pixel(x, resizedImageHeight - 1, m_normalmapImage->get_pixel(x * newStep, realImageHeight - 1));
+						}
+						for (int32_t y = 0; y < resizedImageHeight; y++)
+						{
+							im->set_pixel(0, y, m_normalmapImage->get_pixel(0, y * newStep));
+							im->set_pixel(resizedImageWidth - 1, y, m_normalmapImage->get_pixel(realImageWidth - 1, y * newStep));
+						}
+					}
 
 					if (m_viewer->Globals()->getParamCacheTerrainTextures())
 						m_ResizedNormalmapImageMap[newResolution] = im;
@@ -2097,6 +2176,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				m_viewer->getMainProcessingMutex().unlock();
 				im->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
 				m_splatmapImage = im;
+				m_ResizedSplatmapImageMap.clear();
 			}
 			else
 			{
@@ -2113,6 +2193,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
 				m_viewer->getMainProcessingMutex().unlock();
 				m_splatmapImage = im;
+				m_ResizedSplatmapImageMap.clear();
 			}
 		}
 
@@ -2139,6 +2220,26 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 					m_viewer->getMainProcessingMutex().unlock();
 
 					im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
+
+					{
+						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
+
+						int32_t newStep = 1 << optimizationLevel;
+						int32_t realImageWidth = m_splatmapImage->get_width();
+						int32_t realImageHeight = m_splatmapImage->get_height();
+						int32_t resizedImageWidth = im->get_width();
+						int32_t resizedImageHeight = im->get_height();
+						for (int32_t x = 0; x < resizedImageWidth; x++)
+						{
+							im->set_pixel(x, 0, m_splatmapImage->get_pixel(x * newStep, 0));
+							im->set_pixel(x, resizedImageHeight - 1, m_splatmapImage->get_pixel(x * newStep, realImageHeight - 1));
+						}
+						for (int32_t y = 0; y < resizedImageHeight; y++)
+						{
+							im->set_pixel(0, y, m_splatmapImage->get_pixel(0, y * newStep));
+							im->set_pixel(resizedImageWidth - 1, y, m_splatmapImage->get_pixel(realImageWidth - 1, y * newStep));
+						}
+					}
 
 					if (m_viewer->Globals()->getParamCacheTerrainTextures())
 						m_ResizedSplatmapImageMap[newResolution] = im;
@@ -2188,6 +2289,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				//m_viewer->getMainProcessingMutex().unlock();
 				//image = im;
 				//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+				//m_ResizedGlobalmapImageMap.clear();
 			}
 			else
 			{
@@ -2204,6 +2306,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
 				m_viewer->getMainProcessingMutex().unlock();
 				m_globalmapImage = im;
+				m_ResizedGlobalmapImageMap.clear();
 			}
 		}
 
@@ -2233,6 +2336,26 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 					//im->save_png(outFileName.c_str());																									// DEBUG
 
 					im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
+
+					{
+						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
+
+						int32_t newStep = 1 << optimizationLevel;
+						int32_t realImageWidth = m_globalmapImage->get_width();
+						int32_t realImageHeight = m_globalmapImage->get_height();
+						int32_t resizedImageWidth = im->get_width();
+						int32_t resizedImageHeight = im->get_height();
+						for (int32_t x = 0; x < resizedImageWidth; x++)
+						{
+							im->set_pixel(x, 0, m_globalmapImage->get_pixel(x * newStep, 0));
+							im->set_pixel(x, resizedImageHeight - 1, m_globalmapImage->get_pixel(x * newStep, realImageHeight - 1));
+						}
+						for (int32_t y = 0; y < resizedImageHeight; y++)
+						{
+							im->set_pixel(0, y, m_globalmapImage->get_pixel(0, y * newStep));
+							im->set_pixel(resizedImageWidth - 1, y, m_globalmapImage->get_pixel(realImageWidth - 1, y * newStep));
+						}
+					}
 
 					//outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".globalmap." + std::to_string(newResolution) + ".png";				// DEBUG
 					//im->save_png(outFileName.c_str());																									// DEBUG
@@ -2286,6 +2409,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				//m_viewer->getMainProcessingMutex().unlock();
 				//image = im;
 				//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+				//m_ResizedColormapImageMap.clear();
 			}
 			else
 			{
@@ -2302,6 +2426,7 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 				godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
 				m_viewer->getMainProcessingMutex().unlock();
 				m_colormapImage = im;
+				m_ResizedColormapImageMap.clear();
 			}
 		}
 
@@ -2311,10 +2436,10 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 
 			if (optimizationLevel > 0)
 			{
-				if (m_ResizedNormalmapImageMap.contains(newResolution))
+				if (m_ResizedColormapImageMap.contains(newResolution))
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-					image = m_ResizedNormalmapImageMap[newResolution];
+					image = m_ResizedColormapImageMap[newResolution];
 				}
 				else
 				{
@@ -2329,8 +2454,28 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 
 					im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
 
+					{
+						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
+
+						int32_t newStep = 1 << optimizationLevel;
+						int32_t realImageWidth = m_colormapImage->get_width();
+						int32_t realImageHeight = m_colormapImage->get_height();
+						int32_t resizedImageWidth = im->get_width();
+						int32_t resizedImageHeight = im->get_height();
+						for (int32_t x = 0; x < resizedImageWidth; x++)
+						{
+							im->set_pixel(x, 0, m_colormapImage->get_pixel(x * newStep, 0));
+							im->set_pixel(x, resizedImageHeight - 1, m_colormapImage->get_pixel(x * newStep, realImageHeight - 1));
+						}
+						for (int32_t y = 0; y < resizedImageHeight; y++)
+						{
+							im->set_pixel(0, y, m_colormapImage->get_pixel(0, y * newStep));
+							im->set_pixel(resizedImageWidth - 1, y, m_colormapImage->get_pixel(realImageWidth - 1, y * newStep));
+						}
+					}
+
 					if (m_viewer->Globals()->getParamCacheTerrainTextures())
-						m_ResizedNormalmapImageMap[newResolution] = im;
+						m_ResizedColormapImageMap[newResolution] = im;
 					image = im;
 
 					TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2800,13 +2945,54 @@ Quadrant::~Quadrant()
 	//godot::GDN_TheWorld_Globals::s_elapsed1 += clock.duration().count();
 }
 
+bool Quadrant::isFlushed(void)
+{
+	if (getFloat16HeightsBuffer(false).size() == 0 || getFloat32HeightsBuffer(false).size() == 0)
+		return true;
+	else
+		return false;
+}
+
+bool Quadrant::hasHeigthsForChunks(void)
+{
+	if (getFloat16HeightsBuffer(false).size() == 0)
+		return false;
+	else
+		return true;
+}
+
+void Quadrant::lockInternalDataUntilCompleteProcessExecution(bool b)
+{
+	m_lockInternalDataUntilCompleteProcessExecution = b;
+}
+
+bool Quadrant::internalDataLockedUntilCompleteProcessExecution(void)
+{
+	return m_lockInternalDataUntilCompleteProcessExecution;
+}
+
+enum class Quadrant::ResolutionLevel Quadrant::getResolutionLevel(void)
+{
+	Quad* root = m_quadTree->getRoot();
+	if (root == nullptr)
+		return ResolutionLevel::not_set;
+
+	if (root->isLeaf())
+		return ResolutionLevel::low;
+	else
+		return ResolutionLevel::high;
+}
+
 void Quadrant::releaseTerrainValuesMemory(bool visible)
 {
-	if (!m_quadTree->isValid() || internalDataLocked() || needUploadToServer() || needSaveToCache())
+	if (!m_quadTree->isValid() || internalDataLocked() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
 		return;
 
 	//return;
 
+	if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getResolutionLevel() == ResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
+		m_float16HeigthsBuffer.clear();
+	
 	if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
 		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
 										// if m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants() we keep also for invisible quadrant to avoid reload from disk when quadrant become visible (reason is we want it happen during load of invisible quadrants)
@@ -3046,6 +3232,100 @@ void Quadrant::optimizationLevelChanged(bool b)
 		m_quadTree->materialParamsNeedReset(true);
 		m_viewer->incNumOptimizationLevelChange();
 	}
+}
+
+void Quadrant::loadTerrainDataFromCache(void)
+{
+	TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1 ") + __FUNCTION__, "SetColliderHeights");
+
+	if (empty())
+		return;
+	
+	while (lockInternalData() == false)
+		Sleep(1);
+
+	m_quadTree->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
+
+	float minAltitude, maxAltitude;
+	TheWorld_Utils::MemoryBuffer terrainEditValues;
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.1 ") + __FUNCTION__, "m_cache.refreshMapsFromDisk");
+		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValues, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
+		//if (terrainEditValues.size() > 0)
+		//	getTerrainEdit()->deserialize(terrainEditValues);
+		if (empty)
+			setEmpty(true);
+	}
+
+	setHeightsUpdated(true);
+
+	if (m_normalsBuffer.size() > 0)
+		setNormalsUpdated(true);
+
+	if (m_splatmapBuffer.size() > 0)
+		setSplatmapUpdated(true);
+
+	if (m_colormapBuffer.size() > 0)
+		setColorsUpdated(true);
+
+	if (m_globalmapBuffer.size() > 0)
+		setGlobalmapUpdated(true);
+
+	//int areaSize = (m_viewer->Globals()->heightmapResolution() + 1) * (m_viewer->Globals()->heightmapResolution() + 1);
+
+	////BYTE shortBuffer[256 + 1];
+	//size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
+	////TheWorld_Utils::serializeToByteStream<uint16_t>(0, shortBuffer, uint16_t_size);
+	//size_t float_size = sizeof(float);	// the size of a float
+	////TheWorld_Utils::serializeToByteStream<float>(0, shortBuffer, float_size);
+
+	//size_t numFloat16Heights = m_float16HeigthsBuffer.size() / uint16_t_size;
+	size_t numFloat32Heights = m_float32HeigthsBuffer.size() / sizeof(float);
+	//size_t numNormals = m_normalsBuffer.size() / sizeof(struct TheWorld_Utils::_RGB);
+	//size_t numSplatmapVertices = m_splatmapBuffer.size() / sizeof(struct TheWorld_Utils::_RGBA);
+	//size_t numColorVertices = m_colormapBuffer.size() / sizeof(struct TheWorld_Utils::_RGBA);
+	//size_t numGlobalmapVertices = m_globalmapBuffer.size() / sizeof(struct TheWorld_Utils::_RGB);
+
+	//assert(numFloat16Heights == numFloat32Heights);
+	//assert(numNormals == 0 || numFloat16Heights == numNormals);
+	//assert(numSplatmapVertices == 0 || numFloat16Heights == numSplatmapVertices);
+	//assert(numColorVertices == 0 || numFloat16Heights == numColorVertices);
+	//assert(numGlobalmapVertices == 0 || numFloat16Heights == numGlobalmapVertices);
+	//assert(numFloat16Heights == areaSize);
+	//if (numFloat16Heights != numFloat32Heights || (numNormals > 0 && numFloat16Heights != numNormals) || (numSplatmapVertices > 0 && numFloat16Heights != numSplatmapVertices) || (numColorVertices > 0 && numFloat16Heights != numColorVertices) || (numGlobalmapVertices > 0 && numFloat16Heights != numGlobalmapVertices) || numFloat16Heights != areaSize)
+	//	throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Grid Vertices not of the correct size").c_str()));
+
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.2 ") + __FUNCTION__, "SetColliderHeights");
+
+		m_heightsForCollider.resize((int)numFloat32Heights);
+		memcpy((char*)m_heightsForCollider.ptrw(), m_float32HeigthsBuffer.ptr(), m_float32HeigthsBuffer.size());
+	}
+
+	//Vector3 startPosition(m_quadrantPos.getLowerXGridVertex(), minAltitude, m_quadrantPos.getLowerZGridVertex());
+	//Vector3 endPosition(startPosition.x + m_quadrantPos.getSizeInWU(), maxAltitude, startPosition.z + m_quadrantPos.getSizeInWU());
+	//Vector3 size = endPosition - startPosition;
+
+	//m_globalCoordAABB.set_position(startPosition);
+	//m_globalCoordAABB.set_size(size);
+
+	m_quadTree->setStatus(QuadrantStatus::initialized);
+
+	unlockInternalData();
+}
+
+bool Quadrant::canHaveCollisionInfo(void)
+{
+	bool colliderCanHaveCollisionInfo = true;
+	
+	int64_t depthForCollider = m_viewer->Globals()->getParamDepthQuadWithCollisionInfo();
+	if (depthForCollider != 0 && getLastDistanceInPerimeterFromCameraQuadrant() > (size_t)depthForCollider)
+		colliderCanHaveCollisionInfo = false;
+	
+	if (getResolutionLevel() == Quadrant::ResolutionLevel::low && !m_viewer->Globals()->getParamCollisionDataForLowResQuadrants())
+		colliderCanHaveCollisionInfo = false;
+	
+	return colliderCanHaveCollisionInfo;
 }
 
 godot::Vector3 Quadrant::getNormalFromNormalmap(size_t index, bool& ok)

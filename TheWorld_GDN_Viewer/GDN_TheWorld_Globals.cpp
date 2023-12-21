@@ -359,6 +359,10 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_cache_terrain_textures"), &GDN_TheWorld_Globals::getParamCacheTerrainTextures);
 		ClassDB::bind_method(D_METHOD("set_perfparam_cache_heights_invisible_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCacheHeightsForInvisibleQuadrants);
 		ClassDB::bind_method(D_METHOD("get_perfparam_cache_heights_invisible_quadrants"), &GDN_TheWorld_Globals::getParamCacheHeightsForInvisibleQuadrants);
+		ClassDB::bind_method(D_METHOD("set_perfparam_cache_heights_lowres_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCacheHeightsForLowResQuadrants);
+		ClassDB::bind_method(D_METHOD("get_perfparam_cache_heights_lowres_quadrants"), &GDN_TheWorld_Globals::getParamCacheHeightsForLowResQuadrants);
+		ClassDB::bind_method(D_METHOD("set_perfparam_collision_data_lowres_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCollisionDataForLowResQuadrants);
+		ClassDB::bind_method(D_METHOD("get_perfparam_collision_data_lowres_quadrants"), &GDN_TheWorld_Globals::getParamCollisionDataForLowResQuadrants);
 		ClassDB::bind_method(D_METHOD("set_perfparam_depth_quad_with_collision_info"), &GDN_TheWorld_Globals::setParamDepthQuadWithCollisionInfo);
 		ClassDB::bind_method(D_METHOD("get_perfparam_depth_quad_with_collision_info"), &GDN_TheWorld_Globals::getParamDepthQuadWithCollisionInfo);
 		ClassDB::bind_method(D_METHOD("set_perfparam_disable_terrain_collisions", "p_value"), &GDN_TheWorld_Globals::setParamDisableTerrainCollisions);
@@ -381,6 +385,8 @@ namespace godot
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "Performance", "perfparam_");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures"), "set_perfparam_cache_terrain_textures", "get_perfparam_cache_terrain_textures");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_lowres_quadrants"), "set_perfparam_cache_heights_lowres_quadrants", "get_perfparam_cache_heights_lowres_quadrants");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_collision_data_lowres_quadrants"), "set_perfparam_collision_data_lowres_quadrants", "get_perfparam_collision_data_lowres_quadrants");
 		// WARNING: 0 mean that all quadrants have collider data set consuming a lot of memory in the engine, but setting this value permit less memory usage but more time to read data from disk to set data
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_depth_quad_with_collision"), "set_perfparam_depth_quad_with_collision_info", "get_perfparam_depth_quad_with_collision_info");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_disable_terrain_collisions"), "set_perfparam_disable_terrain_collisions", "get_perfparam_disable_terrain_collisions");
@@ -704,6 +710,22 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamCacheHeightsForLowResQuadrants(bool b)
+	{
+		m_paramCacheHeightsForLowResQuadrants = b;
+		GDN_TheWorld_Viewer* viewer = Viewer();
+		if (viewer != nullptr)
+			viewer->resetMaterialParamsForEveryQuadrant();
+	}
+
+	void GDN_TheWorld_Globals::setParamCollisionDataForLowResQuadrants(bool b)
+	{
+		m_paramCollisionDataForLowResQuadrants = b;
+		//GDN_TheWorld_Viewer* viewer = Viewer();
+		//if (viewer != nullptr)
+		//	viewer->resetMaterialParamsForEveryQuadrant();
 	}
 
 	void GDN_TheWorld_Globals::setParamDisableTerrainCollisions(bool b)

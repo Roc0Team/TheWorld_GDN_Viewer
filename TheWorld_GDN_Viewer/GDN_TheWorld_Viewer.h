@@ -182,7 +182,7 @@ namespace godot
 	// Chunk and QuadTree coordinates are in Viewer Node local coordinate System
 	// X growing on East direction
 	// Z growing on South direction
-	class GDN_TheWorld_Viewer : public godot::Node3D, public TheWorld_ClientServer::ClientCallback
+	class GDN_TheWorld_Viewer : public godot::Node3D, public TheWorld_ClientServer::ClientCallback, public TheWorld_Utils::ThreadInitDeinit
 	{
 		GDCLASS(GDN_TheWorld_Viewer, Node3D)
 
@@ -230,6 +230,9 @@ namespace godot
 		{
 			return m_quitting;
 		}
+		
+		virtual void threadInit(void) {}
+		virtual void threadDeinit(void) {}
 
 		void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply);
 
@@ -401,6 +404,7 @@ namespace godot
 		int getNumNeedShaderResetQuadrant(void);
 		int getNumEmptyQuadrant(void);
 		int getNumFlushedQuadrant(void);
+		int getNumWithColliderQuadrant(void);
 		void refreshQuadTreeStatistics(void);
 		void resetMaterialParamsForEveryQuadrant(void);
 		void updateMaterialParamsForEveryQuadrant(void);
@@ -726,7 +730,7 @@ namespace godot
 		void printKeyboardMapping(void);
 		void streamer(void);
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
-		void process_mapModder(double _delta);
+		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
 		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord);
 		void process_initNewQuads(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
@@ -793,6 +797,7 @@ namespace godot
 		int m_numVisibleQuadrant;
 		int m_numEmptyQuadrant;
 		int m_numFlushedQuadrant;
+		int m_numWithColliderQuadrant = 0;
 		int m_numinitializedVisibleQuadrant;
 		int m_numQuadrantNeedResetMaterialParam = 0;
 		TheWorld_Utils::TimerMs m_streamingTime;
@@ -907,6 +912,8 @@ namespace godot
 		godot::Vector3 m_lastProcessedCameraPosForQuadrants;
 		int64_t m_timeElapsedFromLastProcessCameraPosForQuadrants = 0;
 		godot::Vector3 m_lastProcessedCameraPosForChunks;
+
+		TheWorld_Utils::ThreadPool m_tpClientWorker;
 	};
 }
 

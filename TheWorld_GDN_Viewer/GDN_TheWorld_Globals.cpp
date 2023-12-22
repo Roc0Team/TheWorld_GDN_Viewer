@@ -355,6 +355,8 @@ namespace godot
 
 		
 		// perfparam_
+		ClassDB::bind_method(D_METHOD("set_perfparam_profiler_active"), &GDN_TheWorld_Globals::setParamProfilerActive);
+		ClassDB::bind_method(D_METHOD("get_perfparam_profiler_active"), &GDN_TheWorld_Globals::getParamProfilerActive);
 		ClassDB::bind_method(D_METHOD("set_perfparam_cache_terrain_textures", "p_value"), &GDN_TheWorld_Globals::setParamCacheTerrainTextures);
 		ClassDB::bind_method(D_METHOD("get_perfparam_cache_terrain_textures"), &GDN_TheWorld_Globals::getParamCacheTerrainTextures);
 		ClassDB::bind_method(D_METHOD("set_perfparam_cache_heights_invisible_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCacheHeightsForInvisibleQuadrants);
@@ -383,6 +385,7 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_texture_optimization_resolution_increment"), &GDN_TheWorld_Globals::getParamTextureOptimizationResolutionIncrement);
 
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "Performance", "perfparam_");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_profiler_active"), "set_perfparam_profiler_active", "get_perfparam_profiler_active");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures"), "set_perfparam_cache_terrain_textures", "get_perfparam_cache_terrain_textures");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_lowres_quadrants"), "set_perfparam_cache_heights_lowres_quadrants", "get_perfparam_cache_heights_lowres_quadrants");
@@ -394,10 +397,10 @@ namespace godot
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_threshold", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY), "", "get_perfparam_refresh_quadrants_threshold");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunks_factor", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_perfparam_refresh_chunks_factor", "get_perfparam_refresh_chunks_factor");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunk_lod_threshold", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY), "", "get_perfparam_refresh_chunk_lod_threshold");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_globalmap"), "set_perfparam_threshold_for_globalmap", "get_perfparam_threshold_for_globalmap");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_for_map_texture_optimization"), "set_perfparam_threshold_for_map_texture_optimization", "get_perfparam_threshold_for_map_texture_optimization");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_texture_optimization_increment_factor"), "set_perfparam_threshold_texture_optimization_increment_factor", "get_perfparam_threshold_texture_optimization_increment_factor");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_texture_optimization_resolution_increment"), "set_perfparam_texture_optimization_resolution_increment", "get_perfparam_texture_optimization_resolution_increment");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_globalmap"), "set_perfparam_threshold_for_globalmap", "get_perfparam_threshold_for_globalmap");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_tex_opt"), "set_perfparam_threshold_for_map_texture_optimization", "get_perfparam_threshold_for_map_texture_optimization");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_tex_opt_increment_factor"), "set_perfparam_threshold_texture_optimization_increment_factor", "get_perfparam_threshold_texture_optimization_increment_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_tex_opt_resolution_increment"), "set_perfparam_texture_optimization_resolution_increment", "get_perfparam_texture_optimization_resolution_increment");
 
 		ADD_SIGNAL(MethodInfo("tw_status_changed", PropertyInfo(Variant::INT, "old_value"), PropertyInfo(Variant::INT, "new_value")));
 	}
@@ -694,6 +697,14 @@ namespace godot
 		}
 
 		return m_viewer;
+	}
+
+	void GDN_TheWorld_Globals::setParamProfilerActive(bool b)
+	{
+		if (b)
+			TheWorld_Utils::Profiler::activate();
+		else
+			TheWorld_Utils::Profiler::deactivate();
 	}
 
 	void GDN_TheWorld_Globals::setParamCacheTerrainTextures(bool b)

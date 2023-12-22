@@ -190,7 +190,7 @@ void QuadTree::refreshTerrainData(float cameraX, float cameraY, float cameraZ, f
 	if (!(statusInitialized() || statusRefreshTerrainDataNeeded()))
 		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Quadrant status not comply: " + std::to_string((int)status())).c_str()));
 
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrant);
+	//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrant);
 
 	setStatus(QuadrantStatus::refreshTerrainDataInProgress);
 
@@ -205,7 +205,7 @@ void QuadTree::init(float cameraX, float cameraY, float cameraZ, float cameraYaw
 	if (status() != QuadrantStatus::uninitialized)
 		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Quadrant status not comply: " + std::to_string((int)status())).c_str()));
 
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrant);
+	//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrant);
 
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Inside Mutex");
@@ -975,17 +975,21 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 //#define THRESHOLD_INCREMENT_FACTOR				2
 
 	size_t optimizationLevel = 0;	// 0 ==> no optimization
-	float thresHoldForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
-	if (distanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT)
+	
+	if (getQuadrant()->getResolutionLevel() == Quadrant::ResolutionLevel::low)
 	{
-		optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
-		size_t maxOptimizationLevel = m_viewer->Globals()->heightmapResolutionShift() - MIN_RESOLUTION_SHIFT;
-		float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamThresholdTextureOptimizationIncrementFactor();
-		thresHoldForTextureOptimization += increment;
-		while (thresHoldForTextureOptimization < distanceFromCamera && optimizationLevel < maxOptimizationLevel)
+		float thresHoldForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
+		if (distanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT)
 		{
-			thresHoldForTextureOptimization += increment;
 			optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+			size_t maxOptimizationLevel = m_viewer->Globals()->heightmapResolutionShift() - MIN_RESOLUTION_SHIFT;
+			float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamThresholdTextureOptimizationIncrementFactor();
+			thresHoldForTextureOptimization += increment;
+			while (thresHoldForTextureOptimization < distanceFromCamera && optimizationLevel < maxOptimizationLevel)
+			{
+				thresHoldForTextureOptimization += increment;
+				optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+			}
 		}
 	}
 
@@ -1000,14 +1004,15 @@ bool QuadTree::resetMaterialParams(bool force)
 	if (force)
 	{
 		materialParamsNeedReset(true);
-		if (!getQuadrant()->internalDataLocked())
-		{
-			getQuadrant()->getShaderTerrainData()->resetMaterialParams(m_lookDev);
-			materialParamsNeedReset(false);
-			reset = true;
-		}
+		//if (!getQuadrant()->internalDataLocked())
+		//{
+		//	getQuadrant()->getShaderTerrainData()->resetMaterialParams(m_lookDev);
+		//	materialParamsNeedReset(false);
+		//	reset = true;
+		//}
 	}
-	else if (materialParamsNeedReset() && !getQuadrant()->internalDataLocked())
+	
+	if (materialParamsNeedReset() /* && !getQuadrant()->internalDataLocked()*/)
 	{
 		if (status() != QuadrantStatus::initialized)
 		{
@@ -1033,24 +1038,29 @@ void QuadTree::materialParamsNeedReset(bool b)
 	getQuadrant()->getShaderTerrainData()->materialParamsNeedReset(b);
 }
 
-void QuadTree::updateCollider(void)
+bool QuadTree::updateCollider(void)
 {
-	if (!isValid())
-		return;
+	//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4 ") + __FUNCTION__, "ALL");
 
-	if (getQuadrant()->internalDataLocked())
-		return;
+	bool updated = false;
+	
+	if (!isValid())
+		return updated;
+
+	//if (getQuadrant()->internalDataLocked())
+	//	return updated;
 
 	if (getQuadrant()->internalDataLockedUntilCompleteProcessExecution())
-		return;
+		return updated;
 	
 	Collider* collider = m_worldQuadrant->getCollider();
 	
 	if (collider == nullptr)
-		return;
+		return updated;
 
 	if (colliderNeedReset())
 	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1 ") + __FUNCTION__, "Quadrant: colliderNeedReset");
 		collider->exitWorld();
 		collider->deinit();
 		colliderNeedReset(false);
@@ -1062,20 +1072,27 @@ void QuadTree::updateCollider(void)
 	{
 		if (!collider->hasData())
 		{
-			if (status() == QuadrantStatus::initialized && getQuadrant()->isFlushed())
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.0 ") + __FUNCTION__, "Quadrant: need collider but not set");
+
+			if (statusInitialized() && getQuadrant()->isFlushed())
 			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.2 ") + __FUNCTION__, "Quadrant: missing heigths for collider requesting ...");
 				setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 			}
-			else if (status() == QuadrantStatus::initialized)
+			else if (statusInitialized())
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4 ") + __FUNCTION__, "Quadrant updateCollider");
+				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.3 ") + __FUNCTION__, "Quadrant: updating collider");
 
 				collider->init(m_GDN_Quadrant, 1, 1);
 				collider->enterWorld();
 				{
-					//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1 ") + __FUNCTION__, "QuadTree set data for collider");
-					collider->setData();
+					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.3.1 ") + __FUNCTION__, "Quadrant:  set data for collider");
+					updated = collider->setData();
 				}
+			}
+			else
+			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.4 ") + __FUNCTION__, "Quadrant: missing heigths for collider will retry ...");
 			}
 		}
 	}
@@ -1083,10 +1100,13 @@ void QuadTree::updateCollider(void)
 	{
 		if (collider->hasData() && m_viewer->Globals()->status() == TheWorldStatus::worldDeployed)
 		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.5 ") + __FUNCTION__, "Quadrant: freeing collider info");
 			collider->exitWorld();
 			collider->deinit();
 		}
 	}
+
+	return updated;
 }
 
 bool QuadTree::colliderNeedReset(void)
@@ -1106,8 +1126,8 @@ bool QuadTree::updateMaterialParams(void)
 	if (!isValid())
 		return updated;
 
-	if (getQuadrant()->internalDataLocked())
-		return updated;
+	//if (getQuadrant()->internalDataLocked())
+	//	return updated;
 
 	//if ((int)m_viewer->Globals()->status() < (int)TheWorldStatus::worldDeployed)
 	//	return updated;
@@ -1834,8 +1854,8 @@ void ShaderTerrainData::resetMaterialParams(LookDev lookdev)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3 ") + __FUNCTION__, "Quadrant resetMaterialParams");
 
-	std::recursive_mutex& quadrantMutex = m_quadTree->getQuadrantMutex();
-	std::lock_guard<std::recursive_mutex> lock(quadrantMutex);
+	//std::recursive_mutex& quadrantMutex = m_quadTree->getQuadrantMutex();
+	//std::lock_guard<std::recursive_mutex> lock(quadrantMutex);
 	
 	int _resolution = m_viewer->Globals()->heightmapResolution() + 1;
 
@@ -2947,6 +2967,9 @@ Quadrant::~Quadrant()
 
 bool Quadrant::isFlushed(void)
 {
+	if (m_quadTree->statusUninitialized())
+		return false;
+	
 	if (getFloat16HeightsBuffer(false).size() == 0 || getFloat32HeightsBuffer(false).size() == 0)
 		return true;
 	else
@@ -2985,7 +3008,7 @@ enum class Quadrant::ResolutionLevel Quadrant::getResolutionLevel(void)
 
 void Quadrant::releaseTerrainValuesMemory(bool visible)
 {
-	if (!m_quadTree->isValid() || internalDataLocked() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
+	if (!m_quadTree->isValid() /* || internalDataLocked()*/ || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
 		return;
 
 	//return;
@@ -3236,11 +3259,13 @@ void Quadrant::optimizationLevelChanged(bool b)
 
 void Quadrant::loadTerrainDataFromCache(void)
 {
-	TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1 ") + __FUNCTION__, "SetColliderHeights");
+	TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1 ") + __FUNCTION__, "ALL");
 
 	if (empty())
 		return;
 	
+	//PLOG_DEBUG << "START loadTerrainDataFromCache";
+
 	while (lockInternalData() == false)
 		Sleep(1);
 
@@ -3312,12 +3337,17 @@ void Quadrant::loadTerrainDataFromCache(void)
 	m_quadTree->setStatus(QuadrantStatus::initialized);
 
 	unlockInternalData();
+
+	//PLOG_DEBUG << "END loadTerrainDataFromCache";
 }
 
 bool Quadrant::canHaveCollisionInfo(void)
 {
+	if (m_viewer->editMode())
+		return true;
+
 	bool colliderCanHaveCollisionInfo = true;
-	
+
 	int64_t depthForCollider = m_viewer->Globals()->getParamDepthQuadWithCollisionInfo();
 	if (depthForCollider != 0 && getLastDistanceInPerimeterFromCameraQuadrant() > (size_t)depthForCollider)
 		colliderCanHaveCollisionInfo = false;

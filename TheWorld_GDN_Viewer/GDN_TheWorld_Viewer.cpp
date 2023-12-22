@@ -1130,6 +1130,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_initialized_visible_quadrant"), &GDN_TheWorld_Viewer::getNuminitializedVisibleQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_need_shader_reset_quadrant"), &GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_empty_quadrant"), &GDN_TheWorld_Viewer::getNumEmptyQuadrant);
+	ClassDB::bind_method(D_METHOD("get_num_reloading_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrantReloadingFromCache);
 	ClassDB::bind_method(D_METHOD("get_num_flushed_quadrant"), &GDN_TheWorld_Viewer::getNumFlushedQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_with_collider_quadrant"), &GDN_TheWorld_Viewer::getNumWithColliderQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_process_not_owns_lock"), &GDN_TheWorld_Viewer::getProcessNotOwnsLock);
@@ -1542,7 +1543,7 @@ bool GDN_TheWorld_Viewer::init(void)
 	//m_mapModder = memnew(GDN_TheWorld_MapModder);
 	//m_mapModder->custom_ready(this, this, false);
 
-	m_tpClientWorker.Start("ClientWorker", 10, this);
+	m_tpClientWorker.Start("ClientWorker", 3, this);
 
 	m_initialized = true;
 	m_initRequired = false;
@@ -1888,8 +1889,10 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					{
 						if (quadTree->statusGetTerrainDataInProgress() || quadTree->statusRefreshTerrainDataInProgress())
 						{
-							std::recursive_mutex& quadrantMutex = quadTree->getQuadrantMutex();
-							std::lock_guard<std::recursive_mutex> lock(quadrantMutex);
+							//std::recursive_mutex& quadrantMutex = quadTree->getQuadrantMutex();
+							//std::lock_guard<std::recursive_mutex> lock(quadrantMutex);
+							while (quadTree->getQuadrant()->lockInternalData() == false)
+								Sleep(1);
 
 							std::string meshIdFromBuffer;
 							{
@@ -1913,7 +1916,10 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 								size_t cameraInGridIndex = quadTree->getQuadrant()->getIndexFromMap(cameraPosX, cameraPosZ);
 								if (cameraInGridIndex == -1)
+								{
 									throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Not found WorldViewer Pos").c_str()));
+									quadTree->getQuadrant()->unlockInternalData();
+								}
 
 								float cameraHeight = quadTree->getQuadrant()->getAltitudeFromHeigthmap(cameraInGridIndex);
 
@@ -1936,6 +1942,9 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							}
 
 							quadTree->setStatus(QuadrantStatus::initialized);
+
+							quadTree->getQuadrant()->unlockInternalData();
+
 						}
 					}
 				}
@@ -3066,7 +3075,7 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 				else
 				{
 					// Quadrant too far from camera: need to be deleted
-					if (itQuadTree->second->currentStatus() == QuadrantStatus::initialized || itQuadTree->second->currentStatus() == QuadrantStatus::uninitialized)
+					if (itQuadTree->second->statusInitialized() || itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded() || itQuadTree->second->statusLoadTerrainDataFromCacheNeeded())
 					{
 						itQuadTree->second->setVisible(false);
 						quadrantToDelete.push_back(itQuadTree->first);
@@ -3106,114 +3115,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	// To activate _process method add this Node to a Godot Scene
 	//Godot::print("GDN_TheWorld_Viewer::_process");
 
-	TheWorld_Utils::GuardProfiler profiler(std::string("_process 1 ") + __FUNCTION__, "ALL");
-
-	m_lastProcessDuration = 0;
-	//m_lastRefreshMapQuadDuration = 0;
-	m_lastUpdateQuads1Duration = 0;
-	m_lastUpdateQuads2Duration = 0;
-	m_lastUpdateQuads3Duration = 0;
-	m_lastUpdateChunksDuration = 0;
-	m_lastUpdateMaterialParamsDuration = 0;
-	m_lastMouseTrackHitDuration = 0;;
-	m_lastEraseQuads = 0;
-	m_lastProcessMapModder = 0;
-	m_lastUpdateCameraQuad = 0;
-	m_lastStreamingQuadrantStuff = 0;
-
 	{
-		m_visibleInTree = is_visible_in_tree();
-
-		GDN_TheWorld_Globals* globals = Globals();
-		if (globals == nullptr)
-			return;
-
-		setTrackedInputEvents();
-
-		if (initRequired())
-		{
-			init();
-			if (!ShaderTerrainData::groundTexturesNeedProcessing())
-				globals->setStatus(TheWorldStatus::sessionInitialized);
-		}
-
-		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
-		std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
-		if (!lock.owns_lock())
-		{
-			m_numProcessNotOwnsLock++;
-			return;
-		}
-
-		if (ShaderTerrainData::groundTexturesNeedProcessing())
-		{
-			std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
-
-			bool resetProcessing = true;
-
-			for (const auto& groundTexture : groundTextures)
-			{
-				if (!groundTexture.second->initialized)
-				{
-					ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + groundTexture.first.c_str(), groundTexture.second.get(), this);
-					globals->addNumElementInitialized();
-					resetProcessing = false;
-					break;
-				}
-			}
-
-			if (resetProcessing)
-			{
-				ShaderTerrainData::groundTexturesNeedProcessing(false);
-				globals->setStatus(TheWorldStatus::sessionInitialized);
-			}
-		}
-
-		if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
-			return;
-
-		if (!WorldCamera() || !m_initialWordlViewerPosSet)
-			return;
-
-		godot::Camera3D* activeCamera = nullptr;
-		if (IS_EDITOR_HINT())
-		{
-			activeCamera = getCamera();
-		}
-		else
-		{
-			activeCamera = WorldCamera()->getActiveCamera();
-		}
-		if (!activeCamera)
-			return;
-
-		if (m_gizmo != nullptr)
-			m_gizmo->set_camera(activeCamera);
-
-		if (m_normalDrawer != nullptr)
-			m_normalDrawer->set_camera(activeCamera, this);
-
-		if (m_positionDrawer != nullptr)
-			m_positionDrawer->set_camera(activeCamera, this);
-
-		//// DEBUG
-		//{
-		//	godot::Camera3D::ProjectionType type = activeCamera->get_projection();
-		//	int i = activeCamera->get_cull_mask();
-		//	bool b = activeCamera->is_current();
-		//	godot::Camera3D::DopplerTracking d = activeCamera->get_doppler_tracking();
-		//	double far1 = activeCamera->get_far();
-		//	double fov = activeCamera->get_fov();
-		//	godot::Vector2 frustumOffset = activeCamera->get_frustum_offset();
-		//	double hOffset = activeCamera->get_h_offset();
-		//	double vOffset = activeCamera->get_v_offset();
-		//	double near1 = activeCamera->get_near();
-		//	double size1 = activeCamera->get_size();
-		//	godot::Camera3D::KeepAspect k = activeCamera->get_keep_aspect_mode();
-		//	type = (godot::Camera3D::ProjectionType)0;
-		//}
-		//// DEBUG
-
 		TheWorld_Viewer_Utils::TimerMcs clock;
 		clock.tick();
 		auto save_duration = TheWorld_Viewer_Utils::finally([&clock, this] {
@@ -3223,12 +3125,131 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			this->m_sumProcessDuration += this->m_lastProcessDuration;
 			});
 
-		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.1 ") + __FUNCTION__, "process_impl");
-			process_impl(_delta, activeCamera);
-		}
+		TheWorld_Utils::GuardProfiler profiler(std::string("_process 1 ") + __FUNCTION__, "ALL");
 
-		resetTrackedInputEvents();
+		m_lastProcessDuration = 0;
+		m_lastProcessImplDuration = 0;
+		//m_lastRefreshMapQuadDuration = 0;
+		m_lastUpdateQuads1Duration = 0;
+		m_lastUpdateQuads2Duration = 0;
+		m_lastUpdateQuads3Duration = 0;
+		m_lastUpdateChunksDuration = 0;
+		m_lastUpdateMaterialParamsDuration = 0;
+		m_lastMouseTrackHitDuration = 0;;
+		m_lastEraseQuads = 0;
+		m_lastProcessMapModder = 0;
+		m_lastUpdateCameraQuad = 0;
+		m_lastStreamingQuadrantStuff = 0;
+
+		{
+			m_visibleInTree = is_visible_in_tree();
+
+			GDN_TheWorld_Globals* globals = Globals();
+			if (globals == nullptr)
+				return;
+
+			setTrackedInputEvents();
+
+			if (initRequired())
+			{
+				init();
+				if (!ShaderTerrainData::groundTexturesNeedProcessing())
+					globals->setStatus(TheWorldStatus::sessionInitialized);
+			}
+
+			//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+			std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
+			if (!lock.owns_lock())
+			{
+				m_numProcessNotOwnsLock++;
+				return;
+			}
+
+			if (ShaderTerrainData::groundTexturesNeedProcessing())
+			{
+				std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
+
+				bool resetProcessing = true;
+
+				for (const auto& groundTexture : groundTextures)
+				{
+					if (!groundTexture.second->initialized)
+					{
+						ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + groundTexture.first.c_str(), groundTexture.second.get(), this);
+						globals->addNumElementInitialized();
+						resetProcessing = false;
+						break;
+					}
+				}
+
+				if (resetProcessing)
+				{
+					ShaderTerrainData::groundTexturesNeedProcessing(false);
+					globals->setStatus(TheWorldStatus::sessionInitialized);
+				}
+			}
+
+			if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
+				return;
+
+			if (!WorldCamera() || !m_initialWordlViewerPosSet)
+				return;
+
+			godot::Camera3D* activeCamera = nullptr;
+			if (IS_EDITOR_HINT())
+			{
+				activeCamera = getCamera();
+			}
+			else
+			{
+				activeCamera = WorldCamera()->getActiveCamera();
+			}
+			if (!activeCamera)
+				return;
+
+			if (m_gizmo != nullptr)
+				m_gizmo->set_camera(activeCamera);
+
+			if (m_normalDrawer != nullptr)
+				m_normalDrawer->set_camera(activeCamera, this);
+
+			if (m_positionDrawer != nullptr)
+				m_positionDrawer->set_camera(activeCamera, this);
+
+			//// DEBUG
+			//{
+			//	godot::Camera3D::ProjectionType type = activeCamera->get_projection();
+			//	int i = activeCamera->get_cull_mask();
+			//	bool b = activeCamera->is_current();
+			//	godot::Camera3D::DopplerTracking d = activeCamera->get_doppler_tracking();
+			//	double far1 = activeCamera->get_far();
+			//	double fov = activeCamera->get_fov();
+			//	godot::Vector2 frustumOffset = activeCamera->get_frustum_offset();
+			//	double hOffset = activeCamera->get_h_offset();
+			//	double vOffset = activeCamera->get_v_offset();
+			//	double near1 = activeCamera->get_near();
+			//	double size1 = activeCamera->get_size();
+			//	godot::Camera3D::KeepAspect k = activeCamera->get_keep_aspect_mode();
+			//	type = (godot::Camera3D::ProjectionType)0;
+			//}
+			//// DEBUG
+
+			{
+				TheWorld_Viewer_Utils::TimerMcs clock;
+				clock.tick();
+				auto save_duration = TheWorld_Viewer_Utils::finally([&clock, this] {
+					clock.tock();
+					this->m_lastProcessImplDuration = clock.duration().count();
+					this->m_numProcessImplExecution++;
+					this->m_sumProcessImplDuration += this->m_lastProcessImplDuration;
+					});
+
+				TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.1 ") + __FUNCTION__, "process_impl");
+				process_impl(_delta, activeCamera);
+			}
+
+			resetTrackedInputEvents();
+		}
 	}
 
 	if (m_lastProcessDuration > 100000 && Globals()->status() == TheWorldStatus::worldDeployed)
@@ -3236,6 +3257,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		size_t extra = m_lastProcessDuration - (/*m_lastRefreshMapQuadDuration + */m_lastUpdateQuads1Duration + m_lastUpdateQuads2Duration + m_lastUpdateQuads3Duration + m_lastUpdateChunksDuration + m_lastUpdateMaterialParamsDuration + m_lastMouseTrackHitDuration + m_lastEraseQuads + m_lastProcessMapModder + m_lastUpdateCameraQuad + m_lastStreamingQuadrantStuff);
 		std::string msg = "PROCESS DURATION WARNING: "
 			+ std::to_string(m_lastProcessDuration / 1000)
+			+ ", Process Impl: " + std::to_string(m_lastProcessImplDuration / 1000)
 			//+ ", Refresh Map Quad: " + std::to_string(m_lastRefreshMapQuadDuration / 1000)
 			+ ", Update Quads Stage 1: " + std::to_string(m_lastUpdateQuads1Duration / 1000)
 			+ ", Update Quads Stage 2: " + std::to_string(m_lastUpdateQuads2Duration / 1000)
@@ -3429,7 +3451,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.10 ") + __FUNCTION__, "Process Material Params");
-		process_materialParam(cameraPosGlobalCoord);
+		process_materialParam(cameraPosGlobalCoord, processCameraPosForQuadrants);
 	}
 
 	//m_desideredLookDevChanged = false;
@@ -3527,7 +3549,16 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	for (auto& item : m_mapQuadTree)
 	{
 		item.second->getQuadrant()->lockInternalDataUntilCompleteProcessExecution(false);
+
 		item.second->getQuadrant()->process_mapModder(_delta);
+
+		if (item.second->statusLoadTerrainDataFromCacheNeeded())
+		{
+			item.second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
+			std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, item.second->getQuadrant());
+			m_tpClientWorker.QueueJob(f);
+		}
+
 	}
 }
 
@@ -3648,7 +3679,7 @@ void GDN_TheWorld_Viewer::process_initNewQuads(void)
 					}
 				}
 
-				if (itQuadTree->second->loadTerrainDataFromCacheNeeded())
+				if (itQuadTree->second->statusLoadTerrainDataFromCacheNeeded())
 				{
 					itQuadTree->second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
 					std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, itQuadTree->second->getQuadrant());
@@ -4523,7 +4554,7 @@ void GDN_TheWorld_Viewer::process_lookDev(void)
 	m_desideredLookDevChanged = false;
 }
 
-void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord)
+void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants)
 {
 	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Material Params", false, false);
 	clock1.tick();
@@ -4536,6 +4567,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 
 	if (ReloadSelectedQuadrantShaderRequired())
 	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 1 ") + __FUNCTION__, "ReloadSelectedQuadrantShaderRequired");
+
 		QuadTree* quadTreeSel = nullptr;
 		QuadrantPos quadrantSelPos = getQuadrantSelForEdit(&quadTreeSel);
 
@@ -4549,6 +4582,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 
 	if (ReloadAllShadersRequired())
 	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 2 ") + __FUNCTION__, "ReloadAllShadersRequired");
+
 		for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 		{
 			itQuadTree->second->reloadCurrentMaterial();
@@ -4559,6 +4594,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 	
 	if (m_shaderParamChanged)
 	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 3 ") + __FUNCTION__, "shaderParamChanged");
+
 		for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 		{
 			itQuadTree->second->getQuadrant()->getShaderTerrainData()->materialParamsNeedUpdate(true);
@@ -4569,23 +4606,52 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 
 	//if ((int)globals->status() >= (int)TheWorldStatus::worldDeployed)
 	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4 ") + __FUNCTION__, "Loop quadrant");
+
 		for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 		{
-			itQuadTree->second->setOptimizations(cameraPosGlobalCoord);
+			if (processCameraPosForQuadrants)
+				itQuadTree->second->setOptimizations(cameraPosGlobalCoord);
 			
-			bool reset = false;
-			reset = itQuadTree->second->resetMaterialParams();
-			
-			itQuadTree->second->updateCollider();
-			
-			bool updated = itQuadTree->second->updateMaterialParams();
-			
-			itQuadTree->second->getQuadrant()->releaseTerrainValuesMemory(itQuadTree->second->isVisible());
+			bool materialParamsReset = false;
+			bool materialParamsUpdated = false;
+			bool colliderUpdated = false;
 
-			if (updated)
+			bool locked = itQuadTree->second->getQuadrant()->lockInternalData();
+			if (locked)
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1 ") + __FUNCTION__, "Quadrant locked");
+
+				{
+					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.1 ") + __FUNCTION__, "resetMaterialParams");
+					materialParamsReset = itQuadTree->second->resetMaterialParams();
+				}
+
+				{
+					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.2 ") + __FUNCTION__, "updateMaterialParams");
+					materialParamsUpdated = itQuadTree->second->updateMaterialParams();
+				}
+
+				{
+					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.3 ") + __FUNCTION__, "updateCollider");
+					colliderUpdated = itQuadTree->second->updateCollider();
+				}
+
+				{
+					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.4 ") + __FUNCTION__, "releaseTerrainValuesMemory");
+					itQuadTree->second->getQuadrant()->releaseTerrainValuesMemory(itQuadTree->second->isVisible());
+				}
+
+				{
+					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.5 ") + __FUNCTION__, "unlockInternalData");
+					itQuadTree->second->getQuadrant()->unlockInternalData();
+				}
+			}
+
+			if (materialParamsUpdated)
 				m_previousTrackedMouseHit = godot::Vector3();
 
-			if ((reset || updated) && !m_desideredLookDevChanged)
+			if ((materialParamsReset || materialParamsUpdated || colliderUpdated) && !m_desideredLookDevChanged)
 				break;
 		}
 	}
@@ -4635,6 +4701,16 @@ void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 			}
 			else
 				m_averageProcessDuration = 0;
+
+			if (m_numProcessImplExecution > 0)
+			{
+				m_averageProcessImplDuration = int(m_sumProcessImplDuration / m_numProcessImplExecution);
+				//globals->debugPrint(String("m_numProcessImplExecution=") + std::to_string(m_numProcessImplExecution).c_str() + ", m_processImplDuration=" + std::to_string(m_processImplDuration).c_str() + ", m_averageProcessImplDuration=" + std::to_string(m_averageProcessImplDuration).c_str());
+				m_sumProcessImplDuration = 0;
+				m_numProcessImplExecution = 0;
+			}
+			else
+				m_averageProcessImplDuration = 0;
 
 			//if (m_numRefreshMapQuad > 10)
 			//{
@@ -5731,6 +5807,7 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	int numinitializedQuadrant = 0;
 	int numVisibleQuadrant = 0;
 	int numEmptyQuadrant = 0;
+	int numQuadrantReloadingFromCache = 0;
 	int numFlushedQuadrant = 0;
 	int numWithColliderQuadrant = 0;
 	int numinitializedVisibleQuadrant = 0;
@@ -5761,6 +5838,9 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 		if (itQuadTree.second->getQuadrant()->empty())
 			numEmptyQuadrant++;
 
+		if (itQuadTree.second->statusLoadTerrainDataFromCacheNeeded() || itQuadTree.second->statusLoadTerrainDataFromCacheInProgress())
+			numQuadrantReloadingFromCache++;
+
 		if (itQuadTree.second->getQuadrant()->isFlushed())
 			numFlushedQuadrant++;
 		
@@ -5784,6 +5864,7 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	m_numinitializedQuadrant = numinitializedQuadrant;
 	m_numVisibleQuadrant = numVisibleQuadrant;
 	m_numEmptyQuadrant = numEmptyQuadrant;
+	m_numQuadrantReloadingFromCache = numQuadrantReloadingFromCache;
 	m_numFlushedQuadrant = numFlushedQuadrant;
 	m_numWithColliderQuadrant = numWithColliderQuadrant;
 	m_numinitializedVisibleQuadrant = numinitializedVisibleQuadrant;
@@ -5834,6 +5915,11 @@ int GDN_TheWorld_Viewer::getNumVisibleQuadrant(void)
 int GDN_TheWorld_Viewer::getNumEmptyQuadrant(void)
 {
 	return m_numEmptyQuadrant;
+}
+
+int GDN_TheWorld_Viewer::getNumQuadrantReloadingFromCache(void)
+{
+	return m_numQuadrantReloadingFromCache;
 }
 
 int GDN_TheWorld_Viewer::getNumFlushedQuadrant(void)

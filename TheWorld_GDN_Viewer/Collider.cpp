@@ -129,13 +129,15 @@ namespace godot
 		m_enteredWorld = false;
 	}
 
-	void Collider::setData(void)
+	bool Collider::setData(void)
 	{
+		bool updated = false;
+
 		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
-			return;
+			return updated;
 
 		if (!m_initialized)
-			return;
+			return updated;
 
 		TheWorld_Utils::GuardProfiler profiler(std::string("Collider ") + __FUNCTION__, "setData");
 
@@ -164,6 +166,7 @@ namespace godot
 		godot::PhysicsServer3D* ps = godot::PhysicsServer3D::get_singleton();
 		{
 			ps->shape_set_data(m_shapeRID, data);
+			updated = true;
 		}
 
 		heightsForCollider.resize(0);
@@ -173,6 +176,8 @@ namespace godot
 		}
 
 		m_hasData = true;
+
+		return updated;
 	}
 	
 	void Collider::onGlobalTransformChanged(void)

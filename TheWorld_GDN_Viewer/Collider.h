@@ -20,7 +20,7 @@ namespace godot
 
 		void enterWorld(void);
 		void exitWorld(void);
-		void setData(void);
+		bool setData(void);
 		void updateTransform();
 		void onGlobalTransformChanged(void);
 		void onCameraTransformChanged(void);

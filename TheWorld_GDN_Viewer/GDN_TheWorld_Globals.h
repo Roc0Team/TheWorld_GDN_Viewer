@@ -549,6 +549,11 @@ namespace godot
 			m_numElementInitialized += num;
 		}
 
+		bool getParamProfilerActive(void)
+		{
+			return TheWorld_Utils::Profiler::isActive();
+		}
+		void setParamProfilerActive(bool b);
 		bool getParamCacheTerrainTextures(void)
 		{
 			return m_paramCacheTerrainTextures;

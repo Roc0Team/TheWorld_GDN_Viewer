@@ -403,6 +403,7 @@ namespace godot
 		int getNuminitializedVisibleQuadrant(void);
 		int getNumNeedShaderResetQuadrant(void);
 		int getNumEmptyQuadrant(void);
+		int getNumQuadrantReloadingFromCache(void);
 		int getNumFlushedQuadrant(void);
 		int getNumWithColliderQuadrant(void);
 		void refreshQuadTreeStatistics(void);
@@ -737,7 +738,7 @@ namespace godot
 		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord);
 		void process_updateMeshForUpdatedChunks(void);
 		void process_lookDev(void);
-		void process_materialParam(godot::Vector3& cameraPosGlobalCoord);
+		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
@@ -772,7 +773,8 @@ namespace godot
 
 		// Statistics data
 		size_t m_numProcessExecution = 0;				long long m_sumProcessDuration = 0;					size_t m_averageProcessDuration = 0;				size_t m_lastProcessDuration = 0;
-		//size_t m_numRefreshMapQuad = 0;					long long m_sumRefreshMapQuadDuration = 0;			size_t m_averageRefreshMapQuadDuration = 0;			size_t m_lastRefreshMapQuadDuration = 0;
+		size_t m_numProcessImplExecution = 0;			long long m_sumProcessImplDuration = 0;				size_t m_averageProcessImplDuration = 0;			size_t m_lastProcessImplDuration = 0;
+		//size_t m_numRefreshMapQuad = 0;				long long m_sumRefreshMapQuadDuration = 0;			size_t m_averageRefreshMapQuadDuration = 0;			size_t m_lastRefreshMapQuadDuration = 0;
 		size_t m_numUpdateQuads1 = 0;					long long m_sumUpdateQuads1Duration = 0;			size_t m_averageUpdateQuads1Duration = 0;			size_t m_lastUpdateQuads1Duration = 0;
 		size_t m_numUpdateQuads2 = 0;					long long m_sumUpdateQuads2Duration = 0;			size_t m_averageUpdateQuads2Duration = 0;			size_t m_lastUpdateQuads2Duration = 0;
 		size_t m_numUpdateQuads3 = 0;					long long m_sumUpdateQuads3Duration = 0;			size_t m_averageUpdateQuads3Duration = 0;			size_t m_lastUpdateQuads3Duration = 0;
@@ -796,6 +798,7 @@ namespace godot
 		int m_numinitializedQuadrant;
 		int m_numVisibleQuadrant;
 		int m_numEmptyQuadrant;
+		int m_numQuadrantReloadingFromCache = 0;
 		int m_numFlushedQuadrant;
 		int m_numWithColliderQuadrant = 0;
 		int m_numinitializedVisibleQuadrant;

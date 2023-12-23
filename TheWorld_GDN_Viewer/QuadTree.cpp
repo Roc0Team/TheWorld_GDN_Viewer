@@ -976,7 +976,7 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 
 	size_t optimizationLevel = 0;	// 0 ==> no optimization
 	
-	if (getQuadrant()->getResolutionLevel() == Quadrant::ResolutionLevel::low)
+	if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low)
 	{
 		float thresHoldForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
 		if (distanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT)
@@ -3039,27 +3039,27 @@ bool Quadrant::internalDataLockedUntilCompleteProcessExecution(void)
 	return m_lockInternalDataUntilCompleteProcessExecution;
 }
 
-enum class Quadrant::ResolutionLevel Quadrant::getResolutionLevel(void)
+enum class Quadrant::MeshResolutionLevel Quadrant::getMeshResolutionLevel(void)
 {
 	Quad* root = m_quadTree->getRoot();
 	if (root == nullptr)
-		return ResolutionLevel::not_set;
+		return MeshResolutionLevel::not_set;
 
 	if (root->isLeaf())
-		return ResolutionLevel::low;
+		return MeshResolutionLevel::low;
 	else
-		return ResolutionLevel::high;
+		return MeshResolutionLevel::high;
 }
 
 void Quadrant::releaseTerrainValuesMemory(bool visible)
 {
-	if (!m_quadTree->isValid() /* || internalDataLocked()*/ || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
+	if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
 		return;
 
 	//return;
 
-	if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getResolutionLevel() == ResolutionLevel::low /* && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants()*/)
-		m_float16HeigthsBuffer.clear();
+	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getMeshResolutionLevel() == MeshResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
+	//	m_float16HeigthsBuffer.clear();
 	
 	if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
 		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
@@ -3397,7 +3397,7 @@ bool Quadrant::canHaveCollisionInfo(void)
 	if (depthForCollider != 0 && getLastDistanceInPerimeterFromCameraQuadrant() > (size_t)depthForCollider)
 		colliderCanHaveCollisionInfo = false;
 	
-	if (getResolutionLevel() == Quadrant::ResolutionLevel::low && !m_viewer->Globals()->getParamCollisionDataForLowResQuadrants())
+	if (getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low && !m_viewer->Globals()->getParamCollisionDataForLowResQuadrants())
 		colliderCanHaveCollisionInfo = false;
 	
 	return colliderCanHaveCollisionInfo;

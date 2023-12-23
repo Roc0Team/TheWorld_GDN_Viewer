@@ -272,7 +272,7 @@ namespace godot
 		friend class GDN_TheWorld_Edit;
 		friend class QuadTree;
 
-		enum class ResolutionLevel
+		enum class MeshResolutionLevel
 		{
 			not_set = -1
 			, low = 0
@@ -302,7 +302,7 @@ namespace godot
 			return m_quadrantPos;
 		}
 
-		enum class ResolutionLevel getResolutionLevel(void);
+		enum class MeshResolutionLevel getMeshResolutionLevel(void);
 		
 		bool isFlushed(void);
 

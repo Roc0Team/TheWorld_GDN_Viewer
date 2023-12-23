@@ -3115,7 +3115,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	// To activate _process method add this Node to a Godot Scene
 	//Godot::print("GDN_TheWorld_Viewer::_process");
 
-#define MAX_PROCESS_DURATION	100000
+#define MAX_PROCESS_DURATION	50000
 	size_t maxProcessDuration = MAX_PROCESS_DURATION;
 
 	m_lastProcessDuration = 0;

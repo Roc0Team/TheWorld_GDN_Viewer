@@ -194,7 +194,7 @@ namespace godot
 			, MOUSE_DOUBLE_BUTTON_RIGHT = 3
 		};
 			
-		enum Margin {
+		enum class Margin {
 			MARGIN_LEFT,
 			MARGIN_TOP,
 			MARGIN_RIGHT,
@@ -212,6 +212,151 @@ namespace godot
 		void _init(void);
 
 	public:
+		class ProcessStep
+		{
+		public:
+
+			ProcessStep() {}
+
+			enum class ProcessStepIdx
+			{
+				not_set = -1
+				, process_updateCameraQuad = 0
+				, process_initNewQuads = 1
+				, process_trackMouse = 2
+				, process_updateLodInQuads = 3
+				, process_updateMeshForUpdatedChunks = 4
+				, UpdateTerrainVisibility = 5
+				, UpdateDebugMode = 6
+				, process_lookDev = 7
+				, ReloadSelectedQuadrantShader = 8
+				, ReloadAllShaders = 9
+				, ShaderParamChanged = 10
+				, Quadrant_resetMaterialParams_heightmap = 11
+				, Quadrant_resetMaterialParams_normalmap = 12
+				, Quadrant_resetMaterialParams_splatmap = 13
+				, Quadrant_resetMaterialParams_globalmap = 14
+				, Quadrant_resetMaterialParams_colormap = 15
+				, Quadrant_updateMaterialParams = 16
+				, Quadrant_updateCollider = 17
+				, EndOfProcessExecution = 18
+			};
+			ProcessStep(enum class ProcessStepIdx idx, size_t elapsed, int num = 1)
+			{
+				m_idx = idx;
+				m_num = num;
+				m_elapsed = elapsed;
+			}
+			void setElapsed(size_t elapsed)
+			{
+				m_elapsed = elapsed;
+				m_num++;
+			}
+			static std::string idxToString(enum class ProcessStepIdx idx)
+			{
+				switch (idx)
+				{
+				case ProcessStepIdx::process_updateCameraQuad:
+					return "process_updateCameraQuad";
+				case ProcessStepIdx::process_initNewQuads:
+					return "process_initNewQuads";
+				case ProcessStepIdx::process_trackMouse:
+					return "process_trackMouse";
+				case ProcessStepIdx::process_updateLodInQuads:
+					return "process_updateLodInQuads";
+				case ProcessStepIdx::process_updateMeshForUpdatedChunks:
+					return "process_updateMeshForUpdatedChunks";
+				case ProcessStepIdx::UpdateTerrainVisibility:
+					return "UpdateTerrainVisibility";
+				case ProcessStepIdx::UpdateDebugMode:
+					return "UpdateDebugMode";
+				case ProcessStepIdx::process_lookDev:
+					return "process_lookDev";
+				case ProcessStepIdx::ReloadSelectedQuadrantShader:
+					return "ReloadSelectedQuadrantShader";
+				case ProcessStepIdx::ReloadAllShaders:
+					return "ReloadAllShaders";
+				case ProcessStepIdx::ShaderParamChanged:
+					return "ShaderParamChanged";
+				case ProcessStepIdx::Quadrant_resetMaterialParams_heightmap:
+					return "Quadrant_resetMaterialParams_heightmap";
+				case ProcessStepIdx::Quadrant_resetMaterialParams_normalmap:
+					return "Quadrant_resetMaterialParams_normalmap";
+				case ProcessStepIdx::Quadrant_resetMaterialParams_splatmap:
+					return "Quadrant_resetMaterialParams_splatmap";
+				case ProcessStepIdx::Quadrant_resetMaterialParams_globalmap:
+					return "Quadrant_resetMaterialParams_globalmap";
+				case ProcessStepIdx::Quadrant_resetMaterialParams_colormap:
+					return "Quadrant_resetMaterialParams_colormap";
+				case ProcessStepIdx::Quadrant_updateMaterialParams:
+					return "Quadrant_updateMaterialParams";
+				case ProcessStepIdx::Quadrant_updateCollider:
+					return "Quadrant_updateCollider";
+				case ProcessStepIdx::EndOfProcessExecution:
+					return "EndOfProcessExecution";
+				default:
+					return "not_set";
+				}
+			}
+			std::string name(void)
+			{
+				return idxToString(m_idx);
+			}
+			std::string msg(void)
+			{
+				return name() + (m_num > 1 ? "(" + std::to_string(m_num)  + ")" : "") + " = " + std::to_string(m_elapsed / 1000);
+			}
+			
+		private:
+			enum class ProcessStepIdx m_idx;
+			int m_num = 0;
+			size_t m_elapsed = 0;
+		};
+
+		class ProcessSteps
+		{
+		public:
+
+			ProcessSteps() {}
+
+			void init()
+			{
+				m_processClock.tick();
+				m_steps.clear();
+			}
+
+			size_t addStep(enum class ProcessStep::ProcessStepIdx idx)
+			{
+				size_t elapsed = (size_t)m_processClock.partialDuration().count();
+				if (m_steps.contains(idx))
+					m_steps[idx].setElapsed(elapsed);
+				else
+					m_steps[idx] = ProcessStep(idx, elapsed);
+				m_lastStepIdx = idx;
+				return elapsed;
+			}
+
+			size_t elapsed()
+			{
+				return (size_t)m_processClock.partialDuration().count();
+			}
+
+			std::map<enum class ProcessStep::ProcessStepIdx, ProcessStep>& steps(void)
+			{
+				return m_steps;
+			}
+
+			std::string lastAddedStepName(void)
+			{
+				return ProcessStep::idxToString(m_lastStepIdx);
+			}
+
+		private:
+			std::map<enum class ProcessStep::ProcessStepIdx, ProcessStep> m_steps;
+			TheWorld_Viewer_Utils::TimerMcs m_processClock;
+			enum class ProcessStep::ProcessStepIdx m_lastStepIdx = ProcessStep::ProcessStepIdx::not_set;
+		};
+
 		GDN_TheWorld_Viewer();
 		~GDN_TheWorld_Viewer();
 		bool initRequired(void)
@@ -258,7 +403,7 @@ namespace godot
 		virtual void _physics_process(double _delta) override;
 		virtual void _input(const Ref<InputEvent>& event) override;
 		
-		void process_impl(double _delta, godot::Camera3D* activeCamera);
+		void process_impl(double _delta, godot::Camera3D* activeCamera, size_t maxProcessDuration);
 
 		//Ref<Material> getRegularMaterial(void);
 		//Ref<Material> getLookDevMaterial(void);
@@ -717,6 +862,11 @@ namespace godot
 			m_numOptimizationLevelChange++;
 		}
 
+		size_t addProcessStep(enum class ProcessStep::ProcessStepIdx idx)
+		{
+			return m_processSteps.addStep(idx);
+		}
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -738,7 +888,7 @@ namespace godot
 		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord);
 		void process_updateMeshForUpdatedChunks(void);
 		void process_lookDev(void);
-		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants);
+		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, size_t maxProcessDuration);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
@@ -772,6 +922,11 @@ namespace godot
 		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
 		// Statistics data
+		//TheWorld_Viewer_Utils::TimerMcs m_processClock;
+		bool m_lastProcessExecutionInterrupted = false;
+		ProcessSteps m_processSteps;
+		//std::vector<ProcessStep> m_processSteps;
+		//std::string m_lastProcessedStep;
 		size_t m_numProcessExecution = 0;				long long m_sumProcessDuration = 0;					size_t m_averageProcessDuration = 0;				size_t m_lastProcessDuration = 0;
 		size_t m_numProcessImplExecution = 0;			long long m_sumProcessImplDuration = 0;				size_t m_averageProcessImplDuration = 0;			size_t m_lastProcessImplDuration = 0;
 		//size_t m_numRefreshMapQuad = 0;				long long m_sumRefreshMapQuadDuration = 0;			size_t m_averageRefreshMapQuadDuration = 0;			size_t m_lastRefreshMapQuadDuration = 0;

@@ -143,6 +143,12 @@ namespace TheWorld_Viewer_Utils
 			//assert(_end != timep_t{} && "toc before reporting");
 			return std::chrono::duration_cast<TT>(_end - _start);
 		}
+
+		template <class TT = TimeT>	TT partialDuration() const
+		{
+			return std::chrono::duration_cast<TT>(ClockT::now() - _start);
+		}
+
 	private:
 		bool _counterStarted;
 		std::string _headerMsg;
@@ -150,7 +156,6 @@ namespace TheWorld_Viewer_Utils
 		std::string _method;
 		bool _tickMsg;
 		bool _tockMsg;
-
 	};
 
 #define TimerMs Timer<std::chrono::milliseconds, std::chrono::steady_clock>

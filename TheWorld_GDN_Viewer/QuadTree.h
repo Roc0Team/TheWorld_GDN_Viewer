@@ -832,7 +832,7 @@ namespace godot
 		{
 			m_materialParamsNeedReset = b;
 		}
-		void resetMaterialParams(LookDev lookdev);
+		void resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t maxProcessDuration, LookDev lookdev);
 		bool materialParamsNeedUpdate(void)
 		{
 			return m_materialParamsNeedUpdate;
@@ -1171,7 +1171,7 @@ namespace godot
 		Ref<Material> getCurrentMaterial(int lod);
 		void reloadCurrentMaterial(void);
 		void setOptimizations(godot::Vector3& cameraPosGlobalCoord);
-		bool resetMaterialParams(bool force = false);
+		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t maxProcessDuration, bool force = false);
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
 		bool updateCollider(void);

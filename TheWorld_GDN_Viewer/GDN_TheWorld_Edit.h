@@ -241,7 +241,7 @@ namespace godot
 			bool m_mouseInsideEditPanel;
 		};
 
-		enum Margin {
+		enum class Margin {
 			MARGIN_LEFT,
 			MARGIN_TOP,
 			MARGIN_RIGHT,

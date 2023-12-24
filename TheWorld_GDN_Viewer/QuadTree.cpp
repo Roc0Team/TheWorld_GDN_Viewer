@@ -983,7 +983,7 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 		{
 			optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
 			size_t maxOptimizationLevel = m_viewer->Globals()->heightmapResolutionShift() - MIN_RESOLUTION_SHIFT;
-			float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamThresholdTextureOptimizationIncrementFactor();
+			float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamTextureOptimizationIncrementFactor();
 			thresHoldForTextureOptimization += increment;
 			while (thresHoldForTextureOptimization < distanceFromCamera && optimizationLevel < maxOptimizationLevel)
 			{
@@ -1808,6 +1808,13 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 	}
 }
 
+void ShaderTerrainData::clearCachedTexture(void)
+{
+	m_heightmapImage.unref();
+	m_ResizedHeightmapImageMap.clear();
+	// other texture
+}
+
 void ShaderTerrainData::releaseGlobals(void)
 {
 	//std::lock_guard<std::recursive_mutex> lock(s_groundTexturesMutex);
@@ -1952,14 +1959,14 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	// if heights updated create texture for shader (m_heightmapTexture), it will be freed we passed to the shader
 	if (m_quadTree->getQuadrant()->heightsUpdated() || optimizationLevelChanged)
 	{
-		if (m_quadTree->statusInitialized() && !m_quadTree->getQuadrant()->hasHeigthsForChunks())
-		{
-			m_quadTree->setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
-			resetOptimizationChangeDelayed = true;
+		//if (m_quadTree->statusInitialized() && (!m_quadTree->getQuadrant()->hasHeigthsForChunks() || m_heightmapImage == nullptr))
+		//{
+		//	m_quadTree->setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
+		//	resetOptimizationChangeDelayed = true;
 
-		}
-		else if (m_quadTree->statusInitialized())
-		{
+		//}
+		//else if (m_quadTree->statusInitialized())
+		//{
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1 ") + __FUNCTION__, "Heightmap");
 
 			if (m_quadTree->getQuadrant()->heightsUpdated() || m_heightmapImage == nullptr)
@@ -2065,7 +2072,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 			}
 
 			m_quadTree->getQuadrant()->setHeightsUpdated(false);
-		}
+		//}
 	}
 
 	size_t elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_heightmap);
@@ -3051,6 +3058,22 @@ enum class Quadrant::MeshResolutionLevel Quadrant::getMeshResolutionLevel(void)
 		return MeshResolutionLevel::high;
 }
 
+enum class Quadrant::TexResolutionLevel Quadrant::getTexResolutionLevel(void)
+{
+	size_t optLevel = optimizationLevel();
+	if (optLevel == 0)
+		return Quadrant::TexResolutionLevel::high;
+	else if (optLevel > 0 && optLevel  < 4)		// 1, 2 ,3
+		return Quadrant::TexResolutionLevel::med;
+	else
+		return Quadrant::TexResolutionLevel::low;
+}
+
+void Quadrant::clearCachedTexture(void)
+{
+	getShaderTerrainData()->clearCachedTexture();
+}
+	
 void Quadrant::releaseTerrainValuesMemory(bool visible)
 {
 	if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
@@ -3061,6 +3084,9 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getMeshResolutionLevel() == MeshResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
 	//	m_float16HeigthsBuffer.clear();
 	
+	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getTexResolutionLevel() == TexResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
+	//	clearCachedTexture();
+
 	if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
 		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
 										// if m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants() we keep also for invisible quadrant to avoid reload from disk when quadrant become visible (reason is we want it happen during load of invisible quadrants)

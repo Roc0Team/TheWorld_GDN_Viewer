@@ -363,6 +363,8 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_cache_heights_invisible_quadrants"), &GDN_TheWorld_Globals::getParamCacheHeightsForInvisibleQuadrants);
 		ClassDB::bind_method(D_METHOD("set_perfparam_cache_heights_lowres_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCacheHeightsForLowResQuadrants);
 		ClassDB::bind_method(D_METHOD("get_perfparam_cache_heights_lowres_quadrants"), &GDN_TheWorld_Globals::getParamCacheHeightsForLowResQuadrants);
+		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_cache_heights", "p_value"), &GDN_TheWorld_Globals::setParamThresholdCacheHeights);
+		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_cache_heights"), &GDN_TheWorld_Globals::getParamThresholdCacheHeights);
 		ClassDB::bind_method(D_METHOD("set_perfparam_collision_data_lowres_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCollisionDataForLowResQuadrants);
 		ClassDB::bind_method(D_METHOD("get_perfparam_collision_data_lowres_quadrants"), &GDN_TheWorld_Globals::getParamCollisionDataForLowResQuadrants);
 		ClassDB::bind_method(D_METHOD("set_perfparam_depth_quad_with_collision_info"), &GDN_TheWorld_Globals::setParamDepthQuadWithCollisionInfo);
@@ -379,8 +381,8 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_for_globalmap"), &GDN_TheWorld_Globals::getParamThresholdForGlobalmap);
 		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_for_map_texture_optimization", "p_value"), &GDN_TheWorld_Globals::setParamThresholdForMapTextureOptimization);
 		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_for_map_texture_optimization"), &GDN_TheWorld_Globals::getParamThresholdForMapTextureOptimization);
-		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_texture_optimization_increment_factor", "p_value"), &GDN_TheWorld_Globals::setParamThresholdTextureOptimizationIncrementFactor);
-		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_texture_optimization_increment_factor"), &GDN_TheWorld_Globals::getParamThresholdTextureOptimizationIncrementFactor);
+		ClassDB::bind_method(D_METHOD("set_perfparam_texture_optimization_increment_factor", "p_value"), &GDN_TheWorld_Globals::setParamTextureOptimizationIncrementFactor);
+		ClassDB::bind_method(D_METHOD("get_perfparam_texture_optimization_increment_factor"), &GDN_TheWorld_Globals::getParamTextureOptimizationIncrementFactor);
 		ClassDB::bind_method(D_METHOD("set_perfparam_texture_optimization_resolution_increment", "p_value"), &GDN_TheWorld_Globals::setParamTextureOptimizationResolutionIncrement);
 		ClassDB::bind_method(D_METHOD("get_perfparam_texture_optimization_resolution_increment"), &GDN_TheWorld_Globals::getParamTextureOptimizationResolutionIncrement);
 
@@ -389,9 +391,10 @@ namespace godot
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures"), "set_perfparam_cache_terrain_textures", "get_perfparam_cache_terrain_textures");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_lowres_quadrants"), "set_perfparam_cache_heights_lowres_quadrants", "get_perfparam_cache_heights_lowres_quadrants");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_cache_heights"), "set_perfparam_threshold_cache_heights", "get_perfparam_threshold_cache_heights");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_collision_data_lowres_quadrants"), "set_perfparam_collision_data_lowres_quadrants", "get_perfparam_collision_data_lowres_quadrants");
 		// WARNING: 0 mean that all quadrants have collider data set consuming a lot of memory in the engine, but setting this value permit less memory usage but more time to read data from disk to set data
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_depth_quad_with_collision"), "set_perfparam_depth_quad_with_collision_info", "get_perfparam_depth_quad_with_collision_info");
+		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_depth_quad_with_collision"), "set_perfparam_depth_quad_with_collision_info", "get_perfparam_depth_quad_with_collision_info");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_disable_terrain_collisions"), "set_perfparam_disable_terrain_collisions", "get_perfparam_disable_terrain_collisions");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_factor", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.5, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_perfparam_refresh_quadrants_factor", "get_perfparam_refresh_quadrants_factor");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_threshold", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY), "", "get_perfparam_refresh_quadrants_threshold");
@@ -399,7 +402,7 @@ namespace godot
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunk_lod_threshold", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY), "", "get_perfparam_refresh_chunk_lod_threshold");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_globalmap"), "set_perfparam_threshold_for_globalmap", "get_perfparam_threshold_for_globalmap");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_tex_opt"), "set_perfparam_threshold_for_map_texture_optimization", "get_perfparam_threshold_for_map_texture_optimization");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_tex_opt_increment_factor"), "set_perfparam_threshold_texture_optimization_increment_factor", "get_perfparam_threshold_texture_optimization_increment_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_tex_opt_increment_factor"), "set_perfparam_texture_optimization_increment_factor", "get_perfparam_texture_optimization_increment_factor");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_tex_opt_resolution_increment"), "set_perfparam_texture_optimization_resolution_increment", "get_perfparam_texture_optimization_resolution_increment");
 
 		ADD_SIGNAL(MethodInfo("tw_status_changed", PropertyInfo(Variant::INT, "old_value"), PropertyInfo(Variant::INT, "new_value")));
@@ -731,6 +734,14 @@ namespace godot
 			viewer->resetMaterialParamsForEveryQuadrant();
 	}
 
+	void GDN_TheWorld_Globals::setParamThresholdCacheHeights(float f)
+	{
+		m_paramThresholdCacheHeights = f;
+		//GDN_TheWorld_Viewer* viewer = Viewer();
+		//if (viewer != nullptr)
+		//	viewer->resetMaterialParamsForEveryQuadrant();
+	}
+
 	void GDN_TheWorld_Globals::setParamCollisionDataForLowResQuadrants(bool b)
 	{
 		m_paramCollisionDataForLowResQuadrants = b;
@@ -783,9 +794,9 @@ namespace godot
 			viewer->resetMaterialParamsForEveryQuadrant();
 	}
 
-	void GDN_TheWorld_Globals::setParamThresholdTextureOptimizationIncrementFactor(float f)
+	void GDN_TheWorld_Globals::setParamTextureOptimizationIncrementFactor(float f)
 	{
-		m_paramThresholdTextureOptimizationIncrementFactor = f;
+		m_paramTextureOptimizationIncrementFactor = f;
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();

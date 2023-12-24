@@ -279,6 +279,14 @@ namespace godot
 			, high = 1
 		};
 
+		enum class TexResolutionLevel
+		{
+			not_set = -1
+			, low = 0
+			, med = 1
+			, high = 2
+		};
+
 	public:
 		Quadrant(QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 
@@ -303,7 +311,10 @@ namespace godot
 		}
 
 		enum class MeshResolutionLevel getMeshResolutionLevel(void);
-		
+		enum class TexResolutionLevel getTexResolutionLevel(void);
+
+		void clearCachedTexture(void);
+
 		bool isFlushed(void);
 
 		bool hasHeigthsForChunks(void);
@@ -893,6 +904,8 @@ namespace godot
 					occupation += item.second->get_data().size();
 			return occupation;
 		}
+
+		void clearCachedTexture(void);
 
 	private:
 		//void debugPrintTexture(std::string tex_name, Ref<Texture> tex);

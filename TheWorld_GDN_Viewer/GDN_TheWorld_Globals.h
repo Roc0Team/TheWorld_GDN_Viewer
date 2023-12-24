@@ -30,13 +30,14 @@
 #define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES									true
 #define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS					true
 #define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS						true
-#define THEWORLD_DEFAULT_COLLISION_DATA_FOR_LOWRES_QUADRANTS					true
+#define THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS								15000
+#define THEWORLD_DEFAULT_COLLISION_DATA_FOR_LOWRES_QUADRANTS					false
 #define THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS								false
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP								200000.0f
 #define THEWORLD_DEFAULT_REFRESH_QUADRANTS_FACTOR								1.0f
 #define THEWORLD_DEFAULT_REFRESH_CHUNKS_FACTOR									0.1f
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION					5000.0f
-#define THEWORLD_DEFAULT_THRESHOLD_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR		4
+#define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR					4
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				2
 #define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
@@ -569,6 +570,11 @@ namespace godot
 			return m_paramCacheHeightsForLowResQuadrants;
 		}
 		void setParamCacheHeightsForLowResQuadrants(bool b);
+		float getParamThresholdCacheHeights(void)
+		{
+			return m_paramThresholdCacheHeights;
+		}
+		void setParamThresholdCacheHeights(float f);
 		bool getParamCollisionDataForLowResQuadrants(void)
 		{
 			return m_paramCollisionDataForLowResQuadrants;
@@ -615,11 +621,11 @@ namespace godot
 			return m_paramThresholdForMapTextureOptimization;
 		}
 		void setParamThresholdForMapTextureOptimization(float f);
-		float getParamThresholdTextureOptimizationIncrementFactor(void)
+		float getParamTextureOptimizationIncrementFactor(void)
 		{
-			return m_paramThresholdTextureOptimizationIncrementFactor;
+			return m_paramTextureOptimizationIncrementFactor;
 		}
-		void setParamThresholdTextureOptimizationIncrementFactor(float f);
+		void setParamTextureOptimizationIncrementFactor(float f);
 		int64_t getParamTextureOptimizationResolutionIncrement(void)
 		{
 			return m_paramTextureOptimizationResolutionIncrement;
@@ -672,13 +678,14 @@ namespace godot
 		bool m_paramCacheTerrainTextures = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES;
 		bool m_paramCacheHeightsForInvisibleQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS;
 		bool m_paramCacheHeightsForLowResQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS;
+		float m_paramThresholdCacheHeights = THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS;
 		bool m_paramCollisionDataForLowResQuadrants = THEWORLD_DEFAULT_COLLISION_DATA_FOR_LOWRES_QUADRANTS;
 		bool m_paramDisableTerrainCollisions = THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS;
 		float m_paramRefreshQuadrantsFactor = THEWORLD_DEFAULT_REFRESH_QUADRANTS_FACTOR;		// 1 ==> very low rate of refresh, the higher the more frequent the refresh is
 		float m_paramRefreshChunksFactor = THEWORLD_DEFAULT_REFRESH_CHUNKS_FACTOR;		// 1 ==> very low rate of refresh, the higher the more frequent the refresh is
 		float m_paramThresholdForGlobalmap = THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP;
 		float m_paramThresholdForMapTextureOptimization = THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION;
-		float m_paramThresholdTextureOptimizationIncrementFactor = THEWORLD_DEFAULT_THRESHOLD_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR;
+		float m_paramTextureOptimizationIncrementFactor = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR;
 		int64_t m_paramTextureOptimizationResolutionIncrement = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT;
 		int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 	};

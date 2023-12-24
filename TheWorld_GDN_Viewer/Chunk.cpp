@@ -552,6 +552,8 @@ void Chunk::applyDebugMesh()
 
 void Chunk::getGlobalCoordAABB(AABB& aabb, int firstWorldVertCol, int lastWorldVertCol, int firstWorldVertRow, int lastWorldVertRow, int step)
 {
+	//TheWorld_Utils::GuardProfiler profiler(std::string("getGlobalCoordAABB 1 ") + __FUNCTION__, "ALL");
+
 	int numWorldVerticesPerSize = m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize();
 	int idxFirstColFirstRowWorldVert = numWorldVerticesPerSize * firstWorldVertRow + firstWorldVertCol;
 	int idxLastColFirstRowWorldVert = numWorldVerticesPerSize * firstWorldVertRow + lastWorldVertCol;

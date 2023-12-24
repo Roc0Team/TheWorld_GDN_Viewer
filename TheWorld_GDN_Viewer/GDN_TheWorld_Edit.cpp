@@ -56,7 +56,7 @@ void GDN_TheWorld_Edit::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("edit_mode_generate"), &GDN_TheWorld_Edit::editModeGenerateAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_blend"), &GDN_TheWorld_Edit::editModeBlendAction);
-	ClassDB::bind_method(D_METHOD("edit_mode_reset_normals_splatmap"), &GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction);
+	//ClassDB::bind_method(D_METHOD("edit_mode_reset_normals_splatmap"), &GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction);
 	//ClassDB::bind_method(D_METHOD("edit_mode_gen_normals"), &GDN_TheWorld_Edit::editModeGenNormalsAction);
 	//ClassDB::bind_method(D_METHOD("edit_mode_apply_textures"), &GDN_TheWorld_Edit::editModeApplyTexturesAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_save"), &GDN_TheWorld_Edit::editModeSaveAction);
@@ -229,6 +229,7 @@ void GDN_TheWorld_Edit::setUIAcceptFocus(bool b)
 	//	setSeed(0);
 
 	m_innerData->m_allCheckBox->set_focus_mode(focusMode);
+	m_innerData->m_collisonInfoCheckBox->set_focus_mode(focusMode);
 	m_innerData->m_seed->set_focus_mode(focusMode);
 	m_innerData->m_frequency->set_focus_mode(focusMode);
 	m_innerData->m_fractalOctaves->set_focus_mode(focusMode);
@@ -346,23 +347,24 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Save", "pressed", this, "edit_mode_save");
 		button->set_self_modulate(BUTTON_COLOR);
-		//separator = createControl<godot::VSeparator>(hBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Upload", "pressed", this, "edit_mode_upload");
 		button->set_self_modulate(BUTTON_COLOR);
-		//separator = createControl<godot::VSeparator>(hBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Stop", "pressed", this, "edit_mode_stop");
 		button->set_self_modulate(BUTTON_COLOR);
-
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Reload shader", "pressed", this, "edit_mode_reload_shader");
 		button->set_self_modulate(BUTTON_COLOR);
-		button = createControl<godot::Button>(hBoxContainer, "", "Reset Normals/Textures", "pressed", this, "edit_mode_reset_normals_splatmap");
-		button->set_self_modulate(BUTTON_COLOR);
+		//button = createControl<godot::Button>(hBoxContainer, "", "Reset Normals/Textures", "pressed", this, "edit_mode_reset_normals_splatmap");
+		//button->set_self_modulate(BUTTON_COLOR);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Apply Texs", "pressed", this, "edit_mode_apply_textures");
 		//button->set_self_modulate(BUTTON_COLOR);
 		m_innerData->m_allCheckBox = createControl<godot::CheckBox>(hBoxContainer);
 		m_innerData->m_allCheckBox->set_text("All");
 		m_innerData->m_allCheckBox->set_toggle_mode(true);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
+		m_innerData->m_collisonInfoCheckBox = createControl<godot::CheckBox>(hBoxContainer);
+		m_innerData->m_collisonInfoCheckBox->set_text("Collision Info");
+		m_innerData->m_collisonInfoCheckBox->set_toggle_mode(true);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		m_innerData->m_message = createControl<godot::Label>(hBoxContainer);
@@ -2245,6 +2247,11 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 	}
 }
 
+bool GDN_TheWorld_Edit::collisionsEnabled(void)
+{
+	return m_innerData->m_collisonInfoCheckBox->is_pressed();
+}
+
 void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
 {
 	std::string _signal = signal.utf8().get_data();
@@ -3166,19 +3173,19 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 	}
 }
 
-void GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction(void)
-{
-	if (m_actionInProgress)
-		return;
-
-	m_actionInProgress = true;
-	m_allItems = 0;
-	setElapsed(0, true);
-	setNote1(0);
-
-	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeResetNormalsSplatmap, this);
-	m_tp.QueueJob(f);
-}
+//void GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction(void)
+//{
+//	if (m_actionInProgress)
+//		return;
+//
+//	m_actionInProgress = true;
+//	m_allItems = 0;
+//	setElapsed(0, true);
+//	setNote1(0);
+//
+//	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeResetNormalsSplatmap, this);
+//	m_tp.QueueJob(f);
+//}
 
 void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 {
@@ -3241,19 +3248,19 @@ void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 	setMessage(godot::String("Reset completed!"));
 }
 
-void GDN_TheWorld_Edit::editModeGenNormalsAction(void)
-{
-	if (m_actionInProgress)
-		return;
-
-	m_actionInProgress = true;
-	m_allItems = 0;
-	setElapsed(0, true);
-	setNote1(0);
-
-	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeGenNormals, this);
-	m_tp.QueueJob(f);
-}
+//void GDN_TheWorld_Edit::editModeGenNormalsAction(void)
+//{
+//	if (m_actionInProgress)
+//		return;
+//
+//	m_actionInProgress = true;
+//	m_allItems = 0;
+//	setElapsed(0, true);
+//	setNote1(0);
+//
+//	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeGenNormals, this);
+//	m_tp.QueueJob(f);
+//}
 
 void GDN_TheWorld_Edit::editModeGenNormals(void)
 {
@@ -3546,19 +3553,20 @@ void GDN_TheWorld_Edit::generateSplatmapForBlendedQuadrants(QuadTree* quadtree, 
 	m_mapModder->deinitRequired(true);
 }
 
-void GDN_TheWorld_Edit::editModeApplyTexturesAction(void)
-{
-	if (m_actionInProgress)
-		return;
+//void GDN_TheWorld_Edit::editModeApplyTexturesAction(void)
+//{
+//	if (m_actionInProgress)
+//		return;
+//
+//	m_actionInProgress = true;
+//	m_allItems = 0;
+//	setElapsed(0, true);
+//	setNote1(0);
+//
+//	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeApplyTextures, this);
+//	m_tp.QueueJob(f);
+//}
 
-	m_actionInProgress = true;
-	m_allItems = 0;
-	setElapsed(0, true);
-	setNote1(0);
-
-	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeApplyTextures, this);
-	m_tp.QueueJob(f);
-}
 void GDN_TheWorld_Edit::editModeApplyTextures(void)
 {
 	editModeApplyTextures_1(true, false);

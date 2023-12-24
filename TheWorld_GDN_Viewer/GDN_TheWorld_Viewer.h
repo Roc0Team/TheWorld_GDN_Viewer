@@ -883,7 +883,7 @@ namespace godot
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
 		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord);
-		void process_initNewQuads(void);
+		void process_initNewQuads(bool processCameraPosForQuadrants);
 		void process_trackMouse(godot::Camera3D* activeCamera);
 		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord);
 		void process_updateMeshForUpdatedChunks(void);

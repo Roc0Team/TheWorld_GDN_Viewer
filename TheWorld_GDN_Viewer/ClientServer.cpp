@@ -287,7 +287,8 @@ namespace TheWorld_ClientServer
 
 		MapClientServerExecution toCallCallback;
 
-		m_tpCallBack.Start("CallBackFromServer", 24);
+		//m_tpCallBack.Start("CallBackFromServer", 24);
+		m_tpCallBack.Start("CallBackFromServer", 5);
 
 		while (true)
 		{
@@ -409,7 +410,8 @@ namespace TheWorld_ClientServer
 		
 		//std::function<void(void)> threadInitFunction = std::bind(&ServerInterface::serverThreadInit, this);
 		//std::function<void(void)> threadDeinitFunction = std::bind(&ServerInterface::serverThreadDeinit, this);
-		m_tpSlowExecutions.Start("SlowServerWorker", 24, /*&threadInitFunction, &threadDeinitFunction,*/ this);
+		//m_tpSlowExecutions.Start("SlowServerWorker", 24, /*&threadInitFunction, &threadDeinitFunction,*/ this);
+		m_tpSlowExecutions.Start("SlowServerWorker", 5, /*&threadInitFunction, &threadDeinitFunction,*/ this);
 		m_tp.Start("ServerWorker", 6, /*&threadInitFunction, &threadDeinitFunction,*/ this);
 		
 		PLOG_INFO << "ServerInterface::onConnect - Server connected";

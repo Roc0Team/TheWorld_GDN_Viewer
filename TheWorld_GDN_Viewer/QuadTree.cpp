@@ -955,46 +955,51 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 {
 	godot::Vector3 quadrantCenter  = getQuadrant()->getCenter();
 	quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
+	m_lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
 
-	float distanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
-
-	if (distanceFromCamera > m_viewer->Globals()->getParamThresholdForGlobalmap())
 	{
-		if (!getQuadrant()->renderGlobalMap())
-			getQuadrant()->renderGlobalMap(true);
-	}
-	else
-	{
-		if (getQuadrant()->renderGlobalMap())
-			getQuadrant()->renderGlobalMap(false);
-	}
-
-//#define THRESHOLD_FOR_TEXTURE_OPTIMIZATION		5000.0f
-#define MIN_RESOLUTION_SHIFT					5	// exponent of 2
-//#define RESOLUTION_INCREMENT					1
-//#define THRESHOLD_INCREMENT_FACTOR				2
-
-	size_t optimizationLevel = 0;	// 0 ==> no optimization
-	
-	if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low)
-	{
-		float thresHoldForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
-		if (distanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT)
+		if (m_viewer->Globals()->getParamThresholdForGlobalmap() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdForGlobalmap())
 		{
-			optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
-			size_t maxOptimizationLevel = m_viewer->Globals()->heightmapResolutionShift() - MIN_RESOLUTION_SHIFT;
-			float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamTextureOptimizationIncrementFactor();
-			thresHoldForTextureOptimization += increment;
-			while (thresHoldForTextureOptimization < distanceFromCamera && optimizationLevel < maxOptimizationLevel)
-			{
-				thresHoldForTextureOptimization += increment;
-				optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
-			}
+			if (!getQuadrant()->renderGlobalMap())
+				getQuadrant()->renderGlobalMap(true);
+		}
+		else
+		{
+			if (getQuadrant()->renderGlobalMap())
+				getQuadrant()->renderGlobalMap(false);
 		}
 	}
 
-	//optimizationLevel = 0;	// DEBUG
-	getQuadrant()->optimizationLevel(optimizationLevel);
+	{
+#define MIN_RESOLUTION_SHIFT					5	// exponent of 2
+		size_t optimizationLevel = 0;	// 0 ==> no optimization
+		if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low)
+		{
+			float thresHoldForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
+			if (m_lastComputedDistanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT)
+			{
+				optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+				size_t maxOptimizationLevel = m_viewer->Globals()->heightmapResolutionShift() - MIN_RESOLUTION_SHIFT;
+				float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamTextureOptimizationIncrementFactor();
+				thresHoldForTextureOptimization += increment;
+				while (thresHoldForTextureOptimization < m_lastComputedDistanceFromCamera && optimizationLevel < maxOptimizationLevel)
+				{
+					thresHoldForTextureOptimization += increment;
+					optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+				}
+			}
+		}
+		//optimizationLevel = 0;	// DEBUG
+		getQuadrant()->optimizationLevel(optimizationLevel);
+	}
+
+	{
+		if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low 
+			&& m_viewer->Globals()->getParamThresholdCacheHeights()  > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights())
+			getQuadrant()->canReleaseHeigthsBuffer(true);
+		else
+			getQuadrant()->canReleaseHeigthsBuffer(false);
+	}
 }
 
 bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t maxProcessDuration, bool force)
@@ -3083,7 +3088,9 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 
 	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getMeshResolutionLevel() == MeshResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
 	//	m_float16HeigthsBuffer.clear();
-	
+	if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && canReleaseHeigthsBuffer())
+		m_float16HeigthsBuffer.clear();
+
 	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getTexResolutionLevel() == TexResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
 	//	clearCachedTexture();
 
@@ -3332,13 +3339,17 @@ void Quadrant::loadTerrainDataFromCache(void)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1 ") + __FUNCTION__, "ALL");
 
-	if (empty())
-		return;
-	
 	//PLOG_DEBUG << "START loadTerrainDataFromCache";
 
 	while (lockInternalData() == false)
 		Sleep(1);
+
+	//if (empty())
+	//{
+	//	m_quadTree->setStatus(QuadrantStatus::initialized);
+	//	unlockInternalData();
+	//	return;
+	//}
 
 	m_quadTree->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
 
@@ -3414,7 +3425,11 @@ void Quadrant::loadTerrainDataFromCache(void)
 
 bool Quadrant::canHaveCollisionInfo(void)
 {
-	if (m_viewer->editMode())
+	//if (m_viewer->editMode())
+	//	return true;
+
+	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
+	if (editModeUIControl != nullptr && editModeUIControl->initilized() && editModeUIControl->collisionsEnabled())
 		return true;
 
 	bool colliderCanHaveCollisionInfo = true;

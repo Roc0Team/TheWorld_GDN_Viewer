@@ -658,6 +658,14 @@ namespace godot
 		{
 			return m_renderGlobalMap;
 		}
+		void canReleaseHeigthsBuffer(bool b)
+		{
+			m_canReleaseHeigthsBuffer = b;
+		}
+		bool canReleaseHeigthsBuffer(void)
+		{
+			return m_canReleaseHeigthsBuffer;
+		}
 		void renderGlobalMapChanged(bool b);
 		bool renderGlobalMapChanged(void)
 		{
@@ -733,6 +741,7 @@ namespace godot
 
 		bool m_renderGlobalMap = false;
 		bool m_renderGlobalMapChanged = false;
+		bool m_canReleaseHeigthsBuffer = false;
 		size_t m_optimizationLevel = 0;
 		bool m_optimizationLevelChanged = false;
 
@@ -1247,6 +1256,9 @@ namespace godot
 		}
 		void setStatus(enum class QuadrantStatus status)
 		{
+			if (status == QuadrantStatus::loadTerrainDataFromCacheNeeded)
+				m_status = status;
+
 			m_lastStatusChange = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 			m_status = status;
 			Quadrant* quadrant = getQuadrant();
@@ -1350,6 +1362,7 @@ namespace godot
 		bool m_colliderNeedReset = false;
 		godot::Vector3 m_quadCenterGlobal;
 		real_t m_splitDistance = 0;
+		float m_lastComputedDistanceFromCamera = 0;
 
 		// Statistics
 		int m_numSplits;

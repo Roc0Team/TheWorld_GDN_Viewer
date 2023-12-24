@@ -3115,7 +3115,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	// To activate _process method add this Node to a Godot Scene
 	//Godot::print("GDN_TheWorld_Viewer::_process");
 
-#define MAX_PROCESS_DURATION	50000
+#define MAX_PROCESS_DURATION	100000
 	size_t maxProcessDuration = MAX_PROCESS_DURATION;
 
 	m_lastProcessDuration = 0;
@@ -3426,7 +3426,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.04 ") + __FUNCTION__, "Init new quadrants");
-		process_initNewQuads();
+		process_initNewQuads(processCameraPosForQuadrants);
 		size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::process_initNewQuads);
 		if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
 		{
@@ -3710,7 +3710,7 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 	}
 }
 
-void GDN_TheWorld_Viewer::process_initNewQuads(void)
+void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants)
 {
 	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Init new quads", false, false);
 	clock1.tick();
@@ -3726,47 +3726,49 @@ void GDN_TheWorld_Viewer::process_initNewQuads(void)
 	std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
 	if (lock.owns_lock())
 	{
-		bool exitForNow = false;
-		for (size_t distance = 0; distance <= m_numCacheQuadrantOnPerimeter; distance++)
 		{
-			for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
+			bool exitForNow = false;
+			for (size_t distance = 0; distance <= m_numCacheQuadrantOnPerimeter; distance++)
 			{
-				//if (itQuadTree->second->status() != QuadrantStatus::initialized)
-				//if (itQuadTree->second->status() != QuadrantStatus::initialized && itQuadTree->second->status() != QuadrantStatus::toErase)
-				if (itQuadTree->second->status() < QuadrantStatus::initialized)
-					allQuadrantInitialized = false;
-
-				Quadrant* quadrant = itQuadTree->second->getQuadrant();
-
-				if (quadrant->internalDataLocked())
-					continue;
-				
-				if (itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded())
+				for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 				{
-					size_t distanceInPerimeterFromCameraQuadrant = quadrant->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
-					//quadrant->setLastDistanceInPerimeterFromCameraQuadrant(distanceInPerimeterFromCameraQuadrant);
-					if (distanceInPerimeterFromCameraQuadrant == distance)
+					//if (itQuadTree->second->status() != QuadrantStatus::initialized)
+					//if (itQuadTree->second->status() != QuadrantStatus::initialized && itQuadTree->second->status() != QuadrantStatus::toErase)
+					if (itQuadTree->second->status() < QuadrantStatus::initialized)
+						allQuadrantInitialized = false;
+
+					Quadrant* quadrant = itQuadTree->second->getQuadrant();
+
+					if (quadrant->internalDataLocked())
+						continue;
+
+					if (itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded())
 					{
-						float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
-						if (itQuadTree->second->statusUninitialized())
-							itQuadTree->second->init(x, y, z, yaw, pitch, roll, false, 0.0f);
-						else	// itQuadTree->second->statusRefreshTerrainDataNeeded()
-							itQuadTree->second->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
-						exitForNow = true;
-						break;
+						size_t distanceInPerimeterFromCameraQuadrant = quadrant->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
+						//quadrant->setLastDistanceInPerimeterFromCameraQuadrant(distanceInPerimeterFromCameraQuadrant);
+						if (distanceInPerimeterFromCameraQuadrant == distance)
+						{
+							float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
+							if (itQuadTree->second->statusUninitialized())
+								itQuadTree->second->init(x, y, z, yaw, pitch, roll, false, 0.0f);
+							else	// itQuadTree->second->statusRefreshTerrainDataNeeded()
+								itQuadTree->second->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
+							exitForNow = true;
+							break;
+						}
 					}
+
+					//if (itQuadTree->second->statusLoadTerrainDataFromCacheNeeded())
+					//{
+					//	itQuadTree->second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
+					//	std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, itQuadTree->second->getQuadrant());
+					//	m_tpClientWorker.QueueJob(f);
+					//}
 				}
 
-				if (itQuadTree->second->statusLoadTerrainDataFromCacheNeeded())
-				{
-					itQuadTree->second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
-					std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, itQuadTree->second->getQuadrant());
-					m_tpClientWorker.QueueJob(f);
-				}
+				if (exitForNow)
+					break;
 			}
-
-			if (exitForNow)
-				break;
 		}
 
 		lock.unlock();
@@ -4743,7 +4745,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 					if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
 					{
 						m_lastProcessExecutionInterrupted = true;
-						return;
+						itQuadTree->second->getQuadrant()->unlockInternalData();
+						break;
 					}
 				}
 
@@ -4754,7 +4757,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 					if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
 					{
 						m_lastProcessExecutionInterrupted = true;
-						return;
+						itQuadTree->second->getQuadrant()->unlockInternalData();
+						break;
 					}
 				}
 

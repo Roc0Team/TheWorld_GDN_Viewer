@@ -1955,7 +1955,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER)
 		{
 			GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-			if (editModeUIControl != nullptr && editModeUIControl->initilized())
+			if (editModeUIControl != nullptr && editModeUIControl->initialized())
 				editModeUIControl->replyFromServer(reply);
 		}
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_DEPLOYLEVEL)
@@ -2378,7 +2378,7 @@ void GDN_TheWorld_Viewer::toggleQuadrantSelected(void)
 		}
 
 		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-		if (editModeUIControl == nullptr || !editModeUIControl->initilized())
+		if (editModeUIControl == nullptr || !editModeUIControl->initialized())
 		{
 			createEditModeUI();
 			editModeUIControl = EditModeUIControl();
@@ -2730,7 +2730,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 		//case NOTIFICATION_WM_SIZE_CHANGED:
 		//{
 		//	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-		//	if (editModeUIControl != nullptr && editModeUIControl->initilized())
+		//	if (editModeUIControl != nullptr && editModeUIControl->initialized())
 		//		editModeUIControl->controlNeedResize();
 		//}
 		//break;
@@ -2740,7 +2740,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 void GDN_TheWorld_Viewer::viewportSizeChanged(void)
 {
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-	if (editModeUIControl != nullptr && editModeUIControl->initilized())
+	if (editModeUIControl != nullptr && editModeUIControl->initialized())
 		editModeUIControl->controlNeedResize();
 }
 
@@ -3304,7 +3304,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 godot::Control* GDN_TheWorld_Viewer::getOrCreateEditModeUIControl(void)
 {
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-	if (editModeUIControl == nullptr || !editModeUIControl->initilized())
+	if (editModeUIControl == nullptr || !editModeUIControl->initialized())
 	{
 		createEditModeUI();
 		editModeUIControl = EditModeUIControl();
@@ -3354,7 +3354,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	}
 
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-	if (editModeUIControl != nullptr && editModeUIControl->initilized())
+	if (editModeUIControl != nullptr && editModeUIControl->initialized())
 	{
 		if (m_editMode)
 		{
@@ -3727,48 +3727,48 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 	if (lock.owns_lock())
 	{
 		{
-			bool exitForNow = false;
-			for (size_t distance = 0; distance <= m_numCacheQuadrantOnPerimeter; distance++)
+		bool exitForNow = false;
+		for (size_t distance = 0; distance <= m_numCacheQuadrantOnPerimeter; distance++)
+		{
+			for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 			{
-				for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
+				//if (itQuadTree->second->status() != QuadrantStatus::initialized)
+				//if (itQuadTree->second->status() != QuadrantStatus::initialized && itQuadTree->second->status() != QuadrantStatus::toErase)
+				if (itQuadTree->second->status() < QuadrantStatus::initialized)
+					allQuadrantInitialized = false;
+
+				Quadrant* quadrant = itQuadTree->second->getQuadrant();
+
+				if (quadrant->internalDataLocked())
+					continue;
+				
+				if (itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded())
 				{
-					//if (itQuadTree->second->status() != QuadrantStatus::initialized)
-					//if (itQuadTree->second->status() != QuadrantStatus::initialized && itQuadTree->second->status() != QuadrantStatus::toErase)
-					if (itQuadTree->second->status() < QuadrantStatus::initialized)
-						allQuadrantInitialized = false;
-
-					Quadrant* quadrant = itQuadTree->second->getQuadrant();
-
-					if (quadrant->internalDataLocked())
-						continue;
-
-					if (itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded())
+					size_t distanceInPerimeterFromCameraQuadrant = quadrant->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
+					//quadrant->setLastDistanceInPerimeterFromCameraQuadrant(distanceInPerimeterFromCameraQuadrant);
+					if (distanceInPerimeterFromCameraQuadrant == distance)
 					{
-						size_t distanceInPerimeterFromCameraQuadrant = quadrant->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
-						//quadrant->setLastDistanceInPerimeterFromCameraQuadrant(distanceInPerimeterFromCameraQuadrant);
-						if (distanceInPerimeterFromCameraQuadrant == distance)
-						{
-							float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
-							if (itQuadTree->second->statusUninitialized())
-								itQuadTree->second->init(x, y, z, yaw, pitch, roll, false, 0.0f);
-							else	// itQuadTree->second->statusRefreshTerrainDataNeeded()
-								itQuadTree->second->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
-							exitForNow = true;
-							break;
-						}
+						float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
+						if (itQuadTree->second->statusUninitialized())
+							itQuadTree->second->init(x, y, z, yaw, pitch, roll, false, 0.0f);
+						else	// itQuadTree->second->statusRefreshTerrainDataNeeded()
+							itQuadTree->second->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
+						exitForNow = true;
+						break;
 					}
-
-					//if (itQuadTree->second->statusLoadTerrainDataFromCacheNeeded())
-					//{
-					//	itQuadTree->second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
-					//	std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, itQuadTree->second->getQuadrant());
-					//	m_tpClientWorker.QueueJob(f);
-					//}
 				}
 
-				if (exitForNow)
-					break;
+				//if (itQuadTree->second->statusLoadTerrainDataFromCacheNeeded())
+				//{
+				//	itQuadTree->second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
+				//	std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, itQuadTree->second->getQuadrant());
+				//	m_tpClientWorker.QueueJob(f);
+				//}
 			}
+
+			if (exitForNow)
+				break;
+		}
 		}
 
 		lock.unlock();
@@ -3834,7 +3834,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 
 			if (m_mouseTrackedOnTerrain)
 			{
-				if (m_editMode && editModeUIControl && editModeUIControl->initilized())
+				if (m_editMode && editModeUIControl && editModeUIControl->initialized())
 					editModeUIControl->setMouseHitLabelText(std::string("X=") + std::to_string(m_trackedMouseHit.x) + " Y=" + std::to_string(m_trackedMouseHit.y) + " Z=" + std::to_string(m_trackedMouseHit.z));
 
 				if (rayArray.has("collider"))
@@ -3877,7 +3877,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 								trackedMouseHitChanged(quadrantHit, adjacentQuadrantsHit, true, m_trackedMouseHit);
 							}
 
-							if (m_editMode && editModeUIControl && editModeUIControl->initilized())
+							if (m_editMode && editModeUIControl && editModeUIControl->initialized())
 							{
 
 								editModeUIControl->setMouseQuadHitLabelText(mouseQuadrantHitName + " " + mouseQuadrantHitTag);
@@ -4055,7 +4055,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::lis
 bool GDN_TheWorld_Viewer::mouseInsideMainEditPanel(void)
 {
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-	if (editModeUIControl != nullptr && editModeUIControl->initilized())
+	if (editModeUIControl != nullptr && editModeUIControl->initialized())
 		return editModeUIControl->mouseInsideEditPanel();
 	else
 		return false;
@@ -5485,7 +5485,7 @@ void GDN_TheWorld_Viewer::createEditModeUI(void)
 			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Create Control error!").c_str()));
 	}
 
-	if (!editModeUIControl->initilized())
+	if (!editModeUIControl->initialized())
 	{
 		editModeUIControl->init(this);
 		//SceneTree* scene = get_tree();
@@ -5584,7 +5584,7 @@ bool GDN_TheWorld_Viewer::terrainShiftPermitted(void)
 {
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 
-	if (editModeUIControl == nullptr || !editModeUIControl->initilized())
+	if (editModeUIControl == nullptr || !editModeUIControl->initialized())
 		return true;
 	else
 	{
@@ -6116,7 +6116,7 @@ void GDN_TheWorld_Viewer::dump()
 
 	{
 		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-		if (editModeUIControl != nullptr && !editModeUIControl->initilized())
+		if (editModeUIControl != nullptr && !editModeUIControl->initialized())
 			editModeUIControl = nullptr;
 
 		std::map<size_t, size_t> mapOptimizationLevels;

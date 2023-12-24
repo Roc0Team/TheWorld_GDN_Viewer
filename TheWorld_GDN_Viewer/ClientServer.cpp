@@ -412,7 +412,7 @@ namespace TheWorld_ClientServer
 		//std::function<void(void)> threadDeinitFunction = std::bind(&ServerInterface::serverThreadDeinit, this);
 		//m_tpSlowExecutions.Start("SlowServerWorker", 24, /*&threadInitFunction, &threadDeinitFunction,*/ this);
 		m_tpSlowExecutions.Start("SlowServerWorker", 5, /*&threadInitFunction, &threadDeinitFunction,*/ this);
-		m_tp.Start("ServerWorker", 6, /*&threadInitFunction, &threadDeinitFunction,*/ this);
+		m_tp.Start("ServerWorker", 5, /*&threadInitFunction, &threadDeinitFunction,*/ this);
 		
 		PLOG_INFO << "ServerInterface::onConnect - Server connected";
 		return THEWORLD_CLIENTSERVER_RC_OK;

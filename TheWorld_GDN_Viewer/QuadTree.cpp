@@ -3429,7 +3429,7 @@ bool Quadrant::canHaveCollisionInfo(void)
 	//	return true;
 
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
-	if (editModeUIControl != nullptr && editModeUIControl->initilized() && editModeUIControl->collisionsEnabled())
+	if (editModeUIControl != nullptr && editModeUIControl->initialized() && editModeUIControl->collisionsEnabled())
 		return true;
 
 	bool colliderCanHaveCollisionInfo = true;

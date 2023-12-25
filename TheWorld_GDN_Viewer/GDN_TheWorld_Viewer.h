@@ -866,6 +866,14 @@ namespace godot
 		{
 			return m_processSteps.addStep(idx);
 		}
+		void forceProcessCameraPosForQuadrants(void)
+		{
+			m_lastProcessedCameraPosForQuadrants = godot::Vector3();
+		}
+		void forceProcessCameraPosForChunks(void)
+		{
+			m_lastProcessedCameraPosForChunks = godot::Vector3();
+		}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -888,7 +896,7 @@ namespace godot
 		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord);
 		void process_updateMeshForUpdatedChunks(void);
 		void process_lookDev(void);
-		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, size_t maxProcessDuration);
+		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks, size_t maxProcessDuration);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 

@@ -550,7 +550,7 @@ void Chunk::applyDebugMesh()
 {
 }
 
-void Chunk::getGlobalCoordAABB(AABB& aabb, int firstWorldVertCol, int lastWorldVertCol, int firstWorldVertRow, int lastWorldVertRow, int step)
+void Chunk::getGlobalCoordAABB(godot::AABB& aabb, int firstWorldVertCol, int lastWorldVertCol, int firstWorldVertRow, int lastWorldVertRow, int step)
 {
 	//TheWorld_Utils::GuardProfiler profiler(std::string("getGlobalCoordAABB 1 ") + __FUNCTION__, "ALL");
 
@@ -560,8 +560,18 @@ void Chunk::getGlobalCoordAABB(AABB& aabb, int firstWorldVertCol, int lastWorldV
 	int idxFirstColLastRowWorldVert = numWorldVerticesPerSize * lastWorldVertRow + firstWorldVertCol;
 	int idxLastColLastRowWorldVert = numWorldVerticesPerSize * lastWorldVertRow + lastWorldVertCol;
 
+	godot::AABB emptyAABB;
+	Quad* root = m_quadTree->getRoot();
+	Quad* quad = getQuad();
+	if (root == quad)
+	{
+		aabb = m_quadTree->getQuadrant()->getGlobalAABB();
+		if (aabb != emptyAABB)
+			return;
+	}
+
 	// altitudes
-	float minHeigth = 0, maxHeigth = 0;
+	float minHeight = 0, maxHeight = 0;
 	bool firstTime = true;
 	for (int idxRow = 0; idxRow < lastWorldVertRow - firstWorldVertRow + 1; idxRow += step)
 	{
@@ -569,21 +579,22 @@ void Chunk::getGlobalCoordAABB(AABB& aabb, int firstWorldVertCol, int lastWorldV
 		{
 			if (firstTime)
 			{
-				minHeigth = maxHeigth = m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert);
+				minHeight = maxHeight = m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert);
 				firstTime = false;
 			}
 			else
 			{
-				minHeigth = TheWorld_Viewer_Utils::Utils::min2(minHeigth, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
-				maxHeigth = TheWorld_Viewer_Utils::Utils::max2(maxHeigth, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
+				minHeight = TheWorld_Viewer_Utils::Utils::min2(minHeight, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
+				maxHeight = TheWorld_Viewer_Utils::Utils::max2(maxHeight, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
 			}
 		}
 	}
 
-	Vector3 startPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxFirstColFirstRowWorldVert), minHeigth, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxFirstColFirstRowWorldVert));
-	//Vector3 endPosition(m_worldVertices[idxLastColLastRowWorldVert].posX() - m_worldVertices[idxFirstColFirstRowWorldVert].posX(), maxHeigth, m_worldVertices[idxLastColLastRowWorldVert].posZ() - m_worldVertices[idxFirstColFirstRowWorldVert].posZ());
-	Vector3 endPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxLastColLastRowWorldVert), maxHeigth, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxLastColLastRowWorldVert));
-	Vector3 size = endPosition - startPosition;
+	godot::Vector3 startPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxFirstColFirstRowWorldVert), minHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxFirstColFirstRowWorldVert));
+	//godot::Vector3 endPosition(m_worldVertices[idxLastColLastRowWorldVert].posX() - m_worldVertices[idxFirstColFirstRowWorldVert].posX(), maxHeigth, m_worldVertices[idxLastColLastRowWorldVert].posZ() - m_worldVertices[idxFirstColFirstRowWorldVert].posZ());
+	godot::Vector3 endPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxLastColLastRowWorldVert), maxHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxLastColLastRowWorldVert));
+
+	godot::Vector3 size = endPosition - startPosition;
 
 	aabb.set_position(startPosition);
 	aabb.set_size(size);

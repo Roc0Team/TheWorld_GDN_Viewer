@@ -507,15 +507,17 @@ namespace godot
 			setGlobalmapUpdated(true);
 		}
 
-		TheWorld_Utils::TerrainEdit* getTerrainEdit(void)
+		TheWorld_Utils::TerrainEdit* getTerrainEdit(bool create = true)
 		{
-			if (m_terrainEdit == nullptr)
+			if (m_terrainEdit == nullptr && create)
 			{
 				m_terrainEdit = make_unique<TheWorld_Utils::TerrainEdit>();
 			}
 			return m_terrainEdit.get();
 		}
 
+		godot::AABB getGlobalAABB(void);
+		
 		void setNeedUploadToServer(bool b)
 		{
 			m_needUploadToServer = b;
@@ -571,7 +573,10 @@ namespace godot
 		}
 		void setNormalsUpdated(bool b)
 		{
-			m_normalsUpdated = b;
+			if (b)
+				m_normalsUpdated = b;
+			else
+				m_normalsUpdated = b;
 		}
 		bool normalsUpdated(void)
 		{
@@ -672,14 +677,7 @@ namespace godot
 			return m_renderGlobalMapChanged;
 		}
 
-		void optimizationLevel(size_t level)
-		{
-			if (m_optimizationLevel != level)
-			{
-				m_optimizationLevel = level;
-				optimizationLevelChanged(true);
-			}
-		}
+		void optimizationLevel(size_t level);
 		size_t optimizationLevel(void)
 		{
 			return m_optimizationLevel;
@@ -1360,8 +1358,8 @@ namespace godot
 		bool m_hitByMouse = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
 		bool m_colliderNeedReset = false;
-		godot::Vector3 m_quadCenterGlobal;
-		real_t m_splitDistance = 0;
+		//godot::Vector3 m_quadCenterGlobal;
+		//real_t m_splitDistance = 0;
 		float m_lastComputedDistanceFromCamera = 0;
 
 		// Statistics

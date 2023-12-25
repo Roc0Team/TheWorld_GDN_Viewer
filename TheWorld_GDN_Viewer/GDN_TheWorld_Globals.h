@@ -29,8 +29,8 @@
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER								2	// 1
 #define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES									true
 #define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS					true
-#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS						true
-#define THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS								0.0f	// 20000.0F	// 15000.0F
+#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS						false
+#define THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS								20000.0f	// 0.0f	// 20000.0F	// 15000.0F
 #define THEWORLD_DEFAULT_COLLISION_DATA_FOR_LOWRES_QUADRANTS					false
 #define THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS								false
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP								0.0f	// 200000.0f
@@ -569,12 +569,12 @@ namespace godot
 		{
 			return m_paramCacheHeightsForLowResQuadrants;
 		}
-		//void setParamCacheHeightsForLowResQuadrants(bool b);
+		void setParamCacheHeightsForLowResQuadrants(bool b);
 		float getParamThresholdCacheHeights(void)
 		{
 			return m_paramThresholdCacheHeights;
 		}
-		//void setParamThresholdCacheHeights(float f);
+		void setParamThresholdCacheHeights(float f);
 		bool getParamCollisionDataForLowResQuadrants(void)
 		{
 			return m_paramCollisionDataForLowResQuadrants;

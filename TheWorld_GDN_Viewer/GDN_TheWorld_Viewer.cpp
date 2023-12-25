@@ -3115,7 +3115,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	// To activate _process method add this Node to a Godot Scene
 	//Godot::print("GDN_TheWorld_Viewer::_process");
 
-#define MAX_PROCESS_DURATION	100000
+#define MAX_PROCESS_DURATION	200000
 	size_t maxProcessDuration = MAX_PROCESS_DURATION;
 
 	m_lastProcessDuration = 0;
@@ -3532,7 +3532,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.10 ") + __FUNCTION__, "Process Material Params");
-		process_materialParam(cameraPosGlobalCoord, processCameraPosForQuadrants, maxProcessDuration);
+		process_materialParam(cameraPosGlobalCoord, processCameraPosForQuadrants, processCameraPosForChunks, maxProcessDuration);
 		if (m_lastProcessExecutionInterrupted)
 			return;
 	}
@@ -3573,6 +3573,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 					if (!editModeUIControl->isQuadToSave(pos) && !quadTreeToErase->getQuadrant()->needUploadToServer())
 					{
 						numErased = m_mapQuadTree.erase(pos);
+						m_adjacentQuadrantsHit.remove(quadTreeToErase);
 						toErase.push_back(pos);
 						break;
 					}
@@ -3777,7 +3778,10 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 		{
 			// m_numVisibleQuadrantOnPerimeter == 1
 			if (Globals()->status() == TheWorldStatus::worldDeployInProgress && ((m_numVisibleQuadrantOnPerimeter == 0 && m_mapQuadTree.size() == 1) || m_mapQuadTree.size() > 1))
+			{
 				Globals()->setStatus(TheWorldStatus::worldDeployed);
+				m_refreshRequired = true;
+			}
 
 			if (m_streamingTime.counterStarted())
 			{
@@ -4634,7 +4638,7 @@ void GDN_TheWorld_Viewer::process_lookDev(void)
 	m_desideredLookDevChanged = false;
 }
 
-void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, size_t maxProcessDuration)
+void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks, size_t maxProcessDuration)
 {
 	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Material Params", false, false);
 	clock1.tick();
@@ -4716,7 +4720,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 		
 		for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 		{
-			if (processCameraPosForQuadrants)
+			if (processCameraPosForChunks)
 				itQuadTree->second->setOptimizations(cameraPosGlobalCoord);
 			
 			bool materialParamsReset = false;

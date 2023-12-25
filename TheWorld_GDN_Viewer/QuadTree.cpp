@@ -391,6 +391,13 @@ void QuadTree::getAdjacentQuadrants(std::list<QuadTree*>& adjacentQuadrantsHit)
 
 void QuadTree::update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updateStage, int& numSplitRequired)
 {
+	if (statusLoadTerrainDataFromCacheInProgress() || statusLoadTerrainDataFromCacheNeeded())
+	{
+		m_viewer->forceProcessCameraPosForChunks();
+		return;
+	}
+	
+	
 	if (!isValid())
 		return;
 
@@ -416,15 +423,15 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		float chunkSizeInWUs = globals->gridStepInHeightmapWUs(quad->Lod()) * globals->numVerticesPerChuckSide();									// chunk size in World Units
 		AABB chunkAABB = quad->getChunkAABB();
-		m_quadCenterGlobal = godot::Vector3(real_t((quad->slotPosX() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerXGridVertex() + chunkSizeInWUs / 2),
+		Vector3 quadCenterGlobal(real_t((quad->slotPosX() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerXGridVertex() + chunkSizeInWUs / 2),
 			(chunkAABB.position + chunkAABB.size / 2).y,
 			real_t((quad->slotPosZ() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerZGridVertex() + chunkSizeInWUs / 2));
 
 		Transform3D gt = m_viewer->get_global_transform();
-		Transform3D t = gt * Transform3D(Basis(), m_quadCenterGlobal);
-		m_quadCenterGlobal = t.origin;
+		Transform3D t = gt * Transform3D(Basis(), quadCenterGlobal);
+		quadCenterGlobal = t.origin;
 
-		m_splitDistance = chunkSizeInWUs * globals->splitScale();
+		float splitDistance = chunkSizeInWUs * globals->splitScale();
 		//real_t splitDistance = m_worldQuadrant->getPos().getSizeInWU() * globals->splitScale();
 		if (quad->isLeaf())
 		{
@@ -436,13 +443,14 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 			m_numLeaf++;
 			if (quad->Lod() > 0)
 			{
-				real_t distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+				real_t distance = quadCenterGlobal.distance_to(cameraPosGlobalCoord);
 				quad->getChunk()->setDistanceFromCamera(distance);
-				if (distance < m_splitDistance)
+				if (distance < splitDistance)
 				{
 					if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunks())
 					{
 						setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
+						m_viewer->forceProcessCameraPosForChunks();
 					}
 					else if (status() == QuadrantStatus::initialized)
 					{
@@ -458,6 +466,11 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 						quad->setJustSplitted(true);
 						splitted = true;
 						m_numSplits++;
+						getQuadrant()->canReleaseHeigthsBuffer(false);
+					} 
+					else
+					{
+						m_viewer->forceProcessCameraPosForChunks();
 					}
 				}
 			}
@@ -476,21 +489,21 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 					allChildrenAreLeaf = false;
 			}
 
-			//if (allChildrenAreLeaf)
-			//{
-			//	real_t distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
-			//	if (distance > m_splitDistance)
-			//	{
-			//		// Join
-			//		quad->clearChildren();
-			//		quad->assignChunk();
-			//		quad->getChunk()->setJustJoined(true);
-			//		quad->setJustJoined(true);
-			//		m_numJoins++;
-			//		quad->getChunk()->checkMouseHit();
-			//		quad->getChunk()->setDistanceFromCamera(distance);
-			//	}
-			//}
+			if (allChildrenAreLeaf)
+			{
+				real_t distance = quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+				if (distance > splitDistance)
+				{
+					// Join
+					quad->clearChildren();
+					quad->assignChunk();
+					quad->getChunk()->setJustJoined(true);
+					quad->setJustJoined(true);
+					m_numJoins++;
+					quad->getChunk()->checkMouseHit();
+					quad->getChunk()->setDistanceFromCamera(distance);
+				}
+			}
 		}
 
 		// after all if quad is leaf: just joined or was leaf and it has not been splitted
@@ -618,6 +631,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 				if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunks())
 				{
 					setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
+					m_viewer->forceProcessCameraPosForChunks();
 				}
 				else if (status() == QuadrantStatus::initialized)
 				{
@@ -633,6 +647,11 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 					quad->setJustSplitted(true);
 					splitted = true;
 					m_numSplits++;
+					getQuadrant()->canReleaseHeigthsBuffer(false);
+				}
+				else
+				{
+					m_viewer->forceProcessCameraPosForChunks();
 				}
 			}
 
@@ -650,21 +669,21 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 					allChildrenAreLeaf = false;
 			}
 
-			if (allChildrenAreLeaf)
-			{
-				real_t distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
-				if (distance > m_splitDistance && !quad->gotJustSplitted())
-				{
-					// Join
-					quad->clearChildren();
-					quad->assignChunk();
-					quad->getChunk()->setJustJoined(true);
-					quad->setJustJoined(true);
-					m_numJoins++;
-					quad->getChunk()->checkMouseHit();
-					quad->getChunk()->setDistanceFromCamera(distance);
-				}
-			}
+			//if (allChildrenAreLeaf)
+			//{
+			//	real_t distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+			//	if (distance > m_splitDistance && !quad->gotJustSplitted())
+			//	{
+			//		// Join
+			//		quad->clearChildren();
+			//		quad->assignChunk();
+			//		quad->getChunk()->setJustJoined(true);
+			//		quad->setJustJoined(true);
+			//		m_numJoins++;
+			//		quad->getChunk()->checkMouseHit();
+			//		quad->getChunk()->setDistanceFromCamera(distance);
+			//	}
+			//}
 		}
 
 		quad->setSplitRequired(false);
@@ -995,7 +1014,8 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 
 	{
 		if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low 
-			&& m_viewer->Globals()->getParamThresholdCacheHeights()  > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights())
+			&& 
+			((m_viewer->Globals()->getParamThresholdCacheHeights() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights())|| !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants()))
 			getQuadrant()->canReleaseHeigthsBuffer(true);
 		else
 			getQuadrant()->canReleaseHeigthsBuffer(false);
@@ -1488,6 +1508,7 @@ void ShaderTerrainData::releaseLookDevChunkLodMaterials(void)
 	{
 		item.second.unref();
 	}
+	m_lookDevChunkLodMaterials.clear();
 }
 
 godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lod, bool reload)
@@ -1798,10 +1819,13 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 	{
 		std::map<int, godot::Ref<godot::ShaderMaterial>>& lookDevChunkLodMaterials = getLookDevChunkLodMaterials();
 		for (auto& item : lookDevChunkLodMaterials)
-			if (item.second != nullptr && m_viewer->positionVisible())
-				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
-			else
-				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			if (item.second != nullptr)
+			{
+				if (m_viewer->positionVisible())
+					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
+				else
+					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			}
 	}
 	else
 	{
@@ -3089,13 +3113,15 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getMeshResolutionLevel() == MeshResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
 	//	m_float16HeigthsBuffer.clear();
 	if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && canReleaseHeigthsBuffer())
-		m_float16HeigthsBuffer.clear();
+		if (m_float16HeigthsBuffer.size() > 0)
+			m_float16HeigthsBuffer.clear();
 
 	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getTexResolutionLevel() == TexResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
 	//	clearCachedTexture();
 
 	if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
-		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
+		if (m_float16HeigthsBuffer.size() > 0)
+			m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
 										// if m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants() we keep also for invisible quadrant to avoid reload from disk when quadrant become visible (reason is we want it happen during load of invisible quadrants)
 	m_float32HeigthsBuffer.clear();		// needed for collider but releaseTerrainValuesMemory will run after collider
 	m_normalsBuffer.clear();			// we cache image
@@ -3298,6 +3324,24 @@ void Quadrant::saveQuadrantToDiskCache(void)
 	m_cache.writeBufferToDiskCache(buffer);
 }
 
+godot::AABB Quadrant::getGlobalAABB(void)
+{
+	godot::AABB aabb;
+
+	if (m_quadTree->getQuadrant()->getTerrainEdit(false) != nullptr)
+	{
+		float minHeight = m_quadTree->getQuadrant()->getTerrainEdit(false)->minHeight;
+		float maxHeight = m_quadTree->getQuadrant()->getTerrainEdit(false)->maxHeight;
+		godot::Vector3 startPosition = godot::Vector3(m_quadTree->getQuadrant()->getPos().getLowerXGridVertex(), minHeight, m_quadTree->getQuadrant()->getPos().getLowerZGridVertex());
+		godot::Vector3 endPosition = godot::Vector3(m_quadTree->getQuadrant()->getPos().getLowerXGridVertex() + m_quadTree->getQuadrant()->getPos().getSizeInWU(), maxHeight, m_quadTree->getQuadrant()->getPos().getLowerZGridVertex() + m_quadTree->getQuadrant()->getPos().getSizeInWU());
+		godot::Vector3 size = endPosition - startPosition;
+		aabb.set_position(startPosition);
+		aabb.set_size(size);
+	}
+
+	return aabb;
+}
+
 bool Quadrant::needSaveToCache(void)
 {
 	bool needToSave = false;
@@ -3320,6 +3364,16 @@ void Quadrant::renderGlobalMapChanged(bool b)
 	if (m_renderGlobalMapChanged)
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant renderGlobalMapChanged 1 ") + __FUNCTION__, "ALL");
+		m_quadTree->materialParamsNeedReset(true);
+	}
+}
+
+void Quadrant::optimizationLevel(size_t level)
+{
+	if (m_optimizationLevel != level)
+	{
+		m_optimizationLevel = level;
+		optimizationLevelChanged(true);
 		m_quadTree->materialParamsNeedReset(true);
 	}
 }
@@ -3364,19 +3418,15 @@ void Quadrant::loadTerrainDataFromCache(void)
 			setEmpty(true);
 	}
 
-	setHeightsUpdated(true);
-
-	if (m_normalsBuffer.size() > 0)
-		setNormalsUpdated(true);
-
-	if (m_splatmapBuffer.size() > 0)
-		setSplatmapUpdated(true);
-
-	if (m_colormapBuffer.size() > 0)
-		setColorsUpdated(true);
-
-	if (m_globalmapBuffer.size() > 0)
-		setGlobalmapUpdated(true);
+	//setHeightsUpdated(true);
+	//if (m_normalsBuffer.size() > 0)
+	//	setNormalsUpdated(true);
+	//if (m_splatmapBuffer.size() > 0)
+	//	setSplatmapUpdated(true);
+	//if (m_colormapBuffer.size() > 0)
+	//	setColorsUpdated(true);
+	//if (m_globalmapBuffer.size() > 0)
+	//	setGlobalmapUpdated(true);
 
 	//int areaSize = (m_viewer->Globals()->heightmapResolution() + 1) * (m_viewer->Globals()->heightmapResolution() + 1);
 
@@ -3416,10 +3466,11 @@ void Quadrant::loadTerrainDataFromCache(void)
 	//m_globalCoordAABB.set_position(startPosition);
 	//m_globalCoordAABB.set_size(size);
 
+	m_viewer->getMainProcessingMutex().lock();
 	m_quadTree->setStatus(QuadrantStatus::initialized);
-
 	unlockInternalData();
-
+	m_viewer->getMainProcessingMutex().unlock();
+	
 	//PLOG_DEBUG << "END loadTerrainDataFromCache";
 }
 

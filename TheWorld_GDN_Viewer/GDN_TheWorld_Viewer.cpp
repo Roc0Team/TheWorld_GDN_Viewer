@@ -3348,6 +3348,16 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		m_firstProcess = false;
 	}
 
+	static size_t s_num = 0;
+	if (globals->status() == TheWorldStatus::worldDeployInProgress)
+		if (s_num > 10)
+		{
+			m_refreshRequired = true;
+			s_num = 0;
+		}
+		else
+			s_num++;
+
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.02 ") + __FUNCTION__, "Modder work");
 		process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(_delta);

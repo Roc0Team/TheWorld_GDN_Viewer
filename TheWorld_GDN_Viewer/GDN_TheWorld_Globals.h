@@ -560,16 +560,16 @@ namespace godot
 			return m_paramCacheTerrainTextures;
 		}
 		void setParamCacheTerrainTextures(bool b);
-		bool getParamCacheHeightsForInvisibleQuadrants(void)
-		{
-			return m_paramCacheHeightsForInvisibleQuadrants;
-		}
-		void setParamCacheHeightsForInvisibleQuadrants(bool b);
-		bool getParamCacheHeightsForLowResQuadrants(void)
-		{
-			return m_paramCacheHeightsForLowResQuadrants;
-		}
-		void setParamCacheHeightsForLowResQuadrants(bool b);
+		//bool getParamCacheHeightsForInvisibleQuadrants(void)
+		//{
+		//	return m_paramCacheHeightsForInvisibleQuadrants;
+		//}
+		//void setParamCacheHeightsForInvisibleQuadrants(bool b);
+		//bool getParamCacheHeightsForLowResQuadrants(void)
+		//{
+		//	return m_paramCacheHeightsForLowResQuadrants;
+		//}
+		//void setParamCacheHeightsForLowResQuadrants(bool b);
 		float getParamThresholdCacheHeights(void)
 		{
 			return m_paramThresholdCacheHeights;

@@ -1015,7 +1015,7 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 	{
 		if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low 
 			&& 
-			((m_viewer->Globals()->getParamThresholdCacheHeights() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights())|| !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants()))
+			((m_viewer->Globals()->getParamThresholdCacheHeights() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights()) /* || !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants()*/))
 			getQuadrant()->canReleaseHeigthsBuffer(true);
 		else
 			getQuadrant()->canReleaseHeigthsBuffer(false);
@@ -2000,8 +2000,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 			if (m_quadTree->getQuadrant()->heightsUpdated() || m_heightmapImage == nullptr)
 			{
-				if (m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size() > 0)
-				{
+				//if (m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size() > 0)
+				//{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.1 ") + __FUNCTION__, "Create Image from heights buffer");
 
 					size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
@@ -2018,7 +2018,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					m_viewer->getMainProcessingMutex().unlock();
 					m_heightmapImage = im;
 					m_ResizedHeightmapImageMap.clear();
-				}
+				//}
 			}
 
 			if (m_heightmapImage != nullptr)
@@ -3119,9 +3119,9 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getTexResolutionLevel() == TexResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
 	//	clearCachedTexture();
 
-	if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
-		if (m_float16HeigthsBuffer.size() > 0)
-			m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
+	//if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
+	//	if (m_float16HeigthsBuffer.size() > 0)
+	//		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
 										// if m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants() we keep also for invisible quadrant to avoid reload from disk when quadrant become visible (reason is we want it happen during load of invisible quadrants)
 	m_float32HeigthsBuffer.clear();		// needed for collider but releaseTerrainValuesMemory will run after collider
 	m_normalsBuffer.clear();			// we cache image

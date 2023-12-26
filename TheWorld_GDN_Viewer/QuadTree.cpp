@@ -991,30 +991,32 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 
 	{
 #define MIN_RESOLUTION_SHIFT					5	// exponent of 2
-		size_t optimizationLevel = 0;	// 0 ==> no optimization
-		if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low)
+		size_t newOptimizationLevel = 0;	// 0 ==> no optimization
+		//if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low)
+		if (getQuadrant()->quadrantAtMinimumLod())
 		{
 			float thresHoldForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
 			if (m_lastComputedDistanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT)
 			{
-				optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+				newOptimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
 				size_t maxOptimizationLevel = m_viewer->Globals()->heightmapResolutionShift() - MIN_RESOLUTION_SHIFT;
 				float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamTextureOptimizationIncrementFactor();
 				thresHoldForTextureOptimization += increment;
-				while (thresHoldForTextureOptimization < m_lastComputedDistanceFromCamera && optimizationLevel < maxOptimizationLevel)
+				while (thresHoldForTextureOptimization < m_lastComputedDistanceFromCamera && newOptimizationLevel < maxOptimizationLevel)
 				{
 					thresHoldForTextureOptimization += increment;
-					optimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+					newOptimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
 				}
 			}
 		}
 		//optimizationLevel = 0;	// DEBUG
-		getQuadrant()->optimizationLevel(optimizationLevel);
+		getQuadrant()->optimizationLevel(newOptimizationLevel);
 	}
 
 	{
-		if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low 
-			&& 
+		//if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low 
+		if (getQuadrant()->quadrantAtMinimumLod()
+			&&
 			((m_viewer->Globals()->getParamThresholdCacheHeights() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights()) /* || !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants()*/))
 			getQuadrant()->canReleaseHeigthsBuffer(true);
 		else
@@ -1094,9 +1096,9 @@ bool QuadTree::updateCollider(void)
 		colliderNeedReset(false);
 	}
 
-	bool colliderCanHaveCollisionInfo = getQuadrant()->canHaveCollisionInfo();
+	bool colliderCanHaveHiResCollisionInfo = getQuadrant()->canHaveHiResCollisionInfo();
 
-	if (colliderCanHaveCollisionInfo)
+	if (colliderCanHaveHiResCollisionInfo)
 	{
 		if (!collider->hasData())
 		{
@@ -1897,10 +1899,11 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	//std::lock_guard<std::recursive_mutex> lock(quadrantMutex);
 	
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
+	Quadrant* quadrant = m_quadTree->getQuadrant();
 	
 	int _resolution = globals->heightmapResolution() + 1;
 
-	TheWorld_Utils::TerrainEdit* terrainEdit = m_quadTree->getQuadrant()->getTerrainEdit();
+	TheWorld_Utils::TerrainEdit* terrainEdit = quadrant->getTerrainEdit();
 
 	std::string lowElevationTexName = terrainEdit->extraValues.lowElevationTexName_r;
 	if (lowElevationTexName.size() == 0)
@@ -1975,20 +1978,20 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 	m_viewer->getMainProcessingMutex().unlock();
 
-	size_t newResolution;
-	size_t optimizationLevel = m_quadTree->getQuadrant()->optimizationLevel();
-	if (optimizationLevel > 0)
-	{
-		size_t newResolutionShift = globals->heightmapResolutionShift() - optimizationLevel;
-		newResolution = (1 << newResolutionShift) + 1;
-	}
-	bool optimizationLevelChanged = m_quadTree->getQuadrant()->optimizationLevelChanged();
+	size_t optimizationLevel = quadrant->optimizationLevel();
+	size_t newResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
+	//if (optimizationLevel > 0)
+	//{
+	//	size_t newResolutionShift = globals->heightmapResolutionShift() - optimizationLevel;
+	//	newResolution = (1 << newResolutionShift) + 1;
+	//}
+	bool optimizationLevelChanged = quadrant->optimizationLevelChanged();
 	bool resetOptimizationChangeDelayed = false;
 
 	// if heights updated create texture for shader (m_heightmapTexture), it will be freed we passed to the shader
-	if (m_quadTree->getQuadrant()->heightsUpdated() || optimizationLevelChanged)
+	if (quadrant->heightsUpdated() || optimizationLevelChanged)
 	{
-		//if (m_quadTree->statusInitialized() && (!m_quadTree->getQuadrant()->hasHeigthsForChunks() || m_heightmapImage == nullptr))
+		//if (m_quadTree->statusInitialized() && (!quadrant->hasHeigthsForChunks() || m_heightmapImage == nullptr))
 		//{
 		//	m_quadTree->setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 		//	resetOptimizationChangeDelayed = true;
@@ -1998,9 +2001,9 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		//{
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1 ") + __FUNCTION__, "Heightmap");
 
-			if (m_quadTree->getQuadrant()->heightsUpdated() || m_heightmapImage == nullptr)
+			if (quadrant->heightsUpdated() || m_heightmapImage == nullptr)
 			{
-				//if (m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size() > 0)
+				//if (quadrant->getFloat16HeightsBuffer().size() > 0)
 				//{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.1 ") + __FUNCTION__, "Create Image from heights buffer");
 
@@ -2009,9 +2012,9 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					size_t heightmapBufferSizeInBytes = _resolution * _resolution * uint16_t_size;
 					data.resize((int)heightmapBufferSizeInBytes);
 					{
-						size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
+						size_t heightsBufferSize = quadrant->getFloat16HeightsBuffer().size();
 						assert(heightmapBufferSizeInBytes == heightsBufferSize);
-						memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
+						memcpy((char*)data.ptrw(), quadrant->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
 					}
 					m_viewer->getMainProcessingMutex().lock();
 					godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
@@ -2039,7 +2042,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 						m_viewer->incNumTextureResize();
 						TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 
-						//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".heightmap." + std::to_string(_resolution) + ".png";		// DEBUG
+						//std::string outFileName = quadrant->getCacheFilePath() + ".heightmap." + std::to_string(_resolution) + ".png";		// DEBUG
 						//image->save_png(outFileName.c_str());																								// DEBUG
 
 						// doing a copy to resize
@@ -2069,7 +2072,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 							}
 						}
 
-						//outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".heightmap." + std::to_string(newResolution) + ".png";		// DEBUG
+						//outFileName = quadrant->getCacheFilePath() + ".heightmap." + std::to_string(newResolution) + ".png";		// DEBUG
 						//image->save_png(outFileName.c_str());		
 
 						if (globals->getParamCacheTerrainTextures())
@@ -2100,7 +2103,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					m_heightmapImage.unref();
 			}
 
-			m_quadTree->getQuadrant()->setHeightsUpdated(false);
+			quadrant->setHeightsUpdated(false);
 		//}
 	}
 
@@ -2112,13 +2115,13 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	}
 
 	// if normals updated create texture for shader (m_normalmapTexture), it will be freed we passed to the shader. If normals have not been computed we fill the texture with Color(0.5f, 0.5f, 1.0f, 0.0f) (rgb 127, 127, 255, 0 ==> packed vertical normal pointing up)
-	if (m_quadTree->getQuadrant()->normalsUpdated() || optimizationLevelChanged)
+	if (quadrant->normalsUpdated() || optimizationLevelChanged)
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2 ") + __FUNCTION__, "Normalmap");
 
-		if (m_quadTree->getQuadrant()->normalsUpdated() || m_normalmapImage == nullptr)
+		if (quadrant->normalsUpdated() || m_normalmapImage == nullptr)
 		{
-			TheWorld_Utils::MemoryBuffer& normalsBuffer = m_quadTree->getQuadrant()->getNormalsBuffer();
+			TheWorld_Utils::MemoryBuffer& normalsBuffer = quadrant->getNormalsBuffer();
 			size_t normalsBufferSize = normalsBuffer.size();
 
 			if (normalsBufferSize == 0)
@@ -2233,7 +2236,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_normalmapImage.unref();
 		}
 
-		m_quadTree->getQuadrant()->setNormalsUpdated(false);
+		quadrant->setNormalsUpdated(false);
 	}
 
 	elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_normalmap);
@@ -2243,13 +2246,13 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		return;
 	}
 
-	if (!m_quadTree->getQuadrant()->renderGlobalMap() && (m_quadTree->getQuadrant()->splatmapUpdated() || m_quadTree->getQuadrant()->renderGlobalMapChanged() || optimizationLevelChanged))
+	if (!quadrant->renderGlobalMap() && (quadrant->splatmapUpdated() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged))
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Splatmap");
 
-		if (m_quadTree->getQuadrant()->splatmapUpdated() || m_splatmapImage == nullptr)
+		if (quadrant->splatmapUpdated() || m_splatmapImage == nullptr)
 		{
-			TheWorld_Utils::MemoryBuffer& splatmapBuffer = m_quadTree->getQuadrant()->getSplatmapBuffer();
+			TheWorld_Utils::MemoryBuffer& splatmapBuffer = quadrant->getSplatmapBuffer();
 			size_t splatmapBufferSize = splatmapBuffer.size();
 
 			//splatmapBufferSize = 0;
@@ -2353,8 +2356,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_splatmapImage.unref();
 		}
 
-		m_quadTree->getQuadrant()->renderGlobalMapChanged(false);
-		m_quadTree->getQuadrant()->setSplatmapUpdated(false);
+		quadrant->renderGlobalMapChanged(false);
+		quadrant->setSplatmapUpdated(false);
 	}
 
 	elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_splatmap);
@@ -2364,13 +2367,13 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		return;
 	}
 
-	if (m_quadTree->getQuadrant()->renderGlobalMap() && (m_quadTree->getQuadrant()->globalmapUpdated() || m_quadTree->getQuadrant()->renderGlobalMapChanged() || optimizationLevelChanged))
+	if (quadrant->renderGlobalMap() && (quadrant->globalmapUpdated() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged))
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Globalmap");
 
-		if (m_quadTree->getQuadrant()->globalmapUpdated() || m_globalmapImage == nullptr)
+		if (quadrant->globalmapUpdated() || m_globalmapImage == nullptr)
 		{
-			TheWorld_Utils::MemoryBuffer& globalmapBuffer = m_quadTree->getQuadrant()->getGlobalmapBuffer();
+			TheWorld_Utils::MemoryBuffer& globalmapBuffer = quadrant->getGlobalmapBuffer();
 			size_t globalmapBufferSize = globalmapBuffer.size();
 
 			if (globalmapBufferSize == 0)
@@ -2424,7 +2427,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					Ref<Image> im = godot::Image::create_from_data(m_globalmapImage->get_width(), m_globalmapImage->get_height(), false, m_globalmapImage->get_format(), m_globalmapImage->get_data());
 					m_viewer->getMainProcessingMutex().unlock();
 
-					//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".globalmap." + std::to_string(_resolution) + ".png";		// DEBUG
+					//std::string outFileName = quadrant->getCacheFilePath() + ".globalmap." + std::to_string(_resolution) + ".png";		// DEBUG
 					//im->save_png(outFileName.c_str());																									// DEBUG
 
 					im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
@@ -2449,7 +2452,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 						}
 					}
 
-					//outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".globalmap." + std::to_string(newResolution) + ".png";				// DEBUG
+					//outFileName = quadrant->getCacheFilePath() + ".globalmap." + std::to_string(newResolution) + ".png";				// DEBUG
 					//im->save_png(outFileName.c_str());																									// DEBUG
 
 					if (globals->getParamCacheTerrainTextures())
@@ -2480,8 +2483,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_globalmapImage.unref();
 		}
 
-		m_quadTree->getQuadrant()->renderGlobalMapChanged(false);
-		m_quadTree->getQuadrant()->setGlobalmapUpdated(false);
+		quadrant->renderGlobalMapChanged(false);
+		quadrant->setGlobalmapUpdated(false);
 	}
 
 	elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_globalmap);
@@ -2491,13 +2494,13 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		return;
 	}
 
-	if (m_quadTree->getQuadrant()->colorsUpdated() || optimizationLevelChanged)
+	if (quadrant->colorsUpdated() || optimizationLevelChanged)
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5 ") + __FUNCTION__, "Colormap");
 
-		if (m_quadTree->getQuadrant()->colorsUpdated() || m_colormapImage == nullptr)
+		if (quadrant->colorsUpdated() || m_colormapImage == nullptr)
 		{
-			TheWorld_Utils::MemoryBuffer& colormapBuffer = m_quadTree->getQuadrant()->getColormapBuffer();
+			TheWorld_Utils::MemoryBuffer& colormapBuffer = quadrant->getColormapBuffer();
 			size_t colormapBufferSize = colormapBuffer.size();
 
 			if (colormapBufferSize == 0)
@@ -2601,7 +2604,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_colormapImage.unref();
 		}
 
-		m_quadTree->getQuadrant()->setColorsUpdated(false);
+		quadrant->setColorsUpdated(false);
 	}
 
 	elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_colormap);
@@ -2612,7 +2615,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	}
 
 	if (optimizationLevelChanged && !resetOptimizationChangeDelayed)
-		m_quadTree->getQuadrant()->optimizationLevelChanged(false);
+		quadrant->optimizationLevelChanged(false);
 
 	materialParamsNeedUpdate(true);
 }
@@ -2643,7 +2646,9 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 		if (selected)
 			editMode = 1.0f;
 
-		TheWorld_Utils::TerrainEdit* terrainEdit = m_quadTree->getQuadrant()->getTerrainEdit();
+		Quadrant* quadrant = m_quadTree->getQuadrant();
+
+		TheWorld_Utils::TerrainEdit* terrainEdit = quadrant->getTerrainEdit();
 
 		if (lookdev == LookDev::ChunkLod)
 		{
@@ -2656,7 +2661,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				item.second->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, editMode);
 				item.second->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
-				item.second->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, m_quadTree->getQuadrant()->optimizationLevel());
+				item.second->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, quadrant->optimizationLevel());
 				if (m_heightMapTexModified && m_heightmapTexture != nullptr)
 					item.second->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
 		
@@ -2679,7 +2684,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 
 			m_viewer->getMainProcessingMutex().lock();
-			if (m_quadTree->getQuadrant()->textureUpdated() && lookdev == LookDev::NotSet)
+			if (quadrant->textureUpdated() && lookdev == LookDev::NotSet)
 			{
 				godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_albedo_bump_tex;
 				if (lowElevation_albedo_bump_tex != nullptr)
@@ -2737,7 +2742,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 					currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
 				}
 
-				m_quadTree->getQuadrant()->setTextureUpdated(false);
+				quadrant->setTextureUpdated(false);
 			}
 			m_viewer->getMainProcessingMutex().unlock();
 
@@ -2786,7 +2791,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, ground_uv_scale);
 			}
 
-			currentMaterial->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, m_quadTree->getQuadrant()->optimizationLevel());
+			currentMaterial->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, quadrant->optimizationLevel());
 
 			bool depthBlending = m_viewer->getShaderParamDepthBlening();
 			if (lookdev == LookDev::NotSet)
@@ -3075,17 +3080,29 @@ bool Quadrant::internalDataLockedUntilCompleteProcessExecution(void)
 	return m_lockInternalDataUntilCompleteProcessExecution;
 }
 
-enum class Quadrant::MeshResolutionLevel Quadrant::getMeshResolutionLevel(void)
+bool Quadrant::quadrantAtMinimumLod(void)
 {
 	Quad* root = m_quadTree->getRoot();
 	if (root == nullptr)
-		return MeshResolutionLevel::not_set;
+		return true;
 
 	if (root->isLeaf())
-		return MeshResolutionLevel::low;
+		return true;
 	else
-		return MeshResolutionLevel::high;
+		return false;
 }
+
+//enum class Quadrant::MeshResolutionLevel Quadrant::getMeshResolutionLevel(void)
+//{
+//	Quad* root = m_quadTree->getRoot();
+//	if (root == nullptr)
+//		return MeshResolutionLevel::not_set;
+//
+//	if (root->isLeaf())
+//		return MeshResolutionLevel::low;
+//	else
+//		return MeshResolutionLevel::high;
+//}
 
 enum class Quadrant::TexResolutionLevel Quadrant::getTexResolutionLevel(void)
 {
@@ -3474,25 +3491,22 @@ void Quadrant::loadTerrainDataFromCache(void)
 	//PLOG_DEBUG << "END loadTerrainDataFromCache";
 }
 
-bool Quadrant::canHaveCollisionInfo(void)
+bool Quadrant::canHaveHiResCollisionInfo(void)
 {
-	//if (m_viewer->editMode())
-	//	return true;
-
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
 	if (editModeUIControl != nullptr && editModeUIControl->initialized() && editModeUIControl->collisionsEnabled())
 		return true;
 
-	bool colliderCanHaveCollisionInfo = true;
+	bool colliderCanHaveHiResCollisionInfo = true;
 
-	int64_t depthForCollider = m_viewer->Globals()->getParamDepthQuadWithCollisionInfo();
-	if (depthForCollider != 0 && getLastDistanceInPerimeterFromCameraQuadrant() > (size_t)depthForCollider)
-		colliderCanHaveCollisionInfo = false;
+	//int64_t depthForCollider = m_viewer->Globals()->getParamDepthQuadWithCollisionInfo();
+	//if (depthForCollider != 0 && getLastDistanceInPerimeterFromCameraQuadrant() > (size_t)depthForCollider)
+	//	colliderCanHaveHiResCollisionInfo = false;
 	
-	if (getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low && !m_viewer->Globals()->getParamCollisionDataForLowResQuadrants())
-		colliderCanHaveCollisionInfo = false;
+	if (quadrantAtMinimumLod() && !m_viewer->Globals()->getParamForceHiResCollisionInfo())
+		colliderCanHaveHiResCollisionInfo = false;
 	
-	return colliderCanHaveCollisionInfo;
+	return colliderCanHaveHiResCollisionInfo;
 }
 
 godot::Vector3 Quadrant::getNormalFromNormalmap(size_t index, bool& ok)

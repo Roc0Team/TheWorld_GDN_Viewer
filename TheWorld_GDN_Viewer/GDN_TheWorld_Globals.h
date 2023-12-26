@@ -28,10 +28,10 @@
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER								6	// 3
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER								2	// 1
 #define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES									true
-#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS					true
-#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS						false
+//#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS					true
+//#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS						false
 #define THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS								20000.0f	// 0.0f	// 20000.0F	// 15000.0F
-#define THEWORLD_DEFAULT_COLLISION_DATA_FOR_LOWRES_QUADRANTS					false
+#define THEWORLD_DEFAULT_FORCE_HIRES_COLLISION_INFO								false
 #define THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS								false
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_GLOBALMAP								0.0f	// 200000.0f
 #define THEWORLD_DEFAULT_REFRESH_QUADRANTS_FACTOR								1.0f
@@ -39,7 +39,7 @@
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION					5000.0f
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR					4
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				2
-#define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
+//#define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
 #define PLOG_DEFAULT_LEVEL plog::Severity::info
 #define PLOG_DEBUG_LEVEL plog::Severity::verbose
@@ -483,6 +483,8 @@ namespace godot
 		}
 		void setDebugEnabled(bool b = true);
 
+		size_t resolutionForOptimizationLevel(size_t optimizationLevel);
+
 		void setAppInError(int errorCode, String errorText)
 		{
 			godot::PackedByteArray array = errorText.to_ascii_buffer();
@@ -575,11 +577,11 @@ namespace godot
 			return m_paramThresholdCacheHeights;
 		}
 		void setParamThresholdCacheHeights(float f);
-		bool getParamCollisionDataForLowResQuadrants(void)
+		bool getParamForceHiResCollisionInfo(void)
 		{
-			return m_paramCollisionDataForLowResQuadrants;
+			return m_paramForceHiResCollisionInfo;
 		}
-		void setParamCollisionDataForLowResQuadrants(bool b);
+		void setParamForceHiResCollisionInfo(bool b);
 		bool getParamDisableTerrainCollisions(void)
 		{
 			return m_paramDisableTerrainCollisions;
@@ -631,10 +633,10 @@ namespace godot
 			return m_paramTextureOptimizationResolutionIncrement;
 		}
 		void setParamTextureOptimizationResolutionIncrement(int64_t f);
-		int64_t getParamDepthQuadWithCollisionInfo(void)
-		{
-			return m_paramDepthQuadWithCollisionInfo;
-		}
+		//int64_t getParamDepthQuadWithCollisionInfo(void)
+		//{
+		//	return m_paramDepthQuadWithCollisionInfo;
+		//}
 		//void setParamDepthQuadWithCollisionInfo(int64_t f);
 
 		// DEBUG
@@ -676,10 +678,10 @@ namespace godot
 
 		// Node parameters
 		bool m_paramCacheTerrainTextures = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES;
-		bool m_paramCacheHeightsForInvisibleQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS;
-		bool m_paramCacheHeightsForLowResQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS;
+		//bool m_paramCacheHeightsForInvisibleQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS;
+		//bool m_paramCacheHeightsForLowResQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS;
 		float m_paramThresholdCacheHeights = THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS;
-		bool m_paramCollisionDataForLowResQuadrants = THEWORLD_DEFAULT_COLLISION_DATA_FOR_LOWRES_QUADRANTS;
+		bool m_paramForceHiResCollisionInfo = THEWORLD_DEFAULT_FORCE_HIRES_COLLISION_INFO;
 		bool m_paramDisableTerrainCollisions = THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS;
 		float m_paramRefreshQuadrantsFactor = THEWORLD_DEFAULT_REFRESH_QUADRANTS_FACTOR;		// 1 ==> very low rate of refresh, the higher the more frequent the refresh is
 		float m_paramRefreshChunksFactor = THEWORLD_DEFAULT_REFRESH_CHUNKS_FACTOR;		// 1 ==> very low rate of refresh, the higher the more frequent the refresh is
@@ -687,7 +689,7 @@ namespace godot
 		float m_paramThresholdForMapTextureOptimization = THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION;
 		float m_paramTextureOptimizationIncrementFactor = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR;
 		int64_t m_paramTextureOptimizationResolutionIncrement = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT;
-		int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
+		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 	};
 }
 

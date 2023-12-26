@@ -3348,12 +3348,13 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		m_firstProcess = false;
 	}
 
-	static size_t s_num = 0;
-	if (globals->status() == TheWorldStatus::worldDeployInProgress)
+	static size_t s_num = 0, s_loadingWorldRefresh = 0;
+	if (globals->status() == TheWorldStatus::worldDeployInProgress && s_loadingWorldRefresh < 3)
 		if (s_num > 10)
 		{
 			m_refreshRequired = true;
 			s_num = 0;
+			s_loadingWorldRefresh++;
 		}
 		else
 			s_num++;
@@ -6194,7 +6195,8 @@ void GDN_TheWorld_Viewer::dump()
 		Globals()->debugPrint(String("   Render video memory in use : ") + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_VIDEO_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB, for texture " + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_TEXTURE_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB, for buffers " + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_BUFFER_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB");
 		for (auto& item : mapOptimizationLevels)
 		{
-			size_t resizedMapSize = Globals()->heightmapResolution() / (size_t)pow(2, item.first);
+			//size_t resizedMapSize = (Globals()->heightmapResolution() / (size_t)pow(2, item.first)) + 1;
+			size_t resizedMapSize = Globals()->resolutionForOptimizationLevel(item.first);
 			std::string msg = "Num quadrants with optimization level " + std::to_string(item.first) + " : " + std::to_string(item.second) + " - map size : " + std::to_string(resizedMapSize);
 			Globals()->debugPrint(msg.c_str());
 		}

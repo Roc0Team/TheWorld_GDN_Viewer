@@ -365,8 +365,8 @@ namespace godot
 		//ClassDB::bind_method(D_METHOD("get_perfparam_cache_heights_lowres_quadrants"), &GDN_TheWorld_Globals::getParamCacheHeightsForLowResQuadrants);
 		ClassDB::bind_method(D_METHOD("set_perfparam_threshold_cache_heights", "p_value"), &GDN_TheWorld_Globals::setParamThresholdCacheHeights);
 		ClassDB::bind_method(D_METHOD("get_perfparam_threshold_cache_heights"), &GDN_TheWorld_Globals::getParamThresholdCacheHeights);
-		ClassDB::bind_method(D_METHOD("set_perfparam_collision_data_lowres_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCollisionDataForLowResQuadrants);
-		ClassDB::bind_method(D_METHOD("get_perfparam_collision_data_lowres_quadrants"), &GDN_TheWorld_Globals::getParamCollisionDataForLowResQuadrants);
+		ClassDB::bind_method(D_METHOD("set_perfparam_force_hires_collision_info", "p_value"), &GDN_TheWorld_Globals::setParamForceHiResCollisionInfo);
+		ClassDB::bind_method(D_METHOD("get_perfparam_force_hires_collision_info"), &GDN_TheWorld_Globals::getParamForceHiResCollisionInfo);
 		//ClassDB::bind_method(D_METHOD("set_perfparam_depth_quad_with_collision_info"), &GDN_TheWorld_Globals::setParamDepthQuadWithCollisionInfo);
 		//ClassDB::bind_method(D_METHOD("get_perfparam_depth_quad_with_collision_info"), &GDN_TheWorld_Globals::getParamDepthQuadWithCollisionInfo);
 		ClassDB::bind_method(D_METHOD("set_perfparam_disable_terrain_collisions", "p_value"), &GDN_TheWorld_Globals::setParamDisableTerrainCollisions);
@@ -392,7 +392,7 @@ namespace godot
 		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
 		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_lowres_quadrants"), "set_perfparam_cache_heights_lowres_quadrants", "get_perfparam_cache_heights_lowres_quadrants");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_cache_heights"), "set_perfparam_threshold_cache_heights", "get_perfparam_threshold_cache_heights");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_collision_data_lowres_quadrants"), "set_perfparam_collision_data_lowres_quadrants", "get_perfparam_collision_data_lowres_quadrants");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_force_hires_collision_info"), "set_perfparam_force_hires_collision_info", "get_perfparam_force_hires_collision_info");
 		// WARNING: 0 mean that all quadrants have collider data set consuming a lot of memory in the engine, but setting this value permit less memory usage but more time to read data from disk to set data
 		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_depth_quad_with_collision"), "set_perfparam_depth_quad_with_collision_info", "get_perfparam_depth_quad_with_collision_info");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_disable_terrain_collisions"), "set_perfparam_disable_terrain_collisions", "get_perfparam_disable_terrain_collisions");
@@ -742,9 +742,9 @@ namespace godot
 			viewer->resetMaterialParamsForEveryQuadrant();
 	}
 
-	void GDN_TheWorld_Globals::setParamCollisionDataForLowResQuadrants(bool b)
+	void GDN_TheWorld_Globals::setParamForceHiResCollisionInfo(bool b)
 	{
-		m_paramCollisionDataForLowResQuadrants = b;
+		m_paramForceHiResCollisionInfo = b;
 		//GDN_TheWorld_Viewer* viewer = Viewer();
 		//if (viewer != nullptr)
 		//	viewer->resetMaterialParamsForEveryQuadrant();
@@ -841,6 +841,17 @@ namespace godot
 		PLOG(plog::get()->getMaxSeverity()) << "Log severity changed to: " << std::to_string(sev);
 		TheWorld_Utils::Utils::plogSetMaxSeverity(sev);
 		m_client->MapManagerSetLogMaxSeverity(sev);
+	}
+
+	size_t GDN_TheWorld_Globals::resolutionForOptimizationLevel(size_t optimizationLevel)
+	{
+		size_t resolution = heightmapResolution() + 1;
+		if (optimizationLevel > 0)
+		{
+			size_t newResolutionShift = heightmapResolutionShift() - optimizationLevel;
+			resolution = (1 << newResolutionShift) + 1;
+		}
+		return resolution;
 	}
 }
 

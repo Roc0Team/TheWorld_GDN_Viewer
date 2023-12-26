@@ -152,7 +152,7 @@ namespace godot
 		if (areaSize != heightsForCollider.size())
 			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Size of Heigths inconsistent, areaSize=" + std::to_string(areaSize) + " Heigths size=" + std::to_string(heightsForCollider.size())).c_str()));
 
-		size_t size = heightsForCollider.size();
+		//size_t size = heightsForCollider.size();
 		Dictionary data;
 		data["width"] = numVerticesPerSize;			// data["map_width"];	
 		data["depth"] = numVerticesPerSize;			// data["map_depth"];

@@ -272,12 +272,12 @@ namespace godot
 		friend class GDN_TheWorld_Edit;
 		friend class QuadTree;
 
-		enum class MeshResolutionLevel
-		{
-			not_set = -1
-			, low = 0
-			, high = 1
-		};
+		//enum class MeshResolutionLevel
+		//{
+		//	not_set = -1
+		//	, low = 0
+		//	, high = 1
+		//};
 
 		enum class TexResolutionLevel
 		{
@@ -310,7 +310,9 @@ namespace godot
 			return m_quadrantPos;
 		}
 
-		enum class MeshResolutionLevel getMeshResolutionLevel(void);
+		bool quadrantAtMinimumLod(void);
+
+		//enum class MeshResolutionLevel getMeshResolutionLevel(void);
 		enum class TexResolutionLevel getTexResolutionLevel(void);
 
 		void clearCachedTexture(void);
@@ -693,7 +695,7 @@ namespace godot
 			return m_quadrantCenter;
 		}
 
-		bool canHaveCollisionInfo(void);
+		bool canHaveHiResCollisionInfo(void);
 
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);

@@ -853,6 +853,11 @@ namespace godot
 		}
 		return resolution;
 	}
+
+	size_t GDN_TheWorld_Globals::getMaxTextureOptimizationLevel(void)
+	{
+		return heightmapResolutionShift() - MIN_RESOLUTION_SHIFT_FOR_TEXTURE_OPTIMIZATIONS;
+	}
 }
 
 std::string getModuleLoadPath(void)

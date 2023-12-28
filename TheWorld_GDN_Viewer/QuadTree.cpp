@@ -990,16 +990,15 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 	}
 
 	{
-#define MIN_RESOLUTION_SHIFT					5	// exponent of 2
 		size_t newOptimizationLevel = 0;	// 0 ==> no optimization
 		//if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low)
 		if (getQuadrant()->quadrantAtMinimumLod())
 		{
 			float thresHoldForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
-			if (m_lastComputedDistanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT)
+			if (m_lastComputedDistanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT_FOR_TEXTURE_OPTIMIZATIONS)
 			{
 				newOptimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
-				size_t maxOptimizationLevel = m_viewer->Globals()->heightmapResolutionShift() - MIN_RESOLUTION_SHIFT;
+				size_t maxOptimizationLevel = m_viewer->Globals()->getMaxTextureOptimizationLevel();
 				float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamTextureOptimizationIncrementFactor();
 				thresHoldForTextureOptimization += increment;
 				while (thresHoldForTextureOptimization < m_lastComputedDistanceFromCamera && newOptimizationLevel < maxOptimizationLevel)
@@ -1113,12 +1112,17 @@ bool QuadTree::updateCollider(void)
 			{
 				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.3 ") + __FUNCTION__, "Quadrant: updating collider");
 
+				TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+
 				collider->init(m_GDN_Quadrant, 1, 1);
 				collider->enterWorld();
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.3.1 ") + __FUNCTION__, "Quadrant:  set data for collider");
 					updated = collider->setData();
 				}
+
+				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+				m_viewer->incNumSetHiResCollisionData((now - start).count());
 			}
 			else
 			{
@@ -1356,27 +1360,27 @@ ShaderTerrainData::~ShaderTerrainData()
 	m_lookDevMaterial.unref();
 
 	m_heightmapImage.unref();
-	for (auto& item : m_ResizedHeightmapImageMap)
+	for (auto& item : m_resizedHeightmapImageMap)
 		item.second.unref();
 	m_heightmapTexture.unref();
 
 	m_normalmapImage.unref();
-	for (auto& item : m_ResizedNormalmapImageMap)
+	for (auto& item : m_resizedNormalmapImageMap)
 		item.second.unref();
 	m_normalmapTexture.unref();
 
 	m_splatmapImage.unref();
-	for (auto& item : m_ResizedSplatmapImageMap)
+	for (auto& item : m_resizedSplatmapImageMap)
 		item.second.unref();
 	m_splatmapTexture.unref();
 
 	m_globalmapImage.unref();
-	for (auto& item : m_ResizedGlobalmapImageMap)
+	for (auto& item : m_resizedGlobalmapImageMap)
 		item.second.unref();
 	m_globalmapTexture.unref();
 
 	m_colormapImage.unref();
-	for (auto& item : m_ResizedColormapImageMap)
+	for (auto& item : m_resizedColormapImageMap)
 		item.second.unref();
 	m_colormapTexture.unref();
 }
@@ -1842,7 +1846,7 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 void ShaderTerrainData::clearCachedTexture(void)
 {
 	m_heightmapImage.unref();
-	m_ResizedHeightmapImageMap.clear();
+	m_resizedHeightmapImageMap.clear();
 	// other texture
 }
 
@@ -1889,11 +1893,123 @@ godot::Ref<godot::ImageTexture> ShaderTerrainData::getNormalRoughnessTexture(std
 	return s_groundTextures[textureName]->m_normal_roughness_tex;
 }
 
+godot::Ref<godot::Image> ShaderTerrainData::getImageAtResolution(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, std::map<size_t, godot::Ref<godot::Image>>&resizedImageMap, size_t optimizationLevel, size_t resolution)
+{
+	godot::Ref<godot::Image> image;
+	
+	if (optimizationLevel == 0)
+		return hiResImage;
+
+	size_t hiResolution = hiResImage->get_width();
+
+	if (resizedImageMap.contains(resolution))
+	{
+		TheWorld_Utils::GuardProfiler profiler(profileHeader + __FUNCTION__, "get resized image from cache " + std::to_string(hiResolution) + " ==> " + std::to_string(resolution));
+		image = resizedImageMap[resolution];
+	}
+	else
+	{
+		TheWorld_Utils::GuardProfiler profiler(profileHeader + __FUNCTION__, "resize image " + std::to_string(hiResolution) + " ==> " + std::to_string(resolution));
+
+		if (profileHeader.back() == ' ')
+		{
+			profileHeader.back() = '.';
+			profileHeader += "1 ";
+		}
+		else
+			profileHeader += ".1 ";
+		image = resizeImage(profileHeader, m_heightmapImage, resolution, resizedImageMap, optimizationLevel);
+	}
+
+	return image;
+}
+
+godot::Ref<godot::Image> ShaderTerrainData::resizeImage(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, size_t newResolution, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel)
+{
+	m_viewer->incNumTextureResize();
+	
+	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+
+	size_t resolution = hiResImage->get_width();
+
+	//std::string outFileName = quadrant->getCacheFilePath() + ".heightmap." + std::to_string(resolution) + ".png";		// DEBUG
+	//hiResImage->save_png(outFileName.c_str());																		// DEBUG
+
+	// doing a copy to resize
+	m_viewer->getMainProcessingMutex().lock();
+	Ref<Image> resizedImage = godot::Image::create_from_data(hiResImage->get_width(), hiResImage->get_height(), false, hiResImage->get_format(), hiResImage->get_data());
+	m_viewer->getMainProcessingMutex().unlock();
+
+	resizedImage->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
+
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(resolution) + " ==> " + std::to_string(newResolution));
+
+		int32_t newStep = 1 << optimizationLevel;
+		int32_t realImageWidth = hiResImage->get_width();
+		int32_t realImageHeight = hiResImage->get_height();
+		int32_t resizedImageWidth = resizedImage->get_width();
+		int32_t resizedImageHeight = resizedImage->get_height();
+		for (int32_t x = 0; x < resizedImageWidth; x++)
+		{
+			resizedImage->set_pixel(x, 0, hiResImage->get_pixel(x * newStep, 0));
+			resizedImage->set_pixel(x, resizedImageHeight - 1, hiResImage->get_pixel(x * newStep, realImageHeight - 1));
+		}
+		for (int32_t y = 0; y < resizedImageHeight; y++)
+		{
+			resizedImage->set_pixel(0, y, hiResImage->get_pixel(0, y * newStep));
+			resizedImage->set_pixel(resizedImageWidth - 1, y, hiResImage->get_pixel(realImageWidth - 1, y * newStep));
+		}
+	}
+
+	//outFileName = quadrant->getCacheFilePath() + ".heightmap." + std::to_string(newResolution) + ".png";		// DEBUG
+	//resizedImage->save_png(outFileName.c_str());																// DEBUG
+
+	if (m_viewer->Globals()->getParamCacheTerrainTextures())
+		resizedImageMap[newResolution] = resizedImage;
+
+	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+	m_viewer->addToTextureResizingElapsed((now - start).count());
+
+	//if (newResolution == 129)	// DEBUG ONLY
+	//{
+	//	int32_t w = resizedImage->get_width();
+	//	int32_t h = resizedImage->get_height();
+	//	int32_t size = w * h;
+	//	godot::PackedByteArray array = resizedImage->get_data();
+	//	int64_t size1 = array.size();
+	//	{
+	//		int32_t x = 0;
+	//		int32_t y = 0;
+	//		godot::Color c = resizedImage->get_pixel(x, y);
+	//		uint16_t* p = (uint16_t*)array.ptr();
+	//		TheWorld_Utils::FLOAT_32 f;
+	//		int32_t index = (y * w) + x;
+	//		f.u32 = half_to_float(*(p + index));
+	//		size1 = array.size();
+	//	}
+	//	{
+	//		int32_t x = 10;
+	//		int32_t y = 35;
+	//		godot::Color c = resizedImage->get_pixel(x, y);
+	//		uint16_t* p = (uint16_t*)array.ptr();
+	//		TheWorld_Utils::FLOAT_32 f;
+	//		int32_t index = (y * w) + x;
+	//		f.u32 = half_to_float(*(p + index));
+	//		size1 = array.size();
+	//	}
+	//}
+
+	return resizedImage;
+}
+
 // it is expected that globals and World Datas are loaded
 // TODORIC: maybe usefull for performance reasons specify which texture need update and which rect of the texture 
 void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t maxProcessDuration, LookDev lookdev)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3 ") + __FUNCTION__, "Quadrant resetMaterialParams");
+
+	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 
 	//std::recursive_mutex& quadrantMutex = m_quadTree->getQuadrantMutex();
 	//std::lock_guard<std::recursive_mutex> lock(quadrantMutex);
@@ -1980,11 +2096,6 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 	size_t optimizationLevel = quadrant->optimizationLevel();
 	size_t newResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-	//if (optimizationLevel > 0)
-	//{
-	//	size_t newResolutionShift = globals->heightmapResolutionShift() - optimizationLevel;
-	//	newResolution = (1 << newResolutionShift) + 1;
-	//}
 	bool optimizationLevelChanged = quadrant->optimizationLevelChanged();
 	bool resetOptimizationChangeDelayed = false;
 
@@ -2001,7 +2112,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		//{
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1 ") + __FUNCTION__, "Heightmap");
 
-			if (quadrant->heightsUpdated() || m_heightmapImage == nullptr)
+			if (/*quadrant->heightsUpdated() || */m_heightmapImage == nullptr)
 			{
 				//if (quadrant->getFloat16HeightsBuffer().size() > 0)
 				//{
@@ -2017,75 +2128,17 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 						memcpy((char*)data.ptrw(), quadrant->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
 					}
 					m_viewer->getMainProcessingMutex().lock();
-					godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
+					m_heightmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
 					m_viewer->getMainProcessingMutex().unlock();
-					m_heightmapImage = im;
-					m_ResizedHeightmapImageMap.clear();
+					m_resizedHeightmapImageMap.clear();
 				//}
 			}
 
 			if (m_heightmapImage != nullptr)
 			{
-				godot::Ref<godot::Image> image;
-
-				if (optimizationLevel > 0)
-				{
-					if (m_ResizedHeightmapImageMap.contains(newResolution))
-					{
-						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-						image = m_ResizedHeightmapImageMap[newResolution];
-					}
-					else
-					{
-						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.2 ") + __FUNCTION__, "resize image " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-						m_viewer->incNumTextureResize();
-						TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-
-						//std::string outFileName = quadrant->getCacheFilePath() + ".heightmap." + std::to_string(_resolution) + ".png";		// DEBUG
-						//image->save_png(outFileName.c_str());																								// DEBUG
-
-						// doing a copy to resize
-						m_viewer->getMainProcessingMutex().lock();
-						Ref<Image> im = godot::Image::create_from_data(m_heightmapImage->get_width(), m_heightmapImage->get_height(), false, m_heightmapImage->get_format(), m_heightmapImage->get_data());
-						m_viewer->getMainProcessingMutex().unlock();
-
-						im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
-
-						{
-							TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-							int32_t newStep = 1 << optimizationLevel;
-							int32_t realImageWidth = m_heightmapImage->get_width();
-							int32_t realImageHeight = m_heightmapImage->get_height();
-							int32_t resizedImageWidth = im->get_width();
-							int32_t resizedImageHeight = im->get_height();
-							for (int32_t x = 0; x < resizedImageWidth; x++)
-							{
-								im->set_pixel(x, 0, m_heightmapImage->get_pixel(x * newStep, 0));
-								im->set_pixel(x, resizedImageHeight - 1, m_heightmapImage->get_pixel(x * newStep, realImageHeight - 1));
-							}
-							for (int32_t y = 0; y < resizedImageHeight; y++)
-							{
-								im->set_pixel(0, y, m_heightmapImage->get_pixel(0, y * newStep));
-								im->set_pixel(resizedImageWidth - 1, y, m_heightmapImage->get_pixel(realImageWidth - 1, y * newStep));
-							}
-						}
-
-						//outFileName = quadrant->getCacheFilePath() + ".heightmap." + std::to_string(newResolution) + ".png";		// DEBUG
-						//image->save_png(outFileName.c_str());		
-
-						if (globals->getParamCacheTerrainTextures())
-							m_ResizedHeightmapImageMap[newResolution] = im;
-						image = im;
-
-						TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-						m_viewer->addToTextureResizingElapsed((now - start).count());
-					}
-				}
-				else
-					image = m_heightmapImage;
-
+				std::string profileHeader("WorldDeploy 3.1.2 ");
+				godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, m_heightmapImage, m_resizedHeightmapImageMap, optimizationLevel, newResolution);
+				
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.3 ") + __FUNCTION__, "Create Texture from heights image");
 
@@ -2111,6 +2164,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
 	{
 		lastProcessExecutionInterrupted = true;
+		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+		m_viewer->incNumResetShaderParam((now - start).count());
 		return;
 	}
 
@@ -2128,11 +2183,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 			{
 				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.1 ") + __FUNCTION__, "Create empty Image for normals");
 				m_viewer->getMainProcessingMutex().lock();
-				godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGB8);
+				m_normalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGB8);
 				m_viewer->getMainProcessingMutex().unlock();
-				im->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
-				m_normalmapImage = im;
-				m_ResizedNormalmapImageMap.clear();
+				m_normalmapImage->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
+				m_resizedNormalmapImageMap.clear();
 
 			}
 			else
@@ -2147,10 +2201,9 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					memcpy((char*)data.ptrw(), normalsBuffer.ptr(), normalsBufferSize);
 				}
 				m_viewer->getMainProcessingMutex().lock();
-				godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
+				m_normalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
 				m_viewer->getMainProcessingMutex().unlock();
-				m_normalmapImage = im;
-				m_ResizedNormalmapImageMap.clear();
+				m_resizedNormalmapImageMap.clear();
 
 				//{
 				//	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
@@ -2170,10 +2223,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 			if (optimizationLevel > 0)
 			{
-				if (m_ResizedNormalmapImageMap.contains(newResolution))
+				if (m_resizedNormalmapImageMap.contains(newResolution))
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-					image = m_ResizedNormalmapImageMap[newResolution];
+					image = m_resizedNormalmapImageMap[newResolution];
 				}
 				else
 				{
@@ -2209,7 +2262,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					}
 
 					if (globals->getParamCacheTerrainTextures())
-						m_ResizedNormalmapImageMap[newResolution] = im;
+						m_resizedNormalmapImageMap[newResolution] = im;
 					image = im;
 
 					TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2243,6 +2296,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
 	{
 		lastProcessExecutionInterrupted = true;
+		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+		m_viewer->incNumResetShaderParam((now - start).count());
 		return;
 	}
 
@@ -2264,7 +2319,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_viewer->getMainProcessingMutex().unlock();
 				im->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
 				m_splatmapImage = im;
-				m_ResizedSplatmapImageMap.clear();
+				m_resizedSplatmapImageMap.clear();
 			}
 			else
 			{
@@ -2281,7 +2336,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
 				m_viewer->getMainProcessingMutex().unlock();
 				m_splatmapImage = im;
-				m_ResizedSplatmapImageMap.clear();
+				m_resizedSplatmapImageMap.clear();
 			}
 		}
 
@@ -2291,10 +2346,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 			if (optimizationLevel > 0)
 			{
-				if (m_ResizedSplatmapImageMap.contains(newResolution))
+				if (m_resizedSplatmapImageMap.contains(newResolution))
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-					image = m_ResizedSplatmapImageMap[newResolution];
+					image = m_resizedSplatmapImageMap[newResolution];
 				}
 				else
 				{
@@ -2330,7 +2385,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					}
 
 					if (globals->getParamCacheTerrainTextures())
-						m_ResizedSplatmapImageMap[newResolution] = im;
+						m_resizedSplatmapImageMap[newResolution] = im;
 					image = im;
 
 					TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2364,6 +2419,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
 	{
 		lastProcessExecutionInterrupted = true;
+		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+		m_viewer->incNumResetShaderParam((now - start).count());
 		return;
 	}
 
@@ -2401,7 +2458,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
 				m_viewer->getMainProcessingMutex().unlock();
 				m_globalmapImage = im;
-				m_ResizedGlobalmapImageMap.clear();
+				m_resizedGlobalmapImageMap.clear();
 			}
 		}
 
@@ -2411,10 +2468,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 			if (optimizationLevel > 0)
 			{
-				if (m_ResizedGlobalmapImageMap.contains(newResolution))
+				if (m_resizedGlobalmapImageMap.contains(newResolution))
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-					image = m_ResizedGlobalmapImageMap[newResolution];
+					image = m_resizedGlobalmapImageMap[newResolution];
 				}
 				else
 				{
@@ -2456,7 +2513,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					//im->save_png(outFileName.c_str());																									// DEBUG
 
 					if (globals->getParamCacheTerrainTextures())
-						m_ResizedGlobalmapImageMap[newResolution] = im;
+						m_resizedGlobalmapImageMap[newResolution] = im;
 					image = im;
 
 					TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2491,6 +2548,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
 	{
 		lastProcessExecutionInterrupted = true;
+		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+		m_viewer->incNumResetShaderParam((now - start).count());
 		return;
 	}
 
@@ -2528,7 +2587,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
 				m_viewer->getMainProcessingMutex().unlock();
 				m_colormapImage = im;
-				m_ResizedColormapImageMap.clear();
+				m_resizedColormapImageMap.clear();
 			}
 		}
 
@@ -2538,10 +2597,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 			if (optimizationLevel > 0)
 			{
-				if (m_ResizedColormapImageMap.contains(newResolution))
+				if (m_resizedColormapImageMap.contains(newResolution))
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-					image = m_ResizedColormapImageMap[newResolution];
+					image = m_resizedColormapImageMap[newResolution];
 				}
 				else
 				{
@@ -2577,7 +2636,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					}
 
 					if (globals->getParamCacheTerrainTextures())
-						m_ResizedColormapImageMap[newResolution] = im;
+						m_resizedColormapImageMap[newResolution] = im;
 					image = im;
 
 					TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2611,6 +2670,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
 	{
 		lastProcessExecutionInterrupted = true;
+		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+		m_viewer->incNumResetShaderParam((now - start).count());
 		return;
 	}
 
@@ -2618,6 +2679,9 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		quadrant->optimizationLevelChanged(false);
 
 	materialParamsNeedUpdate(true);
+
+	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+	m_viewer->incNumResetShaderParam((now - start).count());
 }
 
 //Color ShaderTerrainData::encodeNormal(Vector3 normal)
@@ -2630,6 +2694,8 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 {
 	// Completare da _update_material_params
 	//m_viewer->Globals()->debugPrint("Updating terrain material params");
+
+	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 
 	if (m_viewer->is_inside_tree())
 	{
@@ -2881,6 +2947,9 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 		m_colormapTexture.unref();
 		m_globalmapTexture.unref();
 	}
+
+	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+	m_viewer->incNumUpdateShaderParam((now - start).count());
 }
 
 //void ShaderTerrainData::debugPrintTexture(std::string tex_name, Ref<Texture> tex)
@@ -3103,6 +3172,17 @@ bool Quadrant::quadrantAtMinimumLod(void)
 //	else
 //		return MeshResolutionLevel::high;
 //}
+
+void Quadrant::setHeightsUpdated(bool b)
+{
+	m_heightsUpdated = b;
+	if (b)
+	{
+		getShaderTerrainData()->getHeightmapImageRef().unref();
+		setSplatmapUpdated(true);
+		setTextureUpdated(true);
+	}
+}
 
 enum class Quadrant::TexResolutionLevel Quadrant::getTexResolutionLevel(void)
 {
@@ -3410,6 +3490,8 @@ void Quadrant::loadTerrainDataFromCache(void)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1 ") + __FUNCTION__, "ALL");
 
+	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+
 	//PLOG_DEBUG << "START loadTerrainDataFromCache";
 
 	while (lockInternalData() == false)
@@ -3488,6 +3570,9 @@ void Quadrant::loadTerrainDataFromCache(void)
 	unlockInternalData();
 	m_viewer->getMainProcessingMutex().unlock();
 	
+	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+	m_viewer->incNumLoadTerrainData((now - start).count());
+
 	//PLOG_DEBUG << "END loadTerrainDataFromCache";
 }
 
@@ -3591,6 +3676,8 @@ void Quadrant::setMeshId(std::string meshId)
 
 void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache)
 {
+	GDN_TheWorld_Globals* globals = m_viewer->Globals();
+
 	float minAltitude = 0, maxAltitude = 0;
 	
 	{
@@ -3633,7 +3720,32 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		setNeedUploadToServer(false);
 
 	setHeightsUpdated(true);
-	//setColorsUpdated(true);
+	// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
+	//if (m_viewer->Globals()->getParamCacheTerrainTextures()) 
+	//{
+	//	int resolution = globals->heightmapResolution() + 1;
+	//	godot::PackedByteArray data;
+	//	size_t heightmapBufferSizeInBytes = resolution * resolution * sizeof(uint16_t);
+	//	data.resize((int)heightmapBufferSizeInBytes);
+	//	{
+	//		size_t heightsBufferSize = m_float16HeigthsBuffer.size();
+	//		assert(heightmapBufferSizeInBytes == heightsBufferSize);
+	//		memcpy((char*)data.ptrw(), m_float16HeigthsBuffer.ptr(), heightsBufferSize);
+	//	}
+	//	//m_viewer->getMainProcessingMutex().lock();
+	//	getShaderTerrainData()->getHeightmapImageRef() = godot::Image::create_from_data(resolution, resolution, false, Image::FORMAT_RH, data);
+	//	//m_viewer->getMainProcessingMutex().unlock();
+
+	//	getShaderTerrainData()->getResizedHeightmapImageMap().clear();
+	//	size_t maxOptimizationLevel = m_viewer->Globals()->getMaxTextureOptimizationLevel();
+	//	size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
+	//	for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
+	//	{
+	//		size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
+	//		std::string profileHeader("WorldDeploy 2.1.1.3 ");
+	//		godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, getShaderTerrainData()->getHeightmapImageRef(), getShaderTerrainData()->getResizedHeightmapImageMap(), optimizationLevel, cachedTextureResolution);
+	//	}
+	//}
 
 	if (m_normalsBuffer.size() > 0)
 		setNormalsUpdated(true);
@@ -3647,7 +3759,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	if (m_globalmapBuffer.size() > 0)
 		setGlobalmapUpdated(true);
 
-	int areaSize = (m_viewer->Globals()->heightmapResolution() + 1) * (m_viewer->Globals()->heightmapResolution() + 1);
+	int areaSize = (globals->heightmapResolution() + 1) * (globals->heightmapResolution() + 1);
 
 	//BYTE shortBuffer[256 + 1];
 	size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
@@ -3672,7 +3784,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Grid Vertices not of the correct size").c_str()));
 
 	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.3 ") + __FUNCTION__, "SetColliderHeights");
+		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.8 ") + __FUNCTION__, "SetColliderHeights");
 
 		m_heightsForCollider.resize((int)numFloat32Heights);
 		memcpy((char*)m_heightsForCollider.ptrw(), m_float32HeigthsBuffer.ptr(), m_float32HeigthsBuffer.size());

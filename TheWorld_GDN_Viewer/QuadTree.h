@@ -560,15 +560,7 @@ namespace godot
 			return m_internalDataLocked;
 		}
 
-		void setHeightsUpdated(bool b)
-		{
-			m_heightsUpdated = b;
-			if (b)
-			{
-				m_splatmapUpdated = true;
-				m_texturesUpdated = true;
-			}
-		}
+		void setHeightsUpdated(bool b);
 		bool heightsUpdated(void)
 		{
 			return m_heightsUpdated;
@@ -760,7 +752,7 @@ namespace godot
 				//m_normal_roughness_tex = nullptr;
 				initialized = false;
 			}
-		
+
 		public:
 			bool initialized;
 			Ref<ImageTexture> m_albedo_bump_tex;
@@ -768,7 +760,7 @@ namespace godot
 			Ref<Texture2D> m_tex;
 		};
 
-// Shader Params
+		// Shader Params
 #define SHADER_PARAM_TERRAIN_HEIGHTMAP	"u_terrain_heightmap"
 #define SHADER_PARAM_TERRAIN_NORMALMAP	"u_terrain_normalmap"
 #define SHADER_PARAM_TERRAIN_SPLATMAP	"u_terrain_splatmap"
@@ -862,9 +854,11 @@ namespace godot
 			m_materialParamsNeedUpdate = b;
 		}
 		void updateMaterialParams(LookDev lookdev);
-		Ref<Material> getRegularMaterial(bool reload = false);
+		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel, size_t resolution);
+		godot::Ref<godot::Image> resizeImage(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, size_t newResolution, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel);
+		godot::Ref<godot::Material> getRegularMaterial(bool reload = false);
 		void releaseRegularMaterial(void);
-		Ref<Material> getLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, bool reload = false);
+		godot::Ref<godot::Material> getLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, bool reload = false);
 		void releaseLookDevMaterial(void);
 		std::map<int, godot::Ref<godot::ShaderMaterial>>& getLookDevChunkLodMaterials(void);
 		void releaseLookDevChunkLodMaterials(void);
@@ -888,27 +882,40 @@ namespace godot
 		godot::Ref<godot::ImageTexture> getNormalRoughnessTexture(std::string textureName);
 
 		void mouseHitChanged(godot::Vector2 mouseHit);
-		
+
+		godot::Ref<godot::Image> getHeightmapImage(void)
+		{
+			return m_heightmapImage;
+		}
+		godot::Ref<godot::Image>& getHeightmapImageRef(void)
+		{
+			return m_heightmapImage;
+		}
+		std::map<size_t, godot::Ref<godot::Image>>& getResizedHeightmapImageMap(void)
+		{
+			return m_resizedHeightmapImageMap;
+		}
+
 		size_t calcTexMemoryOccupation(void)
 		{
 			size_t occupation = m_heightmapImage == nullptr ? 0 : m_heightmapImage->get_data().size();
-			for (auto& item : m_ResizedHeightmapImageMap)
+			for (auto& item : m_resizedHeightmapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
 			occupation += m_normalmapImage == nullptr ? 0 : m_normalmapImage->get_data().size();
-			for (auto& item : m_ResizedNormalmapImageMap)
+			for (auto& item : m_resizedNormalmapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
 			occupation += m_splatmapImage == nullptr ? 0 : m_splatmapImage->get_data().size();
-			for (auto& item : m_ResizedSplatmapImageMap)
+			for (auto& item : m_resizedSplatmapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
 			occupation += m_globalmapImage == nullptr ? 0 : m_globalmapImage->get_data().size();
-			for (auto& item : m_ResizedGlobalmapImageMap)
+			for (auto& item : m_resizedGlobalmapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
 			occupation += m_colormapImage == nullptr ? 0 : m_colormapImage->get_data().size();
-			for (auto& item : m_ResizedColormapImageMap)
+			for (auto& item : m_resizedColormapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
 			return occupation;
@@ -935,27 +942,27 @@ namespace godot
 		godot::Ref<godot::Texture> m_heightmapTexture;
 		bool m_heightMapTexModified;
 		godot::Ref<godot::Image> m_heightmapImage;
-		std::map<size_t, godot::Ref<godot::Image>> m_ResizedHeightmapImageMap;
+		std::map<size_t, godot::Ref<godot::Image>> m_resizedHeightmapImageMap;
 
 		godot::Ref<godot::Texture> m_normalmapTexture;
 		bool m_normalMapTexModified;
 		godot::Ref<godot::Image> m_normalmapImage;
-		std::map<size_t, godot::Ref<godot::Image>> m_ResizedNormalmapImageMap;
+		std::map<size_t, godot::Ref<godot::Image>> m_resizedNormalmapImageMap;
 
 		godot::Ref<godot::Texture> m_splatmapTexture;
 		bool m_splatMapTexModified;
 		godot::Ref<godot::Image> m_splatmapImage;
-		std::map<size_t, godot::Ref<godot::Image>> m_ResizedSplatmapImageMap;
+		std::map<size_t, godot::Ref<godot::Image>> m_resizedSplatmapImageMap;
 
 		godot::Ref<godot::Texture> m_colormapTexture;
 		bool m_colorMapTexModified;
 		godot::Ref<godot::Image> m_globalmapImage;
-		std::map<size_t, godot::Ref<godot::Image>> m_ResizedGlobalmapImageMap;
+		std::map<size_t, godot::Ref<godot::Image>> m_resizedGlobalmapImageMap;
 
 		godot::Ref<godot::Texture> m_globalmapTexture;
 		bool m_globalMapTexModified;
 		godot::Ref<godot::Image> m_colormapImage;
-		std::map<size_t, godot::Ref<godot::Image>> m_ResizedColormapImageMap;
+		std::map<size_t, godot::Ref<godot::Image>> m_resizedColormapImageMap;
 
 		static std::map<std::string, std::unique_ptr<GroundTexture>> s_groundTextures;
 		static bool s_groundTexturesNeedProcessing;

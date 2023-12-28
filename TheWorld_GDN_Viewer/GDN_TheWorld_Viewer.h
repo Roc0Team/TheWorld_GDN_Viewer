@@ -841,17 +841,17 @@ namespace godot
 
 		void quadrantModderWorkDone(int32_t map_type, float x, float z, int32_t num_vertices_per_side, int32_t level, float grid_step);
 
-		void incNumVisibleQuadrantsStreamed()
+		void incNumVisibleQuadrantsStreamed(void)
 		{
 			m_numVisibleQuadrantsStreamed++;
 		}
-		void incNumInvisibleQuadrantsStreamed()
+		void incNumInvisibleQuadrantsStreamed(void)
 		{
 			m_numInvisibleQuadrantsStreamed++;
 		}
-		void incNumTextureResize()
+		void incNumTextureResize(void)
 		{
-			m_numTextureResize++;
+			m_numTextureResizing++;
 		}
 		void addToTextureResizingElapsed(size_t elapsed)
 		{
@@ -860,6 +860,32 @@ namespace godot
 		void incNumOptimizationLevelChange(void)
 		{
 			m_numOptimizationLevelChange++;
+		}
+		void incNumLoadTerrainData(size_t elapsedLoadTerrainData)
+		{
+			m_numLoadTerrainData++;
+			m_elapsedLoadTerrainData += elapsedLoadTerrainData;
+		}
+
+		void incNumResetShaderParam(size_t elapsedResetShaderParam)
+		{
+			m_numResetShaderParam++;
+			m_elapsedResetShaderParam += elapsedResetShaderParam;
+		}
+		void incNumUpdateShaderParam(size_t elapsedUpdateShaderParam)
+		{
+			m_numUpdateShaderParam++;
+			m_elapsedUpdateShaderParam += elapsedUpdateShaderParam;
+		}
+		void incNumSetHiResCollisionData(size_t elapsedSetHiResCollisionData)
+		{
+			m_numSetHiResCollisionData++;
+			m_elapsedSetHiResCollisionData += elapsedSetHiResCollisionData;
+		}
+		void incNumSetLowResCollisionData(size_t elapsedSetLowResCollisionData)
+		{
+			m_numSetLowResCollisionData++;
+			m_elapsedSetLowResCollisionData += elapsedSetLowResCollisionData;
 		}
 
 		size_t addProcessStep(enum class ProcessStep::ProcessStepIdx idx)
@@ -900,6 +926,7 @@ namespace godot
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
+		void writeStatisticsNewQuadrants(void);
 		QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isQuadrantSelectedForEdit(void);
 		godot::Camera3D* m_editorCamera;
@@ -966,12 +993,24 @@ namespace godot
 		int m_numWithColliderQuadrant = 0;
 		int m_numinitializedVisibleQuadrant;
 		int m_numQuadrantNeedResetMaterialParam = 0;
+		
 		TheWorld_Utils::TimerMs m_streamingTime;
+		TheWorld_Utils::TimerMs m_notStreamingTime;
 		size_t m_numVisibleQuadrantsStreamed = 0;
 		size_t m_numInvisibleQuadrantsStreamed = 0;
-		size_t m_numTextureResize = 0;
-		size_t m_numOptimizationLevelChange = 0;
+		size_t m_numTextureResizing = 0;
 		size_t m_elapsedTextureResizing = 0;
+		size_t m_numOptimizationLevelChange = 0;
+		size_t m_numLoadTerrainData = 0;
+		size_t m_elapsedLoadTerrainData = 0;
+		size_t m_numResetShaderParam = 0;
+		size_t m_elapsedResetShaderParam = 0;
+		size_t m_numUpdateShaderParam = 0;
+		size_t m_elapsedUpdateShaderParam = 0;
+		size_t m_numSetHiResCollisionData = 0;
+		size_t m_elapsedSetHiResCollisionData = 0;
+		size_t m_numSetLowResCollisionData = 0;
+		size_t m_elapsedSetLowResCollisionData = 0;
 		// Statistics data
 
 		std::map<enum class TrackedInputEvent, bool> m_trackedInputEventsForProcess;

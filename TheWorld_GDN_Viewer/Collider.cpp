@@ -2,6 +2,7 @@
 #include "Collider.h"
 #include "QuadTree.h"
 #include "GDN_TheWorld_Viewer.h"
+#include "half.h"
 
 #pragma warning (push, 0)
 #include <godot_cpp/classes/physics_server3d.hpp>
@@ -68,6 +69,7 @@ namespace godot
 		ps->body_attach_object_instance_id(m_bodyRID, attachedNode->get_instance_id());
 			
 		m_hasData = false;
+		m_hasHiResData = false;
 		m_initialized = true;
 	}
 
@@ -88,6 +90,7 @@ namespace godot
 				ps->free_rid(m_shapeRID);
 
 			m_hasData = false;
+			m_hasHiResData = false;
 			m_initialized = false;
 		}
 	}
@@ -133,32 +136,82 @@ namespace godot
 	{
 		bool updated = false;
 
-		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
+		GDN_TheWorld_Globals* globals = m_quadTree->Viewer()->Globals();
+
+		if (globals->getParamDisableTerrainCollisions())
 			return updated;
 
 		if (!m_initialized)
 			return updated;
 
-		TheWorld_Utils::GuardProfiler profiler(std::string("Collider ") + __FUNCTION__, "setData");
+		TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1 ") + __FUNCTION__, "ALL");
 
-		int numVerticesPerSize = m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize();
+		Quadrant* quadrant = m_quadTree->getQuadrant();
+
+		int numVerticesPerSize = 0;
+		PackedFloat32Array* heightsForCollider = nullptr;
+		PackedFloat32Array resizedHeightsForCollider;
+
+		size_t optimizationLevel = quadrant->optimizationLevel();
+		optimizationLevel = 0;
+		if (optimizationLevel == 0)
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.1 ") + __FUNCTION__, "get heigths opt 0");
+			numVerticesPerSize = quadrant->getPos().getNumVerticesPerSize();
+			PackedFloat32Array& _heightsForCollider = quadrant->getHeightsForCollider();
+			heightsForCollider = &_heightsForCollider;
+			m_hasHiResData = true;
+		}
+		else
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2 ") + __FUNCTION__, "get heigths opt >0");
+			size_t newResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
+			numVerticesPerSize = (int)newResolution;
+			heightsForCollider = &resizedHeightsForCollider;
+
+			godot::Ref<godot::Image> image;
+			{
+				std::string profileHeader("Collider setData 1.2.1 ");
+				std::map<size_t, godot::Ref<godot::Image>>& resizedHeightmapImageMap = quadrant->getShaderTerrainData()->getResizedHeightmapImageMap();
+				godot::Ref<godot::Image> im = quadrant->getShaderTerrainData()->getImageAtResolution(profileHeader, quadrant->getShaderTerrainData()->getHeightmapImage(), resizedHeightmapImageMap, optimizationLevel, newResolution);
+				image = im;
+			}
+
+			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2.2 ") + __FUNCTION__, "heigths 16 to 32");
+				int size = int(numVerticesPerSize * numVerticesPerSize);
+				resizedHeightsForCollider.resize(size);
+				godot::PackedByteArray array = image->get_data();
+				assert(array.size() == size * 2);
+				uint16_t* p = (uint16_t*)array.ptr();
+				for (int idx = 0; idx < size; idx++)
+				{
+					TheWorld_Utils::FLOAT_32 f;
+					f.u32 = half_to_float(*p);
+					resizedHeightsForCollider[idx] = f.f32;
+					p++;
+				}
+			}
+
+			m_hasHiResData = false;
+		}
+		
 		int areaSize = numVerticesPerSize * numVerticesPerSize;
 		//{
 		//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1.1 ") + __FUNCTION__, "Collider::setData - gen empty heights");
-		//	PoolRealArray& h = m_quadTree->getQuadrant()->getHeightsForCollider();
+		//	PoolRealArray& h = quadrant->getHeightsForCollider();
 		//}
-		PackedFloat32Array& heightsForCollider = m_quadTree->getQuadrant()->getHeightsForCollider();
-		my_assert(areaSize == heightsForCollider.size());
-		if (areaSize != heightsForCollider.size())
-			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Size of Heigths inconsistent, areaSize=" + std::to_string(areaSize) + " Heigths size=" + std::to_string(heightsForCollider.size())).c_str()));
+		my_assert(areaSize == heightsForCollider->size());
+		if (areaSize != heightsForCollider->size())
+			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Size of Heigths inconsistent, areaSize=" + std::to_string(areaSize) + " Heigths size=" + std::to_string(heightsForCollider->size())).c_str()));
 
 		//size_t size = heightsForCollider.size();
 		Dictionary data;
 		data["width"] = numVerticesPerSize;			// data["map_width"];	
 		data["depth"] = numVerticesPerSize;			// data["map_depth"];
-		data["heights"] = heightsForCollider;		// data["map_data"];
-		Vector3 startPoint = m_quadTree->getQuadrant()->getGlobalCoordAABB().position;
-		Vector3 endPoint = startPoint + m_quadTree->getQuadrant()->getGlobalCoordAABB().size;
+		data["heights"] = *heightsForCollider;		// data["map_data"];
+		Vector3 startPoint = quadrant->getGlobalCoordAABB().position;
+		Vector3 endPoint = startPoint + quadrant->getGlobalCoordAABB().size;
 		data["min_height"] = startPoint.y;			// ???
 		//data["min_height"] = -endPoint.y;			// ???
 		data["max_height"] = endPoint.y;			// ???
@@ -169,7 +222,8 @@ namespace godot
 			updated = true;
 		}
 
-		heightsForCollider.resize(0);
+		if (optimizationLevel == 0)
+			heightsForCollider->resize(0);
 
 		{
 			updateTransform();

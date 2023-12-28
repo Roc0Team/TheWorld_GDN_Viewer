@@ -23,6 +23,7 @@
 
 #define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT										3	// 4	// 5
 #define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT								11	/* 11 */	/* 10 */	// exponent of 2
+#define MIN_RESOLUTION_SHIFT_FOR_TEXTURE_OPTIMIZATIONS							5	// exponent of 2
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER_IN_EDITOR						1
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER_IN_EDITOR						1
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER								6	// 3
@@ -484,6 +485,7 @@ namespace godot
 		void setDebugEnabled(bool b = true);
 
 		size_t resolutionForOptimizationLevel(size_t optimizationLevel);
+		size_t getMaxTextureOptimizationLevel(void);
 
 		void setAppInError(int errorCode, String errorText)
 		{

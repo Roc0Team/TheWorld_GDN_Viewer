@@ -33,6 +33,13 @@ namespace godot
 			else
 				return false;
 		}
+		bool hasHiResData(void)
+		{
+			if (m_initialized && m_hasData && m_hasHiResData)
+				return true;
+			else
+				return false;
+		}
 
 	private:
 		inline float getColliderAltitude(void);
@@ -41,6 +48,7 @@ namespace godot
 		bool m_initialized;
 		bool m_enteredWorld = false;
 		bool m_hasData = false;
+		bool m_hasHiResData = false;
 		QuadTree* m_quadTree;
 		RID m_shapeRID;
 		RID m_bodyRID;

@@ -3016,12 +3016,14 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 					m_mapQuadTree[quadrantPosNeeded[idx]] = make_unique<QuadTree>(this, quadrantPosNeeded[idx]);
 					m_mapQuadTree[quadrantPosNeeded[idx]]->refreshTime(refreshTime);
 					addedQuandrantsForInititalization = true;
+
 					if (!m_streamingTime.counterStarted())
 					{
 						counterStartedNow = true;
-						m_numVisibleQuadrantsStreamed = 0;
-						m_numInvisibleQuadrantsStreamed = 0;
-						PLOG_DEBUG << "Start initializing of a stream of quadrant";
+						writeStatisticsNewQuadrants();
+						if (m_notStreamingTime.counterStarted())
+							m_notStreamingTime.tock();
+						PLOG_DEBUG << "\nStart initializing of a stream of quadrant";
 						m_streamingTime.tick();
 					}
 					//return;	// ???
@@ -3796,17 +3798,58 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 
 			if (m_streamingTime.counterStarted())
 			{
+				writeStatisticsNewQuadrants();
 				m_streamingTime.tock();
-				size_t num = m_numVisibleQuadrantsStreamed + m_numInvisibleQuadrantsStreamed;
-				if (num == 0)
-					num = 1;
-				PLOG_DEBUG << "Initialization of last stream of quadrant in " << m_streamingTime.duration().count() << " ms (num = " << std::to_string (num) << ", average = " << std::to_string (m_streamingTime.duration().count() / num) << ", visible = " << std::to_string(m_numVisibleQuadrantsStreamed) << ", invisible = " << std::to_string(m_numInvisibleQuadrantsStreamed) << ", texture resize = " << m_numTextureResize << ", elapsed = " << std::to_string(m_elapsedTextureResizing) << ", opt. level change = " << std::to_string(m_numOptimizationLevelChange) << ")";
-				m_numTextureResize = 0;
-				m_elapsedTextureResizing = 0;
-				m_numOptimizationLevelChange = 0;
+				m_notStreamingTime.tick();
 			}
 		}
 	}
+}
+
+void GDN_TheWorld_Viewer::writeStatisticsNewQuadrants(void)
+{
+	size_t num = m_numVisibleQuadrantsStreamed + m_numInvisibleQuadrantsStreamed;
+	
+	if (!m_streamingTime.counterStarted() && !m_notStreamingTime.counterStarted())
+		return;
+	
+	std::string s;
+	if (m_streamingTime.counterStarted())
+	{
+		s = "\nInitialization of last stream of quadrant COMPLETED:" + std::string("\n")
+			+ "  num = " + std::to_string(num) + " elapsed = " + std::to_string(m_streamingTime.partialDuration().count()) + " average = " + std::to_string(m_streamingTime.partialDuration().count() / (num == 0 ? 1 : num)) + "\n"
+			+ "  visible = " + std::to_string(m_numVisibleQuadrantsStreamed) + "\n"
+			+ "  invisible = " + std::to_string(m_numInvisibleQuadrantsStreamed) + "\n";
+	}
+	else
+	{
+		s = "\nNo initialization of quadrants during last time lapse (" + std::to_string(m_notStreamingTime.partialDuration().count()) + ")" + std::string("\n");
+	}
+	
+	PLOG_DEBUG << s
+		<< "  opt. level change = " << std::to_string(m_numOptimizationLevelChange)
+		<< "  texture resize = " << m_numTextureResizing << "  elapsed = " << std::to_string(m_elapsedTextureResizing) << " average = " << std::to_string(m_elapsedTextureResizing / (m_numTextureResizing == 0 ? 1 : m_numTextureResizing)) << "\n"
+		<< "  load from cache = " << m_numLoadTerrainData << "  elapsed = " << std::to_string(m_elapsedLoadTerrainData) << " average = " << std::to_string(m_elapsedLoadTerrainData / (m_numLoadTerrainData == 0 ? 1 : m_numLoadTerrainData)) << "\n"
+		<< "  reset shader params = " << m_numResetShaderParam << "  elapsed = " << std::to_string(m_elapsedResetShaderParam) << " average = " << std::to_string(m_elapsedResetShaderParam / (m_numResetShaderParam == 0 ? 1 : m_numResetShaderParam)) << "\n"
+		<< "  update shader params = " << m_numUpdateShaderParam << "  elapsed = " << std::to_string(m_elapsedUpdateShaderParam) << " average = " << std::to_string(m_elapsedUpdateShaderParam / (m_numUpdateShaderParam == 0 ? 1 : m_numUpdateShaderParam)) << "\n"
+		<< "  set hires collisions = " << m_numSetHiResCollisionData << "  elapsed = " << std::to_string(m_elapsedSetHiResCollisionData) << " average = " << std::to_string(m_elapsedSetHiResCollisionData / (m_numSetHiResCollisionData == 0 ? 1 : m_numSetHiResCollisionData)) << "\n"
+		<< "  set lowres collisions = " << m_numSetLowResCollisionData << "  elapsed = " << std::to_string(m_elapsedSetLowResCollisionData) << " average = " << std::to_string(m_elapsedSetLowResCollisionData / (m_numSetLowResCollisionData == 0 ? 1 : m_numSetLowResCollisionData)) << "\n";
+
+	m_numVisibleQuadrantsStreamed = 0;
+	m_numInvisibleQuadrantsStreamed = 0;
+	m_numTextureResizing = 0;
+	m_elapsedTextureResizing = 0;
+	m_numOptimizationLevelChange = 0;
+	m_numLoadTerrainData = 0;
+	m_elapsedLoadTerrainData = 0;
+	m_numResetShaderParam = 0;
+	m_elapsedResetShaderParam = 0;
+	m_numUpdateShaderParam = 0;
+	m_elapsedUpdateShaderParam = 0;
+	m_numSetHiResCollisionData = 0;
+	m_elapsedSetHiResCollisionData = 0;
+	m_numSetLowResCollisionData = 0;
+	m_elapsedSetLowResCollisionData = 0;
 }
 
 void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
@@ -4829,6 +4872,13 @@ void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 		if (timeElapsed - m_timeElapsedFromLastStatistic > TIME_INTERVAL_BETWEEN_STATISTICS)
 		{
 			//m_numProcessNotOwnsLock = 0;
+
+			if (m_notStreamingTime.counterStarted() && m_notStreamingTime.partialDuration().count() > 60000)
+			{
+				writeStatisticsNewQuadrants();
+				m_notStreamingTime.tock();
+				m_notStreamingTime.tick();
+			}
 
 			refreshQuadTreeStatistics();
 

@@ -3719,8 +3719,8 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 		m_refreshMapQuadTree = false;
 		m_computedCameraQuadrantPos = cameraQuadrantPos;
 
-		m_recalcQuadrantsInViewNeeded = true;
-		//recalcQuadrantsInView();
+		if (Globals()->status() != TheWorldStatus::worldDeployed || Globals()->getStreamWorld())
+			m_recalcQuadrantsInViewNeeded = true;
 	}
 }
 
@@ -6189,6 +6189,7 @@ void GDN_TheWorld_Viewer::dump()
 		std::map<int, size_t> mapQuadrantsToUploadTerrainType;
 		size_t mapMemoryOccupation = 0, heightmap16MemoryOccupation = 0, heightmap32MemoryOccupation = 0, normalmapMemoryOccupation = 0, splatmapMemoryOccupation = 0, globalmapMemoryOccupation = 0, colormapMemoryOccupation = 0, terrainEditMemoryOccupation = 0, colliderHeightsMemoryOccupation = 0;
 		size_t texMemoryOccupation = 0;
+		size_t resizedTexMemoryOccupation = 0;
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 		for (auto& quadTree : m_mapQuadTree)
 		{
@@ -6203,6 +6204,7 @@ void GDN_TheWorld_Viewer::dump()
 			colliderHeightsMemoryOccupation += quadTree.second->getQuadrant()->calcColliderHeightsMemoryOccupation();
 
 			texMemoryOccupation += quadTree.second->getQuadrant()->calcTexMemoryOccupation();
+			resizedTexMemoryOccupation += quadTree.second->getQuadrant()->calcResizedTexMemoryOccupation();
 			
 			size_t optimizationLevel = quadTree.second->getQuadrant()->optimizationLevel();
 			if (mapOptimizationLevels.contains(optimizationLevel))
@@ -6231,7 +6233,7 @@ void GDN_TheWorld_Viewer::dump()
 
 		godot::Performance* perf = godot::Performance::get_singleton();
 
-		Globals()->debugPrint(String("All quadrants : ") + String(std::to_string(m_mapQuadTree.size()).c_str()) + ", map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		Globals()->debugPrint(String("All quadrants : ") + String(std::to_string(m_mapQuadTree.size()).c_str()) + ", map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB (resized image memory : " + String(std::to_string((float)resizedTexMemoryOccupation / (1024 * 1024 * 1024)).c_str())  + " GB)");
 		Globals()->debugPrint(String("   Heigthmap16 : ") + String(std::to_string((float)heightmap16MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Heigthmap32 : ") + String(std::to_string((float)heightmap32MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Normalmap : ") + String(std::to_string((float)normalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");

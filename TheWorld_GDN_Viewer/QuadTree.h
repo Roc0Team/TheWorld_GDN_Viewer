@@ -319,7 +319,7 @@ namespace godot
 
 		bool isFlushed(void);
 
-		bool hasHeigthsForChunks(void);
+		bool hasHeigthsForChunksShaders(void);
 
 		void lockInternalDataUntilCompleteProcessExecution(bool b = true);
 		bool internalDataLockedUntilCompleteProcessExecution(void);
@@ -565,37 +565,22 @@ namespace godot
 		{
 			return m_heightsUpdated;
 		}
-		void setNormalsUpdated(bool b)
-		{
-			if (b)
-				m_normalsUpdated = b;
-			else
-				m_normalsUpdated = b;
-		}
+		void setNormalsUpdated(bool b);
 		bool normalsUpdated(void)
 		{
 			return m_normalsUpdated;
 		}
-		void setSplatmapUpdated(bool b)
-		{
-			m_splatmapUpdated = b;
-		}
+		void setSplatmapUpdated(bool b);
 		bool splatmapUpdated(void)
 		{
 			return m_splatmapUpdated;
 		}
-		void setColorsUpdated(bool b)
-		{
-			m_colorsUpdated = b;
-		}
+		void setColorsUpdated(bool b);
 		bool colorsUpdated(void)
 		{
 			return m_colorsUpdated;
 		}
-		void setGlobalmapUpdated(bool b)
-		{
-			m_globalmapUpdated = b;
-		}
+		void setGlobalmapUpdated(bool b);
 		bool globalmapUpdated(void)
 		{
 			return m_globalmapUpdated;
@@ -630,6 +615,7 @@ namespace godot
 		size_t calcColliderHeightsMemoryOccupation(void);
 
 		size_t calcTexMemoryOccupation(void);
+		size_t calcResizedTexMemoryOccupation(void);
 
 		std::string getCacheFilePath(void)
 		{
@@ -895,26 +881,65 @@ namespace godot
 		{
 			return m_resizedHeightmapImageMap;
 		}
+		godot::Ref<godot::Image>& getNormalmapImageRef(void)
+		{
+			return m_normalmapImage;
+		}
+		std::map<size_t, godot::Ref<godot::Image>>& getResizedNormalmapImageMap(void)
+		{
+			return m_resizedNormalmapImageMap;
+		}
+		godot::Ref<godot::Image>& getSplatmapImageRef(void)
+		{
+			return m_splatmapImage;
+		}
+		std::map<size_t, godot::Ref<godot::Image>>& getResizedSplatmapImageMap(void)
+		{
+			return m_resizedSplatmapImageMap;
+		}
+		godot::Ref<godot::Image>& getColormapImageRef(void)
+		{
+			return m_colormapImage;
+		}
+		std::map<size_t, godot::Ref<godot::Image>>& getResizedColormapImageMap(void)
+		{
+			return m_resizedColormapImageMap;
+		}
+		godot::Ref<godot::Image>& getGlobalmapImageRef(void)
+		{
+			return m_globalmapImage;
+		}
+		std::map<size_t, godot::Ref<godot::Image>>& getResizedGlobalmapImageMap(void)
+		{
+			return m_resizedGlobalmapImageMap;
+		}
 
 		size_t calcTexMemoryOccupation(void)
 		{
 			size_t occupation = m_heightmapImage == nullptr ? 0 : m_heightmapImage->get_data().size();
+			occupation += m_normalmapImage == nullptr ? 0 : m_normalmapImage->get_data().size();
+			occupation += m_splatmapImage == nullptr ? 0 : m_splatmapImage->get_data().size();
+			occupation += m_globalmapImage == nullptr ? 0 : m_globalmapImage->get_data().size();
+			occupation += m_colormapImage == nullptr ? 0 : m_colormapImage->get_data().size();
+			occupation += calcResizedTexMemoryOccupation();
+			return occupation;
+		}
+
+		size_t calcResizedTexMemoryOccupation(void)
+		{
+			size_t occupation = 0;
 			for (auto& item : m_resizedHeightmapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
-			occupation += m_normalmapImage == nullptr ? 0 : m_normalmapImage->get_data().size();
 			for (auto& item : m_resizedNormalmapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
-			occupation += m_splatmapImage == nullptr ? 0 : m_splatmapImage->get_data().size();
 			for (auto& item : m_resizedSplatmapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
-			occupation += m_globalmapImage == nullptr ? 0 : m_globalmapImage->get_data().size();
 			for (auto& item : m_resizedGlobalmapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
-			occupation += m_colormapImage == nullptr ? 0 : m_colormapImage->get_data().size();
 			for (auto& item : m_resizedColormapImageMap)
 				if (item.second != nullptr)
 					occupation += item.second->get_data().size();
@@ -956,13 +981,13 @@ namespace godot
 
 		godot::Ref<godot::Texture> m_colormapTexture;
 		bool m_colorMapTexModified;
-		godot::Ref<godot::Image> m_globalmapImage;
-		std::map<size_t, godot::Ref<godot::Image>> m_resizedGlobalmapImageMap;
+		godot::Ref<godot::Image> m_colormapImage;
+		std::map<size_t, godot::Ref<godot::Image>> m_resizedColormapImageMap;
 
 		godot::Ref<godot::Texture> m_globalmapTexture;
 		bool m_globalMapTexModified;
-		godot::Ref<godot::Image> m_colormapImage;
-		std::map<size_t, godot::Ref<godot::Image>> m_resizedColormapImageMap;
+		godot::Ref<godot::Image> m_globalmapImage;
+		std::map<size_t, godot::Ref<godot::Image>> m_resizedGlobalmapImageMap;
 
 		static std::map<std::string, std::unique_ptr<GroundTexture>> s_groundTextures;
 		static bool s_groundTexturesNeedProcessing;

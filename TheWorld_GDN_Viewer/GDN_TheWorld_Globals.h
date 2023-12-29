@@ -24,11 +24,14 @@
 #define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT										3	// 4	// 5
 #define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT								11	/* 11 */	/* 10 */	// exponent of 2
 #define MIN_RESOLUTION_SHIFT_FOR_TEXTURE_OPTIMIZATIONS							5	// exponent of 2
+
+#define THEWORLD_DEFAULT_STREAM_WORLD											true
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER_IN_EDITOR						1
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER_IN_EDITOR						1
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER								6	// 3
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER								2	// 1
 #define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES									true
+#define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES_ASYNC							true
 //#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS					true
 //#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS						false
 #define THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS								20000.0f	// 0.0f	// 20000.0F	// 15000.0F
@@ -554,6 +557,11 @@ namespace godot
 			m_numElementInitialized += num;
 		}
 
+		bool getStreamWorld(void)
+		{
+			return m_streamWorld;
+		}
+		void setStreamWorld(bool b);
 		bool getParamProfilerActive(void)
 		{
 			return TheWorld_Utils::Profiler::isActive();
@@ -564,6 +572,11 @@ namespace godot
 			return m_paramCacheTerrainTextures;
 		}
 		void setParamCacheTerrainTextures(bool b);
+		bool getParamCacheTerrainTexturesAsync(void)
+		{
+			return m_paramCacheTerrainTexturesAsync;
+		}
+		void setParamCacheTerrainTexturesAsync(bool b);
 		//bool getParamCacheHeightsForInvisibleQuadrants(void)
 		//{
 		//	return m_paramCacheHeightsForInvisibleQuadrants;
@@ -679,7 +692,9 @@ namespace godot
 		GDN_TheWorld_Viewer* m_viewer;
 
 		// Node parameters
+		bool m_streamWorld = THEWORLD_DEFAULT_STREAM_WORLD;
 		bool m_paramCacheTerrainTextures = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES;
+		bool m_paramCacheTerrainTexturesAsync = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES_ASYNC;
 		//bool m_paramCacheHeightsForInvisibleQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS;
 		//bool m_paramCacheHeightsForLowResQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS;
 		float m_paramThresholdCacheHeights = THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS;

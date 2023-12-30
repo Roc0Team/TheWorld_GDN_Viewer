@@ -3117,8 +3117,13 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	// To activate _process method add this Node to a Godot Scene
 	//Godot::print("GDN_TheWorld_Viewer::_process");
 
+//#define MAX_PROCESS_DURATION	100000
 #define MAX_PROCESS_DURATION	200000
-	size_t maxProcessDuration = MAX_PROCESS_DURATION;
+	m_maxProcessDuration = MAX_PROCESS_DURATION;
+	if (Globals()->status() == TheWorldStatus::worldDeployed)
+		m_processCanBeInterrupted = true;
+	else
+		m_processCanBeInterrupted = false;
 
 	m_lastProcessDuration = 0;
 	m_lastProcessImplDuration = 0;
@@ -3255,7 +3260,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 				});
 
 			TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.1 ") + __FUNCTION__, "process_impl");
-			process_impl(_delta, activeCamera, maxProcessDuration);
+			process_impl(_delta, activeCamera);
 		}
 
 		resetTrackedInputEvents();
@@ -3271,7 +3276,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	m_numProcessExecution++;
 	m_sumProcessDuration += this->m_lastProcessDuration;
 
-	if ((m_lastProcessExecutionInterrupted || m_lastProcessDuration > maxProcessDuration) && Globals()->status() == TheWorldStatus::worldDeployed)
+	if ((m_lastProcessExecutionInterrupted || m_lastProcessDuration > m_maxProcessDuration) && Globals()->status() == TheWorldStatus::worldDeployed)
 	{
 		std::map<enum class ProcessStep::ProcessStepIdx, ProcessStep>& steps = m_processSteps.steps();
 		std::string lastExecutedProcessStep = (steps.size() > 0 ? m_processSteps.lastAddedStepName() : "");
@@ -3320,7 +3325,7 @@ godot::Control* GDN_TheWorld_Viewer::getOrCreateEditModeUIControl(void)
 	return editModeUIControl;
 }
 
-void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCamera, size_t maxProcessDuration)
+void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCamera)
 {
 	GDN_TheWorld_Globals* globals = Globals();
 	if (globals == nullptr)
@@ -3428,8 +3433,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		if (processCameraPosForQuadrants)
 		{
 			process_updateCameraQuad(globals, cameraPosGlobalCoord);
-			size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::process_updateCameraQuad);
-			if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateCameraQuad))
 			{
 				m_lastProcessExecutionInterrupted = true;
 				return;
@@ -3440,8 +3444,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.04 ") + __FUNCTION__, "Init new quadrants");
 		process_initNewQuads(processCameraPosForQuadrants);
-		size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::process_initNewQuads);
-		if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_initNewQuads))
 		{
 			m_lastProcessExecutionInterrupted = true;
 			return;
@@ -3451,8 +3454,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.05 ") + __FUNCTION__, "Track mouse");
 		process_trackMouse(activeCamera);
-		size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::process_trackMouse);
-		if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_trackMouse))
 		{
 			m_lastProcessExecutionInterrupted = true;
 			return;
@@ -3464,8 +3466,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		if (processCameraPosForChunks)
 		{
 			process_updateLodInQuads(cameraPosGlobalCoord);
-			size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::process_updateLodInQuads);
-			if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateLodInQuads))
 			{
 				m_lastProcessExecutionInterrupted = true;
 				return;
@@ -3478,8 +3479,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		//if (processCameraPosForChunks)
 		{
 			process_updateMeshForUpdatedChunks();
-			size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::process_updateMeshForUpdatedChunks);
-			if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateMeshForUpdatedChunks))
 			{
 				m_lastProcessExecutionInterrupted = true;
 				return;
@@ -3503,8 +3503,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 				}
 			}
 			m_updateTerrainVisibilityRequired = false;
-			size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::UpdateTerrainVisibility);
-			if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::UpdateTerrainVisibility))
 			{
 				m_lastProcessExecutionInterrupted = true;
 				return;
@@ -3523,8 +3522,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 				m_currentChunkDebugMode = m_requiredChunkDebugMode;
 			}
 			m_updateDebugModeRequired = false;
-			size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::UpdateDebugMode);
-			if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::UpdateDebugMode))
 			{
 				m_lastProcessExecutionInterrupted = true;
 				return;
@@ -3535,8 +3533,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.09 ") + __FUNCTION__, "Process Lookdev");
 		process_lookDev();
-		size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::process_lookDev);
-		if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_lookDev))
 		{
 			m_lastProcessExecutionInterrupted = true;
 			return;
@@ -3545,7 +3542,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.10 ") + __FUNCTION__, "Process Material Params");
-		process_materialParam(cameraPosGlobalCoord, processCameraPosForQuadrants, processCameraPosForChunks, maxProcessDuration);
+		process_materialParam(cameraPosGlobalCoord, processCameraPosForQuadrants, processCameraPosForChunks);
 		if (m_lastProcessExecutionInterrupted)
 			return;
 	}
@@ -4692,7 +4689,7 @@ void GDN_TheWorld_Viewer::process_lookDev(void)
 	m_desideredLookDevChanged = false;
 }
 
-void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks, size_t maxProcessDuration)
+void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks)
 {
 	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Material Params", false, false);
 	clock1.tick();
@@ -4719,8 +4716,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 		
 		ReloadSelectedQuadrantShaderRequired(false);
 
-		size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::ReloadSelectedQuadrantShader);
-		if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::ReloadSelectedQuadrantShader))
 		{
 			m_lastProcessExecutionInterrupted = true;
 			return;
@@ -4738,8 +4734,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 
 		ReloadAllShadersRequired(false);
 
-		size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::ReloadAllShaders);
-		if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::ReloadAllShaders))
 		{
 			m_lastProcessExecutionInterrupted = true;
 			return;
@@ -4757,8 +4752,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 
 		m_shaderParamChanged = false;
 
-		size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::ShaderParamChanged);
-		if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::ShaderParamChanged))
 		{
 			m_lastProcessExecutionInterrupted = true;
 			return;
@@ -4788,7 +4782,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.1 ") + __FUNCTION__, "resetMaterialParams");
-					materialParamsReset = itQuadTree->second->resetMaterialParams(m_lastProcessExecutionInterrupted, maxProcessDuration);
+					materialParamsReset = itQuadTree->second->resetMaterialParams(m_lastProcessExecutionInterrupted);
 					if (m_lastProcessExecutionInterrupted)
 					{
 						itQuadTree->second->getQuadrant()->unlockInternalData();
@@ -4799,8 +4793,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.2 ") + __FUNCTION__, "updateMaterialParams");
 					materialParamsUpdated = itQuadTree->second->updateMaterialParams();
-					size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::Quadrant_updateMaterialParams);
-					if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+					if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_updateMaterialParams))
 					{
 						m_lastProcessExecutionInterrupted = true;
 						itQuadTree->second->getQuadrant()->unlockInternalData();
@@ -4811,8 +4804,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.3 ") + __FUNCTION__, "updateCollider");
 					colliderUpdated = itQuadTree->second->updateCollider();
-					size_t elapsed = m_processSteps.addStep(ProcessStep::ProcessStepIdx::Quadrant_updateCollider);
-					if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+					if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_updateCollider))
 					{
 						m_lastProcessExecutionInterrupted = true;
 						itQuadTree->second->getQuadrant()->unlockInternalData();

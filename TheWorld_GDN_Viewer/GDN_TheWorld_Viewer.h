@@ -403,7 +403,7 @@ namespace godot
 		virtual void _physics_process(double _delta) override;
 		virtual void _input(const Ref<InputEvent>& event) override;
 		
-		void process_impl(double _delta, godot::Camera3D* activeCamera, size_t maxProcessDuration);
+		void process_impl(double _delta, godot::Camera3D* activeCamera);
 
 		//Ref<Material> getRegularMaterial(void);
 		//Ref<Material> getLookDevMaterial(void);
@@ -900,6 +900,19 @@ namespace godot
 		{
 			m_lastProcessedCameraPosForChunks = godot::Vector3();
 		}
+		bool processCanBeInterrupted(enum class ProcessStep::ProcessStepIdx idx)
+		{
+			if (m_processCanBeInterrupted)
+			{
+				size_t elapsed = addProcessStep(idx);
+				if (elapsed > m_maxProcessDuration)
+					return true;
+				else
+					return false;
+			}
+			else
+				return false;
+		}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -922,7 +935,7 @@ namespace godot
 		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord);
 		void process_updateMeshForUpdatedChunks(void);
 		void process_lookDev(void);
-		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks, size_t maxProcessDuration);
+		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
@@ -958,6 +971,8 @@ namespace godot
 
 		// Statistics data
 		//TheWorld_Viewer_Utils::TimerMcs m_processClock;
+		size_t m_maxProcessDuration = 0;
+		bool m_processCanBeInterrupted = false;
 		bool m_lastProcessExecutionInterrupted = false;
 		ProcessSteps m_processSteps;
 		//std::vector<ProcessStep> m_processSteps;

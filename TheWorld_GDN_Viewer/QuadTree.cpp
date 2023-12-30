@@ -447,7 +447,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 				quad->getChunk()->setDistanceFromCamera(distance);
 				if (distance < splitDistance)
 				{
-					if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunksShaders())
+					if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
 					{
 						setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 						m_viewer->forceProcessCameraPosForChunks();
@@ -466,7 +466,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 						quad->setJustSplitted(true);
 						splitted = true;
 						m_numSplits++;
-						getQuadrant()->canReleaseHeigthsBuffer(false);
+						getQuadrant()->canReleaseHeigthBuffers(false);
 					} 
 					else
 					{
@@ -628,7 +628,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 
 			if (quad->splitRequired() && quad->Lod() > 0)
 			{
-				if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunksShaders())
+				if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
 				{
 					setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 					m_viewer->forceProcessCameraPosForChunks();
@@ -647,7 +647,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 					quad->setJustSplitted(true);
 					splitted = true;
 					m_numSplits++;
-					getQuadrant()->canReleaseHeigthsBuffer(false);
+					getQuadrant()->canReleaseHeigthBuffers(false);
 				}
 				else
 				{
@@ -1017,13 +1017,13 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 		if (getQuadrant()->quadrantAtMinimumLod()
 			&&
 			((m_viewer->Globals()->getParamThresholdCacheHeights() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights()) /* || !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants()*/))
-			getQuadrant()->canReleaseHeigthsBuffer(true);
+			getQuadrant()->canReleaseHeigthBuffers(true);
 		else
-			getQuadrant()->canReleaseHeigthsBuffer(false);
+			getQuadrant()->canReleaseHeigthBuffers(false);
 	}
 }
 
-bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t maxProcessDuration, bool force)
+bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, bool force)
 {
 	bool reset = false;
 
@@ -1045,7 +1045,7 @@ bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t
 		}
 		else
 		{
-			getQuadrant()->getShaderTerrainData()->resetMaterialParams(lastProcessExecutionInterrupted, maxProcessDuration, m_lookDev);
+			getQuadrant()->getShaderTerrainData()->resetMaterialParams(lastProcessExecutionInterrupted, m_lookDev);
 			if (!lastProcessExecutionInterrupted)
 			{
 				materialParamsNeedReset(false);
@@ -2005,7 +2005,7 @@ godot::Ref<godot::Image> ShaderTerrainData::resizeImage(std::string& profileHead
 
 // it is expected that globals and World Datas are loaded
 // TODORIC: maybe usefull for performance reasons specify which texture need update and which rect of the texture 
-void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t maxProcessDuration, LookDev lookdev)
+void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupted, LookDev lookdev)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3 ") + __FUNCTION__, "Quadrant resetMaterialParams");
 
@@ -2113,7 +2113,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				memcpy((char*)data.ptrw(), quadrant->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
 			}
 			m_heightmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
-			m_resizedHeightmapImageMap.clear();	// occhio!!!
+			//m_resizedHeightmapImageMap.clear();	// occhio!!!
 		}
 
 		if (m_heightmapImage != nullptr)
@@ -2138,8 +2138,8 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		quadrant->setHeightsUpdated(false);
 	}
 
-	size_t elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_heightmap);
-	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+	
+	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_heightmap))
 	{
 		lastProcessExecutionInterrupted = true;
 		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2162,7 +2162,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.1 ") + __FUNCTION__, "Create empty Image for normals");
 				m_normalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGB8);
 				m_normalmapImage->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
-				m_resizedNormalmapImageMap.clear();		// occhio!!!
+				//m_resizedNormalmapImageMap.clear();		// occhio!!!
 
 			}
 			else
@@ -2177,7 +2177,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					memcpy((char*)data.ptrw(), normalsBuffer.ptr(), normalsBufferSize);
 				}
 				m_normalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
-				m_resizedNormalmapImageMap.clear();		// occhio!!!
+				//m_resizedNormalmapImageMap.clear();		// occhio!!!
 
 				//{
 				//	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
@@ -2214,8 +2214,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		quadrant->setNormalsUpdated(false);
 	}
 
-	elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_normalmap);
-	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_normalmap))
 	{
 		lastProcessExecutionInterrupted = true;
 		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2237,7 +2236,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.1 ") + __FUNCTION__, "Create empty Image for splatmap");
 				m_splatmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGBA8);
 				m_splatmapImage->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
-				m_resizedSplatmapImageMap.clear();	// occhio!!!
+				//m_resizedSplatmapImageMap.clear();	// occhio!!!
 			}
 			else
 			{
@@ -2251,7 +2250,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					memcpy((char*)data.ptrw(), splatmapBuffer.ptr(), splatmapBufferSizeInBytes);
 				}
 				m_splatmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
-				m_resizedSplatmapImageMap.clear();	// occhio!!!
+				//m_resizedSplatmapImageMap.clear();	// occhio!!!
 			}
 		}
 
@@ -2278,8 +2277,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		quadrant->setSplatmapUpdated(false);
 	}
 
-	elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_splatmap);
-	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_splatmap))
 	{
 		lastProcessExecutionInterrupted = true;
 		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2301,7 +2299,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.1 ") + __FUNCTION__, "Create empty Image for globalmap");
 				//m_globalmapImage = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
 				//m_globalmapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
-				//m_ResizedGlobalmapImageMap.clear();	// occhio!!!
+				////m_ResizedGlobalmapImageMap.clear();	// occhio!!!
 			}
 			else
 			{
@@ -2315,7 +2313,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
 				}
 				m_globalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
-				m_resizedGlobalmapImageMap.clear();
+				//m_resizedGlobalmapImageMap.clear();	// occhio!!!
 			}
 		}
 
@@ -2342,8 +2340,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		quadrant->setGlobalmapUpdated(false);
 	}
 
-	elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_globalmap);
-	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_globalmap))
 	{
 		lastProcessExecutionInterrupted = true;
 		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2365,7 +2362,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.1 ") + __FUNCTION__, "Create empty Image for colors");
 				//m_colormapImage = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGBA8);
 				//m_colormapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
-				//m_ResizedColormapImageMap.clear();	// occhio!!!
+				////m_ResizedColormapImageMap.clear();	// occhio!!!
 			}
 			else
 			{
@@ -2379,7 +2376,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 					memcpy((char*)data.ptrw(), colormapBuffer.ptr(), colormapBufferSizeInBytes);
 				}
 				m_colormapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
-				m_resizedColormapImageMap.clear();
+				//m_resizedColormapImageMap.clear();	// occhio!!!
 			}
 		}
 
@@ -2405,8 +2402,7 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		quadrant->setColorsUpdated(false);
 	}
 
-	elapsed = m_viewer->addProcessStep(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_colormap);
-	if (elapsed > maxProcessDuration && globals->status() == TheWorldStatus::worldDeployed)
+	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_colormap))
 	{
 		lastProcessExecutionInterrupted = true;
 		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -2870,7 +2866,7 @@ bool Quadrant::isFlushed(void)
 		return false;
 }
 
-bool Quadrant::hasHeigthsForChunksShaders(void)
+bool Quadrant::hasHeigthsForChunkSplitsAndShaderRendering(void)
 {
 	if (getFloat16HeightsBuffer(false).size() == 0)
 		return false;
@@ -2989,24 +2985,37 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 
 	//return;
 
-	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getMeshResolutionLevel() == MeshResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
-	//	m_float16HeigthsBuffer.clear();
-	if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && canReleaseHeigthsBuffer())
+	if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && canReleaseHeigthBuffers())
 		if (m_float16HeigthsBuffer.size() > 0)
 			m_float16HeigthsBuffer.clear();
 
-	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getTexResolutionLevel() == TexResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
-	//	clearCachedTexture();
+	////if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && quadrantAtMinimumLod())
+	if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && canReleaseHeigthBuffers())
+	{
+		// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass form optimizatrion level > 0 (used cached resize images) to optimization level = 0
+		if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
+			m_float32HeigthsBuffer.clear();
+		if (m_normalsBuffer.size() > 0)
+			m_normalsBuffer.clear();
+		if (m_splatmapBuffer.size() > 0)
+			m_splatmapBuffer.clear();
+		if (m_colormapBuffer.size() > 0)
+			m_colormapBuffer.clear();
+		if (m_globalmapBuffer.size() > 0)
+			m_globalmapBuffer.clear();
+	}
+	
+	// Needed for Shader: at init time or when optimization level changes (from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
+	
+	if (!m_quadTree->materialParamsNeedReset() && !m_quadTree->materialParamsNeedUpdate() && !m_quadTree->colliderNeedReset())
+	{
+		getShaderTerrainData()->getHeightmapImageRef().unref();
+		getShaderTerrainData()->getNormalmapImageRef().unref();
+		getShaderTerrainData()->getSplatmapImageRef().unref();
+		getShaderTerrainData()->getColormapImageRef().unref();
+		getShaderTerrainData()->getGlobalmapImageRef().unref();
+	}
 
-	//if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
-	//	if (m_float16HeigthsBuffer.size() > 0)
-	//		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
-										// if m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants() we keep also for invisible quadrant to avoid reload from disk when quadrant become visible (reason is we want it happen during load of invisible quadrants)
-	m_float32HeigthsBuffer.clear();		// needed for collider but releaseTerrainValuesMemory will run after collider
-	m_normalsBuffer.clear();			// we cache image
-	m_splatmapBuffer.clear();			// we cache image
-	m_colormapBuffer.clear();
-	m_globalmapBuffer.clear();
 	int64_t size = m_heightsForCollider.size();
 	m_heightsForCollider.resize(0);
 }

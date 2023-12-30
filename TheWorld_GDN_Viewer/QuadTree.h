@@ -319,7 +319,7 @@ namespace godot
 
 		bool isFlushed(void);
 
-		bool hasHeigthsForChunksShaders(void);
+		bool hasHeigthsForChunkSplitsAndShaderRendering(void);
 
 		void lockInternalDataUntilCompleteProcessExecution(bool b = true);
 		bool internalDataLockedUntilCompleteProcessExecution(void);
@@ -643,13 +643,13 @@ namespace godot
 		{
 			return m_renderGlobalMap;
 		}
-		void canReleaseHeigthsBuffer(bool b)
+		void canReleaseHeigthBuffers(bool b)
 		{
-			m_canReleaseHeigthsBuffer = b;
+			m_canReleaseHeigthBuffers = b;
 		}
-		bool canReleaseHeigthsBuffer(void)
+		bool canReleaseHeigthBuffers(void)
 		{
-			return m_canReleaseHeigthsBuffer;
+			return m_canReleaseHeigthBuffers;
 		}
 		void renderGlobalMapChanged(bool b);
 		bool renderGlobalMapChanged(void)
@@ -719,7 +719,7 @@ namespace godot
 
 		bool m_renderGlobalMap = false;
 		bool m_renderGlobalMapChanged = false;
-		bool m_canReleaseHeigthsBuffer = false;
+		bool m_canReleaseHeigthBuffers = false;
 		size_t m_optimizationLevel = 0;
 		bool m_optimizationLevelChanged = false;
 
@@ -830,7 +830,7 @@ namespace godot
 		{
 			m_materialParamsNeedReset = b;
 		}
-		void resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t maxProcessDuration, LookDev lookdev);
+		void resetMaterialParams(bool& lastProcessExecutionInterrupted, LookDev lookdev);
 		bool materialParamsNeedUpdate(void)
 		{
 			return m_materialParamsNeedUpdate;
@@ -1225,7 +1225,7 @@ namespace godot
 		Ref<Material> getCurrentMaterial(int lod);
 		void reloadCurrentMaterial(void);
 		void setOptimizations(godot::Vector3& cameraPosGlobalCoord);
-		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, size_t maxProcessDuration, bool force = false);
+		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, bool force = false);
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
 		bool updateCollider(void);

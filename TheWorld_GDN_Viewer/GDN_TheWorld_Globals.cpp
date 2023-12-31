@@ -359,10 +359,10 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_stream_world"), &GDN_TheWorld_Globals::getStreamWorld);
 		ClassDB::bind_method(D_METHOD("set_perfparam_profiler_active"), &GDN_TheWorld_Globals::setParamProfilerActive);
 		ClassDB::bind_method(D_METHOD("get_perfparam_profiler_active"), &GDN_TheWorld_Globals::getParamProfilerActive);
-		ClassDB::bind_method(D_METHOD("set_perfparam_cache_terrain_textures", "p_value"), &GDN_TheWorld_Globals::setParamCacheTerrainTextures);
-		ClassDB::bind_method(D_METHOD("get_perfparam_cache_terrain_textures"), &GDN_TheWorld_Globals::getParamCacheTerrainTextures);
-		ClassDB::bind_method(D_METHOD("set_perfparam_cache_terrain_textures_async", "p_value"), &GDN_TheWorld_Globals::setParamCacheTerrainTexturesAsync);
-		ClassDB::bind_method(D_METHOD("get_perfparam_cache_terrain_textures_async"), &GDN_TheWorld_Globals::getParamCacheTerrainTexturesAsync);
+		//ClassDB::bind_method(D_METHOD("set_perfparam_cache_terrain_images", "p_value"), &GDN_TheWorld_Globals::setParamCacheTerrainImages);
+		//ClassDB::bind_method(D_METHOD("get_perfparam_cache_terrain_images"), &GDN_TheWorld_Globals::getParamCacheTerrainImages);
+		//ClassDB::bind_method(D_METHOD("set_perfparam_cache_terrain_textures_async", "p_value"), &GDN_TheWorld_Globals::setParamCacheTerrainTexturesAsync);
+		//ClassDB::bind_method(D_METHOD("get_perfparam_cache_terrain_textures_async"), &GDN_TheWorld_Globals::getParamCacheTerrainTexturesAsync);
 		//ClassDB::bind_method(D_METHOD("set_perfparam_cache_heights_invisible_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCacheHeightsForInvisibleQuadrants);
 		//ClassDB::bind_method(D_METHOD("get_perfparam_cache_heights_invisible_quadrants"), &GDN_TheWorld_Globals::getParamCacheHeightsForInvisibleQuadrants);
 		//ClassDB::bind_method(D_METHOD("set_perfparam_cache_heights_lowres_quadrants", "p_value"), &GDN_TheWorld_Globals::setParamCacheHeightsForLowResQuadrants);
@@ -393,8 +393,8 @@ namespace godot
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "Performance", "perfparam_");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_stream_world"), "set_perfparam_stream_world", "get_perfparam_stream_world");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_profiler_active"), "set_perfparam_profiler_active", "get_perfparam_profiler_active");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures"), "set_perfparam_cache_terrain_textures", "get_perfparam_cache_terrain_textures");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures_async"), "set_perfparam_cache_terrain_textures_async", "get_perfparam_cache_terrain_textures_async");
+		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_images"), "set_perfparam_cache_terrain_images", "get_perfparam_cache_terrain_images");
+		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_terrain_textures_async"), "set_perfparam_cache_terrain_textures_async", "get_perfparam_cache_terrain_textures_async");
 		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_invisible_quadrants"), "set_perfparam_cache_heights_invisible_quadrants", "get_perfparam_cache_heights_invisible_quadrants");
 		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_cache_heights_lowres_quadrants"), "set_perfparam_cache_heights_lowres_quadrants", "get_perfparam_cache_heights_lowres_quadrants");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_cache_heights"), "set_perfparam_threshold_cache_heights", "get_perfparam_threshold_cache_heights");
@@ -721,21 +721,15 @@ namespace godot
 			TheWorld_Utils::Profiler::deactivate();
 	}
 
-	void GDN_TheWorld_Globals::setParamCacheTerrainTextures(bool b)
-	{
-		m_paramCacheTerrainTextures = b;
-		GDN_TheWorld_Viewer* viewer = Viewer();
-		if (viewer != nullptr)
-			viewer->resetMaterialParamsForEveryQuadrant();
-	}
+	//void GDN_TheWorld_Globals::setParamCacheTerrainImages(bool b)
+	//{
+	//	m_paramCacheTerrainImages = b;
+	//}
 
-	void GDN_TheWorld_Globals::setParamCacheTerrainTexturesAsync(bool b)
-	{
-		m_paramCacheTerrainTexturesAsync = b;
-		//GDN_TheWorld_Viewer* viewer = Viewer();
-		//if (viewer != nullptr)
-		//	viewer->resetMaterialParamsForEveryQuadrant();
-	}
+	//void GDN_TheWorld_Globals::setParamCacheTerrainTexturesAsync(bool b)
+	//{
+	//	m_paramCacheTerrainTexturesAsync = b;
+	//}
 
 	//void GDN_TheWorld_Globals::setParamCacheHeightsForInvisibleQuadrants(bool b)
 	//{

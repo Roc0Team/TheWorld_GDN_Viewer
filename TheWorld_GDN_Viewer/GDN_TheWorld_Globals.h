@@ -30,10 +30,10 @@
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER_IN_EDITOR						1
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER								6	// 3
 #define THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER								2	// 1
-#define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES									true
-#define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES_ASYNC							true
-//#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS					true
-//#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS						false
+//#define THEWORLD_DEFAULT_CACHE_TERRAIN_IMAGES									true
+//#define THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES_ASYNC							true
+//#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS				true
+//#define THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS					false
 #define THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS								20000.0f	// 0.0f	// 20000.0F	// 15000.0F
 #define THEWORLD_DEFAULT_FORCE_HIRES_COLLISION_INFO								false
 #define THEWORLD_DEFAULT_DISABLE_TERRAIN_COLLISIONS								false
@@ -567,16 +567,16 @@ namespace godot
 			return TheWorld_Utils::Profiler::isActive();
 		}
 		void setParamProfilerActive(bool b);
-		bool getParamCacheTerrainTextures(void)
-		{
-			return m_paramCacheTerrainTextures;
-		}
-		void setParamCacheTerrainTextures(bool b);
-		bool getParamCacheTerrainTexturesAsync(void)
-		{
-			return m_paramCacheTerrainTexturesAsync;
-		}
-		void setParamCacheTerrainTexturesAsync(bool b);
+		//bool getParamCacheTerrainImages(void)
+		//{
+		//	return m_paramCacheTerrainImages;
+		//}
+		//void setParamCacheTerrainImages(bool b);
+		//bool getParamCacheTerrainTexturesAsync(void)
+		//{
+		//	return m_paramCacheTerrainTexturesAsync;
+		//}
+		//void setParamCacheTerrainTexturesAsync(bool b);
 		//bool getParamCacheHeightsForInvisibleQuadrants(void)
 		//{
 		//	return m_paramCacheHeightsForInvisibleQuadrants;
@@ -693,8 +693,8 @@ namespace godot
 
 		// Node parameters
 		bool m_streamWorld = THEWORLD_DEFAULT_STREAM_WORLD;
-		bool m_paramCacheTerrainTextures = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES;
-		bool m_paramCacheTerrainTexturesAsync = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES_ASYNC;
+		//bool m_paramCacheTerrainImages = THEWORLD_DEFAULT_CACHE_TERRAIN_IMAGES;
+		//bool m_paramCacheTerrainTexturesAsync = THEWORLD_DEFAULT_CACHE_TERRAIN_TEXTURES_ASYNC;
 		//bool m_paramCacheHeightsForInvisibleQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_INVISIBLE_QUADRANTS;
 		//bool m_paramCacheHeightsForLowResQuadrants = THEWORLD_DEFAULT_CACHE_HEIGHTS_FOR_LOWRES_QUADRANTS;
 		float m_paramThresholdCacheHeights = THEWORLD_DEFAULT_THRESHOLD_CACHE_HEIGHTS;

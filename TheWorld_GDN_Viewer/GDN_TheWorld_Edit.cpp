@@ -2660,10 +2660,10 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->setHeightsUpdated(true);
 
 	// 5. invalidata normals and textures as heigths have been changed and set flags according (normals need regen and empty normals have to be passed to shader)
-	quadTreeSel->getQuadrant()->resetNormalsBuffer();
-	quadTreeSel->getQuadrant()->resetSplatmapBuffer();
-	quadTreeSel->getQuadrant()->resetColormapBuffer();
-	quadTreeSel->getQuadrant()->resetGlobalmapBuffer();
+	quadTreeSel->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
+	quadTreeSel->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
+	quadTreeSel->getQuadrant()->resetColormapBuffer(__FUNCTION__);
+	quadTreeSel->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
 	// 6. prepare new heigths for collider (PackedFloat32Array) - // WARNING useless ? Same instructions are executed in Collider::setData called in QuadTree::updateMaterialParams
 	{
@@ -3144,11 +3144,11 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 
 		quadTree->getQuadrant()->setHeightsUpdated(true);
 
-		quadTree->getQuadrant()->resetNormalsBuffer();
+		quadTree->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
 
-		quadTree->getQuadrant()->resetSplatmapBuffer();
+		quadTree->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
 
-		quadTree->getQuadrant()->resetGlobalmapBuffer();
+		quadTree->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
 
 		{
@@ -3228,7 +3228,7 @@ void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 		if (quadTree != nullptr)
 		{
 			quadTree->getQuadrant()->getTerrainEdit()->normalsNeedRegen = true;
-			quadTree->getQuadrant()->getNormalsBuffer().clear();
+			quadTree->getQuadrant()->getNormalsBuffer().clear(__FUNCTION__);
 			quadTree->getQuadrant()->unlockInternalData();
 
 			m_completedItems++;
@@ -3456,9 +3456,9 @@ void GDN_TheWorld_Edit::editModeGenNormals_2(QuadTree* quadTree)
 		quadTree->getQuadrant()->getTerrainEdit()->normalsNeedRegen = false;
 		quadTree->getQuadrant()->setNormalsUpdated(true);
 
-		quadTree->getQuadrant()->resetSplatmapBuffer();
+		quadTree->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
 
-		quadTree->getQuadrant()->resetGlobalmapBuffer();
+		quadTree->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
 		quadTree->materialParamsNeedReset(true);
 	}
@@ -3789,7 +3789,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_2(QuadTree* quadTree)
 				quadTree->getQuadrant()->getTerrainEdit()->extraValues.lowElevationFactor,
 				quadTree->getQuadrant()->getTerrainEdit()->extraValues.splatMapMode);
 
-			quadTree->getQuadrant()->resetGlobalmapBuffer();
+			quadTree->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 		}
 
 		{

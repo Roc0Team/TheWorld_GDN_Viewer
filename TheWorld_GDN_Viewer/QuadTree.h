@@ -466,7 +466,7 @@ namespace godot
 			quadrantData.texturesUpdated = textureUpdated();
 		}
 
-		//void resetHeightsBuffer(void)
+		//void resetHeightsBuffer(std::string actor)
 		//{
 		//	getFloat16HeightsBuffer(false).clear();
 		//	getFloat32HeightsBuffer(false).clear();
@@ -477,34 +477,34 @@ namespace godot
 		//	resetColormapBuffer();
 		//}
 
-		void resetNormalsBuffer(void)
+		void resetNormalsBuffer(std::string actor)
 		{
-			getNormalsBuffer(false).clear();
+			getNormalsBuffer(false).clear(actor);
 			getTerrainEdit()->normalsNeedRegen = true;
 			setNormalsUpdated(true);
 
-			resetSplatmapBuffer();
+			resetSplatmapBuffer(actor);
 		}
 
-		void resetSplatmapBuffer(void)
+		void resetSplatmapBuffer(std::string actor)
 		{
-			getSplatmapBuffer(false).clear();
+			getSplatmapBuffer(false).clear(actor);
 			getTerrainEdit()->extraValues.splatmapNeedRegen = true;
 			setSplatmapUpdated(true);
 			
-			resetGlobalmapBuffer();
+			resetGlobalmapBuffer(actor);
 		}
 
-		void resetColormapBuffer(void)
+		void resetColormapBuffer(std::string actor)
 		{
-			getColormapBuffer(false).clear();
+			getColormapBuffer(false).clear(actor);
 			getTerrainEdit()->extraValues.colormapNeedRegen = true;
 			setColorsUpdated(true);
 		}
 
-		void resetGlobalmapBuffer(void)
+		void resetGlobalmapBuffer(std::string actor)
 		{
-			getGlobalmapBuffer(false).clear();
+			getGlobalmapBuffer(false).clear(actor);
 			getTerrainEdit()->extraValues.globalmapNeedRegen = true;
 			setGlobalmapUpdated(true);
 		}
@@ -643,13 +643,13 @@ namespace godot
 		{
 			return m_renderGlobalMap;
 		}
-		void canReleaseHeigthBuffers(bool b)
+		void canCacheHeigthBuffers(bool b)
 		{
-			m_canReleaseHeigthBuffers = b;
+			m_canCacheHeigthBuffers = b;
 		}
-		bool canReleaseHeigthBuffers(void)
+		bool canCacheHeigthBuffers(void)
 		{
-			return m_canReleaseHeigthBuffers;
+			return m_canCacheHeigthBuffers;
 		}
 		void renderGlobalMapChanged(bool b);
 		bool renderGlobalMapChanged(void)
@@ -674,6 +674,24 @@ namespace godot
 		}
 
 		bool canHaveHiResCollisionInfo(void);
+
+		bool executingProcess(void)
+		{
+			return m_executingProcess;
+		}
+		void executingProcess(bool b)
+		{
+			m_executingProcess = b;
+		}
+
+		bool terrainDataJustLoaded(void)
+		{
+			return m_terrainDataJustLoaded;
+		}
+		void terrainDataJustLoaded(bool b)
+		{
+			m_terrainDataJustLoaded = b;
+		}
 
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
@@ -719,11 +737,14 @@ namespace godot
 
 		bool m_renderGlobalMap = false;
 		bool m_renderGlobalMapChanged = false;
-		bool m_canReleaseHeigthBuffers = false;
+		bool m_canCacheHeigthBuffers = false;
 		size_t m_optimizationLevel = 0;
 		bool m_optimizationLevelChanged = false;
 
 		size_t m_lastDistanceInPerimeterFromCameraQuadrant = -1;
+
+		bool m_executingProcess = false;
+		bool m_terrainDataJustLoaded = false;
 	};
 
 	class ShaderTerrainData
@@ -840,7 +861,16 @@ namespace godot
 			m_materialParamsNeedUpdate = b;
 		}
 		void updateMaterialParams(LookDev lookdev);
+		enum class ImageType
+		{
+			heightmap = 0
+			,normalmap = 1
+			,splatmap = 2
+			,globalmap = 3
+			,colormap = 4
+		};
 		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel, size_t resolution);
+		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel, size_t resolution);
 		godot::Ref<godot::Image> resizeImage(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, size_t newResolution, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel);
 		godot::Ref<godot::Material> getRegularMaterial(bool reload = false);
 		void releaseRegularMaterial(void);
@@ -869,10 +899,17 @@ namespace godot
 
 		void mouseHitChanged(godot::Vector2 mouseHit);
 
+		godot::Ref<godot::Image> getOrCreateHeightmapImage();
+		godot::Ref<godot::Image> getOrCreateNormalmapImage();
+		godot::Ref<godot::Image> getOrCreateSplatmapImage();
+		godot::Ref<godot::Image> getOrCreateGlobalmapImage();
+		godot::Ref<godot::Image> getOrCreateColormapImage();
+
 		godot::Ref<godot::Image> getHeightmapImage(void)
 		{
 			return m_heightmapImage;
 		}
+
 		godot::Ref<godot::Image>& getHeightmapImageRef(void)
 		{
 			return m_heightmapImage;
@@ -1371,6 +1408,10 @@ namespace godot
 		{
 			return m_root.get();
 		}
+		bool forceRecalcOptimizationLevel(void)
+		{
+			return m_forceRecalcOptimizationLevel;
+		}
 
 	private:
 		void internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired);
@@ -1395,6 +1436,7 @@ namespace godot
 		//godot::Vector3 m_quadCenterGlobal;
 		//real_t m_splitDistance = 0;
 		float m_lastComputedDistanceFromCamera = 0;
+		bool m_forceRecalcOptimizationLevel = false;
 
 		// Statistics
 		int m_numSplits;

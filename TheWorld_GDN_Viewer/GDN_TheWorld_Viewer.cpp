@@ -4768,7 +4768,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 		
 		for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 		{
-			if (processCameraPosForChunks)	// occhio!!!
+			if (processCameraPosForChunks || itQuadTree->second->forceRecalcOptimizationLevel())	// occhio!!!
 				itQuadTree->second->setOptimizations(cameraPosGlobalCoord);
 			
 			bool materialParamsReset = false;

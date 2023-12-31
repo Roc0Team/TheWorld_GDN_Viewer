@@ -156,7 +156,7 @@ namespace godot
 		optimizationLevel = 0;
 		if (optimizationLevel == 0)
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.1 ") + __FUNCTION__, "get heigths opt 0");
+			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.1 ") + __FUNCTION__, "get heigths opt level = 0");
 			numVerticesPerSize = quadrant->getPos().getNumVerticesPerSize();
 			PackedFloat32Array& _heightsForCollider = quadrant->getHeightsForCollider();
 			heightsForCollider = &_heightsForCollider;
@@ -164,7 +164,7 @@ namespace godot
 		}
 		else
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2 ") + __FUNCTION__, "get heigths opt >0");
+			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2 ") + __FUNCTION__, "get heigths opt level > 0");
 			size_t newResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
 			numVerticesPerSize = (int)newResolution;
 			heightsForCollider = &resizedHeightsForCollider;
@@ -173,7 +173,8 @@ namespace godot
 			{
 				std::string profileHeader("Collider setData 1.2.1 ");
 				std::map<size_t, godot::Ref<godot::Image>>& resizedHeightmapImageMap = quadrant->getShaderTerrainData()->getResizedHeightmapImageMap();
-				godot::Ref<godot::Image> im = quadrant->getShaderTerrainData()->getImageAtResolution(profileHeader, quadrant->getShaderTerrainData()->getHeightmapImage(), resizedHeightmapImageMap, optimizationLevel, newResolution);
+				godot::Ref<godot::Image> im = quadrant->getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, optimizationLevel, newResolution);
+				assert(false);
 				image = im;
 			}
 
@@ -198,7 +199,7 @@ namespace godot
 		
 		int areaSize = numVerticesPerSize * numVerticesPerSize;
 		//{
-		//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 4.1.1.1 ") + __FUNCTION__, "Collider::setData - gen empty heights");
+		//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.1.1.1 ") + __FUNCTION__, "Collider::setData - gen empty heights");
 		//	PoolRealArray& h = quadrant->getHeightsForCollider();
 		//}
 		my_assert(areaSize == heightsForCollider->size());

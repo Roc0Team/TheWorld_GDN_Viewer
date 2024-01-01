@@ -3356,7 +3356,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	}
 
 	static size_t s_num = 0, s_loadingWorldRefresh = 0;
-	if (globals->status() == TheWorldStatus::worldDeployInProgress && s_loadingWorldRefresh < 3)
+	if (globals->status() == TheWorldStatus::worldDeployInProgress && s_loadingWorldRefresh < 5)
 		if (s_num > 10)
 		{
 			m_refreshRequired = true;
@@ -6345,6 +6345,8 @@ void GDN_TheWorld_Viewer::streamer(void)
 
 	Globals()->debugPrint("streamer thread STARTED");
 
+	TheWorld_Viewer_Utils::MsTimePoint lastSyncTime = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+
 	while (!m_streamerThreadRequiredExit)
 	{
 		try
@@ -6380,8 +6382,13 @@ void GDN_TheWorld_Viewer::streamer(void)
 					m_recalcQuadrantsInViewNeeded = false;
 				}
 				
-				Globals()->Client()->Sync(isInEditor(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-				
+				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+				if ((now - lastSyncTime).count() > STREAMER_SYNC_PERIOD_TIME)
+				{
+					Globals()->Client()->Sync(isInEditor(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+					lastSyncTime = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+				}
+
 				if (m_dumpRequired)
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("streamer 1 ") + __FUNCTION__, "Dump stuff");

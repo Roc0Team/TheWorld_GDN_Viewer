@@ -3636,69 +3636,76 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 {
 	//return;
 
-	//if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
-	//	return;
+	// OK con image ma senza buffers (!lowMemory), KO senza images ma con buffers (lowMemory) - i buffers durante il caricamento devono essere distrutti appena lavorati perché fanno esaurire la memoria di sistema rallentando notevolmente il caricamento
+	bool lowMemory = true;
 
-	//if (m_quadTree->materialParamsNeedReset() || m_quadTree->materialParamsNeedUpdate() || m_quadTree->colliderNeedReset() || terrainDataJustLoaded())
-	//	return;
+	if (lowMemory)
+	{
+		if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
+			return;
 
-	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && !canCacheHeigthBuffers())
-	//	if (m_float16HeigthsBuffer.size() > 0)
-	//		m_float16HeigthsBuffer.clear(__FUNCTION__);
+		if (m_quadTree->materialParamsNeedReset() || m_quadTree->materialParamsNeedUpdate() || m_quadTree->colliderNeedReset() || terrainDataJustLoaded())
+			return;
 
-	//////if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && quadrantAtMinimumLod())
-	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && !canCacheHeigthBuffers())
-	//{
-	//	// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass form optimizatrion level > 0 (used cached resize images) to optimization level = 0
-	//	if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
-	//		m_float32HeigthsBuffer.clear(__FUNCTION__);
-	//	if (m_normalsBuffer.size() > 0)
-	//		m_normalsBuffer.clear(__FUNCTION__);
-	//	if (m_splatmapBuffer.size() > 0)
-	//		m_splatmapBuffer.clear(__FUNCTION__);
-	//	if (m_colormapBuffer.size() > 0)
-	//		m_colormapBuffer.clear(__FUNCTION__);
-	//	if (m_globalmapBuffer.size() > 0)
-	//		m_globalmapBuffer.clear(__FUNCTION__);
-	//}
+		if (/*m_viewer->Globals()->status() == TheWorldStatus::worldDeployed &&*/ !canCacheHeigthBuffers())
+			if (m_float16HeigthsBuffer.size() > 0)
+				m_float16HeigthsBuffer.clear(__FUNCTION__);
 
-	//// Needed for Shader: at init time or when optimization level changes (from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
+		if (!canCacheHeigthBuffers())
+		{
+			// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass form optimizatrion level > 0 (used cached resize images) to optimization level = 0
+			if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
+				m_float32HeigthsBuffer.clear(__FUNCTION__);
+			if (m_normalsBuffer.size() > 0)
+				m_normalsBuffer.clear(__FUNCTION__);
+			if (m_splatmapBuffer.size() > 0)
+				m_splatmapBuffer.clear(__FUNCTION__);
+			if (m_colormapBuffer.size() > 0)
+				m_colormapBuffer.clear(__FUNCTION__);
+			if (m_globalmapBuffer.size() > 0)
+				m_globalmapBuffer.clear(__FUNCTION__);
+		}
 
-	//if (/*m_viewer->Globals()->status() == TheWorldStatus::worldDeployed &&*/ !canCacheHeigthBuffers())	// occhio!!!
-	//{
-	//	getShaderTerrainData()->getHeightmapImageRef().unref();
-	//	getShaderTerrainData()->getNormalmapImageRef().unref();
-	//	getShaderTerrainData()->getSplatmapImageRef().unref();
-	//	getShaderTerrainData()->getColormapImageRef().unref();
-	//	getShaderTerrainData()->getGlobalmapImageRef().unref();
-	//}
+		// Needed for Shader: at init time or when optimization level changes (from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
 
-	//int64_t size = m_heightsForCollider.size();
-	//m_heightsForCollider.resize(0);
+		if (!canCacheHeigthBuffers())	// occhio!!!
+		{
+			getShaderTerrainData()->getHeightmapImageRef().unref();
+			getShaderTerrainData()->getNormalmapImageRef().unref();
+			getShaderTerrainData()->getSplatmapImageRef().unref();
+			getShaderTerrainData()->getColormapImageRef().unref();
+			getShaderTerrainData()->getGlobalmapImageRef().unref();
+		}
 
-	if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
-		return;
+		int64_t size = m_heightsForCollider.size();
+		m_heightsForCollider.resize(0);
+	}
+	else
+	{
+		if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
+			return;
 
-	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getMeshResolutionLevel() == MeshResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
-	//	m_float16HeigthsBuffer.clear();
-	if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && !canCacheHeigthBuffers())
-		if (m_float16HeigthsBuffer.size() > 0)
-			m_float16HeigthsBuffer.clear();
+		//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getMeshResolutionLevel() == MeshResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
+		//	m_float16HeigthsBuffer.clear();
+		if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && !canCacheHeigthBuffers())
+			if (m_float16HeigthsBuffer.size() > 0)
+				m_float16HeigthsBuffer.clear();
 
-	//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getTexResolutionLevel() == TexResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
-	//	clearCachedTexture();
+		//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getTexResolutionLevel() == TexResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
+		//	clearCachedTexture();
 
-	//if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
-	//	if (m_float16HeigthsBuffer.size() > 0)
-	//		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
-										// if m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants() we keep also for invisible quadrant to avoid reload from disk when quadrant become visible (reason is we want it happen during load of invisible quadrants)
-	m_float32HeigthsBuffer.clear();		// needed for collider but releaseTerrainValuesMemory will run after collider
-	m_normalsBuffer.clear();			// we cache image
-	m_splatmapBuffer.clear();			// we cache image
-	m_colormapBuffer.clear();
-	m_globalmapBuffer.clear();
-	int64_t size = m_heightsForCollider.size();
-	m_heightsForCollider.resize(0);
+		//if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
+		//	if (m_float16HeigthsBuffer.size() > 0)
+		//		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
+											// if m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants() we keep also for invisible quadrant to avoid reload from disk when quadrant become visible (reason is we want it happen during load of invisible quadrants)
+		m_float32HeigthsBuffer.clear();		// needed for collider but releaseTerrainValuesMemory will run after collider
+		m_normalsBuffer.clear();			// we cache image
+		m_splatmapBuffer.clear();			// we cache image
+		m_colormapBuffer.clear();
+		m_globalmapBuffer.clear();
+		int64_t size = m_heightsForCollider.size();
+		m_heightsForCollider.resize(0);
+	}
 }
 
 size_t Quadrant::calcMapMemoryOccupation(void)

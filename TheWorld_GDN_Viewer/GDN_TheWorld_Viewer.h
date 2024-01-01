@@ -42,7 +42,8 @@ namespace godot
 
 	typedef std::map<QuadrantPos, std::unique_ptr<QuadTree>> MapQuadTree;
 
-#define STREAMER_SLEEP_TIME	10
+#define STREAMER_SLEEP_TIME			10
+#define STREAMER_SYNC_PERIOD_TIME	1000
 #define FAR_HORIZON_MULTIPLIER	50
 
 #define MIN_MAP_SCALE 0.01F

@@ -710,7 +710,12 @@ namespace godot
 
 	void GDN_TheWorld_Globals::setStreamWorld(bool b)
 	{
-		m_streamWorld = b;
+		if (m_streamWorld != b)
+		{
+			m_streamWorld = b;
+			if (m_streamWorld && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
+				Viewer()->recalcQuadrantsInViewNeeded(true);
+		}
 	}
 
 	void GDN_TheWorld_Globals::setParamProfilerActive(bool b)

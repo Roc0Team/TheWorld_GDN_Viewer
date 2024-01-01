@@ -915,6 +915,11 @@ namespace godot
 				return false;
 		}
 
+		void recalcQuadrantsInViewNeeded(bool b)
+		{
+			m_recalcQuadrantsInViewNeeded = b;
+		}
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);

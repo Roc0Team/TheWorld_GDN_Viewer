@@ -3721,6 +3721,11 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 		if (Globals()->status() != TheWorldStatus::worldDeployed || Globals()->getStreamWorld())
 			m_recalcQuadrantsInViewNeeded = true;
 	}
+
+	for (auto& itQuadTree : m_mapQuadTree)
+	{
+		itQuadTree.second->setOptimizations(cameraPosGlobalCoord);
+	}
 }
 
 void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants)
@@ -6231,7 +6236,7 @@ void GDN_TheWorld_Viewer::dump()
 		char _thresholdCacheHeights[24]; // dummy size, you should take care of the size!
 		sprintf_s(_thresholdCacheHeights, "%.2f", thresholdCacheHeights);
 		Globals()->debugPrint(String("Threshold value to cache maps and images : ") + std::string(_thresholdCacheHeights).c_str() + " m");
-		Globals()->debugPrint(String("Quadrants : ") + String(std::to_string(m_mapQuadTree.size()).c_str()) + ", cached map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, cached image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB (resized cahched image memory : " + String(std::to_string((float)resizedTexMemoryOccupation / (1024 * 1024 * 1024)).c_str())  + " GB)");
+		Globals()->debugPrint(String("Quadrants : ") + String(std::to_string(m_mapQuadTree.size()).c_str()) + ", cached map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, cached image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB (resized cached image memory : " + String(std::to_string((float)resizedTexMemoryOccupation / (1024 * 1024 * 1024)).c_str())  + " GB)");
 		Globals()->debugPrint(String("   Heigthmap16 : ") + String(std::to_string((float)heightmap16MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Heigthmap32 : ") + String(std::to_string((float)heightmap32MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Normalmap : ") + String(std::to_string((float)normalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");

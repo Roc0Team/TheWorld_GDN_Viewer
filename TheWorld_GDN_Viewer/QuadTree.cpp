@@ -449,9 +449,9 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 				{
 					if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
 					{
-						godot::Vector3 quadrantCenter = getQuadrant()->getCenter();
-						quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
-						float lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
+						//godot::Vector3 quadrantCenter = getQuadrant()->getCenter();
+						//quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
+						//float lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
 						setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 						m_viewer->forceProcessCameraPosForChunks();
 					}
@@ -634,9 +634,9 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 			{
 				if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
 				{
-					godot::Vector3 quadrantCenter = getQuadrant()->getCenter();
-					quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
-					float lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
+					//godot::Vector3 quadrantCenter = getQuadrant()->getCenter();
+					//quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
+					//float lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
 					setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 					m_viewer->forceProcessCameraPosForChunks();
 				}
@@ -1062,11 +1062,14 @@ bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, bool f
 			getQuadrant()->getShaderTerrainData()->resetMaterialParams(lastProcessExecutionInterrupted, m_lookDev);
 			if (!lastProcessExecutionInterrupted)
 			{
+				getQuadrant()->terrainDataJustLoaded(false);
 				materialParamsNeedReset(false);
 				reset = true;
 			}
 		}
 	}
+	else
+		getQuadrant()->terrainDataJustLoaded(false);
 
 	return reset;
 }

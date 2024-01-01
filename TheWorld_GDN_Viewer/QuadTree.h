@@ -320,6 +320,7 @@ namespace godot
 		bool isFlushed(void);
 
 		bool hasHeigthsForChunkSplitsAndShaderRendering(void);
+		bool needReloadTerrainDataFromCache(void);
 
 		void lockInternalDataUntilCompleteProcessExecution(bool b = true);
 		bool internalDataLockedUntilCompleteProcessExecution(void);
@@ -363,7 +364,6 @@ namespace godot
 			if (m_float16HeigthsBuffer.empty() && reloadFromCache)
 			{
 				TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getFloat16HeightsBuffer 1 ") + __FUNCTION__, "Heightmap16 reload from disk");
-
 				TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 				float minAltitude, maxAltitude;
 				bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
@@ -643,9 +643,15 @@ namespace godot
 		{
 			return m_renderGlobalMap;
 		}
-		void canCacheHeigthBuffers(bool b)
+		bool canCacheHeigthBuffers(bool b)
 		{
-			m_canCacheHeigthBuffers = b;
+			if (m_canCacheHeigthBuffers != b)
+			{
+				m_canCacheHeigthBuffers = b;
+				return true;
+			}
+			else
+				return false;
 		}
 		bool canCacheHeigthBuffers(void)
 		{

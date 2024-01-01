@@ -447,12 +447,15 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 				quad->getChunk()->setDistanceFromCamera(distance);
 				if (distance < splitDistance)
 				{
-					if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
+					if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
 					{
+						godot::Vector3 quadrantCenter = getQuadrant()->getCenter();
+						quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
+						float lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
 						setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 						m_viewer->forceProcessCameraPosForChunks();
 					}
-					else if (status() == QuadrantStatus::initialized)
+					else if (statusInitialized())
 					{
 						// Split
 						quad->split();
@@ -629,12 +632,15 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 
 			if (quad->splitRequired() && quad->Lod() > 0)
 			{
-				if (status() == QuadrantStatus::initialized && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
+				if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
 				{
+					godot::Vector3 quadrantCenter = getQuadrant()->getCenter();
+					quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
+					float lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
 					setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 					m_viewer->forceProcessCameraPosForChunks();
 				}
-				else if (status() == QuadrantStatus::initialized)
+				else if (statusInitialized())
 				{
 					// Split
 					quad->split();
@@ -1023,7 +1029,11 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 			((m_viewer->Globals()->getParamThresholdCacheHeights() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights()) /* || !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants()*/))
 			getQuadrant()->canCacheHeigthBuffers(false);
 		else
-			getQuadrant()->canCacheHeigthBuffers(true);
+		{
+			bool changed = getQuadrant()->canCacheHeigthBuffers(true);
+			if (changed && getQuadrant()->needReloadTerrainDataFromCache())
+				setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
+		}
 	}
 }
 
@@ -3528,6 +3538,14 @@ bool Quadrant::hasHeigthsForChunkSplitsAndShaderRendering(void)
 		return true;
 }
 
+bool Quadrant::needReloadTerrainDataFromCache(void)
+{
+	if (m_quadTree->isVisible() && m_quadTree->statusInitialized() && canCacheHeigthBuffers() && !hasHeigthsForChunkSplitsAndShaderRendering())
+		return true;
+	else
+		return false;
+}
+
 void Quadrant::lockInternalDataUntilCompleteProcessExecution(bool b)
 {
 	m_lockInternalDataUntilCompleteProcessExecution = b;
@@ -3636,76 +3654,39 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 {
 	//return;
 
-	// OK con image ma senza buffers (!lowMemory), KO senza images ma con buffers (lowMemory) - i buffers durante il caricamento devono essere distrutti appena lavorati perché fanno esaurire la memoria di sistema rallentando notevolmente il caricamento
-	bool lowMemory = true;
+	// i buffers durante il caricamento devono essere distrutti appena lavorati perché fanno esaurire la memoria di sistema rallentando notevolmente il caricamento
+	if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
+		return;
 
-	if (lowMemory)
+	if (m_quadTree->materialParamsNeedReset() || m_quadTree->materialParamsNeedUpdate() || m_quadTree->colliderNeedReset() || terrainDataJustLoaded())
+		return;
+
+	if (!canCacheHeigthBuffers())
 	{
-		if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
-			return;
-
-		if (m_quadTree->materialParamsNeedReset() || m_quadTree->materialParamsNeedUpdate() || m_quadTree->colliderNeedReset() || terrainDataJustLoaded())
-			return;
-
-		if (/*m_viewer->Globals()->status() == TheWorldStatus::worldDeployed &&*/ !canCacheHeigthBuffers())
-			if (m_float16HeigthsBuffer.size() > 0)
-				m_float16HeigthsBuffer.clear(__FUNCTION__);
-
-		if (!canCacheHeigthBuffers())
-		{
-			// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass form optimizatrion level > 0 (used cached resize images) to optimization level = 0
-			if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
-				m_float32HeigthsBuffer.clear(__FUNCTION__);
-			if (m_normalsBuffer.size() > 0)
-				m_normalsBuffer.clear(__FUNCTION__);
-			if (m_splatmapBuffer.size() > 0)
-				m_splatmapBuffer.clear(__FUNCTION__);
-			if (m_colormapBuffer.size() > 0)
-				m_colormapBuffer.clear(__FUNCTION__);
-			if (m_globalmapBuffer.size() > 0)
-				m_globalmapBuffer.clear(__FUNCTION__);
-		}
+		// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass form optimizatrion level > 0 (used cached resize images) to optimization level = 0
+		if (m_float16HeigthsBuffer.size() > 0)		// for split (calc AABB)
+			m_float16HeigthsBuffer.clear(__FUNCTION__);
+		if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
+			m_float32HeigthsBuffer.clear(__FUNCTION__);
+		if (m_normalsBuffer.size() > 0)
+			m_normalsBuffer.clear(__FUNCTION__);
+		if (m_splatmapBuffer.size() > 0)
+			m_splatmapBuffer.clear(__FUNCTION__);
+		if (m_colormapBuffer.size() > 0)
+			m_colormapBuffer.clear(__FUNCTION__);
+		if (m_globalmapBuffer.size() > 0)
+			m_globalmapBuffer.clear(__FUNCTION__);
 
 		// Needed for Shader: at init time or when optimization level changes (from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
-
-		if (!canCacheHeigthBuffers())	// occhio!!!
-		{
-			getShaderTerrainData()->getHeightmapImageRef().unref();
-			getShaderTerrainData()->getNormalmapImageRef().unref();
-			getShaderTerrainData()->getSplatmapImageRef().unref();
-			getShaderTerrainData()->getColormapImageRef().unref();
-			getShaderTerrainData()->getGlobalmapImageRef().unref();
-		}
-
-		int64_t size = m_heightsForCollider.size();
-		m_heightsForCollider.resize(0);
+		getShaderTerrainData()->getHeightmapImageRef().unref();
+		getShaderTerrainData()->getNormalmapImageRef().unref();
+		getShaderTerrainData()->getSplatmapImageRef().unref();
+		getShaderTerrainData()->getColormapImageRef().unref();
+		getShaderTerrainData()->getGlobalmapImageRef().unref();
 	}
-	else
-	{
-		if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
-			return;
 
-		//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getMeshResolutionLevel() == MeshResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
-		//	m_float16HeigthsBuffer.clear();
-		if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && !canCacheHeigthBuffers())
-			if (m_float16HeigthsBuffer.size() > 0)
-				m_float16HeigthsBuffer.clear();
-
-		//if (m_viewer->Globals()->status() == TheWorldStatus::worldDeployed && getTexResolutionLevel() == TexResolutionLevel::low && !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants())
-		//	clearCachedTexture();
-
-		//if (!visible && !m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants())
-		//	if (m_float16HeigthsBuffer.size() > 0)
-		//		m_float16HeigthsBuffer.clear();	// needed to calc aabb of chunks during split/join (Quadrant::getAltitudeFromHeigthmap & Chunk::getGlobalCoordAABB): it is kept for performance reason to keep it for visible quadrants and avoid to reload from disk for new chunks
-											// if m_viewer->Globals()->getParamCacheHeightsForInvisibleQuadrants() we keep also for invisible quadrant to avoid reload from disk when quadrant become visible (reason is we want it happen during load of invisible quadrants)
-		m_float32HeigthsBuffer.clear();		// needed for collider but releaseTerrainValuesMemory will run after collider
-		m_normalsBuffer.clear();			// we cache image
-		m_splatmapBuffer.clear();			// we cache image
-		m_colormapBuffer.clear();
-		m_globalmapBuffer.clear();
-		int64_t size = m_heightsForCollider.size();
-		m_heightsForCollider.resize(0);
-	}
+	int64_t size = m_heightsForCollider.size();
+	m_heightsForCollider.resize(0);
 }
 
 size_t Quadrant::calcMapMemoryOccupation(void)

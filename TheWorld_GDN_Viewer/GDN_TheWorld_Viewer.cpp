@@ -3089,6 +3089,8 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 					//	m_cameraQuadTree = nullptr;
 					//}
 				}
+				if (itQuadTree->second->getQuadrant()->needReloadTerrainDataFromCache())
+					itQuadTree->second->setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 			}
 		}
 		
@@ -3356,7 +3358,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	}
 
 	static size_t s_num = 0, s_loadingWorldRefresh = 0;
-	if (globals->status() == TheWorldStatus::worldDeployInProgress && s_loadingWorldRefresh < 5)
+	if (globals->status() == TheWorldStatus::worldDeployInProgress && s_loadingWorldRefresh < 10)
 		if (s_num > 10)
 		{
 			m_refreshRequired = true;
@@ -6225,7 +6227,11 @@ void GDN_TheWorld_Viewer::dump()
 
 		godot::Performance* perf = godot::Performance::get_singleton();
 
-		Globals()->debugPrint(String("All quadrants : ") + String(std::to_string(m_mapQuadTree.size()).c_str()) + ", map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB (resized image memory : " + String(std::to_string((float)resizedTexMemoryOccupation / (1024 * 1024 * 1024)).c_str())  + " GB)");
+		float thresholdCacheHeights = Globals()->getParamThresholdCacheHeights();
+		char _thresholdCacheHeights[24]; // dummy size, you should take care of the size!
+		sprintf_s(_thresholdCacheHeights, "%.2f", thresholdCacheHeights);
+		Globals()->debugPrint(String("Threshold value to cache maps and images : ") + std::string(_thresholdCacheHeights).c_str() + " m");
+		Globals()->debugPrint(String("Quadrants : ") + String(std::to_string(m_mapQuadTree.size()).c_str()) + ", cached map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, cached image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB (resized cahched image memory : " + String(std::to_string((float)resizedTexMemoryOccupation / (1024 * 1024 * 1024)).c_str())  + " GB)");
 		Globals()->debugPrint(String("   Heigthmap16 : ") + String(std::to_string((float)heightmap16MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Heigthmap32 : ") + String(std::to_string((float)heightmap32MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
 		Globals()->debugPrint(String("   Normalmap : ") + String(std::to_string((float)normalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");

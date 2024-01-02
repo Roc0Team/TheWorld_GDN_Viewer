@@ -229,7 +229,8 @@ void GDN_TheWorld_Edit::setUIAcceptFocus(bool b)
 	//	setSeed(0);
 
 	m_innerData->m_allCheckBox->set_focus_mode(focusMode);
-	m_innerData->m_collisonInfoCheckBox->set_focus_mode(focusMode);
+	m_innerData->m_collisonHiResGridCheckBox->set_focus_mode(focusMode);
+	m_innerData->m_collisonLowResGridCheckBox->set_focus_mode(focusMode);
 	m_innerData->m_seed->set_focus_mode(focusMode);
 	m_innerData->m_frequency->set_focus_mode(focusMode);
 	m_innerData->m_fractalOctaves->set_focus_mode(focusMode);
@@ -362,9 +363,14 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_allCheckBox->set_toggle_mode(true);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
-		m_innerData->m_collisonInfoCheckBox = createControl<godot::CheckBox>(hBoxContainer);
-		m_innerData->m_collisonInfoCheckBox->set_text("Collision Info");
-		m_innerData->m_collisonInfoCheckBox->set_toggle_mode(true);
+		m_innerData->m_collisonHiResGridCheckBox = createControl<godot::CheckBox>(hBoxContainer, "CollisonHiResGridCheckBox");
+		m_innerData->m_collisonHiResGridCheckBox->set_text("Collision High Res Grid");
+		m_innerData->m_collisonHiResGridCheckBox->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_collisonHiResGridCheckBox, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		m_innerData->m_collisonLowResGridCheckBox = createControl<godot::CheckBox>(hBoxContainer, "CollisonLowResGridCheckBox");
+		m_innerData->m_collisonLowResGridCheckBox->set_text("Collision Low Res Grid");
+		m_innerData->m_collisonLowResGridCheckBox->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_collisonLowResGridCheckBox, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		m_innerData->m_message = createControl<godot::Label>(hBoxContainer);
@@ -2247,9 +2253,14 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 	}
 }
 
-bool GDN_TheWorld_Edit::collisionsEnabled(void)
+bool GDN_TheWorld_Edit::hiResCollisionGridEnabled(void)
 {
-	return m_innerData->m_collisonInfoCheckBox->is_pressed();
+	return m_innerData->m_collisonHiResGridCheckBox->is_pressed();
+}
+
+bool GDN_TheWorld_Edit::lowResCollisionGridEnabled(void)
+{
+	return m_innerData->m_collisonLowResGridCheckBox->is_pressed();
 }
 
 void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
@@ -2257,7 +2268,7 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 	std::string _signal = signal.utf8().get_data();
 	std::string _className = className.utf8().get_data();
 	std::string _objectName = objectName.utf8().get_data();
-	
+
 	if (TheWorld_Utils::to_lower(_signal) != "toggled")
 		return;
 
@@ -2284,6 +2295,20 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 			m_viewer->positionVisible(true);
 		else
 			m_viewer->positionVisible(false);
+	}
+	else if (_objectName == "CollisonHiResGridCheckBox")
+	{
+		if (pressed && m_innerData->m_collisonLowResGridCheckBox->is_pressed())
+			m_innerData->m_collisonLowResGridCheckBox->set_pressed(false);
+
+		m_viewer->setColliderNeedUpdateForEveryQuadrant();
+	}
+	else if (_objectName == "CollisonLowResGridCheckBox")
+	{
+		if (pressed && m_innerData->m_collisonHiResGridCheckBox->is_pressed())
+			m_innerData->m_collisonHiResGridCheckBox->set_pressed(false);
+
+		m_viewer->setColliderNeedUpdateForEveryQuadrant();
 	}
 }
 

@@ -557,6 +557,7 @@ namespace godot
 		void refreshQuadTreeStatistics(void);
 		void resetMaterialParamsForEveryQuadrant(void);
 		void updateMaterialParamsForEveryQuadrant(void);
+		void setColliderNeedUpdateForEveryQuadrant(void);
 		GDN_TheWorld_Globals::ChunkDebugMode getRequiredChunkDebugMode(void)
 		{
 			return m_requiredChunkDebugMode;
@@ -895,10 +896,10 @@ namespace godot
 		{
 			return m_processSteps.addStep(idx);
 		}
-		void forceProcessCameraPosForQuadrants(void)
-		{
-			m_lastProcessedCameraPosForQuadrants = godot::Vector3();
-		}
+		//void forceProcessCameraPosForQuadrants(void)
+		//{
+		//	m_lastProcessedCameraPosForQuadrants = godot::Vector3();
+		//}
 		void forceProcessCameraPosForChunks(void)
 		{
 			m_lastProcessedCameraPosForChunks = godot::Vector3();

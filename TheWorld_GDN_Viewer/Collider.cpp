@@ -172,7 +172,7 @@ namespace godot
 			size_t newResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
 			numVerticesPerSize = (int)newResolution;
 			heightsForCollider = &resizedHeightsForCollider;
-			gridStepInWU = gridStepInWU * pow(2, optimizationLevel);
+			gridStepInWU = gridStepInWU * (float)pow(2, optimizationLevel);
 
 			godot::Ref<godot::Image> image;
 			{

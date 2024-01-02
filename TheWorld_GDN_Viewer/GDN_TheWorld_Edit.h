@@ -165,7 +165,8 @@ namespace godot
 			godot::String m_lastMessage;
 
 			godot::CheckBox* m_allCheckBox;
-			godot::CheckBox* m_collisonInfoCheckBox = nullptr;
+			godot::CheckBox* m_collisonHiResGridCheckBox = nullptr;
+			godot::CheckBox* m_collisonLowResGridCheckBox = nullptr;
 			godot::OptionButton* m_terrTypeOptionButton;
 			godot::OptionButton* m_lookDevOptionButton;
 
@@ -299,7 +300,8 @@ namespace godot
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
 		void editModeBlendAction(void);
-		bool collisionsEnabled(void);
+		bool hiResCollisionGridEnabled(void);
+		bool lowResCollisionGridEnabled(void);
 		//void editModeResetNormalsSplatmapAction(void);
 		//void editModeGenNormalsAction(void);
 		//void editModeApplyTexturesAction(void);

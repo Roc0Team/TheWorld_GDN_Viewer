@@ -1116,6 +1116,7 @@ bool QuadTree::updateCollider(void)
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.2 ") + __FUNCTION__, std::string("Quadrant: missing heigths for") + s + " collider requesting ...");
 			setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
+			colliderNeedReset(true);
 		}
 		else if (statusInitialized())
 		{
@@ -1143,6 +1144,7 @@ bool QuadTree::updateCollider(void)
 		else
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.4 ") + __FUNCTION__, std::string("Quadrant: missing heigths for ") + s + " collider will retry ...");
+			colliderNeedReset(true);
 		}
 	}
 
@@ -4081,8 +4083,13 @@ void Quadrant::loadTerrainDataFromCache(void)
 bool Quadrant::canHaveHiResCollisionInfo(void)
 {
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
-	if (editModeUIControl != nullptr && editModeUIControl->initialized() && editModeUIControl->collisionsEnabled())
-		return true;
+	if (editModeUIControl != nullptr && editModeUIControl->initialized())
+	{
+		if (editModeUIControl->hiResCollisionGridEnabled())
+			return true;
+		if (editModeUIControl->lowResCollisionGridEnabled())
+			return false;
+	}
 
 	bool colliderCanHaveHiResCollisionInfo = true;
 

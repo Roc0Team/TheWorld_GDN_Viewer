@@ -5921,6 +5921,13 @@ void GDN_TheWorld_Viewer::updateMaterialParamsForEveryQuadrant(void)
 	}
 }
 
+void GDN_TheWorld_Viewer::setColliderNeedUpdateForEveryQuadrant(void)
+{
+	for (auto& itQuadTree : m_mapQuadTree)
+		if (itQuadTree.second->isValid())
+			itQuadTree.second->colliderNeedReset(true);
+}
+
 //void GDN_TheWorld_Viewer::setMapScale(Vector3 mapScaleVector)
 //{
 //	if (m_mapScaleVector == mapScaleVector)

@@ -4808,6 +4808,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 					}
 				}
 
+				if (itQuadTree->second->colliderNeedReset() || processCameraPosForQuadrants)
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.3 ") + __FUNCTION__, "updateCollider");
 					colliderUpdated = itQuadTree->second->updateCollider();

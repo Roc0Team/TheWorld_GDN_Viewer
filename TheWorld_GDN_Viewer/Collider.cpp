@@ -111,7 +111,7 @@ namespace godot
 			ps->body_set_space(m_bodyRID, world->get_space());
 		}
 
-		m_enteredWorld = true;
+		m_worldEntered = true;
 	}
 
 	void Collider::exitWorld(void)
@@ -123,16 +123,16 @@ namespace godot
 		if (!m_initialized)
 			return;
 
-		if (!m_enteredWorld)
+		if (!m_worldEntered)
 			return;
 
 		godot::PhysicsServer3D* ps = godot::PhysicsServer3D::get_singleton();
 		ps->body_set_space(m_bodyRID, RID());
 
-		m_enteredWorld = false;
+		m_worldEntered = false;
 	}
 
-	bool Collider::setData(void)
+	bool Collider::setData(bool hiResData)
 	{
 		bool updated = false;
 
@@ -151,10 +151,10 @@ namespace godot
 		int numVerticesPerSize = 0;
 		PackedFloat32Array* heightsForCollider = nullptr;
 		PackedFloat32Array resizedHeightsForCollider;
+		float gridStepInWU = 0.0f;
+		gridStepInWU = quadrant->getPos().getGridStepInWU();
 
-		size_t optimizationLevel = quadrant->optimizationLevel();
-		optimizationLevel = 0;
-		if (optimizationLevel == 0)
+		if (hiResData)
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.1 ") + __FUNCTION__, "get heigths opt level = 0");
 			numVerticesPerSize = quadrant->getPos().getNumVerticesPerSize();
@@ -165,17 +165,19 @@ namespace godot
 		else
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2 ") + __FUNCTION__, "get heigths opt level > 0");
+
+			//size_t optimizationLevel = quadrant->optimizationLevel();
+			size_t optimizationLevel = 4;
+
 			size_t newResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
 			numVerticesPerSize = (int)newResolution;
 			heightsForCollider = &resizedHeightsForCollider;
+			gridStepInWU = gridStepInWU * pow(2, optimizationLevel);
 
 			godot::Ref<godot::Image> image;
 			{
 				std::string profileHeader("Collider setData 1.2.1 ");
-				std::map<size_t, godot::Ref<godot::Image>>& resizedHeightmapImageMap = quadrant->getShaderTerrainData()->getResizedHeightmapImageMap();
-				godot::Ref<godot::Image> im = quadrant->getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, optimizationLevel, newResolution);
-				assert(false);
-				image = im;
+				image = quadrant->getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, optimizationLevel, newResolution);
 			}
 
 			{
@@ -223,11 +225,10 @@ namespace godot
 			updated = true;
 		}
 
-		if (optimizationLevel == 0)
-			heightsForCollider->resize(0);
+		heightsForCollider->resize(0);
 
 		{
-			updateTransform();
+			updateTransform(gridStepInWU);
 		}
 
 		m_hasData = true;
@@ -243,7 +244,7 @@ namespace godot
 		if (!m_initialized)
 			return;
 
-		updateTransform();
+		updateTransform(0.0f);
 	}
 
 	void Collider::onCameraTransformChanged(void)
@@ -268,7 +269,7 @@ namespace godot
 		return colliderAltitude;
 	}
 
-	void Collider::updateTransform()
+	void Collider::updateTransform(float gridStepInWU)
 	{
 		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
@@ -277,9 +278,14 @@ namespace godot
 		if (!m_initialized)
 			return;
 
+		if (gridStepInWU == 0.0f)
+			gridStepInWU = m_lastGridStepInWUUsed;
+		else
+			m_lastGridStepInWUUsed = gridStepInWU;
+		
 		//int numVerticesPerSize = m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize();
 		float sizeInWU = m_quadTree->getQuadrant()->getPos().getSizeInWU();
-		float gridStepInWU = m_quadTree->getQuadrant()->getPos().getGridStepInWU();
+		//float gridStepInWU = m_quadTree->getQuadrant()->getPos().getGridStepInWU();
 		Transform3D igt = m_quadTree->getInternalGlobalTransform();
 		//float axisScaleFactr = sqrtf(powf(gridStepInWU, (float)2.0) / (float)2.0);
 		float axisScaleFactr = gridStepInWU;

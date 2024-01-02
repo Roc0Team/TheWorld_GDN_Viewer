@@ -1132,7 +1132,9 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_empty_quadrant"), &GDN_TheWorld_Viewer::getNumEmptyQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_reloading_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrantReloadingFromCache);
 	ClassDB::bind_method(D_METHOD("get_num_flushed_quadrant"), &GDN_TheWorld_Viewer::getNumFlushedQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_with_collider_quadrant"), &GDN_TheWorld_Viewer::getNumWithColliderQuadrant);
+	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithCollider);
+	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_hires_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithHiResCollider);
+	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_lowres_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider);
 	ClassDB::bind_method(D_METHOD("get_num_process_not_owns_lock"), &GDN_TheWorld_Viewer::getProcessNotOwnsLock);
 	ClassDB::bind_method(D_METHOD("get_process_duration"), &GDN_TheWorld_Viewer::getProcessDuration);
 	//ClassDB::bind_method(D_METHOD("get_refresh_quads_duration"), &GDN_TheWorld_Viewer::getRefreshMapQuadDuration);
@@ -3744,7 +3746,6 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 	std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
 	if (lock.owns_lock())
 	{
-		{
 		bool exitForNow = false;
 		for (size_t distance = 0; distance <= m_numCacheQuadrantOnPerimeter; distance++)
 		{
@@ -3786,7 +3787,6 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 
 			if (exitForNow)
 				break;
-		}
 		}
 
 		lock.unlock();
@@ -5998,7 +5998,9 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	int numEmptyQuadrant = 0;
 	int numQuadrantReloadingFromCache = 0;
 	int numFlushedQuadrant = 0;
-	int numWithColliderQuadrant = 0;
+	int numQuadrantWithCollider = 0;
+	int numQuadrantWithHiResCollider = 0;
+	int numQuadrantWithLowResCollider = 0;
 	int numinitializedVisibleQuadrant = 0;
 	int numQuadrantNeedResetMaterialParams = 0;
 	m_mapNumActiveChunksPerLod.clear();
@@ -6034,7 +6036,13 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 			numFlushedQuadrant++;
 		
 		if (itQuadTree.second->getQuadrant()->getCollider() != nullptr && itQuadTree.second->getQuadrant()->getCollider()->hasData())
-			numWithColliderQuadrant++;
+		{
+			numQuadrantWithCollider++;
+			if (itQuadTree.second->getQuadrant()->getCollider()->hasHiResData())
+				numQuadrantWithHiResCollider++;
+			else
+				numQuadrantWithLowResCollider++;
+		}
 		
 		for (auto& item : mapNumActiveChunksPerLod)
 		{
@@ -6055,7 +6063,9 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	m_numEmptyQuadrant = numEmptyQuadrant;
 	m_numQuadrantReloadingFromCache = numQuadrantReloadingFromCache;
 	m_numFlushedQuadrant = numFlushedQuadrant;
-	m_numWithColliderQuadrant = numWithColliderQuadrant;
+	m_numQuadrantWithCollider = numQuadrantWithCollider;
+	m_numQuadrantWithHiResCollider = numQuadrantWithHiResCollider;
+	m_numQuadrantWithLowResCollider = numQuadrantWithLowResCollider;
 	m_numinitializedVisibleQuadrant = numinitializedVisibleQuadrant;
 	m_numQuadrantNeedResetMaterialParam = numQuadrantNeedResetMaterialParams;
 }
@@ -6116,9 +6126,17 @@ int GDN_TheWorld_Viewer::getNumFlushedQuadrant(void)
 	return m_numFlushedQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumWithColliderQuadrant(void)
+int GDN_TheWorld_Viewer::getQuadrantNumWithCollider(void)
 {
-	return m_numWithColliderQuadrant;
+	return m_numQuadrantWithCollider;
+}
+int GDN_TheWorld_Viewer::getQuadrantNumWithHiResCollider(void)
+{
+	return m_numQuadrantWithHiResCollider;
+}
+int GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider(void)
+{
+	return m_numQuadrantWithLowResCollider;
 }
 int GDN_TheWorld_Viewer::getNuminitializedVisibleQuadrant(void)
 {

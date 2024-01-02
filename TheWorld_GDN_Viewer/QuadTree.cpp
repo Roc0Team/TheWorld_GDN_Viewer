@@ -190,8 +190,6 @@ void QuadTree::refreshTerrainData(float cameraX, float cameraY, float cameraZ, f
 	if (!(statusInitialized() || statusRefreshTerrainDataNeeded()))
 		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Quadrant status not comply: " + std::to_string((int)status())).c_str()));
 
-	//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrant);
-
 	setStatus(QuadrantStatus::refreshTerrainDataInProgress);
 
 	m_worldQuadrant->populateGridVertices(cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll, setCamera, cameraDistanceFromTerrain);
@@ -205,47 +203,41 @@ void QuadTree::init(float cameraX, float cameraY, float cameraZ, float cameraYaw
 	if (status() != QuadrantStatus::uninitialized)
 		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Quadrant status not comply: " + std::to_string((int)status())).c_str()));
 
-	//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrant);
+	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 1");
+
+		m_viewer->getMainProcessingMutex().lock();
+		m_GDN_Quadrant = memnew(GDN_TheWorld_Quadrant);
+		m_viewer->getMainProcessingMutex().unlock();
+		m_GDN_Quadrant->init(this);
+		std::string quadrantNodeName = m_worldQuadrant->getPos().getName();
+		m_GDN_Quadrant->set_name(quadrantNodeName.c_str());
+		//m_viewer->add_child(m_GDN_Quadrant);
+		m_viewer->call_deferred("add_child", m_GDN_Quadrant);
+		onGlobalTransformChanged();
+
+		setStatus(QuadrantStatus::getTerrainDataInProgress);
+	}
 
 	{
-		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Inside Mutex");
+		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "m_worldQuadrant->populateGridVertices");
+		m_worldQuadrant->populateGridVertices(cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll, setCamera, cameraDistanceFromTerrainForced);
+	}
 
-		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 1");
-
-			m_viewer->getMainProcessingMutex().lock();
-			m_GDN_Quadrant = memnew(GDN_TheWorld_Quadrant);
-			m_viewer->getMainProcessingMutex().unlock();
-			m_GDN_Quadrant->init(this);
-			std::string quadrantNodeName = m_worldQuadrant->getPos().getName();
-			m_GDN_Quadrant->set_name(quadrantNodeName.c_str());
-			//m_viewer->add_child(m_GDN_Quadrant);
-			m_viewer->call_deferred("add_child", m_GDN_Quadrant);
-			onGlobalTransformChanged();
-
-			setStatus(QuadrantStatus::getTerrainDataInProgress);
-		}
-
-		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "m_worldQuadrant->populateGridVertices");
-			m_worldQuadrant->populateGridVertices(cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll, setCamera, cameraDistanceFromTerrainForced);
-		}
-
-		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 2");
-			getQuadrant()->getShaderTerrainData()->init();
-		}
+	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 2");
+		getQuadrant()->getShaderTerrainData()->init();
+	}
 		
-		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 3");
+	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 3");
 
-			m_root = make_unique<Quad>(0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
+		m_root = make_unique<Quad>(0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
 
-			if (isVisible())
-				m_viewer->incNumVisibleQuadrantsStreamed();
-			else
-				m_viewer->incNumInvisibleQuadrantsStreamed();
-		}
+		if (isVisible())
+			m_viewer->incNumVisibleQuadrantsStreamed();
+		else
+			m_viewer->incNumInvisibleQuadrantsStreamed();
 	}
 }
 
@@ -1114,46 +1106,43 @@ bool QuadTree::updateCollider(void)
 
 	bool colliderCanHaveHiResCollisionInfo = getQuadrant()->canHaveHiResCollisionInfo();
 
-	if (colliderCanHaveHiResCollisionInfo)
+	if (!collider->hasData() || (colliderCanHaveHiResCollisionInfo && !collider->hasHiResData()) || (!colliderCanHaveHiResCollisionInfo && collider->hasHiResData()))
 	{
-		if (!collider->hasData())
+		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.1 ") + __FUNCTION__, "Quadrant: set/reset collider");
+
+		std::string s = colliderCanHaveHiResCollisionInfo ? "hires" : "lowres";
+		
+		if (statusInitialized() && getQuadrant()->isFlushed())
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.1 ") + __FUNCTION__, "Quadrant: need collider but not set");
-
-			if (statusInitialized() && getQuadrant()->isFlushed())
-			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.2 ") + __FUNCTION__, "Quadrant: missing heigths for collider requesting ...");
-				setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
-			}
-			else if (statusInitialized())
-			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.3 ") + __FUNCTION__, "Quadrant: updating collider");
-
-				TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-
-				collider->init(m_GDN_Quadrant, 1, 1);
-				collider->enterWorld();
-				{
-					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.3.1 ") + __FUNCTION__, "Quadrant:  set data for collider");
-					updated = collider->setData();
-				}
-
-				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-				m_viewer->incNumSetHiResCollisionData((now - start).count());
-			}
-			else
-			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.4 ") + __FUNCTION__, "Quadrant: missing heigths for collider will retry ...");
-			}
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.2 ") + __FUNCTION__, std::string("Quadrant: missing heigths for") + s + " collider requesting ...");
+			setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 		}
-	}
-	else
-	{
-		if (collider->hasData() && m_viewer->Globals()->status() == TheWorldStatus::worldDeployed)
+		else if (statusInitialized())
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.5 ") + __FUNCTION__, "Quadrant: freeing collider info");
-			collider->exitWorld();
-			collider->deinit();
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.3 ") + __FUNCTION__, std::string("Quadrant: updating ") + s + " collider");
+
+			TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+
+			if (collider->worldEntered())
+				collider->exitWorld();
+			if (collider->initialized())
+				collider->deinit();
+			collider->init(m_GDN_Quadrant, 1, 1);
+			collider->enterWorld();
+			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.3.1 ") + __FUNCTION__, "Quadrant: set data for hires collider");
+				updated = collider->setData(colliderCanHaveHiResCollisionInfo);
+			}
+
+			TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+			if (colliderCanHaveHiResCollisionInfo)
+				m_viewer->incNumSetHiResCollisionData((now - start).count());
+			else
+				m_viewer->incNumSetLowResCollisionData((now - start).count());
+		}
+		else
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.4 ") + __FUNCTION__, std::string("Quadrant: missing heigths for ") + s + " collider will retry ...");
 		}
 	}
 
@@ -1860,12 +1849,12 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 	}
 }
 
-void ShaderTerrainData::clearCachedTexture(void)
-{
-	m_heightmapImage.unref();
-	m_resizedHeightmapImageMap.clear();	// occhio!!!
-	// other texture
-}
+//void ShaderTerrainData::clearCachedTexture(void)
+//{
+//	m_heightmapImage.unref();
+//	m_resizedHeightmapImageMap.clear();	// occhio!!!
+//	// other texture
+//}
 
 void ShaderTerrainData::releaseGlobals(void)
 {
@@ -3637,21 +3626,21 @@ void Quadrant::setGlobalmapUpdated(bool b)
 	}
 }
 
-enum class Quadrant::TexResolutionLevel Quadrant::getTexResolutionLevel(void)
-{
-	size_t optLevel = optimizationLevel();
-	if (optLevel == 0)
-		return Quadrant::TexResolutionLevel::high;
-	else if (optLevel > 0 && optLevel  < 4)		// 1, 2 ,3
-		return Quadrant::TexResolutionLevel::med;
-	else
-		return Quadrant::TexResolutionLevel::low;
-}
+//enum class Quadrant::TexResolutionLevel Quadrant::getTexResolutionLevel(void)
+//{
+//	size_t optLevel = optimizationLevel();
+//	if (optLevel == 0)
+//		return Quadrant::TexResolutionLevel::high;
+//	else if (optLevel > 0 && optLevel  < 4)		// 1, 2 ,3
+//		return Quadrant::TexResolutionLevel::med;
+//	else
+//		return Quadrant::TexResolutionLevel::low;
+//}
 
-void Quadrant::clearCachedTexture(void)
-{
-	getShaderTerrainData()->clearCachedTexture();
-}
+//void Quadrant::clearCachedTexture(void)
+//{
+//	getShaderTerrainData()->clearCachedTexture();
+//}
 	
 void Quadrant::releaseTerrainValuesMemory(bool visible)
 {

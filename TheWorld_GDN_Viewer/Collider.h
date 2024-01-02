@@ -20,8 +20,8 @@ namespace godot
 
 		void enterWorld(void);
 		void exitWorld(void);
-		bool setData(void);
-		void updateTransform();
+		bool setData(bool hiResData);
+		void updateTransform(float gridStepInWU);
 		void onGlobalTransformChanged(void);
 		void onCameraTransformChanged(void);
 		void setTransform(Transform3D t);
@@ -40,13 +40,21 @@ namespace godot
 			else
 				return false;
 		}
+		bool initialized(void)
+		{
+			return m_initialized;
+		}
+		bool worldEntered(void)
+		{
+			return m_worldEntered;
+		}
 
 	private:
 		inline float getColliderAltitude(void);
 
 	private:
 		bool m_initialized;
-		bool m_enteredWorld = false;
+		bool m_worldEntered = false;
 		bool m_hasData = false;
 		bool m_hasHiResData = false;
 		QuadTree* m_quadTree;
@@ -54,5 +62,6 @@ namespace godot
 		RID m_bodyRID;
 		Transform3D m_colliderTransform;
 		Transform3D m_cameraGlobalTranform;
+		float m_lastGridStepInWUUsed = 0.0f;
 	};
 }

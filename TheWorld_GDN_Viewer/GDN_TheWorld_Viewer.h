@@ -551,7 +551,9 @@ namespace godot
 		int getNumEmptyQuadrant(void);
 		int getNumQuadrantReloadingFromCache(void);
 		int getNumFlushedQuadrant(void);
-		int getNumWithColliderQuadrant(void);
+		int getQuadrantNumWithCollider(void);
+		int getQuadrantNumWithHiResCollider(void);
+		int getQuadrantNumWithLowResCollider(void);
 		void refreshQuadTreeStatistics(void);
 		void resetMaterialParamsForEveryQuadrant(void);
 		void updateMaterialParamsForEveryQuadrant(void);
@@ -1011,7 +1013,9 @@ namespace godot
 		int m_numEmptyQuadrant;
 		int m_numQuadrantReloadingFromCache = 0;
 		int m_numFlushedQuadrant;
-		int m_numWithColliderQuadrant = 0;
+		int m_numQuadrantWithCollider = 0;
+		int m_numQuadrantWithHiResCollider = 0;
+		int m_numQuadrantWithLowResCollider = 0;
 		int m_numinitializedVisibleQuadrant;
 		int m_numQuadrantNeedResetMaterialParam = 0;
 		

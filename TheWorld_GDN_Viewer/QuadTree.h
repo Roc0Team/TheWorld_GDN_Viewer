@@ -279,13 +279,13 @@ namespace godot
 		//	, high = 1
 		//};
 
-		enum class TexResolutionLevel
-		{
-			not_set = -1
-			, low = 0
-			, med = 1
-			, high = 2
-		};
+		//enum class TexResolutionLevel
+		//{
+		//	not_set = -1
+		//	, low = 0
+		//	, med = 1
+		//	, high = 2
+		//};
 
 	public:
 		Quadrant(QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
@@ -313,9 +313,9 @@ namespace godot
 		bool quadrantAtMinimumLod(void);
 
 		//enum class MeshResolutionLevel getMeshResolutionLevel(void);
-		enum class TexResolutionLevel getTexResolutionLevel(void);
+		//enum class TexResolutionLevel getTexResolutionLevel(void);
 
-		void clearCachedTexture(void);
+		//void clearCachedTexture(void);
 
 		bool isFlushed(void);
 
@@ -989,7 +989,7 @@ namespace godot
 			return occupation;
 		}
 
-		void clearCachedTexture(void);
+		//void clearCachedTexture(void);
 
 	private:
 		//void debugPrintTexture(std::string tex_name, Ref<Texture> tex);

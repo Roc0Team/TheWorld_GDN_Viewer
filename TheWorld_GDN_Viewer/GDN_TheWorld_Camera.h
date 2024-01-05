@@ -34,21 +34,15 @@ namespace godot {
 		virtual void _input(const godot::Ref<godot::InputEvent>& event) override;
 		
 		bool initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll);
-		bool initPlayerCamera(void);
-		bool initOtherEntityCamera(void);
-		bool updateCamera(void);
+		//bool initPlayerCamera(void);
+		//bool initOtherEntityCamera(void);
+		bool updateCamera(double _delta);
+		bool updateFreeLookCamera(double _delta);
+		bool updatePlayerCamera(double _delta);
 		void activateCamera(void);
 		void deactivateCamera(void);
 		GDN_TheWorld_Camera* getActiveCamera(void);
 		bool isActiveCamera(void);
-		bool isPlayerCamera()
-		{
-			return m_PlayerCamera; 
-		}
-		bool isOtherEntityCamera() 
-		{
-			return m_OtherEntityCamera;
-		}
 		bool isWorldCamera()
 		{
 			return m_WorldCamera;
@@ -108,6 +102,36 @@ namespace godot {
 			t.basis.set_euler(v);
 			set_global_transform(t);
 		}
+		void trackPlayer(godot::Node3D* player)
+		{
+			m_trackedPlayer = player;
+			m_trackingPlayer = true;
+		}
+		void untrackPlayer(void)
+		{
+			m_trackedPlayer = nullptr;
+			m_trackingPlayer = false;
+		}
+		bool trackingPlayer(void)
+		{
+			return m_trackingPlayer;
+		}
+		float getCameraTrackingSpeed(void)
+		{
+			return m_trackingLerpSpeed;
+		}
+		void setCameraTrackingSpeed(float f)
+		{
+			m_trackingLerpSpeed = f;
+		}
+		godot::Vector3 getCameraTrackingOffeset(void)
+		{
+			return m_trackingOffset;
+		}
+		void setCameraTrackingOffeset(godot::Vector3 v)
+		{
+			m_trackingOffset = v;
+		}
 
 	private:
 
@@ -115,12 +139,14 @@ namespace godot {
 		bool m_ready;
 		bool m_quitting;
 		Transform3D m_lastCameraPosInWorld;
-		bool m_PlayerCamera;
-		bool m_OtherEntityCamera;
 		bool m_WorldCamera;
 		bool m_updateCameraRequired;
 		bool m_isActive;
 		int64_t m_instanceId;
+		godot::Node3D* m_trackedPlayer = nullptr;
+		bool m_trackingPlayer = false;
+		float m_trackingLerpSpeed = 3.0f;
+		godot::Vector3 m_trackingOffset = godot::Vector3(0.0f, 7.0f, 5.0f);
 
 		float m_angleFromNorthDeg;	// angle expressed in degrees of the projection of the camera on XZ plane: 0 ==> camera points to north, 90 camera points to east, 180 camera points to south, 270 camera points to west
 

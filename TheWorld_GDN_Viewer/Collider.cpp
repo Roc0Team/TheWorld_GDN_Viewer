@@ -45,8 +45,7 @@ namespace godot
 		ps->body_set_collision_layer(m_bodyRID, initialLayer);
 		ps->body_set_collision_mask(m_bodyRID, initialMask);
 
-		// SUPERDEBUGRIC - This is an attempt to workaround https ://github.com/godotengine/godot/issues/24390
-		ps->body_set_ray_pickable(m_bodyRID, false);
+		ps->body_set_ray_pickable(m_bodyRID, false);		// SUPERDEBUGRIC - This is an attempt to workaround https://github.com/godotengine/godot/issues/24390
 
 		// Initial data - This is a workaround to https://github.com/godotengine/godot/issues/25304
 		PackedFloat32Array arr;

@@ -1377,10 +1377,6 @@ namespace godot
 		{
 			return m_viewer; 
 		}
-		//std::recursive_mutex& getQuadrantMutex(void)
-		//{
-		//	return m_mtxQuadrant;
-		//}
 
 		GDN_TheWorld_Quadrant* getGDNQuadrant(void)
 		{
@@ -1424,7 +1420,6 @@ namespace godot
 
 	private:
 		enum class QuadrantStatus m_status;
-		//std::recursive_mutex m_mtxQuadrant;
 		TheWorld_Viewer_Utils::MsTimePoint m_lastStatusChange;
 		bool m_isVisible;
 		std::string m_tag;

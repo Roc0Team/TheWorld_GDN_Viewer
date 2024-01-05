@@ -2275,9 +2275,6 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 
-	//std::recursive_mutex& quadrantMutex = m_quadTree->getQuadrantMutex();
-	//std::lock_guard<std::recursive_mutex> lock(quadrantMutex);
-	
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
 	Quadrant* quadrant = m_quadTree->getQuadrant();
 	
@@ -2317,14 +2314,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 	}
 
 	{
-		//std::lock_guard<std::recursive_mutex> lock(s_groundTexturesMutex);
-	
 		if (!s_groundTextures.contains(lowElevationTexName) || !s_groundTextures[lowElevationTexName]->initialized)
 		{
 			s_groundTextures[lowElevationTexName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 			ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[lowElevationTexName].get();
-			//std::recursive_mutex& viewerMainProcessingMutex = m_viewer->getMainProcessingMutex();
-			//std::lock_guard<std::recursive_mutex> lock(viewerMainProcessingMutex);
 			getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + lowElevationTexName.c_str(), groundTexture, m_viewer);
 		}
 
@@ -2332,8 +2325,6 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		{
 			s_groundTextures[highElevationTexName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 			ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[highElevationTexName].get();
-			//std::recursive_mutex& viewerMainProcessingMutex = m_viewer->getMainProcessingMutex();
-			//std::lock_guard<std::recursive_mutex> lock(viewerMainProcessingMutex);
 			getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + highElevationTexName.c_str(), groundTexture, m_viewer);
 		}
 
@@ -2341,8 +2332,6 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		{
 			s_groundTextures[dirtTexName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 			ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[dirtTexName].get();
-			//std::recursive_mutex& viewerMainProcessingMutex = m_viewer->getMainProcessingMutex();
-			//std::lock_guard<std::recursive_mutex> lock(viewerMainProcessingMutex);
 			getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + dirtTexName.c_str(), groundTexture, m_viewer);
 		}
 
@@ -2350,8 +2339,6 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		{
 			s_groundTextures[rocksTexName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 			ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[rocksTexName].get();
-			//std::recursive_mutex& viewerMainProcessingMutex = m_viewer->getMainProcessingMutex();
-			//std::lock_guard<std::recursive_mutex> lock(viewerMainProcessingMutex);
 			getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + rocksTexName.c_str(), groundTexture, m_viewer);
 		}
 	}
@@ -2380,72 +2367,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_heightMapTexModified = true;
 				//debugPrintTexture(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
 			}
-
-			//if (!globals->getParamCacheTerrainTextures())
-			//	m_heightmapImage.unref();
 		}
 
 		quadrant->setHeightsUpdated(false);
 	}
-	//if (quadrant->heightsUpdated() || optimizationLevelChanged)
-	//{
-	//	//if (m_quadTree->statusInitialized() && (!quadrant->hasHeigthsForChunkSplitsAndShaderRendering() || m_heightmapImage == nullptr))
-	//	//{
-	//	//	m_quadTree->setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
-	//	//	resetOptimizationChangeDelayed = true;
-
-	//	//}
-	//	//else if (m_quadTree->statusInitialized())
-	//	//{
-	//		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1 ") + __FUNCTION__, "Heightmap");
-
-	//		if (/*quadrant->heightsUpdated() || */m_heightmapImage == nullptr)
-	//		{
-	//			//if (quadrant->getFloat16HeightsBuffer().size() > 0)
-	//			//{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.1 ") + __FUNCTION__, "Create Image from heights buffer");
-
-	//				size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
-	//				godot::PackedByteArray data;
-	//				size_t heightmapBufferSizeInBytes = _resolution * _resolution * uint16_t_size;
-	//				data.resize((int)heightmapBufferSizeInBytes);
-	//				{
-	//					size_t heightsBufferSize = quadrant->getFloat16HeightsBuffer().size();
-	//					assert(heightmapBufferSizeInBytes == heightsBufferSize);
-	//					memcpy((char*)data.ptrw(), quadrant->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
-	//				}
-	//				m_viewer->getMainProcessingMutex().lock();
-	//				m_heightmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
-	//				m_viewer->getMainProcessingMutex().unlock();
-	//				m_resizedHeightmapImageMap.clear();
-	//			//}
-	//		}
-
-	//		if (m_heightmapImage != nullptr)
-	//		{
-	//			std::string profileHeader("WorldDeploy 3.1.2 ");
-	//			godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, m_heightmapImage, m_resizedHeightmapImageMap, optimizationLevel, newResolution);
-	//			
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1.3 ") + __FUNCTION__, "Create Texture from heights image");
-
-	//				m_viewer->getMainProcessingMutex().lock();
-	//				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-	//				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-	//				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-	//				m_viewer->getMainProcessingMutex().unlock();
-	//				m_heightmapTexture = tex;
-	//				m_heightMapTexModified = true;
-	//				//debugPrintTexture(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
-	//			}
-
-	//			//if (!globals->getParamCacheTerrainImages())
-	//			//	m_heightmapImage.unref();
-	//		}
-
-	//		quadrant->setHeightsUpdated(false);
-	//	//}
-	//}
 
 	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_heightmap))
 	{
@@ -2476,134 +2401,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_normalMapTexModified = true;
 				//debugPrintTexture(SHADER_PARAM_TERRAIN_NORMALMAP, m_normalmapTexture);
 			}
-
-			//if (!globals->getParamCacheTerrainTextures())
-			//	m_normalmapImage.unref();
 		}
 
 		quadrant->setNormalsUpdated(false);
 	}
-	//if (quadrant->normalsUpdated() || optimizationLevelChanged)
-	//{
-	//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2 ") + __FUNCTION__, "Normalmap");
-
-	//	if (quadrant->normalsUpdated() || m_normalmapImage == nullptr)
-	//	{
-	//		TheWorld_Utils::MemoryBuffer& normalsBuffer = quadrant->getNormalsBuffer();
-	//		size_t normalsBufferSize = normalsBuffer.size();
-
-	//		if (normalsBufferSize == 0)
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.1 ") + __FUNCTION__, "Create empty Image for normals");
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			m_normalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGB8);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_normalmapImage->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
-	//			m_resizedNormalmapImageMap.clear();
-
-	//		}
-	//		else
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.1 ") + __FUNCTION__, "Create Image from normal buffer");
-
-	//			godot::PackedByteArray data;
-	//			size_t normalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
-	//			data.resize((int)normalmapBufferSizeInBytes);
-	//			assert(normalmapBufferSizeInBytes == normalsBufferSize);
-	//			{
-	//				memcpy((char*)data.ptrw(), normalsBuffer.ptr(), normalsBufferSize);
-	//			}
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			m_normalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_resizedNormalmapImageMap.clear();
-
-	//			//{
-	//			//	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
-	//			//	//image->lock();
-	//			//	Color c = image->get_pixel(0, 0);
-	//			//	size_t c_r = (size_t)(c.r * 255);
-	//			//	size_t c_g = (size_t)(c.g * 255);
-	//			//	size_t c_b = (size_t)(c.b * 255);
-	//			//	//image->unlock();
-	//			//}
-	//		}
-	//	}
-	//	
-	//	if (m_normalmapImage != nullptr)
-	//	{
-	//		godot::Ref<godot::Image> image;
-
-	//		if (optimizationLevel > 0)
-	//		{
-	//			if (m_resizedNormalmapImageMap.contains(newResolution))
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-	//				image = m_resizedNormalmapImageMap[newResolution];
-	//			}
-	//			else
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.2 ") + __FUNCTION__, "resize image " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-	//				m_viewer->incNumTextureResize();
-	//				TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-
-	//				m_viewer->getMainProcessingMutex().lock();
-	//				Ref<Image> im = godot::Image::create_from_data(m_normalmapImage->get_width(), m_normalmapImage->get_height(), false, m_normalmapImage->get_format(), m_normalmapImage->get_data());
-	//				m_viewer->getMainProcessingMutex().unlock();
-
-	//				im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
-
-	//				{
-	//					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-	//					int32_t newStep = 1 << optimizationLevel;
-	//					int32_t realImageWidth = m_normalmapImage->get_width();
-	//					int32_t realImageHeight = m_normalmapImage->get_height();
-	//					int32_t resizedImageWidth = im->get_width();
-	//					int32_t resizedImageHeight = im->get_height();
-	//					for (int32_t x = 0; x < resizedImageWidth; x++)
-	//					{
-	//						im->set_pixel(x, 0, m_normalmapImage->get_pixel(x * newStep, 0));
-	//						im->set_pixel(x, resizedImageHeight - 1, m_normalmapImage->get_pixel(x * newStep, realImageHeight - 1));
-	//					}
-	//					for (int32_t y = 0; y < resizedImageHeight; y++)
-	//					{
-	//						im->set_pixel(0, y, m_normalmapImage->get_pixel(0, y * newStep));
-	//						im->set_pixel(resizedImageWidth - 1, y, m_normalmapImage->get_pixel(realImageWidth - 1, y * newStep));
-	//					}
-	//				}
-
-	//				//if (globals->getParamCacheTerrainTextures())
-	//					m_resizedNormalmapImageMap[newResolution] = im;
-	//				image = im;
-
-	//				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-	//				m_viewer->addToTextureResizingElapsed((now - start).count());
-	//			}
-	//		}
-	//		else
-	//			image = m_normalmapImage;
-
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.3 ") + __FUNCTION__, "Create Texture from normal image");
-
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-	//			//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-	//			Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_normalmapTexture = tex;
-	//			m_normalMapTexModified = true;
-	//			//debugPrintTexture(SHADER_PARAM_TERRAIN_NORMALMAP, m_normalmapTexture);
-	//		}
-
-	//		//if (!globals->getParamCacheTerrainTextures())
-	//		//	m_normalmapImage.unref();
-	//	}
-
-	//	quadrant->setNormalsUpdated(false);
-	//}
 
 	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_normalmap))
 	{
@@ -2632,128 +2433,11 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_splatMapTexModified = true;
 				//debugPrintTexture(SHADER_PARAM_TERRAIN_SPLATMAP, m_splatmapTexture);
 			}
-
-			//if (!globals->getParamCacheTerrainTextures())
-			//	m_splatmapImage.unref();
 		}
 
 		quadrant->renderGlobalMapChanged(false);
 		quadrant->setSplatmapUpdated(false);
 	}
-	//if (!quadrant->renderGlobalMap() && (quadrant->splatmapUpdated() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged))
-	//{
-	//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Splatmap");
-
-	//	if (quadrant->splatmapUpdated() || m_splatmapImage == nullptr)
-	//	{
-	//		TheWorld_Utils::MemoryBuffer& splatmapBuffer = quadrant->getSplatmapBuffer();
-	//		size_t splatmapBufferSize = splatmapBuffer.size();
-
-	//		//splatmapBufferSize = 0;
-	//		if (splatmapBufferSize == 0)
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.1 ") + __FUNCTION__, "Create empty Image for splatmap");
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGBA8);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			im->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
-	//			m_splatmapImage = im;
-	//			m_resizedSplatmapImageMap.clear();
-	//		}
-	//		else
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.1 ") + __FUNCTION__, "Create Image from splatmap buffer");
-
-	//			godot::PackedByteArray data;
-	//			size_t splatmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGBA);
-	//			data.resize((int)splatmapBufferSizeInBytes);
-	//			assert(splatmapBufferSizeInBytes == splatmapBufferSize);
-	//			{
-	//				memcpy((char*)data.ptrw(), splatmapBuffer.ptr(), splatmapBufferSizeInBytes);
-	//			}
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_splatmapImage = im;
-	//			m_resizedSplatmapImageMap.clear();
-	//		}
-	//	}
-
-	//	if (m_splatmapImage != nullptr)
-	//	{
-	//		godot::Ref<godot::Image> image;
-
-	//		if (optimizationLevel > 0)
-	//		{
-	//			if (m_resizedSplatmapImageMap.contains(newResolution))
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-	//				image = m_resizedSplatmapImageMap[newResolution];
-	//			}
-	//			else
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.2 ") + __FUNCTION__, "resize image " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-	//				m_viewer->incNumTextureResize();
-	//				TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-
-	//				m_viewer->getMainProcessingMutex().lock();
-	//				Ref<Image> im = godot::Image::create_from_data(m_splatmapImage->get_width(), m_splatmapImage->get_height(), false, m_splatmapImage->get_format(), m_splatmapImage->get_data());
-	//				m_viewer->getMainProcessingMutex().unlock();
-
-	//				im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
-
-	//				{
-	//					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-	//					int32_t newStep = 1 << optimizationLevel;
-	//					int32_t realImageWidth = m_splatmapImage->get_width();
-	//					int32_t realImageHeight = m_splatmapImage->get_height();
-	//					int32_t resizedImageWidth = im->get_width();
-	//					int32_t resizedImageHeight = im->get_height();
-	//					for (int32_t x = 0; x < resizedImageWidth; x++)
-	//					{
-	//						im->set_pixel(x, 0, m_splatmapImage->get_pixel(x * newStep, 0));
-	//						im->set_pixel(x, resizedImageHeight - 1, m_splatmapImage->get_pixel(x * newStep, realImageHeight - 1));
-	//					}
-	//					for (int32_t y = 0; y < resizedImageHeight; y++)
-	//					{
-	//						im->set_pixel(0, y, m_splatmapImage->get_pixel(0, y * newStep));
-	//						im->set_pixel(resizedImageWidth - 1, y, m_splatmapImage->get_pixel(realImageWidth - 1, y * newStep));
-	//					}
-	//				}
-
-	//				//if (globals->getParamCacheTerrainTextures())
-	//					m_resizedSplatmapImageMap[newResolution] = im;
-	//				image = im;
-
-	//				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-	//				m_viewer->addToTextureResizingElapsed((now - start).count());
-	//			}
-	//		}
-	//		else
-	//			image = m_splatmapImage;
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.3 ") + __FUNCTION__, "Create Texture from splatmap image");
-
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-	//			//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-	//			Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_splatmapTexture = tex;
-	//			m_splatMapTexModified = true;
-	//			//debugPrintTexture(SHADER_PARAM_TERRAIN_SPLATMAP, m_splatmapTexture);
-	//		}
-
-	//		//if (!globals->getParamCacheTerrainTextures())
-	//		//	m_splatmapImage.unref();
-	//	}
-
-	//	quadrant->renderGlobalMapChanged(false);
-	//	quadrant->setSplatmapUpdated(false);
-	//}
-
 	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_splatmap))
 	{
 		lastProcessExecutionInterrupted = true;
@@ -2781,134 +2465,11 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_globalMapTexModified = true;
 				//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
 			}
-
-			//if (!globals->getParamCacheTerrainTextures())
-			//	m_globalmapImage.unref();
 		}
 
 		quadrant->renderGlobalMapChanged(false);
 		quadrant->setGlobalmapUpdated(false);
 	}
-	//if (quadrant->renderGlobalMap() && (quadrant->globalmapUpdated() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged))
-	//{
-	//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Globalmap");
-
-	//	if (quadrant->globalmapUpdated() || m_globalmapImage == nullptr)
-	//	{
-	//		TheWorld_Utils::MemoryBuffer& globalmapBuffer = quadrant->getGlobalmapBuffer();
-	//		size_t globalmapBufferSize = globalmapBuffer.size();
-
-	//		if (globalmapBufferSize == 0)
-	//		{
-	//			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.1 ") + __FUNCTION__, "Create empty Image for globalmap");
-	//			//m_viewer->getMainProcessingMutex().lock();
-	//			//godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
-	//			//m_viewer->getMainProcessingMutex().unlock();
-	//			//image = im;
-	//			//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
-	//			//m_ResizedGlobalmapImageMap.clear();
-	//		}
-	//		else
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.1 ") + __FUNCTION__, "Create Image from globalmap buffer");
-
-	//			godot::PackedByteArray data;
-	//			size_t globalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
-	//			data.resize((int)globalmapBufferSizeInBytes);
-	//			assert(globalmapBufferSizeInBytes == globalmapBufferSize);
-	//			{
-	//				memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
-	//			}
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_globalmapImage = im;
-	//			m_resizedGlobalmapImageMap.clear();
-	//		}
-	//	}
-
-	//	if (m_globalmapImage != nullptr)
-	//	{
-	//		Ref<Image> image;
-
-	//		if (optimizationLevel > 0)
-	//		{
-	//			if (m_resizedGlobalmapImageMap.contains(newResolution))
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-	//				image = m_resizedGlobalmapImageMap[newResolution];
-	//			}
-	//			else
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.2 ") + __FUNCTION__, "resize image " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-	//				m_viewer->incNumTextureResize();
-	//				TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-
-	//				m_viewer->getMainProcessingMutex().lock();
-	//				Ref<Image> im = godot::Image::create_from_data(m_globalmapImage->get_width(), m_globalmapImage->get_height(), false, m_globalmapImage->get_format(), m_globalmapImage->get_data());
-	//				m_viewer->getMainProcessingMutex().unlock();
-
-	//				//std::string outFileName = quadrant->getCacheFilePath() + ".globalmap." + std::to_string(_resolution) + ".png";		// DEBUG
-	//				//im->save_png(outFileName.c_str());																									// DEBUG
-
-	//				im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
-
-	//				{
-	//					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-	//					int32_t newStep = 1 << optimizationLevel;
-	//					int32_t realImageWidth = m_globalmapImage->get_width();
-	//					int32_t realImageHeight = m_globalmapImage->get_height();
-	//					int32_t resizedImageWidth = im->get_width();
-	//					int32_t resizedImageHeight = im->get_height();
-	//					for (int32_t x = 0; x < resizedImageWidth; x++)
-	//					{
-	//						im->set_pixel(x, 0, m_globalmapImage->get_pixel(x * newStep, 0));
-	//						im->set_pixel(x, resizedImageHeight - 1, m_globalmapImage->get_pixel(x * newStep, realImageHeight - 1));
-	//					}
-	//					for (int32_t y = 0; y < resizedImageHeight; y++)
-	//					{
-	//						im->set_pixel(0, y, m_globalmapImage->get_pixel(0, y * newStep));
-	//						im->set_pixel(resizedImageWidth - 1, y, m_globalmapImage->get_pixel(realImageWidth - 1, y * newStep));
-	//					}
-	//				}
-
-	//				//outFileName = quadrant->getCacheFilePath() + ".globalmap." + std::to_string(newResolution) + ".png";				// DEBUG
-	//				//im->save_png(outFileName.c_str());																									// DEBUG
-
-	//				//if (globals->getParamCacheTerrainTextures())
-	//					m_resizedGlobalmapImageMap[newResolution] = im;
-	//				image = im;
-
-	//				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-	//				m_viewer->addToTextureResizingElapsed((now - start).count());
-	//			}
-	//		}
-	//		else
-	//			image = m_globalmapImage;
-
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.3 ") + __FUNCTION__, "Create Texture from globalmap image");
-
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-	//			//tex->create_from_image(image, godot::Texture::FLAG_FILTER | godot::Texture::FLAG_MIPMAPS);
-	//			godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_globalmapTexture = tex;
-	//			m_globalMapTexModified = true;
-	//			//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
-	//		}
-
-	//		//if (!globals->getParamCacheTerrainTextures())
-	//		//	m_globalmapImage.unref();
-	//	}
-
-	//	quadrant->renderGlobalMapChanged(false);
-	//	quadrant->setGlobalmapUpdated(false);
-	//}
-
 	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_globalmap))
 	{
 		lastProcessExecutionInterrupted = true;
@@ -2936,125 +2497,10 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 				m_colorMapTexModified = true;
 				//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
 			}
-
-			//if (!globals->getParamCacheTerrainTextures())
-			//	m_colormapImage.unref();
 		}
 
 		quadrant->setColorsUpdated(false);
 	}
-	//if (quadrant->colorsUpdated() || optimizationLevelChanged)
-	//{
-	//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5 ") + __FUNCTION__, "Colormap");
-
-	//	if (quadrant->colorsUpdated() || m_colormapImage == nullptr)
-	//	{
-	//		TheWorld_Utils::MemoryBuffer& colormapBuffer = quadrant->getColormapBuffer();
-	//		size_t colormapBufferSize = colormapBuffer.size();
-
-	//		if (colormapBufferSize == 0)
-	//		{
-	//			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.1 ") + __FUNCTION__, "Create empty Image for colors");
-	//			//m_viewer->getMainProcessingMutex().lock();
-	//			//godot::Ref<godot::Image> im = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGBA8);
-	//			//m_viewer->getMainProcessingMutex().unlock();
-	//			//image = im;
-	//			//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
-	//			//m_ResizedColormapImageMap.clear();
-	//		}
-	//		else
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.1 ") + __FUNCTION__, "Create Image from colormap buffer");
-
-	//			godot::PackedByteArray data;
-	//			size_t colormapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGBA);
-	//			data.resize((int)colormapBufferSizeInBytes);
-	//			assert(colormapBufferSizeInBytes == colormapBufferSize);
-	//			{
-	//				memcpy((char*)data.ptrw(), colormapBuffer.ptr(), colormapBufferSizeInBytes);
-	//			}
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			godot::Ref<godot::Image> im = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_colormapImage = im;
-	//			m_resizedColormapImageMap.clear();
-	//		}
-	//	}
-
-	//	if (m_colormapImage != nullptr)
-	//	{
-	//		Ref<Image> image;
-
-	//		if (optimizationLevel > 0)
-	//		{
-	//			if (m_resizedColormapImageMap.contains(newResolution))
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.2 ") + __FUNCTION__, "get resized image from cache " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-	//				image = m_resizedColormapImageMap[newResolution];
-	//			}
-	//			else
-	//			{
-	//				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.2 ") + __FUNCTION__, "resize image " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-	//				m_viewer->incNumTextureResize();
-	//				TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-
-	//				m_viewer->getMainProcessingMutex().lock();
-	//				Ref<Image> im = godot::Image::create_from_data(m_colormapImage->get_width(), m_colormapImage->get_height(), false, m_colormapImage->get_format(), m_colormapImage->get_data());
-	//				m_viewer->getMainProcessingMutex().unlock();
-
-	//				im->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
-
-	//				{
-	//					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.2.1 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(newResolution));
-
-	//					int32_t newStep = 1 << optimizationLevel;
-	//					int32_t realImageWidth = m_colormapImage->get_width();
-	//					int32_t realImageHeight = m_colormapImage->get_height();
-	//					int32_t resizedImageWidth = im->get_width();
-	//					int32_t resizedImageHeight = im->get_height();
-	//					for (int32_t x = 0; x < resizedImageWidth; x++)
-	//					{
-	//						im->set_pixel(x, 0, m_colormapImage->get_pixel(x * newStep, 0));
-	//						im->set_pixel(x, resizedImageHeight - 1, m_colormapImage->get_pixel(x * newStep, realImageHeight - 1));
-	//					}
-	//					for (int32_t y = 0; y < resizedImageHeight; y++)
-	//					{
-	//						im->set_pixel(0, y, m_colormapImage->get_pixel(0, y * newStep));
-	//						im->set_pixel(resizedImageWidth - 1, y, m_colormapImage->get_pixel(realImageWidth - 1, y * newStep));
-	//					}
-	//				}
-
-	//				//if (globals->getParamCacheTerrainTextures())
-	//					m_resizedColormapImageMap[newResolution] = im;
-	//				image = im;
-
-	//				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-	//				m_viewer->addToTextureResizingElapsed((now - start).count());
-	//			}
-	//		}
-	//		else
-	//			image = m_colormapImage;
-
-	//		{
-	//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.3 ") + __FUNCTION__, "Create Texture from colormap image");
-
-	//			m_viewer->getMainProcessingMutex().lock();
-	//			// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-	//			//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-	//			godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-	//			m_viewer->getMainProcessingMutex().unlock();
-	//			m_colormapTexture = tex;
-	//			m_colorMapTexModified = true;
-	//			//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
-	//		}
-
-	//		//if (!globals->getParamCacheTerrainTextures())
-	//		//	m_colormapImage.unref();
-	//	}
-
-	//	quadrant->setColorsUpdated(false);
-	//}
 
 	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_colormap))
 	{
@@ -3085,7 +2531,6 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 
 void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 {
-	// Completare da _update_material_params
 	//m_viewer->Globals()->debugPrint("Updating terrain material params");
 
 	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -3142,7 +2587,6 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 			currentMaterial->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 
-			//m_viewer->getMainProcessingMutex().lock();
 			if (quadrant->textureUpdated() && lookdev == LookDev::NotSet)
 			{
 				godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_albedo_bump_tex;
@@ -3203,7 +2647,6 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 
 				quadrant->setTextureUpdated(false);
 			}
-			//m_viewer->getMainProcessingMutex().unlock();
 
 			if (m_heightMapTexModified && m_heightmapTexture != nullptr)
 			{

@@ -30,6 +30,16 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_roll"), &GDN_TheWorld_Camera::getRoll);
 	ClassDB::bind_method(D_METHOD("set_roll"), &GDN_TheWorld_Camera::setRoll);
 	ClassDB::bind_method(D_METHOD("init_camera_in_world"), &GDN_TheWorld_Camera::initCameraInWorld);
+	ClassDB::bind_method(D_METHOD("track_player"), &GDN_TheWorld_Camera::trackPlayer);
+	ClassDB::bind_method(D_METHOD("untrack_player"), &GDN_TheWorld_Camera::untrackPlayer);
+	ClassDB::bind_method(D_METHOD("set_camera_tracking_speed", "p_value"), &GDN_TheWorld_Camera::setCameraTrackingSpeed);
+	ClassDB::bind_method(D_METHOD("get_camera_tracking_speed"), &GDN_TheWorld_Camera::getCameraTrackingSpeed);
+	ClassDB::bind_method(D_METHOD("set_camera_tracking_offset", "p_value"), &GDN_TheWorld_Camera::setCameraTrackingOffeset);
+	ClassDB::bind_method(D_METHOD("get_camera_tracking_offset"), &GDN_TheWorld_Camera::getCameraTrackingOffeset);
+
+	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
+	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_camera_tracking_speed", "get_camera_tracking_speed");
+	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::VECTOR3, "camera_tracking_offset"), "set_camera_tracking_offset", "get_camera_tracking_offset");
 }
 
 GDN_TheWorld_Camera::GDN_TheWorld_Camera()
@@ -39,8 +49,6 @@ GDN_TheWorld_Camera::GDN_TheWorld_Camera()
 	std::string m = TheWorld_Utils::MeshCacheBuffer::generateNewMeshId();
 	m_isActive = false;
 	m_instanceId = -1;
-	m_PlayerCamera = false;
-	m_OtherEntityCamera = false;
 	m_WorldCamera = false;
 	m_updateCameraRequired = false;
 	m_angleFromNorthDeg = 0;
@@ -147,11 +155,6 @@ void GDN_TheWorld_Camera::_notification(int p_what)
 
 void GDN_TheWorld_Camera::_process(double _delta)
 {
-	//TheWorld_Utils::GuardProfiler profiler(std::string("_process 1 ") + __FUNCTION__, "ALL");
-
-	// To activate _process method add this Node to a Godot Scene
-	//Globals()->debugPrint("GDN_TheWorld_Camera::_process");
-
 	GDN_TheWorld_Globals* globals = Globals();
 	if (globals == nullptr)
 		return;
@@ -164,17 +167,17 @@ void GDN_TheWorld_Camera::_process(double _delta)
 		return;
 	}
 
-	bool b = updateCamera();
+	//bool b = updateCamera();
 
-	godot::Vector3 euler = get_global_transform().basis.get_euler();
+	//godot::Vector3 euler = get_global_transform().basis.get_euler();
 
-	m_pitchEuler = euler.x;
-	m_yawEuler = euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
-								// - PI or PI = camera aligned with z axis pointing to increasing z (south), PI/2 = camera aligned with x axis pointing to decreasing X (west)
-	m_rollEuler = euler.z;
+	//m_pitchEuler = euler.x;
+	//m_yawEuler = euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
+	//							// - PI or PI = camera aligned with z axis pointing to increasing z (south), PI/2 = camera aligned with x axis pointing to decreasing X (west)
+	//m_rollEuler = euler.z;
 
-	float angleFromNorthRad = (m_yawEuler < 0 ? -m_yawEuler : (m_yawEuler == 0 ? 0 : TheWorld_Utils::kPi * 2 - m_yawEuler));
-	m_angleFromNorthDeg = (angleFromNorthRad * 180) / TheWorld_Utils::kPi;		// transform angle from radiant to degree
+	//float angleFromNorthRad = (m_yawEuler < 0 ? -m_yawEuler : (m_yawEuler == 0 ? 0 : TheWorld_Utils::kPi * 2 - m_yawEuler));
+	//m_angleFromNorthDeg = (angleFromNorthRad * 180) / TheWorld_Utils::kPi;		// transform angle from radiant to degree
 }
 
 void GDN_TheWorld_Camera::_physics_process(double _delta)
@@ -326,6 +329,20 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 	//		m_updateCameraRequired = true;
 	//	}
 	//}
+
+	{
+		bool b = updateCamera(_delta);
+
+		godot::Vector3 euler = get_global_transform().basis.get_euler();
+
+		m_pitchEuler = euler.x;
+		m_yawEuler = euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
+		// - PI or PI = camera aligned with z axis pointing to increasing z (south), PI/2 = camera aligned with x axis pointing to decreasing X (west)
+		m_rollEuler = euler.z;
+
+		float angleFromNorthRad = (m_yawEuler < 0 ? -m_yawEuler : (m_yawEuler == 0 ? 0 : TheWorld_Utils::kPi * 2 - m_yawEuler));
+		m_angleFromNorthDeg = (angleFromNorthRad * 180) / TheWorld_Utils::kPi;		// transform angle from radiant to degree
+	}
 }
 
 void GDN_TheWorld_Camera::_input(const Ref<godot::InputEvent>& event)
@@ -466,23 +483,23 @@ GDN_TheWorld_Camera* GDN_TheWorld_Camera::getActiveCamera(void)
 		return NULL;
 }
 
-bool GDN_TheWorld_Camera::initPlayerCamera(void)
-{
-	set_name("Camera");
-
-	m_PlayerCamera = true;
-
-	return true;
-}
-
-bool GDN_TheWorld_Camera::initOtherEntityCamera(void)
-{
-	set_name("Camera");
-
-	m_OtherEntityCamera = true;
-
-	return true;
-}
+//bool GDN_TheWorld_Camera::initPlayerCamera(void)
+//{
+//	set_name("Camera");
+//
+//	m_PlayerCamera = true;
+//
+//	return true;
+//}
+//
+//bool GDN_TheWorld_Camera::initOtherEntityCamera(void)
+//{
+//	set_name("Camera");
+//
+//	m_OtherEntityCamera = true;
+//
+//	return true;
+//}
 
 
 bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll)
@@ -523,11 +540,26 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 	return true;
 }
 
-bool GDN_TheWorld_Camera::updateCamera()
+bool GDN_TheWorld_Camera::updateCamera(double _delta)
 {
-	if (isPlayerCamera() || isOtherEntityCamera())
-		return true;
+	if (trackingPlayer())
+		return updatePlayerCamera(_delta);
+	else
+		return updateFreeLookCamera(_delta);
+}
 
+bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
+{
+	godot::Transform3D target = m_trackedPlayer->get_global_transform().translated(m_trackingOffset);
+	godot::Transform3D cameraTransform = get_global_transform().interpolate_with(target, float(m_trackingLerpSpeed * _delta));
+	set_global_transform(cameraTransform);
+	look_at(m_trackedPlayer->get_global_transform().origin, Vector3Up);
+	return true;
+}
+
+
+bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
+{
 	if (!m_updateCameraRequired)
 		return true;
 

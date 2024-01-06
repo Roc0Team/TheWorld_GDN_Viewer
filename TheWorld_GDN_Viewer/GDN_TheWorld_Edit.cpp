@@ -1307,6 +1307,12 @@ void GDN_TheWorld_Edit::setMouseHitLabelText(std::string text)
 	m_infoLabelTextChanged = true;
 }
 
+void GDN_TheWorld_Edit::setQuadrantHit(QuadTree* quadTree)
+{
+	m_innerData->m_quadTreeHit = quadTree;
+	m_infoLabelTextChanged = true;
+}
+
 void GDN_TheWorld_Edit::setMouseQuadHitLabelText(std::string text)
 {
 	m_innerData->m_mouseQuadHitStr = text;
@@ -1739,9 +1745,35 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		m_innerData->m_selTexturePanel->m_changeTextureRequired = false;
 	}
 	
+	if (is_visible() && m_innerData->m_quadTreeHit != nullptr)
+	{
+		int optimizationLevel = (int)m_innerData->m_quadTreeHit->getQuadrant()->optimizationLevel();
+		if (optimizationLevel != m_innerData->m_lastOptimizationLevelDisplayed)
+		{
+			m_innerData->m_lastOptimizationLevelDisplayed = optimizationLevel;
+			m_infoLabelTextChanged = true;
+		}
+
+		bool hasHiResData = m_innerData->m_quadTreeHit->getQuadrant()->getCollider()->hasHiResData();
+		int hiResCollisionGrid = (hasHiResData ? 1 : 0);
+		if (hiResCollisionGrid != m_innerData->m_lastHiResCollisionGridDisplayed)
+		{
+			m_innerData->m_lastHiResCollisionGridDisplayed = hiResCollisionGrid;
+			m_infoLabelTextChanged = true;
+		}
+	}
+	
 	if (m_infoLabelTextChanged)
 	{
-		std::string infoLabelText = "Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
+		std::string optimizationLevelInfoStr, colliderInfoStr;
+		if (m_innerData->m_quadTreeHit != nullptr)
+		{
+			optimizationLevelInfoStr = std::to_string(m_innerData->m_quadTreeHit->getQuadrant()->optimizationLevel());
+			if (m_innerData->m_quadTreeHit->getQuadrant()->getCollider() != nullptr)
+				colliderInfoStr = m_innerData->m_quadTreeHit->getQuadrant()->getCollider()->hasHiResData() ? "HIRES" : "LOWRES";
+		}
+
+		std::string infoLabelText = "Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + " Optimization Level: " + optimizationLevelInfoStr + " Collider: " + colliderInfoStr + "\n"
 			+ "Hit: " + m_innerData->m_mouseHitStr + "\n"
 			+ "Quad Hit: " + m_innerData->m_mouseQuadHitStr + "\n"
 			+ "Pos Hit: " + m_innerData->m_mouseQuadHitPosStr + "\n"

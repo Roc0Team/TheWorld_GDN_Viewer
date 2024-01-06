@@ -137,7 +137,6 @@ namespace godot
 				m_highElevationFactor = nullptr;
 				m_lowElevationFactor = nullptr;
 				m_splatMapMode = nullptr;
-
 			}
 			~InnerData()
 			{
@@ -226,6 +225,9 @@ namespace godot
 			bool m_dirtTexSelected;
 			bool m_rocksTexSelected;
 
+			QuadTree* m_quadTreeHit;
+			int m_lastOptimizationLevelDisplayed = -1;
+			int m_lastHiResCollisionGridDisplayed = -1;
 			std::string m_elapsed;
 			bool m_onGoing;
 			std::string m_minHeightStr;
@@ -412,6 +414,7 @@ namespace godot
 			return m_actionInProgress;
 		}
 
+		void setQuadrantHit(QuadTree* quadTree);
 		void setMouseHitLabelText(std::string text);
 		void setMouseQuadHitLabelText(std::string text);
 		void setMouseQuadHitPosLabelText(std::string text);

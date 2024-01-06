@@ -3941,7 +3941,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 
 							if (m_editMode && editModeUIControl && editModeUIControl->initialized())
 							{
-
+								editModeUIControl->setQuadrantHit(quadrantHit);
 								editModeUIControl->setMouseQuadHitLabelText(mouseQuadrantHitName + " " + mouseQuadrantHitTag);
 								editModeUIControl->setMouseQuadHitPosLabelText(std::string("X=") + std::to_string(mouseQuadrantHitPos.x) + " Z=" + std::to_string(mouseQuadrantHitPos.z) + " " + std::to_string(mouseQuadrantHitSize));
 
@@ -4011,7 +4011,15 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 		}
 	}
 	else
+	{
 		resetTrackedInputEvents(&m_trackedInputEventsForTrackMouse);
+		
+		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+		if (m_editMode && editModeUIControl && editModeUIControl->initialized())
+		{
+			editModeUIControl->setQuadrantHit(nullptr);
+		}
+	}
 }
 
 void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit)

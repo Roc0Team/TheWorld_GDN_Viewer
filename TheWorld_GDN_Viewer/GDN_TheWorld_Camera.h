@@ -145,7 +145,7 @@ namespace godot {
 		int64_t m_instanceId;
 		godot::Node3D* m_trackedPlayer = nullptr;
 		bool m_trackingPlayer = false;
-		float m_trackingLerpSpeed = 3.0f;
+		float m_trackingLerpSpeed = 10.0f;
 		godot::Vector3 m_trackingOffset = godot::Vector3(0.0f, 7.0f, 5.0f);
 
 		float m_angleFromNorthDeg;	// angle expressed in degrees of the projection of the camera on XZ plane: 0 ==> camera points to north, 90 camera points to east, 180 camera points to south, 270 camera points to west

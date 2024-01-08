@@ -269,6 +269,11 @@ namespace godot
 					s = "worldDeployed";
 				}
 				break;
+				case TheWorldStatus::worldUnDeployInProgress:
+				{
+					s = "worldUnDeployInProgress";
+				}
+				break;
 			}
 
 			return s;

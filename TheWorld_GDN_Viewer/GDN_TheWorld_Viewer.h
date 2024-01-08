@@ -583,14 +583,14 @@ namespace godot
 		bool terrainShiftPermitted(void);
 		godot::Vector3 getMouseHit(void)
 		{
-			if (m_mouseTrackedOnTerrain)
+			if (m_mouseTrackedOnSomething)
 				return m_trackedMouseHit;
 			else
 				return godot::Vector3();
 		}
 		float getMouseHitDistanceFromCamera(void)
 		{
-			if (m_mouseTrackedOnTerrain)
+			if (m_mouseTrackedOnSomething)
 			{
 				godot::Camera3D* camera = getCamera();
 				return camera->get_global_transform().origin.distance_to(m_trackedMouseHit);
@@ -624,7 +624,7 @@ namespace godot
 		}
 		godot::String getMouseChunkHitId(void)
 		{
-			if (m_mouseTrackedOnTerrain && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
+			if (m_mouseTrackedOnSomething && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
 			{
 				return std::string(m_mouseHitChunk->getQuadTree()->getQuadrant()->getPos().getName() + " " + m_mouseHitChunk->getIdStr()).c_str();
 				//return m_mouseHitChunk->getIdStr().c_str();
@@ -634,7 +634,7 @@ namespace godot
 		}
 		godot::Vector3 getMouseChunkHitPos(void)
 		{
-			if (m_mouseTrackedOnTerrain && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
+			if (m_mouseTrackedOnSomething && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
 			{
 				return Vector3(m_mouseHitChunk->getLowerXInWUsGlobal(), 0, m_mouseHitChunk->getLowerZInWUsGlobal());
 			}
@@ -643,7 +643,7 @@ namespace godot
 		}
 		float getMouseChunkHitSize(void)
 		{
-			if (m_mouseTrackedOnTerrain && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
+			if (m_mouseTrackedOnSomething && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
 			{
 				return m_mouseHitChunk->getChunkSizeInWUs();
 			}
@@ -653,7 +653,7 @@ namespace godot
 
 		float getMouseChunkHitDistFromCam(void)
 		{
-			if (m_mouseTrackedOnTerrain && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
+			if (m_mouseTrackedOnSomething && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
 			{
 				return m_mouseHitChunk->getDistanceFromCamera();
 			}
@@ -759,7 +759,7 @@ namespace godot
 		{
 			m_reloadSelectedQuadrantShaderRequired = b;
 		}
-		void trackedMouseHitChanged(QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 m_mouseHit);
+		void trackedMouseHitChanged(QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit, godot::Vector3 normalHit = Vector3Zero);
 		void clearMapQuadTree(void);
 		bool gizmoVisible(void)
 		{
@@ -1048,7 +1048,8 @@ namespace godot
 		int64_t m_timeElapsedFromLastMouseTrack;
 		godot::Vector3 m_trackedMouseHit;
 		godot::Vector3 m_previousTrackedMouseHit;
-		bool m_mouseTrackedOnTerrain;
+		bool m_mouseTrackedOnSomething = false;
+		bool m_mouseTrackedOnTerrain = false;
 		std::string m_mouseQuadrantHitName;
 		std::string m_mouseQuadrantHitTag;
 		float m_mouseQuadrantHitSize;

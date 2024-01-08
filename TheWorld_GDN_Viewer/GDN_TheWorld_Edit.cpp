@@ -1745,7 +1745,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		m_innerData->m_selTexturePanel->m_changeTextureRequired = false;
 	}
 	
-	if (is_visible() && m_innerData->m_quadTreeHit != nullptr)
+	if (is_visible() && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) && m_innerData->m_quadTreeHit != nullptr)
 	{
 		int optimizationLevel = (int)m_innerData->m_quadTreeHit->getQuadrant()->optimizationLevel();
 		if (optimizationLevel != m_innerData->m_lastOptimizationLevelDisplayed)
@@ -1773,7 +1773,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 				colliderInfoStr = m_innerData->m_quadTreeHit->getQuadrant()->getCollider()->hasHiResData() ? "HIRES" : "LOWRES";
 		}
 
-		std::string infoLabelText = "Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + " Optimization Level: " + optimizationLevelInfoStr + " Collider: " + colliderInfoStr + "\n"
+		std::string infoLabelText = "Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
+			+ "Optimization Level: " + optimizationLevelInfoStr + " Collider: " + colliderInfoStr + "\n"
 			+ "Hit: " + m_innerData->m_mouseHitStr + "\n"
 			+ "Quad Hit: " + m_innerData->m_mouseQuadHitStr + "\n"
 			+ "Pos Hit: " + m_innerData->m_mouseQuadHitPosStr + "\n"

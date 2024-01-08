@@ -166,18 +166,6 @@ void GDN_TheWorld_Camera::_process(double _delta)
 	{
 		return;
 	}
-
-	//bool b = updateCamera();
-
-	//godot::Vector3 euler = get_global_transform().basis.get_euler();
-
-	//m_pitchEuler = euler.x;
-	//m_yawEuler = euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
-	//							// - PI or PI = camera aligned with z axis pointing to increasing z (south), PI/2 = camera aligned with x axis pointing to decreasing X (west)
-	//m_rollEuler = euler.z;
-
-	//float angleFromNorthRad = (m_yawEuler < 0 ? -m_yawEuler : (m_yawEuler == 0 ? 0 : TheWorld_Utils::kPi * 2 - m_yawEuler));
-	//m_angleFromNorthDeg = (angleFromNorthRad * 180) / TheWorld_Utils::kPi;		// transform angle from radiant to degree
 }
 
 void GDN_TheWorld_Camera::_physics_process(double _delta)
@@ -550,7 +538,9 @@ bool GDN_TheWorld_Camera::updateCamera(double _delta)
 
 bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 {
-	godot::Transform3D target = m_trackedPlayer->get_global_transform().translated(m_trackingOffset);
+	godot::Transform3D target = m_trackedPlayer->get_global_transform();
+	godot::Vector3 trackingOffset = target.basis.xform(m_trackingOffset);
+	target = target.translated(trackingOffset);
 	godot::Transform3D cameraTransform = get_global_transform().interpolate_with(target, float(m_trackingLerpSpeed * _delta));
 	set_global_transform(cameraTransform);
 	look_at(m_trackedPlayer->get_global_transform().origin, Vector3Up);

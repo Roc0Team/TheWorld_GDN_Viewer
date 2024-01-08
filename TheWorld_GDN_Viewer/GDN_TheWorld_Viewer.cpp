@@ -1206,7 +1206,6 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_timeElapsedFromLastMouseTrack = 0;
 	m_mouseQuadrantHitSize = 0;
 	m_mouseHitChunk = nullptr;
-	m_mouseTrackedOnTerrain = false;
 	//m_mouseHitQuadTree = nullptr;
 	m_updateTerrainVisibilityRequired = false;
 	m_currentChunkDebugMode = GDN_TheWorld_Globals::ChunkDebugMode::NoDebug;
@@ -3122,7 +3121,8 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	//Godot::print("GDN_TheWorld_Viewer::_process");
 
 //#define MAX_PROCESS_DURATION	100000
-#define MAX_PROCESS_DURATION	200000
+//#define MAX_PROCESS_DURATION	200000
+#define MAX_PROCESS_DURATION	300000
 	m_maxProcessDuration = MAX_PROCESS_DURATION;
 	if (Globals()->status() == TheWorldStatus::worldDeployed)
 		m_processCanBeInterrupted = true;
@@ -3882,28 +3882,35 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 			godot::Vector3 rayOrigin = activeCamera->project_ray_origin(mousePosInVieport);
 			godot::Vector3 rayEnd = rayOrigin + activeCamera->project_ray_normal(mousePosInVieport) * (real_t)activeCamera->get_far() * 1.5;
 			godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd);
+			//query->set_collide_with_bodies(true);	// DEFAULT
 			rayArray = spaceState->intersect_ray(query);
 
 			GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 
+			m_mouseTrackedOnTerrain = false;
 			if (rayArray.has("position"))
 			{
 				m_trackedMouseHit = rayArray["position"];
-				m_mouseTrackedOnTerrain = true;
+				m_mouseTrackedOnSomething = true;
 			}
 			else
-				m_mouseTrackedOnTerrain = false;
+				m_mouseTrackedOnSomething = false;
 
-			if (m_mouseTrackedOnTerrain)
+			if (m_mouseTrackedOnSomething)
 			{
 				if (m_editMode && editModeUIControl && editModeUIControl->initialized())
 					editModeUIControl->setMouseHitLabelText(std::string("X=") + std::to_string(m_trackedMouseHit.x) + " Y=" + std::to_string(m_trackedMouseHit.y) + " Z=" + std::to_string(m_trackedMouseHit.z));
 
+				godot::Vector3 normalHit = Vector3Zero;
+				if (rayArray.has("normal"))
+					normalHit = rayArray["normal"];
+				
 				if (rayArray.has("collider"))
 				{
 					collider = godot::Object::cast_to<godot::Node>(rayArray["collider"]);
 					if (collider->has_meta("QuadrantName"))
 					{
+						m_mouseTrackedOnTerrain = true;
 						godot::String s = collider->get_meta("QuadrantName", "");
 						godot::PackedByteArray array = s.to_ascii_buffer();
 						std::string mouseQuadrantHitName((char*)array.ptr(), array.size());
@@ -3936,7 +3943,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 
 								quadrantHit = it->second.get();
 								quadrantHit->getAdjacentQuadrants(adjacentQuadrantsHit);
-								trackedMouseHitChanged(quadrantHit, adjacentQuadrantsHit, true, m_trackedMouseHit);
+								trackedMouseHitChanged(quadrantHit, adjacentQuadrantsHit, true, m_trackedMouseHit, normalHit);
 							}
 
 							if (m_editMode && editModeUIControl && editModeUIControl->initialized())
@@ -3976,19 +3983,13 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 						}
 						else
 						{
-							trackedMouseHitChanged(m_quadrantHit, m_adjacentQuadrantsHit, true, m_trackedMouseHit);
+							trackedMouseHitChanged(m_quadrantHit, m_adjacentQuadrantsHit, true, m_trackedMouseHit, normalHit);
 						}
 					}
-					//godot::PoolStringArray metas = collider->get_meta_list();
-					//for (int i = 0; i < metas.size(); i++)
-					//{
-					//	godot::String s = metas[i];
-					//	char* str = s.alloc_c_string();
-					//	std::string ss = str;
-					//	godot::api->godot_free(str);
-					//	godot::Variant v = collider->get_meta(s);
-					//}
-					//godot::String s = collider->get_meta("QuadrantName");
+					else
+					{
+						trackedMouseHitChanged(m_quadrantHit, m_adjacentQuadrantsHit, true, m_trackedMouseHit, normalHit);
+					}
 				}
 			}
 			else
@@ -4022,11 +4023,11 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 	}
 }
 
-void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit)
+void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit, godot::Vector3 normalHit)
 {
 
-	if (quadrantHit != nullptr)
-	{
+	//if (quadrantHit != nullptr)
+	//{
 		if (hit)
 		{
 			if (positionVisible())
@@ -4039,34 +4040,61 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::lis
 
 			if (m_previousTrackedMouseHit != mouseHit)
 			{
-				quadrantHit->mouseHitChanged(mouseHit, true);
+				if (quadrantHit != nullptr)
+					quadrantHit->mouseHitChanged(mouseHit, true);
 				for (auto& item : adjacentQuadrantsHit)
 					item->mouseHitChanged(mouseHit, true);
 
 				bool _normalVisible = false;
 				if (normalVisible())
 				{
-					size_t index = quadrantHit->getQuadrant()->getIndexFromMap(mouseHit.x, mouseHit.z);
-					if (index != -1)
+					godot::Vector3 normal = normalHit;
+					if (normal == Vector3Zero && quadrantHit != nullptr)
 					{
-						bool ok;
-						godot::Vector3 normal = quadrantHit->getQuadrant()->getNormalFromNormalmap(index, ok);
-						if (ok)
+						size_t index = quadrantHit->getQuadrant()->getIndexFromMap(mouseHit.x, mouseHit.z);
+						if (index != -1)
 						{
-							const float lineSize = 50;
-							godot::Vector3 end = mouseHit + normal * lineSize;
-							float radAngleWithVertical = acos(normal.dot(Vector3Up));
-							float slope = (radAngleWithVertical * 180) / TheWorld_Utils::kPi;
-							
-
-							if (m_normalLineIdx != -1 && m_normalSphereIdx != -1)
-							{
-								_normalVisible = true;
-								m_normalDrawer->updateLine(m_normalLineIdx, mouseHit, end, std::to_string(int32_t(slope)) + "°");
-								m_normalDrawer->updateSphere(m_normalSphereIdx, end);
-							}
+							bool ok;
+							normal = quadrantHit->getQuadrant()->getNormalFromNormalmap(index, ok);
+							if (!ok)
+								normal = Vector3Zero;
 						}
 					}
+					if (normal != Vector3Zero)
+					{
+						const float lineSize = 50;
+						godot::Vector3 end = mouseHit + normal * lineSize;
+						float radAngleWithVertical = acos(normal.dot(Vector3Up));
+						float slope = (radAngleWithVertical * 180) / TheWorld_Utils::kPi;
+
+						if (m_normalLineIdx != -1 && m_normalSphereIdx != -1)
+						{
+							_normalVisible = true;
+							m_normalDrawer->updateLine(m_normalLineIdx, mouseHit, end, std::to_string(int32_t(slope)) + "°");
+							m_normalDrawer->updateSphere(m_normalSphereIdx, end);
+						}
+					}
+					
+					//size_t index = quadrantHit->getQuadrant()->getIndexFromMap(mouseHit.x, mouseHit.z);
+					//if (index != -1)
+					//{
+					//	bool ok;
+					//	godot::Vector3 normal = quadrantHit->getQuadrant()->getNormalFromNormalmap(index, ok);
+					//	if (ok)
+					//	{
+					//		const float lineSize = 50;
+					//		godot::Vector3 end = mouseHit + normal * lineSize;
+					//		float radAngleWithVertical = acos(normal.dot(Vector3Up));
+					//		float slope = (radAngleWithVertical * 180) / TheWorld_Utils::kPi;
+					//		
+					//		if (m_normalLineIdx != -1 && m_normalSphereIdx != -1)
+					//		{
+					//			_normalVisible = true;
+					//			m_normalDrawer->updateLine(m_normalLineIdx, mouseHit, end, std::to_string(int32_t(slope)) + "°");
+					//			m_normalDrawer->updateSphere(m_normalSphereIdx, end);
+					//		}
+					//	}
+					//}
 				}
 
 				if (_normalVisible)
@@ -4112,14 +4140,15 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::lis
 		}
 		else
 		{
-			quadrantHit->mouseHitChanged(godot::Vector3(), false);
+			if (quadrantHit != nullptr)
+				quadrantHit->mouseHitChanged(godot::Vector3(), false);
 			for (auto& item : adjacentQuadrantsHit)
 				item->mouseHitChanged(godot::Vector3(), false);
 			m_normalDrawer->set_visible(false);
 			m_positionDrawer->set_visible(false);
 			m_gizmo->set_visible(false);
 		}
-	}
+	//}
 }
 
 bool GDN_TheWorld_Viewer::mouseInsideMainEditPanel(void)
@@ -4816,6 +4845,11 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 					}
 				}
 
+				bool colliderCanHaveHiResCollisionInfo = itQuadTree->second->getQuadrant()->canHaveHiResCollisionInfo();
+				if (!itQuadTree->second->getQuadrant()->getCollider()->hasData() || 
+					(colliderCanHaveHiResCollisionInfo && !itQuadTree->second->getQuadrant()->getCollider()->hasHiResData()) || (!colliderCanHaveHiResCollisionInfo && itQuadTree->second->getQuadrant()->getCollider()->hasHiResData()))
+					processCameraPosForQuadrants = true;
+				
 				if (itQuadTree->second->colliderNeedReset() || processCameraPosForQuadrants)
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.3 ") + __FUNCTION__, "updateCollider");

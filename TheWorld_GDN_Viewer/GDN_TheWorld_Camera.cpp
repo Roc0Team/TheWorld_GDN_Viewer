@@ -197,9 +197,17 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 	Input* input = Input::get_singleton();
 
 	if (input->is_action_pressed("ui_mouse_button_right") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
+	{
+		if (!m_rotateCameraOn)
+			Globals()->debugPrint("Rotate ON");
 		m_rotateCameraOn = true;
+	}
 	else
+	{
+		if (m_rotateCameraOn)
+			Globals()->debugPrint("Rotate OFF");
 		m_rotateCameraOn = false;
+	}
 
 	//input = Input::get_singleton();
 	if (input->is_action_pressed("ui_mouse_button_left") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
@@ -538,12 +546,61 @@ bool GDN_TheWorld_Camera::updateCamera(double _delta)
 
 bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 {
-	godot::Transform3D target = m_trackedPlayer->get_global_transform();
-	godot::Vector3 trackingOffset = target.basis.xform(m_trackingOffset);
-	target = target.translated(trackingOffset);
-	godot::Transform3D cameraTransform = get_global_transform().interpolate_with(target, float(m_trackingLerpSpeed * _delta));
-	set_global_transform(cameraTransform);
-	look_at(m_trackedPlayer->get_global_transform().origin, Vector3Up);
+	if (m_rotateCameraOn)
+	{
+		if (m_mouseRelativePosToRotate != Vector2(0, 0))
+		{
+			float sensitivity = m_sensitivity;
+			if (m_shiftPressed)
+				sensitivity /= 4;
+			if (m_ctrlPressed)
+				sensitivity *= 2;
+			m_mouseRelativePosToRotate *= sensitivity;
+			m_yaw = m_yaw * m_smoothness + m_mouseRelativePosToRotate.x * (1.0F - m_smoothness);
+			m_pitch = m_pitch * m_smoothness + m_mouseRelativePosToRotate.y * (1.0F - m_smoothness);
+			m_mouseRelativePosToRotate = Vector2(0, 0);
+
+			if (m_yawLimit < 360)
+				m_yaw = TheWorld_Viewer_Utils::Utils::clamp(m_yaw, -m_yawLimit - m_totalYaw, m_yawLimit - m_totalYaw);
+			if (m_pitchLimit < 360)
+				m_pitch = TheWorld_Viewer_Utils::Utils::clamp(m_pitch, -m_pitchLimit - m_totalPitch, m_pitchLimit - m_totalPitch);
+			m_totalYaw *= m_yaw;
+			m_totalPitch *= m_pitch;
+
+			float pitch = Math::deg_to_rad(-m_pitch);
+			if ((pitch + get_rotation().x) > kPi / 2)
+				pitch = (kPi / 2) - get_rotation().x;
+			if ((pitch + get_rotation().x) < -(kPi / 2))
+				pitch = (-(kPi / 2)) - get_rotation().x;
+
+			rotate_y(Math::deg_to_rad(-m_yaw));
+			rotate_object_local(Vector3(1, 0, 0), pitch);
+
+			/*if (m_lastYaw != m_yaw)
+				Godot::print("Camera Yaw: " + String(std::to_string(m_yaw).c_str()));
+			if (m_lastPitch != m_pitch)
+				Godot::print("Camera Pitch: " + String(std::to_string(m_pitch).c_str()));*/
+
+			m_lastYaw = m_yaw;
+			m_lastPitch = m_pitch;
+		}
+
+		godot::Transform3D cameraTransform = get_global_transform();
+		godot::Transform3D target = m_trackedPlayer->get_global_transform();
+		godot::Vector3 TargetToCameraDir = (cameraTransform.origin - target.origin).normalized();
+		set_global_position(target.origin + TargetToCameraDir * m_trackingOffset.length());
+	}
+	else
+	{
+		godot::Transform3D target = m_trackedPlayer->get_global_transform();
+		godot::Vector3 trackingOffset = target.basis.xform(m_trackingOffset);
+		target = target.translated(trackingOffset);
+		godot::Transform3D targetCameraTransform = get_global_transform().interpolate_with(target, float(m_trackingLerpSpeed * _delta));
+		//set_global_transform(cameraTransform);
+		set_global_position(targetCameraTransform.origin);
+		look_at(m_trackedPlayer->get_global_transform().origin, Vector3Up);
+	}
+
 	return true;
 }
 

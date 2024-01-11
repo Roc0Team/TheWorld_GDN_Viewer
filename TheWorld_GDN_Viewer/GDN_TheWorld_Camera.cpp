@@ -198,14 +198,14 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 
 	if (input->is_action_pressed("ui_mouse_button_right") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
 	{
-		if (!m_rotateCameraOn)
-			Globals()->debugPrint("Rotate ON");
+		//if (!m_rotateCameraOn)
+		//	Globals()->debugPrint("Rotate ON");
 		m_rotateCameraOn = true;
 	}
 	else
 	{
-		if (m_rotateCameraOn)
-			Globals()->debugPrint("Rotate OFF");
+		//if (m_rotateCameraOn)
+		//	Globals()->debugPrint("Rotate OFF");
 		m_rotateCameraOn = false;
 	}
 

@@ -6392,6 +6392,13 @@ void GDN_TheWorld_Viewer::dump()
 
 	Globals()->debugPrint("DUMP COMPLETE");
 	Globals()->debugPrint("*************");
+
+	//godot::Viewport* vp = get_viewport();
+	//godot::Ref<godot::ViewportTexture> vpt = vp->get_texture();
+	//godot::Vector2 size = vpt->get_size();
+	//godot::Ref<godot::Image> image = vpt->get_image();
+	//std::string outFileName = GDN_TheWorld_Globals::getClientDataDir() + "\\screen.png";
+	//image->save_png(outFileName.c_str());
 }
 
 void GDN_TheWorld_Viewer::dumpRecurseIntoChildrenNodes(Array nodes, int level)

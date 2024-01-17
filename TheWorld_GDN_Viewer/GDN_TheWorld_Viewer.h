@@ -923,6 +923,17 @@ namespace godot
 			m_recalcQuadrantsInViewNeeded = b;
 		}
 
+		bool loadQuadrantData(float posX, float posZ, int level);
+		void clearQuadrantData(void);
+		godot::Ref<godot::Image> getQuadrantHeightmapImage(void);
+		godot::Ref<godot::Image> getQuadrantNormalmapImage(void);
+		godot::Ref<godot::Image> getQuadrantSplatmapImage(void);
+		godot::Ref<godot::Image> getQuadrantGlobalmapImage(void);
+		godot::Ref<godot::Image> getQuadrantColormapImage(void);
+		godot::String getGroundTextureName(int type);
+		godot::Ref<godot::ImageTexture> getGroundTextureAlbedoBump(godot::String texName);
+		godot::Ref<godot::ImageTexture> getGroundTextureNormalRoughness(godot::String texName);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -1146,6 +1157,14 @@ namespace godot
 		godot::Vector3 m_lastProcessedCameraPosForChunks;
 
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
+
+		// Loaded quadrant images (mostly for testing)
+		TheWorld_Utils::TerrainEdit m_terrainEdit;
+		godot::Ref<godot::Image> m_tempHeightmapImage;
+		godot::Ref<godot::Image> m_tempNormalmapImage;
+		godot::Ref<godot::Image> m_tempSplatmapImage;
+		godot::Ref<godot::Image> m_tempGlobalmapImage;
+		godot::Ref<godot::Image> m_tempColormapImage;
 	};
 }
 

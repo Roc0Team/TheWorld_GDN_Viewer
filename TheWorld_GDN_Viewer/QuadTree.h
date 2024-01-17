@@ -906,10 +906,15 @@ namespace godot
 		void mouseHitChanged(godot::Vector2 mouseHit);
 
 		godot::Ref<godot::Image> getOrCreateHeightmapImage();
+		static godot::Ref<godot::Image> createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateNormalmapImage();
+		static godot::Ref<godot::Image> createNormalmapImage(TheWorld_Utils::MemoryBuffer& normalmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateSplatmapImage();
+		static godot::Ref<godot::Image> createSplatlmapImage(TheWorld_Utils::MemoryBuffer& splatmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateGlobalmapImage();
+		static godot::Ref<godot::Image> createGloablmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateColormapImage();
+		static godot::Ref<godot::Image> createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution);
 
 		godot::Ref<godot::Image> getHeightmapImage(void)
 		{

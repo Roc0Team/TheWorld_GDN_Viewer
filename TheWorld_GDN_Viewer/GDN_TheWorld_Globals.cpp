@@ -353,6 +353,9 @@ namespace godot
 
 		ClassDB::bind_method(D_METHOD("viewer"), &GDN_TheWorld_Globals::Viewer);
 
+		ClassDB::bind_method(D_METHOD("quadrant_size_in_wus"), &GDN_TheWorld_Globals::heightmapSizeInWUs);
+		ClassDB::bind_method(D_METHOD("quadrant_step_in_wus"), &GDN_TheWorld_Globals::gridStepInWU);
+
 		
 		// perfparam_
 		ClassDB::bind_method(D_METHOD("set_perfparam_stream_world"), &GDN_TheWorld_Globals::setStreamWorld);

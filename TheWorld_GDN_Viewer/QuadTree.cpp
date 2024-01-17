@@ -1913,17 +1913,32 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 			s = "OUTSIDE PROCESS ";
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateHeightmapImage ") + s + __FUNCTION__, "create heightmap image");
 		int _resolution = globals->heightmapResolution() + 1;
-		godot::PackedByteArray data;
-		size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
-		size_t heightmapBufferSizeInBytes = _resolution * _resolution * sizeof(uint16_t);
-		assert(heightmapBufferSizeInBytes == heightsBufferSize);
-		data.resize((int)heightmapBufferSizeInBytes);
-		{
-			memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
-		}
-		m_heightmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
+		TheWorld_Utils::MemoryBuffer& heightmapBuffer = m_quadTree->getQuadrant()->getFloat16HeightsBuffer();
+		m_heightmapImage = createHeightmapImage(heightmapBuffer, _resolution);
+		//godot::PackedByteArray data;
+		//size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
+		//size_t heightmapBufferSizeInBytes = _resolution * _resolution * sizeof(uint16_t);
+		//assert(heightmapBufferSizeInBytes == heightsBufferSize);
+		//data.resize((int)heightmapBufferSizeInBytes);
+		//{
+		//	memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
+		//}
+		//m_heightmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
 	}
 	return m_heightmapImage;
+}
+
+godot::Ref<godot::Image> ShaderTerrainData::createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution)
+{
+	godot::PackedByteArray data;
+	size_t heightsBufferSize = heightmapBuffer.size();
+	size_t heightmapBufferSizeInBytes = _resolution * _resolution * sizeof(uint16_t);
+	assert(heightmapBufferSizeInBytes == heightsBufferSize);
+	data.resize((int)heightmapBufferSizeInBytes);
+	{
+		memcpy((char*)data.ptrw(), heightmapBuffer.ptr(), heightsBufferSize);
+	}
+	return godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RH, data);
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateNormalmapImage()
@@ -1939,36 +1954,66 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateNormalmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateNormalmapImage ") + s + __FUNCTION__, "create normalmap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& normalsBuffer = m_quadTree->getQuadrant()->getNormalsBuffer();
-		size_t normalsBufferSize = normalsBuffer.size();
-		if (normalsBufferSize == 0)
-		{
-			m_normalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGB8);
-			m_normalmapImage->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
-
-		}
-		else
-		{
-			godot::PackedByteArray data;
-			size_t normalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
-			data.resize((int)normalmapBufferSizeInBytes);
-			assert(normalmapBufferSizeInBytes == normalsBufferSize);
-			{
-				memcpy((char*)data.ptrw(), normalsBuffer.ptr(), normalsBufferSize);
-			}
-			m_normalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
-
-			//{
-			//	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
-			//	//image->lock();
-			//	Color c = image->get_pixel(0, 0);
-			//	size_t c_r = (size_t)(c.r * 255);
-			//	size_t c_g = (size_t)(c.g * 255);
-			//	size_t c_b = (size_t)(c.b * 255);
-			//	//image->unlock();
-			//}
-		}
+		m_normalmapImage = createNormalmapImage(normalsBuffer, _resolution);
+		//size_t normalsBufferSize = normalsBuffer.size();
+		//if (normalsBufferSize == 0)
+		//{
+		//	m_normalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGB8);
+		//	m_normalmapImage->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
+		//}
+		//else
+		//{
+		//	godot::PackedByteArray data;
+		//	size_t normalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
+		//	data.resize((int)normalmapBufferSizeInBytes);
+		//	assert(normalmapBufferSizeInBytes == normalsBufferSize);
+		//	{
+		//		memcpy((char*)data.ptrw(), normalsBuffer.ptr(), normalsBufferSize);
+		//	}
+		//	m_normalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
+		//}
+		////{
+		////	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
+		////	//image->lock();
+		////	Color c = image->get_pixel(0, 0);
+		////	size_t c_r = (size_t)(c.r * 255);
+		////	size_t c_g = (size_t)(c.g * 255);
+		////	size_t c_b = (size_t)(c.b * 255);
+		////	//image->unlock();
+		////}
 	}
 	return m_normalmapImage;
+}
+
+godot::Ref<godot::Image> ShaderTerrainData::createNormalmapImage(TheWorld_Utils::MemoryBuffer& normalmapBuffer, int _resolution)
+{
+	size_t normalsBufferSize = normalmapBuffer.size();
+	if (normalsBufferSize == 0)
+	{
+		godot::Ref<godot::Image> image = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGB8);
+		image->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
+		return image;
+	}
+	else
+	{
+		godot::PackedByteArray data;
+		size_t normalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
+		data.resize((int)normalmapBufferSizeInBytes);
+		assert(normalmapBufferSizeInBytes == normalsBufferSize);
+		{
+			memcpy((char*)data.ptrw(), normalmapBuffer.ptr(), normalsBufferSize);
+		}
+		return godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
+		//{
+		//	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
+		//	//image->lock();
+		//	Color c = image->get_pixel(0, 0);
+		//	size_t c_r = (size_t)(c.r * 255);
+		//	size_t c_g = (size_t)(c.g * 255);
+		//	size_t c_b = (size_t)(c.b * 255);
+		//	//image->unlock();
+		//}
+	}
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateSplatmapImage()
@@ -1984,26 +2029,49 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateSplatmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateSplatmapImage ") + s + __FUNCTION__, "create splatmap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& splatmapBuffer = m_quadTree->getQuadrant()->getSplatmapBuffer();
-		size_t splatmapBufferSize = splatmapBuffer.size();
-
-		if (splatmapBufferSize == 0)
-		{
-			m_splatmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGBA8);
-			m_splatmapImage->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
-		}
-		else
-		{
-			godot::PackedByteArray data;
-			size_t splatmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGBA);
-			data.resize((int)splatmapBufferSizeInBytes);
-			assert(splatmapBufferSizeInBytes == splatmapBufferSize);
-			{
-				memcpy((char*)data.ptrw(), splatmapBuffer.ptr(), splatmapBufferSizeInBytes);
-			}
-			m_splatmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
-		}
+		m_splatmapImage = createSplatlmapImage(splatmapBuffer, _resolution);
+		//size_t splatmapBufferSize = splatmapBuffer.size();
+		//if (splatmapBufferSize == 0)
+		//{
+		//	m_splatmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGBA8);
+		//	m_splatmapImage->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
+		//}
+		//else
+		//{
+		//	godot::PackedByteArray data;
+		//	size_t splatmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGBA);
+		//	data.resize((int)splatmapBufferSizeInBytes);
+		//	assert(splatmapBufferSizeInBytes == splatmapBufferSize);
+		//	{
+		//		memcpy((char*)data.ptrw(), splatmapBuffer.ptr(), splatmapBufferSizeInBytes);
+		//	}
+		//	m_splatmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
+		//}
 	}
+	
 	return m_splatmapImage;
+}
+
+godot::Ref<godot::Image> ShaderTerrainData::createSplatlmapImage(TheWorld_Utils::MemoryBuffer& splatmapBuffer, int _resolution)
+{
+	size_t splatmapBufferSize = splatmapBuffer.size();
+	if (splatmapBufferSize == 0)
+	{
+		godot::Ref<godot::Image> image = godot::Image::create(_resolution, _resolution, false, godot::Image::FORMAT_RGBA8);
+		image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
+		return image;
+	}
+	else
+	{
+		godot::PackedByteArray data;
+		size_t splatmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGBA);
+		data.resize((int)splatmapBufferSizeInBytes);
+		assert(splatmapBufferSizeInBytes == splatmapBufferSize);
+		{
+			memcpy((char*)data.ptrw(), splatmapBuffer.ptr(), splatmapBufferSizeInBytes);
+		}
+		return godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
+	}
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateGlobalmapImage()
@@ -2019,26 +2087,49 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateGlobalmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateGlobalmapImage ") + s + __FUNCTION__, "create globalmap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& globalmapBuffer = m_quadTree->getQuadrant()->getGlobalmapBuffer();
-		size_t globalmapBufferSize = globalmapBuffer.size();
-
-		if (globalmapBufferSize == 0)
-		{
-			//m_globalmapImage = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
-			//m_globalmapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
-		}
-		else
-		{
-			godot::PackedByteArray data;
-			size_t globalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
-			data.resize((int)globalmapBufferSizeInBytes);
-			assert(globalmapBufferSizeInBytes == globalmapBufferSize);
-			{
-				memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
-			}
-			m_globalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
-		}
+		m_globalmapImage = createGloablmapImage(globalmapBuffer, _resolution);
+		//size_t globalmapBufferSize = globalmapBuffer.size();
+		//if (globalmapBufferSize == 0)
+		//{
+		//	//m_globalmapImage = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
+		//	//m_globalmapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		//}
+		//else
+		//{
+		//	godot::PackedByteArray data;
+		//	size_t globalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
+		//	data.resize((int)globalmapBufferSizeInBytes);
+		//	assert(globalmapBufferSizeInBytes == globalmapBufferSize);
+		//	{
+		//		memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
+		//	}
+		//	m_globalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
+		//}
 	}
 	return m_globalmapImage;
+}
+
+godot::Ref<godot::Image> ShaderTerrainData::createGloablmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution)
+{
+	size_t globalmapBufferSize = globalmapBuffer.size();
+	if (globalmapBufferSize == 0)
+	{
+		godot::Ref<godot::Image> image;
+		//image = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGB8);
+		//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		return image;
+	}
+	else
+	{
+		godot::PackedByteArray data;
+		size_t globalmapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
+		data.resize((int)globalmapBufferSizeInBytes);
+		assert(globalmapBufferSizeInBytes == globalmapBufferSize);
+		{
+			memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
+		}
+		return godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
+	}
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateColormapImage()
@@ -2054,26 +2145,51 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateColormapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateColormapImage ") + s + __FUNCTION__, "create colormap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& colormapBuffer = m_quadTree->getQuadrant()->getColormapBuffer();
-		size_t colormapBufferSize = colormapBuffer.size();
-
-		if (colormapBufferSize == 0)
-		{
-			//m_colormapImage = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGBA8);
-			//m_colormapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
-		}
-		else
-		{
-			godot::PackedByteArray data;
-			size_t colormapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGBA);
-			data.resize((int)colormapBufferSizeInBytes);
-			assert(colormapBufferSizeInBytes == colormapBufferSize);
-			{
-				memcpy((char*)data.ptrw(), colormapBuffer.ptr(), colormapBufferSizeInBytes);
-			}
-			m_colormapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
-		}
+		m_colormapImage = createColormapImage(colormapBuffer, _resolution);
+		//size_t colormapBufferSize = colormapBuffer.size();
+		//if (colormapBufferSize == 0)
+		//{
+		//	//m_colormapImage = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGBA8);
+		//	//m_colormapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		//}
+		//else
+		//{
+		//	godot::PackedByteArray data;
+		//	size_t colormapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGBA);
+		//	data.resize((int)colormapBufferSizeInBytes);
+		//	assert(colormapBufferSizeInBytes == colormapBufferSize);
+		//	{
+		//		memcpy((char*)data.ptrw(), colormapBuffer.ptr(), colormapBufferSizeInBytes);
+		//	}
+		//	m_colormapImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
+		//}
 	}
 	return m_colormapImage;
+}
+
+godot::Ref<godot::Image> ShaderTerrainData::createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution)
+{
+	size_t colormapBufferSize = colormapBuffer.size();
+	if (colormapBufferSize == 0)
+	{
+		godot::Ref<godot::Image> image;
+		//image = godot::Image::create(_resolution, _resolution, false, Image::FORMAT_RGBA8);
+		//image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		return image;
+	}
+	else
+	{
+		godot::PackedByteArray data;
+		size_t colormapBufferSizeInBytes = _resolution * _resolution * sizeof(struct TheWorld_Utils::_RGBA);
+		data.resize((int)colormapBufferSizeInBytes);
+		size_t colormapBufferSize = colormapBuffer.size();
+		assert(colormapBufferSizeInBytes == colormapBufferSize);
+		{
+			memcpy((char*)data.ptrw(), colormapBuffer.ptr(), colormapBufferSizeInBytes);
+		}
+
+		return godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
+	}
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::getImageAtResolution(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel, size_t resolution)

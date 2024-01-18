@@ -1163,6 +1163,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("quadrant_modder_work_done", "map_type", "x", "z", "num_vertices_per_side", "level", "grid_step"), &GDN_TheWorld_Viewer::quadrantModderWorkDone);
 	ClassDB::bind_method(D_METHOD("load_quadrant_data", "pos_x", "pos_z", "level"), &GDN_TheWorld_Viewer::loadQuadrantData);
 	ClassDB::bind_method(D_METHOD("clear_quadrant_data"), &GDN_TheWorld_Viewer::clearQuadrantData);
+	ClassDB::bind_method(D_METHOD("get_quadrant_pos"), &GDN_TheWorld_Viewer::getQuadrantPos);
 	ClassDB::bind_method(D_METHOD("get_quadrant_heightmap_image"), &GDN_TheWorld_Viewer::getQuadrantHeightmapImage);
 	ClassDB::bind_method(D_METHOD("get_quadrant_normalmap_image"), &GDN_TheWorld_Viewer::getQuadrantNormalmapImage);
 	ClassDB::bind_method(D_METHOD("get_quadrant_splatmap_image"), &GDN_TheWorld_Viewer::getQuadrantSplatmapImage);
@@ -6554,7 +6555,7 @@ bool GDN_TheWorld_Viewer::loadQuadrantData(float posX, float posZ, int level)
 	TheWorld_Utils::MemoryBuffer splatmapBuffer;
 	TheWorld_Utils::MemoryBuffer globalmapBuffer;
 	TheWorld_Utils::MemoryBuffer colormapBuffer;
-	cacheQuadrantData.terrainEdit = &m_terrainEdit;
+	cacheQuadrantData.terrainEdit = &m_tempTerrainEdit;
 	cacheQuadrantData.terrainEditValues = &terrainEditValues;
 	cacheQuadrantData.heights16Buffer = &heights16Buffer;
 	cacheQuadrantData.heights32Buffer = &heights32Buffer;
@@ -6564,8 +6565,10 @@ bool GDN_TheWorld_Viewer::loadQuadrantData(float posX, float posZ, int level)
 	cacheQuadrantData.colormapBuffer = &colormapBuffer;
 	loadedCache.refreshCacheQuadrantDataFromBuffer(buffer, cacheQuadrantData, false);
 	
+	m_tempPos = pos;
+
 	if (terrainEditValues.size() > 0)
-		m_terrainEdit.deserialize(terrainEditValues);
+		m_tempTerrainEdit.deserialize(terrainEditValues);
 
 	m_tempHeightmapImage = ShaderTerrainData::createHeightmapImage(heights16Buffer, (int)numVerticesPerSize);
 	m_tempNormalmapImage = ShaderTerrainData::createNormalmapImage(normalsBuffer, (int)numVerticesPerSize);
@@ -6601,24 +6604,31 @@ godot::Ref<godot::Image> GDN_TheWorld_Viewer::getQuadrantColormapImage()
 	return m_tempColormapImage;
 }
 
+godot::Vector2 GDN_TheWorld_Viewer::getQuadrantPos(void)
+{
+	return godot::Vector2(m_tempPos.getLowerXGridVertex(), m_tempPos.getLowerZGridVertex());
+}
+
 godot::String GDN_TheWorld_Viewer::getGroundTextureName(int type)
 {
 	if (type == 0)
 	{
-		return m_terrainEdit.extraValues.lowElevationTexName_r;
+		return m_tempTerrainEdit.extraValues.lowElevationTexName_r;
 	}
 	else if (type == 1)
 	{
-		return m_terrainEdit.extraValues.highElevationTexName_g;
+		return m_tempTerrainEdit.extraValues.highElevationTexName_g;
 	}
 	else if (type == 2)
 	{
-		return m_terrainEdit.extraValues.dirtTexName_b;
+		return m_tempTerrainEdit.extraValues.dirtTexName_b;
 	}
 	else if (type == 3)
 	{
-		return m_terrainEdit.extraValues.rocksTexName_a;
+		return m_tempTerrainEdit.extraValues.rocksTexName_a;
 	}
+
+	return "";
 }
 
 godot::Ref<godot::ImageTexture> GDN_TheWorld_Viewer::getGroundTextureAlbedoBump(godot::String texName)

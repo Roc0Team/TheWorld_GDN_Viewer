@@ -930,6 +930,7 @@ namespace godot
 		godot::Ref<godot::Image> getQuadrantSplatmapImage(void);
 		godot::Ref<godot::Image> getQuadrantGlobalmapImage(void);
 		godot::Ref<godot::Image> getQuadrantColormapImage(void);
+		godot::Vector2 getQuadrantPos(void);
 		godot::String getGroundTextureName(int type);
 		godot::Ref<godot::ImageTexture> getGroundTextureAlbedoBump(godot::String texName);
 		godot::Ref<godot::ImageTexture> getGroundTextureNormalRoughness(godot::String texName);
@@ -1159,7 +1160,8 @@ namespace godot
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
 
 		// Loaded quadrant images (mostly for testing)
-		TheWorld_Utils::TerrainEdit m_terrainEdit;
+		QuadrantPos m_tempPos;
+		TheWorld_Utils::TerrainEdit m_tempTerrainEdit;
 		godot::Ref<godot::Image> m_tempHeightmapImage;
 		godot::Ref<godot::Image> m_tempNormalmapImage;
 		godot::Ref<godot::Image> m_tempSplatmapImage;

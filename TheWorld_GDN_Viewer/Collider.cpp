@@ -188,7 +188,7 @@ namespace godot
 				uint16_t* p = (uint16_t*)array.ptr();
 				for (int idx = 0; idx < size; idx++)
 				{
-					TheWorld_Utils::FLOAT_32 f;
+					TheWorld_Utils::FLOAT_32 f(0);
 					f.u32 = half_to_float(*p);
 					resizedHeightsForCollider[idx] = f.f32;
 					p++;
@@ -261,7 +261,7 @@ namespace godot
 		setTransform(t);
 	}
 	
-	float Collider::getColliderAltitude(void)
+	float Collider::getColliderAltitude(void) const
 	{
 		float colliderAltitude = -(m_cameraGlobalTranform.origin.y / (float)2.34);
 		colliderAltitude = 0;
@@ -303,7 +303,7 @@ namespace godot
 		setTransform(m_colliderTransform);
 	}
 
-	void Collider::setTransform(Transform3D t)
+	void Collider::setTransform(Transform3D t) const
 	{
 		assert(m_initialized);
 		if (!m_initialized)
@@ -314,7 +314,7 @@ namespace godot
 		//ps->body_set_shape_transform(m_bodyRID, 0, t);
 	}
 
-	Transform3D Collider::getTransform(void)
+	Transform3D Collider::getTransform(void) const
 	{
 		assert(m_initialized);
 		if (!m_initialized)

@@ -315,7 +315,7 @@ void GDN_TheWorld_Quadrant_showCollider_makeIndices(godot::PackedInt32Array& ind
 
 	int vertex = 0;
 	int idx = 0;
-	indices.resize((int)pow(numColumnsOrRows, 2) * 6);
+	indices.resize((int64_t)pow(numColumnsOrRows, 2) * 6);
 	for (int z = 0; z < numColumnsOrRows; z++)
 	{
 		// sliding all rows with the exclusion of the ones on the border if it nead a seam (on the top or on the bottom) against a less defined mesh

@@ -42,19 +42,19 @@ namespace godot {
 		void activateCamera(void);
 		void deactivateCamera(void);
 		GDN_TheWorld_Camera* getActiveCamera(void);
-		bool isActiveCamera(void);
-		bool isWorldCamera()
+		bool isActiveCamera(void) const;
+		bool isWorldCamera() const
 		{
 			return m_WorldCamera;
 		}
 		void notifyActiveCameraFlag(bool active);
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 		Ref<ArrayMesh> DrawViewFrustum(Color c = Color(1, 1, 1));
-		float getAngleFromNorthDeg(void)
+		float getAngleFromNorthDeg(void) const
 		{
 			return m_angleFromNorthDeg;
 		}
-		float getYaw(bool radiant = true)
+		float getYaw(bool radiant = true) const
 		{
 			if (radiant)
 				return m_yawEuler;
@@ -70,7 +70,7 @@ namespace godot {
 			t.basis.set_euler(v);
 			set_global_transform(t);
 		}
-		float getPitch(bool radiant = true)
+		float getPitch(bool radiant = true) const
 		{
 			if (radiant)
 				return m_pitchEuler;
@@ -86,7 +86,7 @@ namespace godot {
 			t.basis.set_euler(v);
 			set_global_transform(t);
 		}
-		float getRoll(bool radiant = true)
+		float getRoll(bool radiant = true) const
 		{
 			if (radiant)
 				return m_rollEuler;
@@ -112,11 +112,11 @@ namespace godot {
 			m_trackedPlayer = nullptr;
 			m_trackingPlayer = false;
 		}
-		bool trackingPlayer(void)
+		bool trackingPlayer(void) const
 		{
 			return m_trackingPlayer;
 		}
-		float getCameraTrackingSpeed(void)
+		float getCameraTrackingSpeed(void) const
 		{
 			return m_trackingLerpSpeed;
 		}
@@ -124,7 +124,7 @@ namespace godot {
 		{
 			m_trackingLerpSpeed = f;
 		}
-		godot::Vector3 getCameraTrackingOffeset(void)
+		godot::Vector3 getCameraTrackingOffeset(void) const
 		{
 			return m_trackingOffset;
 		}

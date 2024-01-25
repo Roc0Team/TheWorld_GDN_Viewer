@@ -4,7 +4,8 @@
 #include "GDN_TheWorld_Camera.h"
 #include "GDN_TheWorld_Edit.h"
 
-#pragma warning(push, 0)
+//#pragma warning(push, 1)
+#include "warning_push.h"
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
 #include <godot_cpp/classes/window.hpp>
@@ -15,6 +16,8 @@
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/shader.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
+#include <godot_cpp/classes/image_texture_layered.hpp>
+#include <godot_cpp/classes/texture2D_array.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/physics_direct_space_state3d.hpp>
 #include <godot_cpp/classes/physics_ray_query_parameters3d.hpp>
@@ -23,7 +26,8 @@
 #include <godot_cpp/classes/input_event_mouse_button.hpp>
 #include <godot_cpp/classes/config_file.hpp>
 #include <godot_cpp/classes/performance.hpp>
-#pragma warning(pop)
+#include "warning_pop.h"
+//#pragma warning(pop)
 
 #include <filesystem>
 #include <limits>
@@ -716,7 +720,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			{
 				size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
 				godot::PackedByteArray data;
-				size_t heightmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
+				size_t heightmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
 				data.resize((int)heightmapBufferSizeInBytes);
 				size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
 				assert(heightmapBufferSizeInBytes == heightsBufferSize);
@@ -743,7 +747,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				else
 				{
 					godot::PackedByteArray data;
-					size_t normalmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
+					size_t normalmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
 					data.resize((int)normalmapBufferSizeInBytes);
 					assert(normalmapBufferSizeInBytes == normalsBufferSize);
 					{
@@ -772,7 +776,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				else
 				{
 					godot::PackedByteArray data;
-					size_t splatmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+					size_t splatmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
 					data.resize((int)splatmapBufferSizeInBytes);
 					assert(splatmapBufferSizeInBytes == splatmapBufferSize);
 					{
@@ -803,7 +807,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				else
 				{
 					godot::PackedByteArray data;
-					size_t colormapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+					size_t colormapBufferSizeInBytes = size_t(numVerticesPerQuadrantSize) * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
 					data.resize((int)colormapBufferSizeInBytes);
 					assert(colormapBufferSizeInBytes == colormapBufferSize);
 					{
@@ -888,7 +892,7 @@ void GDN_TheWorld_MapModder::startProcessRequired(bool b)
 	m_startProcessingRequired = b;
 }
 
-bool GDN_TheWorld_MapModder::startProcessRequired(void)
+bool GDN_TheWorld_MapModder::startProcessRequired(void) const
 {
 	return m_startProcessingRequired;
 }
@@ -898,7 +902,7 @@ void GDN_TheWorld_MapModder::deinitRequired(bool b)
 	m_deinitRequired = b;
 }
 
-bool GDN_TheWorld_MapModder::deinitRequired(void)
+bool GDN_TheWorld_MapModder::deinitRequired(void) const
 {
 	return m_deinitRequired;
 }
@@ -1176,6 +1180,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_ground_texture_name"), &GDN_TheWorld_Viewer::getGroundTextureName);
 	ClassDB::bind_method(D_METHOD("get_ground_texture_albedo_bump"), &GDN_TheWorld_Viewer::getGroundTextureAlbedoBump);
 	ClassDB::bind_method(D_METHOD("get_ground_texture_normal_roughness"), &GDN_TheWorld_Viewer::getGroundTextureNormalRoughness);
+	ClassDB::bind_method(D_METHOD("get_ground_texture_layers"), &GDN_TheWorld_Viewer::getGroundTextureLayers);
 
 	ADD_SIGNAL(MethodInfo("tw_quadrant_selected_for_edit", PropertyInfo(Variant::BOOL, "value")));
 }
@@ -1590,7 +1595,7 @@ void GDN_TheWorld_Viewer::preDeinit(void)
 	m_streamerThreadRequiredExit = true;
 }
 
-bool GDN_TheWorld_Viewer::canDeinit(void)
+bool GDN_TheWorld_Viewer::canDeinit(void) const
 {
 	return !m_streamerThreadRunning;
 }
@@ -2529,7 +2534,7 @@ void GDN_TheWorld_Viewer::toggleTrackMouse(void)
 		m_mouseQuadrantHitName = "";
 }
 
-bool GDN_TheWorld_Viewer::trackMouse(void)
+bool GDN_TheWorld_Viewer::trackMouse(void) const
 {
 	return m_trackMouse;
 }
@@ -2590,7 +2595,7 @@ void GDN_TheWorld_Viewer::rotateDrawingMode(void)
 	m_debugDraw = vp->get_debug_draw();
 }
 
-void GDN_TheWorld_Viewer::toggleWireframe(void)
+void GDN_TheWorld_Viewer::toggleWireframe(void) const
 {
 	godot::Viewport* vp = get_viewport();
 	godot::Viewport::DebugDraw dd = vp->get_debug_draw();
@@ -2818,7 +2823,7 @@ String GDN_TheWorld_Viewer::getDebugDrawMode(void)
 		return std::to_string(int(m_debugDraw)).c_str();
 }
 
-String GDN_TheWorld_Viewer::getChunkDebugModeStr(void)
+String GDN_TheWorld_Viewer::getChunkDebugModeStr(void) const
 {
 	if (m_currentChunkDebugMode == GDN_TheWorld_Globals::ChunkDebugMode::DoNotSet)
 		return "CHUNK_DEBUG_MODE_DO_NOT_SET";
@@ -2844,7 +2849,7 @@ void GDN_TheWorld_Viewer::setDepthQuadOnPerimeter(int depth)
 	}
 }
 
-int GDN_TheWorld_Viewer::getDepthQuadOnPerimeter(void)
+int GDN_TheWorld_Viewer::getDepthQuadOnPerimeter(void) const
 {
 	return (int)m_depthQuadOnPerimeter;
 }
@@ -2861,7 +2866,7 @@ void GDN_TheWorld_Viewer::setCacheQuadOnPerimeter(int cache)
 	}
 }
 
-int GDN_TheWorld_Viewer::getCacheQuadOnPerimeter(void)
+int GDN_TheWorld_Viewer::getCacheQuadOnPerimeter(void) const
 {
 	return (int)m_cacheQuadOnPerimeter;
 }
@@ -3209,7 +3214,8 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			{
 				if (!groundTexture.second->initialized)
 				{
-					ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + groundTexture.first.c_str(), groundTexture.second.get(), this);
+					std::string s(groundTexture.first);
+					ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + s.c_str(), groundTexture.second.get(), this);
 					globals->addNumElementInitialized();
 					resetProcessing = false;
 					break;
@@ -3218,6 +3224,26 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 
 			if (resetProcessing)
 			{
+				godot::Ref<godot::Texture2DArray> albedoBumpTexture2DArray = memnew(godot::Texture2DArray);
+				godot::TypedArray<godot::Image> albedoBumpImageArray;
+				godot::Ref<godot::Texture2DArray> normalRoughnessTexture2DArray = memnew(godot::Texture2DArray);
+				godot::TypedArray<godot::Image> normalRoughnessImageArray;
+				std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
+				groundTextureLayers.clear();
+				int idx = 0;
+				for (const auto& groundTexture : groundTextures)
+				{
+					albedoBumpImageArray.push_back(groundTexture.second->m_albedo_bump_tex->get_image());
+					normalRoughnessImageArray.push_back(groundTexture.second->m_normal_roughness_tex->get_image());
+					groundTextureLayers[groundTexture.first] = idx;
+					idx++;
+				}
+				godot::Error e = albedoBumpTexture2DArray->create_from_images(albedoBumpImageArray);
+				e = normalRoughnessTexture2DArray->create_from_images(normalRoughnessImageArray);
+				godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
+				rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY, albedoBumpTexture2DArray);
+				rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY, normalRoughnessTexture2DArray);
+
 				ShaderTerrainData::groundTexturesNeedProcessing(false);
 				globals->setStatus(TheWorldStatus::sessionInitialized);
 			}
@@ -4899,9 +4925,12 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 
 void GDN_TheWorld_Viewer::process_dump(GDN_TheWorld_Globals* globals)
 {
+//#pragma warning(push, 1)
+//#pragma warning( disable : 6237 )
 	// Check for Dump
 	if (TIME_INTERVAL_BETWEEN_DUMP != 0 && globals->isDebugEnabled())
 	{
+//#pragma warning(pop)
 		int64_t timeElapsed = TIME()->get_ticks_msec();
 		if (timeElapsed - m_timeElapsedFromLastDump > TIME_INTERVAL_BETWEEN_DUMP * 1000)
 		{
@@ -5871,7 +5900,7 @@ void GDN_TheWorld_Viewer::undeployWorld(void)
 	m_stopDeploy = false;
 }
 
-Node3D* GDN_TheWorld_Viewer::getWorldNode(void)
+Node3D* GDN_TheWorld_Viewer::getWorldNode(void) const
 {
 	// MapManager coordinates are relative to WorldNode
 	return (Node3D*)get_parent();
@@ -6135,85 +6164,85 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	m_numQuadrantNeedResetMaterialParam = numQuadrantNeedResetMaterialParams;
 }
 
-int GDN_TheWorld_Viewer::getProcessNotOwnsLock(void)
+int GDN_TheWorld_Viewer::getProcessNotOwnsLock(void) const
 {
 	return m_numProcessNotOwnsLock;
 }
 
-int GDN_TheWorld_Viewer::getNumChunks(void)
+int GDN_TheWorld_Viewer::getNumChunks(void) const
 {
 	return m_numChunks;
 }
 
-int GDN_TheWorld_Viewer::getNumActiveChunks(void)
+int GDN_TheWorld_Viewer::getNumActiveChunks(void) const
 {
 	return m_numActiveChunks;
 }
 
 
-int GDN_TheWorld_Viewer::getNumSplits(void)
+int GDN_TheWorld_Viewer::getNumSplits(void) const
 {
 	return m_numSplits;
 }
 
-int GDN_TheWorld_Viewer::getNumJoins(void)
+int GDN_TheWorld_Viewer::getNumJoins(void) const
 {
 	return m_numJoins;
 }
 
-int GDN_TheWorld_Viewer::getNumQuadrant(void)
+int GDN_TheWorld_Viewer::getNumQuadrant(void) const
 {
 	return m_numQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNuminitializedQuadrant(void)
+int GDN_TheWorld_Viewer::getNuminitializedQuadrant(void) const
 {
 	return m_numinitializedQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumVisibleQuadrant(void)
+int GDN_TheWorld_Viewer::getNumVisibleQuadrant(void) const
 {
 	return m_numVisibleQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumEmptyQuadrant(void)
+int GDN_TheWorld_Viewer::getNumEmptyQuadrant(void) const
 {
 	return m_numEmptyQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumQuadrantReloadingFromCache(void)
+int GDN_TheWorld_Viewer::getNumQuadrantReloadingFromCache(void) const
 {
 	return m_numQuadrantReloadingFromCache;
 }
 
-int GDN_TheWorld_Viewer::getNumFlushedQuadrant(void)
+int GDN_TheWorld_Viewer::getNumFlushedQuadrant(void) const
 {
 	return m_numFlushedQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getQuadrantNumWithCollider(void)
+int GDN_TheWorld_Viewer::getQuadrantNumWithCollider(void) const
 {
 	return m_numQuadrantWithCollider;
 }
-int GDN_TheWorld_Viewer::getQuadrantNumWithHiResCollider(void)
+int GDN_TheWorld_Viewer::getQuadrantNumWithHiResCollider(void) const
 {
 	return m_numQuadrantWithHiResCollider;
 }
-int GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider(void)
+int GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider(void) const
 {
 	return m_numQuadrantWithLowResCollider;
 }
-int GDN_TheWorld_Viewer::getNuminitializedVisibleQuadrant(void)
+int GDN_TheWorld_Viewer::getNuminitializedVisibleQuadrant(void) const
 {
 	return m_numinitializedVisibleQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrant(void)
+int GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrant(void) const
 {
 	return m_numQuadrantNeedResetMaterialParam;
 }
 
-int GDN_TheWorld_Viewer::getProcessDuration(void)
+int GDN_TheWorld_Viewer::getProcessDuration(void) const
 {
 	return (int)m_averageProcessDuration;
 }
@@ -6223,32 +6252,32 @@ int GDN_TheWorld_Viewer::getProcessDuration(void)
 //	return (int)m_averageRefreshMapQuadDuration;
 //}
 
-int GDN_TheWorld_Viewer::getUpdateQuads1Duration(void)
+int GDN_TheWorld_Viewer::getUpdateQuads1Duration(void) const
 {
 	return (int)m_averageUpdateQuads1Duration;
 }
 
-int GDN_TheWorld_Viewer::getUpdateQuads2Duration(void)
+int GDN_TheWorld_Viewer::getUpdateQuads2Duration(void) const
 {
 	return (int)m_averageUpdateQuads2Duration;
 }
 
-int GDN_TheWorld_Viewer::getUpdateQuads3Duration(void)
+int GDN_TheWorld_Viewer::getUpdateQuads3Duration(void) const
 {
 	return (int)m_averageUpdateQuads3Duration;
 }
 
-int GDN_TheWorld_Viewer::getUpdateChunksDuration(void)
+int GDN_TheWorld_Viewer::getUpdateChunksDuration(void) const
 {
 	return (int)m_averageUpdateChunksDuration;
 }
 
-int GDN_TheWorld_Viewer::getUpdateMaterialParamsDuration(void)
+int GDN_TheWorld_Viewer::getUpdateMaterialParamsDuration(void) const
 {
 	return (int)m_averageUpdateMaterialParamsDuration;
 }
 
-int GDN_TheWorld_Viewer::getMouseTrackHitDuration(void)
+int GDN_TheWorld_Viewer::getMouseTrackHitDuration(void) const
 {
 	return (int)m_averageMouseTrackHitDuration;
 }
@@ -6526,7 +6555,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 	m_streamerThreadRunning = false;
 }
 
-Transform3D GDN_TheWorld_Viewer::getInternalGlobalTransform(void)
+Transform3D GDN_TheWorld_Viewer::getInternalGlobalTransform(void) const
 {
 	Transform3D gt = get_global_transform();
 	return gt;
@@ -6645,7 +6674,28 @@ godot::Ref<godot::ImageTexture> GDN_TheWorld_Viewer::getGroundTextureNormalRough
 	return groundTexture.m_normal_roughness_tex;
 }
 
-void GDN_TheWorld_Viewer::clearQuadrantData()
+int GDN_TheWorld_Viewer::getGroundTextureLayer(godot::String texName)
+{
+	std::string _texName = texName.utf8().get_data();
+	std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
+	if (groundTextureLayers.contains(_texName))
+		return groundTextureLayers[_texName];
+	else
+		return -1;
+}
+
+godot::Vector4 GDN_TheWorld_Viewer::getGroundTextureLayers(void)
+{
+	godot::Vector4 v(
+		(float)getGroundTextureLayer(m_tempTerrainEdit.extraValues.lowElevationTexName_r),
+		(float)getGroundTextureLayer(m_tempTerrainEdit.extraValues.highElevationTexName_g),
+		(float)getGroundTextureLayer(m_tempTerrainEdit.extraValues.dirtTexName_b),
+		(float)getGroundTextureLayer(m_tempTerrainEdit.extraValues.rocksTexName_a)
+		);
+	return v;
+}
+
+void GDN_TheWorld_Viewer::clearQuadrantData(void)
 {
 	m_tempHeightmapImage.unref();
 	m_tempNormalmapImage.unref();

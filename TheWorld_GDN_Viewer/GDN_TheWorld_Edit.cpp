@@ -206,7 +206,7 @@ void GDN_TheWorld_Edit::editModeMouseExitedEditPanel(void)
 	m_innerData->m_mouseInsideEditPanel = false;
 }
 
-bool GDN_TheWorld_Edit::UIAcceptingFocus(void)
+bool GDN_TheWorld_Edit::UIAcceptingFocus(void) const
 {
 	return m_UIAcceptingFocus;
 }
@@ -884,25 +884,29 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>::iterator it = groundTextures.find(terrainEdit.extraValues.lowElevationTexName_r);
 	if (it != groundTextures.end())
 	{
-		m_innerData->m_lowElevationTexName->set_text(it->first.c_str());
+		std::string s(it->first);
+		m_innerData->m_lowElevationTexName->set_text(s.c_str());
 		m_innerData->m_lowElevationTex->set_texture(it->second->m_tex);
 	}
 	it = groundTextures.find(terrainEdit.extraValues.highElevationTexName_g);
 	if (it != groundTextures.end())
 	{
-		m_innerData->m_highElevationTexName->set_text(it->first.c_str());
+		std::string s(it->first);
+		m_innerData->m_highElevationTexName->set_text(s.c_str());
 		m_innerData->m_highElevationTex->set_texture(it->second->m_tex);
 	}
 	it = groundTextures.find(terrainEdit.extraValues.dirtTexName_b);
 	if (it != groundTextures.end())
 	{
-		m_innerData->m_dirtTexName->set_text(it->first.c_str());
+		std::string s(it->first);
+		m_innerData->m_dirtTexName->set_text(s.c_str());
 		m_innerData->m_dirtTex->set_texture(it->second->m_tex);
 	}
 	it = groundTextures.find(terrainEdit.extraValues.rocksTexName_a);
 	if (it != groundTextures.end())
 	{
-		m_innerData->m_rocksTexName->set_text(it->first.c_str());
+		std::string s(it->first);
+		m_innerData->m_rocksTexName->set_text(s.c_str());
 		m_innerData->m_rocksTex->set_texture(it->second->m_tex);
 	}
 }
@@ -1915,8 +1919,8 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 	{
 		if (groundTexture.second->initialized)
 		{
-			m_innerData->m_selTexturePanel->m_textureItems[groundTexture.first] = std::make_unique<InnerData::SelTexturePanel::TextureItemPanel>();
-			InnerData::SelTexturePanel::TextureItemPanel* texItemPanel = m_innerData->m_selTexturePanel->m_textureItems[groundTexture.first].get();
+			m_innerData->m_selTexturePanel->m_textureItems[std::string(groundTexture.first)] = std::make_unique<InnerData::SelTexturePanel::TextureItemPanel>();
+			InnerData::SelTexturePanel::TextureItemPanel* texItemPanel = m_innerData->m_selTexturePanel->m_textureItems[std::string(groundTexture.first)].get();
 
 			texItemPanel->m_panel = createControl<godot::PanelContainer>(vBoxContainer, (std::string("SelTexturePanel_TexFrame_") + std::to_string(idx)).c_str());
 			texItemPanel->m_idx = idx;
@@ -1925,9 +1929,10 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 				texItemPanel->m_panel->add_theme_stylebox_override("panel", m_innerData->m_styleBoxSelectedFrame);
 				texItemPanel->m_selected = true;
 			}
-			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "gui_input", this, "gui_input_event", "SelTexturePanel_ItemPanelGuiInput", groundTexture.first.c_str(), idx);
-			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", "SelTexturePanel_ItemPanelGuiInput", groundTexture.first.c_str(), idx);
-			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "mouse_exited", this, "void_signal_manager", "SelTexturePanel_ItemPanelGuiInput", groundTexture.first.c_str(), idx);
+			std::string s(groundTexture.first);
+			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "gui_input", this, "gui_input_event", "SelTexturePanel_ItemPanelGuiInput", s.c_str(), idx);
+			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", "SelTexturePanel_ItemPanelGuiInput", s.c_str(), idx);
+			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "mouse_exited", this, "void_signal_manager", "SelTexturePanel_ItemPanelGuiInput", s.c_str(), idx);
 			godot::HBoxContainer* hBoxContainer = createControl<godot::HBoxContainer>(texItemPanel->m_panel);
 			//int i = hBoxContainer->get_theme_constant("separation");
 			godot::TextureRect* tex = createControl<godot::TextureRect>(hBoxContainer);
@@ -1935,7 +1940,7 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 			tex->set_custom_minimum_size(size);
 			tex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 			tex->set_texture(groundTexture.second->m_tex);
-			godot::Label* label = createControl<godot::Label>(hBoxContainer, "", groundTexture.first.c_str());
+			godot::Label* label = createControl<godot::Label>(hBoxContainer, "", s.c_str());
 
 			idx++;
 		}
@@ -3211,7 +3216,7 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 
 		{
 			godot::PackedFloat32Array& heightsForCollider = quadTree->getQuadrant()->getHeightsForCollider(false);
-			heightsForCollider.resize((int)(quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * quadTree->getQuadrant()->getPos().getNumVerticesPerSize()));
+			heightsForCollider.resize((int64_t)(quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * quadTree->getQuadrant()->getPos().getNumVerticesPerSize()));
 			memcpy((char*)heightsForCollider.ptrw(), quadTree->getQuadrant()->getFloat32HeightsBuffer().ptr(), quadTree->getQuadrant()->getFloat32HeightsBuffer().size());
 		}
 

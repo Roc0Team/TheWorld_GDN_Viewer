@@ -24,33 +24,33 @@ namespace godot
 		void updateTransform(float gridStepInWU);
 		void onGlobalTransformChanged(void);
 		void onCameraTransformChanged(void);
-		void setTransform(Transform3D t);
-		Transform3D getTransform(void);
-		bool hasData(void)
+		void setTransform(Transform3D t) const;
+		Transform3D getTransform(void) const;
+		bool hasData(void) const
 		{
 			if (m_initialized && m_hasData)
 				return true;
 			else
 				return false;
 		}
-		bool hasHiResData(void)
+		bool hasHiResData(void) const
 		{
 			if (m_initialized && m_hasData && m_hasHiResData)
 				return true;
 			else
 				return false;
 		}
-		bool initialized(void)
+		bool initialized(void) const
 		{
 			return m_initialized;
 		}
-		bool worldEntered(void)
+		bool worldEntered(void) const
 		{
 			return m_worldEntered;
 		}
 
 	private:
-		inline float getColliderAltitude(void);
+		inline float getColliderAltitude(void) const;
 
 	private:
 		bool m_initialized;

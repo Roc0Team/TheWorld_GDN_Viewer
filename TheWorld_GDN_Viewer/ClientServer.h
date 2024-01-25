@@ -222,7 +222,7 @@ namespace TheWorld_ClientServer
 
 		bool expiredTimeToLive(long long* elapsedFromStartOfClientMethod = nullptr);
 
-		bool replied(void) 
+		bool replied(void) const
 		{ 
 			return m_replied; 
 		}
@@ -256,15 +256,15 @@ namespace TheWorld_ClientServer
 			m_errorCode = errorCode;
 			m_errorMessage = errorMessage;
 		}
-		bool error(void) 
+		bool error(void) const
 		{
 			return m_error; 
 		}
-		int getErrorCode(void) 
+		int getErrorCode(void) const
 		{
 			return m_errorCode; 
 		};
-		std::string getErrorMessage(void)
+		std::string getErrorMessage(void) const
 		{
 			return m_errorMessage; 
 		};
@@ -275,15 +275,16 @@ namespace TheWorld_ClientServer
 		{
 			return m_clientCallback != nullptr;
 		}
-		bool eraseMe(void) 
-		{ return m_eraseMe; 
+		bool eraseMe(void)  const
+		{ 
+			return m_eraseMe; 
 		}
 		void eraseMe(bool eraseMe) 
 		{
 			m_eraseMe = eraseMe; 
 		}
 
-		bool completedOnServer(void)
+		bool completedOnServer(void) const
 		{
 			return m_serverExecutionStatus == ExecutionStatus::Completed;
 		}
@@ -295,11 +296,11 @@ namespace TheWorld_ClientServer
 		//{
 		//	return m_busyOnClient; 
 		//}
-		bool toStartOnClient(void)
+		bool toStartOnClient(void) const
 		{
 			return m_clientExecutionStatus == ExecutionStatus::ToStart;
 		}
-		bool completedOnClient(void)
+		bool completedOnClient(void) const
 		{
 			return m_clientExecutionStatus == ExecutionStatus::Completed;
 		}

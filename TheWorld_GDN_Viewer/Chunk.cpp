@@ -513,7 +513,7 @@ void Chunk::setCameraPos(Vector3 globalCoordCameraLastPos)
 		m_viewer->setCameraChunk(this, m_quadTree);
 }
 
-void Chunk::getCameraPos(Vector3& globalCoordCameraLastPos)
+void Chunk::getCameraPos(Vector3& globalCoordCameraLastPos) const
 {
 	globalCoordCameraLastPos = m_globalCoordCameraLastPos;
 }
@@ -605,7 +605,7 @@ void Chunk::setDistanceFromCamera(float distanceFromCamera)
 	m_distanceFromCamera = distanceFromCamera;
 }
 
-float Chunk::getDistanceFromCamera(void)
+float Chunk::getDistanceFromCamera(void) const
 {
 	return m_distanceFromCamera;
 }

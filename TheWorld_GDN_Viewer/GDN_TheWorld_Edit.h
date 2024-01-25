@@ -197,7 +197,7 @@ namespace godot
 
 			godot::Button* m_terrBlendingButton = nullptr;
 			godot::Control* m_terrBlendingVBoxContainer = nullptr;
-			godot::CheckBox* m_blendAllCheckBox;
+			godot::CheckBox* m_blendAllCheckBox = nullptr;
 
 			godot::Control* m_terrEditVBoxContainer;
 			godot::Button* m_terrEditButton;
@@ -225,7 +225,7 @@ namespace godot
 			bool m_dirtTexSelected;
 			bool m_rocksTexSelected;
 
-			QuadTree* m_quadTreeHit;
+			QuadTree* m_quadTreeHit = nullptr;
 			int m_lastOptimizationLevelDisplayed = -1;
 			int m_lastHiResCollisionGridDisplayed = -1;
 			std::string m_elapsed;
@@ -286,7 +286,7 @@ namespace godot
 		//	return String("Test, {0} {1} {2}!").format(Array::make(target1, target2, target3)); 
 		//};
 
-		bool initialized(void)
+		bool initialized(void) const
 		{
 			return m_initialized;
 		}
@@ -351,7 +351,7 @@ namespace godot
 		void editModeMouseEnteredEditPanel(void);
 		void editModeMouseExitedEditPanel(void);
 		void setUIAcceptFocus(bool b);
-		bool UIAcceptingFocus(void);
+		bool UIAcceptingFocus(void) const;
 
 		void setSeed(int seed);
 		int seed(void);
@@ -409,7 +409,7 @@ namespace godot
 		void setSplatMapMode(size_t value);
 		size_t splatMapMode(void);
 
-		bool actionInProgress(void)
+		bool actionInProgress(void) const
 		{
 			return m_actionInProgress;
 		}
@@ -480,7 +480,7 @@ namespace godot
 			m_requestedThreadExit = true;
 		}
 
-		bool blendingInProgress(void)
+		bool blendingInProgress(void) const
 		{
 			return m_blendingInProgress;
 		}

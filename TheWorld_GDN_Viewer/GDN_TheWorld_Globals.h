@@ -176,7 +176,7 @@ namespace godot
 		void preDeinit(void);
 		bool canDeinit(void);
 		void deinit(void);
-		bool initialized(void)
+		bool initialized(void) const
 		{
 			return m_initialized;
 		}
@@ -185,7 +185,7 @@ namespace godot
 		void prepareDisconnectFromServer(void);
 		bool canDisconnectFromServer(void);
 		void disconnectFromServer(void);
-		bool quitting(void)
+		bool quitting(void) const
 		{
 			return m_quitting;
 		}
@@ -196,7 +196,7 @@ namespace godot
 
 		virtual void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply) override;
 		
-		enum class TheWorldStatus status(void)
+		enum class TheWorldStatus status(void) const
 		{
 			return m_status;
 		}
@@ -220,7 +220,7 @@ namespace godot
 				m_statusChangeClock.tick();
 			}
 		}
-		int get_status(void)
+		int get_status(void) const
 		{
 			return (int)status();
 		}
@@ -404,7 +404,7 @@ namespace godot
 		}
 
 		// Number of vertices of the side of a chunk (-1) which is fixed (not a function of the lod) and is a multiple of 2
-		int numVerticesPerChuckSide(void)
+		int numVerticesPerChuckSide(void) const
 		{
 			if (m_numVerticesPerChuckSide == 0)
 				PLOG_DEBUG << "Ahi ahi m_numVerticesPerChuckSide == 0";
@@ -412,39 +412,39 @@ namespace godot
 		}	// Chunk num vertices -1
 		
 		// m_mapManager->gridStepInWU();
-		float gridStepInWU(void);
+		float gridStepInWU(void) const;
 		std::string getMapName(void);
 			
-		size_t numVerticesPerQuadrantSize(void)
+		size_t numVerticesPerQuadrantSize(void) const
 		{
 			return (size_t)heightmapResolution() + 1;
 		}
 		
 		// Number of vertices of the side of the heightmap (-1) with the elevations which is fixed and is a multiple of the number of vertices of the side of a chunk (numVerticesPerChuckSide) and is for this a multiple of 2 too
-		int heightmapResolution(void)
+		int heightmapResolution(void) const
 		{ 
 			return m_heightmapResolution; /* m_heightmapResolution = 1024 con THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT = 10, m_heightmapResolution = 2048 con THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT = 11 */
 		}	// Resolution of the heightmap = num point of the heightmap -1;
 		// Size of the heightmap in WUs
-		float heightmapSizeInWUs(void) 
+		float heightmapSizeInWUs(void) const
 		{
 			return heightmapResolution() * gridStepInWU();
 		}
 
 		// Max value of the lod index (numLods - 1)
-		int lodMaxDepth(void)
+		int lodMaxDepth(void) const
 		{	
 			return m_lodMaxDepth; /* m_lodMaxDepth = 5 con THEWORLD_VIEWER_CHUNK_SIZE_SHIFT = 5 e THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT = 10,  m_lodMaxDepth = 6 con THEWORLD_VIEWER_CHUNK_SIZE_SHIFT = 5 e THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT = 11 */
 		}
 
 		// Max number of quad split that can be done until the the granularity of the vertices is the same of the World Grid map and of the heightmap (lodMaxDepth + 1)
-		int numLods(void)
+		int numLods(void) const
 		{ 
 			return m_numLods; /* m_numLods = 6 m_lodMaxDepth = 5 */
 		}
 
 		// The number of chunks required to cover every side of the heightmap at the specified lod value
-		int numChunksPerHeightmapSide(int lod)
+		int numChunksPerHeightmapSide(int lod) const
 		{
 			assert(!(lod < 0 || lod > lodMaxDepth()));
 			if (lod < 0 || lod > lodMaxDepth())
@@ -453,11 +453,11 @@ namespace godot
 		}
 		
 		// The number of World Grid vertices (-1) or heightmap vertices (-1) which separate the vertices of the mesh at the specified lod value
-		int strideInWorldGrid(int lod)
+		int strideInWorldGrid(int lod) const
 		{
 			return gridStepInHeightmap(lod); 
 		}
-		int gridStepInHeightmap(int lod)
+		int gridStepInHeightmap(int lod) const
 		{
 			assert(!(lod < 0 || lod > lodMaxDepth()));
 			if (lod < 0 || lod > lodMaxDepth())
@@ -469,11 +469,11 @@ namespace godot
 		}
 
 		// The number of World Units which separate the vertices of the mesh at the specified lod value
-		float strideInWorldGridWUs(int lod) 
+		float strideInWorldGridWUs(int lod) const
 		{
 			return gridStepInHeightmapWUs(lod);
 		}
-		float gridStepInHeightmapWUs(int lod)
+		float gridStepInHeightmapWUs(int lod) const
 		{
 			assert(!(lod < 0 || lod > lodMaxDepth()));
 			if (lod < 0 || lod > lodMaxDepth())
@@ -481,12 +481,12 @@ namespace godot
 			return (gridStepInHeightmap(lod) * gridStepInWU());
 		}
 
-		float splitScale(void)
+		float splitScale(void) const
 		{
 			return c_splitScale;
 		}
 
-		bool isDebugEnabled(void)
+		bool isDebugEnabled(void) const
 		{ 
 			return m_isDebugEnabled;
 		}
@@ -510,29 +510,29 @@ namespace godot
 			m_bAppInError = true;
 			PLOG_ERROR << errorText;
 		}
-		bool getAppInError(void)
+		bool getAppInError(void) const
 		{
 			return _getAppInError();
 		}
-		int getAppInErrorCode(void)
+		int getAppInErrorCode(void) const
 		{
 			int lastErrorCode = 0;
 			string message;
 			_getAppInError(lastErrorCode, message);
 			return lastErrorCode;
 		}
-		String getAppInErrorMsg(void)
+		String getAppInErrorMsg(void) const
 		{
 			int lastErrorCode = 0;
 			string message;
 			_getAppInError(lastErrorCode, message);
 			return message.c_str();
 		}
-		bool _getAppInError(void)
+		bool _getAppInError(void) const
 		{ 
 			return m_bAppInError; 
 		}
-		bool _getAppInError(int& lastErrorCode, std::string& lastErrorText)
+		bool _getAppInError(int& lastErrorCode, std::string& lastErrorText) const
 		{
 			lastErrorCode = m_lastErrorCode;
 			lastErrorText = m_lastErrorText;
@@ -545,7 +545,7 @@ namespace godot
 			return m_client; 
 		}
 
-		int getTotElementToInitialize()
+		int getTotElementToInitialize() const
 		{
 			return (int)m_totElementToInitialize;
 		}
@@ -553,7 +553,7 @@ namespace godot
 		{
 			m_totElementToInitialize += num;
 		}
-		int getNumElementInitialized()
+		int getNumElementInitialized() const
 		{
 			return (int)m_numElementInitialized;
 		}
@@ -562,7 +562,7 @@ namespace godot
 			m_numElementInitialized += num;
 		}
 
-		bool getStreamWorld(void)
+		bool getStreamWorld(void) const
 		{
 			return m_streamWorld;
 		}
@@ -592,22 +592,22 @@ namespace godot
 		//	return m_paramCacheHeightsForLowResQuadrants;
 		//}
 		//void setParamCacheHeightsForLowResQuadrants(bool b);
-		float getParamThresholdCacheHeights(void)
+		float getParamThresholdCacheHeights(void) const
 		{
 			return m_paramThresholdCacheHeights;
 		}
 		void setParamThresholdCacheHeights(float f);
-		bool getParamForceHiResCollisionInfo(void)
+		bool getParamForceHiResCollisionInfo(void) const
 		{
 			return m_paramForceHiResCollisionInfo;
 		}
 		void setParamForceHiResCollisionInfo(bool b);
-		bool getParamDisableTerrainCollisions(void)
+		bool getParamDisableTerrainCollisions(void) const
 		{
 			return m_paramDisableTerrainCollisions;
 		}
 		void setParamDisableTerrainCollisions(bool b);
-		float getRefreshQuadrantTreeThreshold(void)
+		float getRefreshQuadrantTreeThreshold(void) const
 		{
 			float factor = getParamRefreshQuadrantsFactor();
 			if (factor == 0)
@@ -615,12 +615,12 @@ namespace godot
 			else
 				return heightmapSizeInWUs() / factor;
 		}
-		float getParamRefreshQuadrantsFactor(void)
+		float getParamRefreshQuadrantsFactor(void) const
 		{
 			return m_paramRefreshQuadrantsFactor;
 		}
 		void setParamRefreshQuadrantsFactor(float f);
-		float getRefreshChunkLodThreshold(void)
+		float getRefreshChunkLodThreshold(void) const
 		{
 			float factor = getParamRefreshChunksFactor();
 			if (factor == 0)
@@ -628,27 +628,27 @@ namespace godot
 			else
 				return  (numVerticesPerChuckSide() * gridStepInHeightmapWUs(0)) / factor;
 		}
-		float getParamRefreshChunksFactor(void)
+		float getParamRefreshChunksFactor(void) const
 		{
 			return m_paramRefreshChunksFactor;
 		}
 		void setParamRefreshChunksFactor(float f);
-		float getParamThresholdForGlobalmap(void)
+		float getParamThresholdForGlobalmap(void) const
 		{
 			return m_paramThresholdForGlobalmap;
 		}
 		void setParamThresholdForGlobalmap(float f);
-		float getParamThresholdForMapTextureOptimization(void)
+		float getParamThresholdForMapTextureOptimization(void) const
 		{
 			return m_paramThresholdForMapTextureOptimization;
 		}
 		void setParamThresholdForMapTextureOptimization(float f);
-		float getParamTextureOptimizationIncrementFactor(void)
+		float getParamTextureOptimizationIncrementFactor(void) const
 		{
 			return m_paramTextureOptimizationIncrementFactor;
 		}
 		void setParamTextureOptimizationIncrementFactor(float f);
-		int64_t getParamTextureOptimizationResolutionIncrement(void)
+		int64_t getParamTextureOptimizationResolutionIncrement(void) const
 		{
 			return m_paramTextureOptimizationResolutionIncrement;
 		}

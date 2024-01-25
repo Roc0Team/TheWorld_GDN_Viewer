@@ -561,7 +561,7 @@ namespace godot
 		}
 	}
 
-	float GDN_TheWorld_Globals::gridStepInWU(void)
+	float GDN_TheWorld_Globals::gridStepInWU(void) const
 	{
 		return m_gridStepInWU;
 	}
@@ -866,11 +866,11 @@ namespace godot
 
 	size_t GDN_TheWorld_Globals::resolutionForOptimizationLevel(size_t optimizationLevel)
 	{
-		size_t resolution = heightmapResolution() + 1;
+		size_t resolution = (size_t)heightmapResolution() + 1;
 		if (optimizationLevel > 0)
 		{
 			size_t newResolutionShift = heightmapResolutionShift() - optimizationLevel;
-			resolution = (1 << newResolutionShift) + 1;
+			resolution = ((size_t)1 << newResolutionShift) + 1;
 		}
 		return resolution;
 	}

@@ -380,19 +380,19 @@ namespace godot
 				//m_lod = pos.m_lod;
 				return *this;
 			}
-			int getLod(void) 
+			int getLod(void) const
 			{
 				return m_lod; 
 			}
-			int getSlotPosX(void)
+			int getSlotPosX(void) const
 			{
 				return m_slotPosX; 
 			}
-			int getSlotPosZ(void)
+			int getSlotPosZ(void) const
 			{
 				return m_slotPosZ; 
 			}
-			std::string getIdStr(void)
+			std::string getIdStr(void) const
 			{
 				return "LOD:" + std::to_string(m_lod) + "-X:" + std::to_string(m_slotPosX) + "-Z:" + std::to_string(m_slotPosZ);
 			}
@@ -435,19 +435,19 @@ namespace godot
 		virtual void update(bool isVisible);
 		virtual void setActive(bool b);
 
-		bool isActive(void)
+		bool isActive(void) const
 		{
 			return m_active; 
 		}
-		bool isVisible(void)
+		bool isVisible(void) const
 		{
 			return m_visible; 
 		}
-		bool isDebugContentVisible(void)
+		bool isDebugContentVisible(void) const
 		{
 			return m_debugContentVisible; 
 		}
-		bool isPendingUpdate(void)
+		bool isPendingUpdate(void) const
 		{
 			return m_pendingUpdate; 
 		}
@@ -455,7 +455,7 @@ namespace godot
 		{
 			m_pendingUpdate = b; 
 		}
-		bool gotJustJoined(void)
+		bool gotJustJoined(void) const
 		{
 			return m_justJoined; 
 		}
@@ -463,15 +463,15 @@ namespace godot
 		{
 			m_justJoined = b; 
 		}
-		int getLod(void)
+		int getLod(void) const
 		{
 			return m_lod; 
 		}
-		int getSlotPosX(void)
+		int getSlotPosX(void) const
 		{
 			return m_slotPosX; 
 		}
-		int getSlotPosZ(void)
+		int getSlotPosZ(void) const
 		{
 			return m_slotPosZ; 
 		}
@@ -483,7 +483,7 @@ namespace godot
 		{
 			return ChunkPos(m_slotPosX, m_slotPosZ, m_lod); 
 		}
-		float getChunkSizeInWUs(void)
+		float getChunkSizeInWUs(void) const
 		{
 			return m_chunkSizeInWUs;
 		}
@@ -492,8 +492,8 @@ namespace godot
 			checkAndCalcAABB();
 			return m_aabb;
 		};
-		void getCameraPos(Vector3& globalCoordCameraLastPos);
-		bool isCameraVerticalOnChunk(void)
+		void getCameraPos(Vector3& globalCoordCameraLastPos) const;
+		bool isCameraVerticalOnChunk(void) const
 		{
 			return m_isCameraVerticalOnChunk;
 		}
@@ -511,7 +511,7 @@ namespace godot
 			else
 				m_quad = quad;
 		};
-		enum PosInQuad getPosInQuad(void)
+		enum PosInQuad getPosInQuad(void) const
 		{
 			return m_posInQuad;
 		}
@@ -521,35 +521,35 @@ namespace godot
 			return m_quadTree; 
 		};
 		bool isQuadTreeVisible(void);
-		float getLowerXInWUsGlobal(void)
+		float getLowerXInWUsGlobal(void) const
 		{
 			return m_originXInWUsGlobal;
 		}
-		float getLowerZInWUsGlobal(void)
+		float getLowerZInWUsGlobal(void) const
 		{
 			return m_originZInWUsGlobal;
 		}
 
-		int getFirstWorldVertRow(void)
+		int getFirstWorldVertRow(void) const
 		{
 			return m_firstWorldVertRow;
 		}
-		int getFirstWorldVertCol(void)
+		int getFirstWorldVertCol(void) const
 		{
 			return m_firstWorldVertCol;
 		}
-		int getLastWorldVertRow(void)
+		int getLastWorldVertRow(void) const
 		{
 			return m_lastWorldVertRow;
 		}
-		int getLastWorldVertCol(void)
+		int getLastWorldVertCol(void) const
 		{
 			return m_lastWorldVertCol;
 		}
 		void checkMouseHit(void);
 		bool checkHit(godot::Vector3 hit);
 		void setDistanceFromCamera(float distanceFromCamera);
-		float getDistanceFromCamera(void);
+		float getDistanceFromCamera(void) const;
 		Quad* getQuad(void)
 		{
 			return m_quad;

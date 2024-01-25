@@ -24,7 +24,7 @@ namespace godot
 		void preDeinit(void);
 		bool canDeinit(void);
 		void deinit(void);
-		bool initialized(void)
+		bool initialized(void) const
 		{
 			return m_initialized;
 		}

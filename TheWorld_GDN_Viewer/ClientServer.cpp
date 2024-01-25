@@ -302,7 +302,7 @@ namespace TheWorld_ClientServer
 						tempKeyToErase.push_back(iter->first);
 					}
 				}
-				for (auto key : tempKeyToErase)
+				for (auto& key : tempKeyToErase)
 				{
 					toCallCallback.erase(key);
 				}

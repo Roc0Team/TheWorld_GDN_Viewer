@@ -103,9 +103,9 @@ namespace godot
 		bool ready(void);
 		TheWorld_Utils::MemoryBuffer* getOutBuffer(void);
 		void startProcessRequired(bool b);
-		bool startProcessRequired(void);
+		bool startProcessRequired(void) const;
 		void deinitRequired(bool b);
-		bool deinitRequired(void);
+		bool deinitRequired(void) const;
 		static void incNumWorking()
 		{
 			s_numWorking++;
@@ -309,7 +309,7 @@ namespace godot
 			}
 			
 		private:
-			enum class ProcessStepIdx m_idx;
+			enum class ProcessStepIdx m_idx = ProcessStepIdx::not_set;
 			int m_num = 0;
 			size_t m_elapsed = 0;
 		};
@@ -360,7 +360,7 @@ namespace godot
 
 		GDN_TheWorld_Viewer();
 		~GDN_TheWorld_Viewer();
-		bool initRequired(void)
+		bool initRequired(void) const
 		{
 			return m_initRequired;
 		};
@@ -369,10 +369,10 @@ namespace godot
 			m_initRequired = b;
 		};
 		bool init(void);
-		bool canDeinit(void);
+		bool canDeinit(void) const;
 		void preDeinit(void);
 		void deinit(void);
-		bool quitting()
+		bool quitting() const
 		{
 			return m_quitting;
 		}
@@ -391,7 +391,7 @@ namespace godot
 			}
 		}
 
-		enum class ShaderTerrainData::LookDev getDesideredLookDev(void)
+		enum class ShaderTerrainData::LookDev getDesideredLookDev(void) const
 		{
 			return m_desiderdLookDev;
 		}
@@ -408,40 +408,40 @@ namespace godot
 
 		//Ref<Material> getRegularMaterial(void);
 		//Ref<Material> getLookDevMaterial(void);
-		godot::Plane getShaderParamGroundUVScale()
+		godot::Plane getShaderParamGroundUVScale() const
 		{
 			return m_shaderParam_groundUVScale;
 		}
-		bool getShaderParamDepthBlening()
+		bool getShaderParamDepthBlening() const
 		{
 			return m_shaderParam_depthBlending;
 		}
-		bool getShaderParamTriplanar()
+		bool getShaderParamTriplanar() const
 		{
 			return m_shaderParam_triplanar;
 		}
-		godot::Plane getShaderParamTileReduction()
+		godot::Plane getShaderParamTileReduction() const
 		{
 			return m_shaderParam_tileReduction;
 		}
-		float getShaderParamGlobalmapBlendStart()
+		float getShaderParamGlobalmapBlendStart() const
 		{
 			return m_shaderParam_globalmapBlendStart;
 		}
-		float getShaderParamGlobalmapBlendDistance()
+		float getShaderParamGlobalmapBlendDistance() const
 		{
 			return m_shaderParam_globalmapBlendDistance;
 		}
-		godot::Plane getShaderParamColormapOpacity()
+		godot::Plane getShaderParamColormapOpacity() const
 		{
 			return m_shaderParam_colormapOpacity;
 		}
 
-		float getShaderParamQuadBorderLineThickness(void)
+		float getShaderParamQuadBorderLineThickness(void) const
 		{
 			return m_shaderParam_quad_border_line_thickness;
 		}
-		float getShaderParamMouseHitRadius(void)
+		float getShaderParamMouseHitRadius(void) const
 		{
 			//if (positionVisible())
 				return m_shaderParam_mouse_hit_radius;
@@ -477,15 +477,15 @@ namespace godot
 		{
 			m_editor3dOverlay = (godot::Control*)editor3dOverlay;
 		}
-		bool trackMouse(void);
+		bool trackMouse(void) const;
 		void trackMouse(bool b);
 		void toggleTrackMouse(void);
 		void toggleEditMode(void);
 		void toggleDebugVisibility(void);
 		void rotateChunkDebugMode(void);
-		void toggleWireframe(void);
+		void toggleWireframe(void) const;
 		void rotateDrawingMode(void);
-		bool getTrackMouseState(void)
+		bool getTrackMouseState(void) const
 		{
 			return trackMouse();
 		}
@@ -494,9 +494,9 @@ namespace godot
 		godot::Camera3D* getCameraInEditor(void);
 		void setEditorCamera(godot::Camera3D* editorCamera);
 		void setDepthQuadOnPerimeter(int depth);
-		int getDepthQuadOnPerimeter(void);
+		int getDepthQuadOnPerimeter(void) const;
 		void setCacheQuadOnPerimeter(int cache);
-		int getCacheQuadOnPerimeter(void);
+		int getCacheQuadOnPerimeter(void) const;
 		String getInfoCamera(void);
 		int getCameraProjectionMode(void);
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
@@ -506,17 +506,17 @@ namespace godot
 		void createEditModeUI(void);
 		void deployWorld(float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll, int level, int chunkSizeShift, int heightmapResolutionShift);
 		void undeployWorld(void);
-		bool initialWordlViewerPosSet(void)
+		bool initialWordlViewerPosSet(void) const
 		{
 			return m_initialWordlViewerPosSet;
 		}
 		void recalcQuadrantsInView(void);
-		Node3D* getWorldNode(void);
+		Node3D* getWorldNode(void) const;
 		MeshCache* getMeshCache(void)
 		{
 			return m_meshCache.get(); 
 		}
-		Transform3D getInternalGlobalTransform(void);
+		Transform3D getInternalGlobalTransform(void) const;
 		void setDumpRequired(void)
 		{
 			m_dumpRequired = true; 
@@ -530,45 +530,45 @@ namespace godot
 		Transform3D getCameraChunkDebugGlobalTransformApplied(void);
 		String getCameraChunkId(void);
 		String getCameraQuadrantName(void);
-		int getNumSplits(void);
-		int getNumJoins(void);
-		int getNumChunks(void);
-		int getNumActiveChunks(void);
-		int getProcessDuration(void);
-		int getRefreshMapQuadDuration(void);
-		int getUpdateQuads1Duration(void);
-		int getUpdateQuads2Duration(void);
-		int getUpdateQuads3Duration(void);
-		int getUpdateChunksDuration(void);
-		int getUpdateMaterialParamsDuration(void);
-		int getMouseTrackHitDuration(void);
-		int getProcessNotOwnsLock(void);
-		int getNumQuadrant(void);
-		int getNuminitializedQuadrant(void);
-		int getNumVisibleQuadrant(void);
-		int getNuminitializedVisibleQuadrant(void);
-		int getNumNeedShaderResetQuadrant(void);
-		int getNumEmptyQuadrant(void);
-		int getNumQuadrantReloadingFromCache(void);
-		int getNumFlushedQuadrant(void);
-		int getQuadrantNumWithCollider(void);
-		int getQuadrantNumWithHiResCollider(void);
-		int getQuadrantNumWithLowResCollider(void);
+		int getNumSplits(void) const;
+		int getNumJoins(void) const;
+		int getNumChunks(void) const;
+		int getNumActiveChunks(void) const;
+		int getProcessDuration(void) const;
+		int getRefreshMapQuadDuration(void) const;
+		int getUpdateQuads1Duration(void) const;
+		int getUpdateQuads2Duration(void) const;
+		int getUpdateQuads3Duration(void) const;
+		int getUpdateChunksDuration(void) const;
+		int getUpdateMaterialParamsDuration(void) const;
+		int getMouseTrackHitDuration(void) const;
+		int getProcessNotOwnsLock(void) const;
+		int getNumQuadrant(void) const;
+		int getNuminitializedQuadrant(void) const;
+		int getNumVisibleQuadrant(void) const;
+		int getNuminitializedVisibleQuadrant(void) const;
+		int getNumNeedShaderResetQuadrant(void) const;
+		int getNumEmptyQuadrant(void) const;
+		int getNumQuadrantReloadingFromCache(void) const;
+		int getNumFlushedQuadrant(void) const;
+		int getQuadrantNumWithCollider(void) const;
+		int getQuadrantNumWithHiResCollider(void) const;
+		int getQuadrantNumWithLowResCollider(void) const;
 		void refreshQuadTreeStatistics(void);
 		void resetMaterialParamsForEveryQuadrant(void);
 		void updateMaterialParamsForEveryQuadrant(void);
 		void setColliderNeedUpdateForEveryQuadrant(void);
-		GDN_TheWorld_Globals::ChunkDebugMode getRequiredChunkDebugMode(void)
+		GDN_TheWorld_Globals::ChunkDebugMode getRequiredChunkDebugMode(void) const
 		{
 			return m_requiredChunkDebugMode;
 		}
-		String getChunkDebugModeStr(void);
-		bool getDebugContentVisibility(void)
+		String getChunkDebugModeStr(void) const;
+		bool getDebugContentVisibility(void) const
 		{
 			return m_debugContentVisibility; 
 		}
 		String getDebugDrawMode(void);
-		bool useVisualServer(void)
+		bool useVisualServer(void) const
 		{
 			return m_useVisualServer; 
 		}
@@ -581,7 +581,7 @@ namespace godot
 		Chunk* getActiveChunkAt(QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		bool terrainShiftPermitted(void);
-		godot::Vector3 getMouseHit(void)
+		godot::Vector3 getMouseHit(void) const
 		{
 			if (m_mouseTrackedOnSomething)
 				return m_trackedMouseHit;
@@ -614,11 +614,11 @@ namespace godot
 		{
 			return m_mouseQuadrantHitTag;
 		}
-		godot::Vector3 getMouseQuadrantHitPos(void)
+		godot::Vector3 getMouseQuadrantHitPos(void) const
 		{
 			return m_mouseQuadrantHitPos;
 		}
-		float getMouseQuadrantHitSize(void)
+		float getMouseQuadrantHitSize(void) const
 		{
 			return m_mouseQuadrantHitSize;
 		}
@@ -670,7 +670,7 @@ namespace godot
 		//	m_mouseHitQuadTree = quadTree;
 		//}
 
-		bool editMode(void)
+		bool editMode(void) const
 		{
 			return m_editMode;
 		}
@@ -743,7 +743,7 @@ namespace godot
 		}
 		
 		void viewportSizeChanged(void);
-		bool ReloadAllShadersRequired(void)
+		bool ReloadAllShadersRequired(void) const
 		{
 			return m_reloadAllShadersRequired;
 		}
@@ -751,7 +751,7 @@ namespace godot
 		{
 			m_reloadAllShadersRequired = b;
 		}
-		bool ReloadSelectedQuadrantShaderRequired(void)
+		bool ReloadSelectedQuadrantShaderRequired(void) const
 		{
 			return m_reloadSelectedQuadrantShaderRequired;
 		}
@@ -761,7 +761,7 @@ namespace godot
 		}
 		void trackedMouseHitChanged(QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit, godot::Vector3 normalHit = Vector3Zero);
 		void clearMapQuadTree(void);
-		bool gizmoVisible(void)
+		bool gizmoVisible(void) const
 		{
 			return m_gizmoVisible;
 		}
@@ -769,7 +769,7 @@ namespace godot
 		{
 			m_gizmoVisible = b;
 		}
-		bool normalVisible(void)
+		bool normalVisible(void) const
 		{
 			return m_normalVisible;
 		}
@@ -777,7 +777,7 @@ namespace godot
 		{
 			m_normalVisible = b;
 		}
-		bool positionVisible(void)
+		bool positionVisible(void) const
 		{
 			return m_positionVisible;
 		}
@@ -787,7 +787,7 @@ namespace godot
 			if (!m_positionVisible)
 				trackingDistance(false);
 		}
-		bool trackingDistance(void)
+		bool trackingDistance(void) const
 		{
 			return m_trackingDistance;
 		}
@@ -934,6 +934,8 @@ namespace godot
 		godot::String getGroundTextureName(int type);
 		godot::Ref<godot::ImageTexture> getGroundTextureAlbedoBump(godot::String texName);
 		godot::Ref<godot::ImageTexture> getGroundTextureNormalRoughness(godot::String texName);
+		int getGroundTextureLayer(godot::String texName);
+		godot::Vector4 getGroundTextureLayers(void);
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);

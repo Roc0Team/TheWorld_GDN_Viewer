@@ -102,7 +102,7 @@ namespace godot
 			m_initialized = false;
 		}
 
-		bool empty(void)
+		bool empty(void) const
 		{
 			return m_initialized == false;
 		}
@@ -197,27 +197,27 @@ namespace godot
 			return "ST" + to_string(m_gridStepInWU) + "_SZ" + to_string(m_numVerticesPerSize) + "_L" + to_string(m_level) + "_X" + to_string(m_lowerXGridVertex) + "_Z" + to_string(m_lowerZGridVertex);
 		}
 
-		float getLowerXGridVertex()
+		float getLowerXGridVertex() const
 		{
 			return m_lowerXGridVertex; 
 		};
-		float getLowerZGridVertex() 
+		float getLowerZGridVertex() const
 		{
 			return m_lowerZGridVertex; 
 		};
-		int getNumVerticesPerSize()
+		int getNumVerticesPerSize() const
 		{
 			return m_numVerticesPerSize;
 		};
-		int getLevel()
+		int getLevel() const
 		{
 			return m_level;
 		};
-		float getGridStepInWU() 
+		float getGridStepInWU()  const
 		{
 			return m_gridStepInWU; 
 		};
-		float getSizeInWU()
+		float getSizeInWU() const
 		{
 			return m_sizeInWU; 
 		};
@@ -230,8 +230,8 @@ namespace godot
 		{
 			return m_tag;
 		}
-		_declspec(dllexport) size_t distanceInPerimeter(QuadrantPos& q);
-		bool isInitialized(void)
+		_declspec(dllexport) size_t distanceInPerimeter(QuadrantPos& q) const;
+		bool isInitialized(void) const
 		{
 			return m_initialized;
 		}
@@ -323,9 +323,9 @@ namespace godot
 		bool needReloadTerrainDataFromCache(void);
 
 		void lockInternalDataUntilCompleteProcessExecution(bool b = true);
-		bool internalDataLockedUntilCompleteProcessExecution(void);
+		bool internalDataLockedUntilCompleteProcessExecution(void) const;
 
-		size_t getLastDistanceInPerimeterFromCameraQuadrant(void)
+		size_t getLastDistanceInPerimeterFromCameraQuadrant(void) const
 		{
 			return m_lastDistanceInPerimeterFromCameraQuadrant;
 		}
@@ -525,7 +525,7 @@ namespace godot
 			m_needUploadToServer = b;
 		}
 
-		bool needUploadToServer(void)
+		bool needUploadToServer(void) const
 		{
 			return m_needUploadToServer;
 		}
@@ -555,33 +555,33 @@ namespace godot
 				m_internalDataLocked = false;
 		}
 
-		bool internalDataLocked()
+		bool internalDataLocked() const
 		{
 			return m_internalDataLocked;
 		}
 
 		void setHeightsUpdated(bool b);
-		bool heightsUpdated(void)
+		bool heightsUpdated(void) const
 		{
 			return m_heightsUpdated;
 		}
 		void setNormalsUpdated(bool b);
-		bool normalsUpdated(void)
+		bool normalsUpdated(void) const
 		{
 			return m_normalsUpdated;
 		}
 		void setSplatmapUpdated(bool b);
-		bool splatmapUpdated(void)
+		bool splatmapUpdated(void) const
 		{
 			return m_splatmapUpdated;
 		}
 		void setColorsUpdated(bool b);
-		bool colorsUpdated(void)
+		bool colorsUpdated(void) const
 		{
 			return m_colorsUpdated;
 		}
 		void setGlobalmapUpdated(bool b);
-		bool globalmapUpdated(void)
+		bool globalmapUpdated(void) const
 		{
 			return m_globalmapUpdated;
 		}
@@ -589,7 +589,7 @@ namespace godot
 		{
 			m_texturesUpdated = b;
 		}
-		bool textureUpdated(void)
+		bool textureUpdated(void) const
 		{
 			return m_texturesUpdated;
 		}
@@ -597,7 +597,7 @@ namespace godot
 		{
 			m_empty = b;
 		}
-		bool empty(void)
+		bool empty(void) const
 		{
 			return m_empty;
 		}
@@ -639,7 +639,7 @@ namespace godot
 				renderGlobalMapChanged(true);
 			}
 		}
-		bool renderGlobalMap(void)
+		bool renderGlobalMap(void) const
 		{
 			return m_renderGlobalMap;
 		}
@@ -653,35 +653,35 @@ namespace godot
 			else
 				return false;
 		}
-		bool canCacheHeigthBuffers(void)
+		bool canCacheHeigthBuffers(void) const
 		{
 			return m_canCacheHeigthBuffers;
 		}
 		void renderGlobalMapChanged(bool b);
-		bool renderGlobalMapChanged(void)
+		bool renderGlobalMapChanged(void) const
 		{
 			return m_renderGlobalMapChanged;
 		}
 
 		void optimizationLevel(size_t level);
-		size_t optimizationLevel(void)
+		size_t optimizationLevel(void) const
 		{
 			return m_optimizationLevel;
 		}
 		void optimizationLevelChanged(bool b);
-		bool optimizationLevelChanged(void)
+		bool optimizationLevelChanged(void) const
 		{
 			return m_optimizationLevelChanged;
 		}
 
-		godot::Vector3 getCenter(void)
+		godot::Vector3 getCenter(void) const
 		{
 			return m_quadrantCenter;
 		}
 
 		bool canHaveHiResCollisionInfo(void);
 
-		bool executingProcess(void)
+		bool executingProcess(void) const
 		{
 			return m_executingProcess;
 		}
@@ -690,7 +690,7 @@ namespace godot
 			m_executingProcess = b;
 		}
 
-		bool terrainDataJustLoaded(void)
+		bool terrainDataJustLoaded(void) const
 		{
 			return m_terrainDataJustLoaded;
 		}
@@ -768,9 +768,9 @@ namespace godot
 
 		public:
 			bool initialized;
-			Ref<ImageTexture> m_albedo_bump_tex;
-			Ref<ImageTexture> m_normal_roughness_tex;
-			Ref<Texture2D> m_tex;
+			godot::Ref<godot::ImageTexture> m_albedo_bump_tex;
+			godot::Ref<godot::ImageTexture> m_normal_roughness_tex;
+			godot::Ref<godot::Texture2D> m_tex;
 		};
 
 		// Shader Params
@@ -786,6 +786,13 @@ namespace godot
 #define SHADER_PARAM_FORCE_ELEVATION_0	"u_force_height_0"
 #define SHADER_PARAM_USE_GLOBALMAP		"u_use_globalmap"
 #define SHADER_PARAM_OPTIMIZATION_LEVEL	"u_optimization_level"
+
+#define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
+#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
+#define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY		"gu_ground_albedo_bump_array"
+#define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
+
+#define SHADER_PARAM_GROUND_LAYERS		"u_ground_layers"	// godot::Plane (vec4) ==> normal_x (vec4 x) = low, normal_y (vec4 y) = high, normal_z (vec4 z) = dirt, d (vec4 w) = rock
 
 #define SHADER_PARAM_EDITMODE_SELECTED	"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT			"u_mouse_hit"
@@ -849,7 +856,7 @@ namespace godot
 		void init(void);
 		static godot::Ref<godot::Image> readGroundTexture(godot::String fileName, bool& ok, GDN_TheWorld_Viewer* viewer = nullptr);
 		static void getGroundTexture(godot::String fileName, GroundTexture* groundTexture, GDN_TheWorld_Viewer* viewer = nullptr);
-		bool materialParamsNeedReset(void)
+		bool materialParamsNeedReset(void) const
 		{
 			return m_materialParamsNeedReset;
 		}
@@ -858,7 +865,7 @@ namespace godot
 			m_materialParamsNeedReset = b;
 		}
 		void resetMaterialParams(bool& lastProcessExecutionInterrupted, LookDev lookdev);
-		bool materialParamsNeedUpdate(void)
+		bool materialParamsNeedUpdate(void) const
 		{
 			return m_materialParamsNeedUpdate;
 		}
@@ -899,6 +906,10 @@ namespace godot
 		static void groundTexturesNeedProcessing(bool b)
 		{
 			s_groundTexturesNeedProcessing = b;
+		}
+		static std::map<std::string, int32_t>& getGroundTextureLayers(void)
+		{
+			return s_groundTextureLayers;
 		}
 		godot::Ref<godot::ImageTexture> getAlbedoBumpTexture(std::string textureName);
 		godot::Ref<godot::ImageTexture> getNormalRoughnessTexture(std::string textureName);
@@ -1040,6 +1051,7 @@ namespace godot
 		static std::map<std::string, std::unique_ptr<GroundTexture>> s_groundTextures;
 		static bool s_groundTexturesNeedProcessing;
 		//static std::recursive_mutex s_groundTexturesMutex;
+		static std::map<std::string, int32_t> s_groundTextureLayers;
 	};
 	
 	class Quad
@@ -1049,19 +1061,19 @@ namespace godot
 		Quad(int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 		~Quad();
 
-		int slotPosX()
+		int slotPosX() const
 		{
 			return m_slotPosX;
 		}
-		int slotPosZ()
+		int slotPosZ() const
 		{
 			return m_slotPosZ;
 		}
-		int Lod()
+		int Lod() const
 		{
 			return m_lod;
 		}
-		enum PosInQuad getPosInQuad(void)
+		enum PosInQuad getPosInQuad(void) const
 		{
 			return m_posInQuad;
 		}
@@ -1072,7 +1084,7 @@ namespace godot
 		void split(void);
 		void clearChildren(void);
 		void assignChunk(void);
-		bool gotJustSplitted(void)
+		bool gotJustSplitted(void) const
 		{
 			return m_justSplitted;
 		}
@@ -1080,7 +1092,7 @@ namespace godot
 		{
 			m_justSplitted = b;
 		}
-		bool gotJustJoined(void)
+		bool gotJustJoined(void) const
 		{
 			return m_justJoined;
 		}
@@ -1108,7 +1120,7 @@ namespace godot
 		{
 			m_chunkAABB = AABB();
 		}
-		float getChunkSizeInWUs(void)
+		float getChunkSizeInWUs(void) const
 		{
 			return m_chunkSizeInWUs; 
 		}
@@ -1120,7 +1132,7 @@ namespace godot
 			else
 				m_splitRequired = b;
 		}
-		bool splitRequired(void)
+		bool splitRequired(void) const
 		{
 			return m_splitRequired;
 		}
@@ -1277,7 +1289,7 @@ namespace godot
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
 		bool updateCollider(void);
-		bool colliderNeedReset(void);
+		bool colliderNeedReset(void) const;
 		void colliderNeedReset(bool b);
 		bool updateMaterialParams(void);
 		bool materialParamsNeedUpdate(void);
@@ -1319,7 +1331,7 @@ namespace godot
 		{
 			return status() == QuadrantStatus::toErase;
 		}
-		enum class QuadrantStatus currentStatus(void)
+		enum class QuadrantStatus currentStatus(void) const
 		{
 			return m_status;
 		}
@@ -1364,7 +1376,7 @@ namespace godot
 		{
 			m_refreshTime = time; 
 		}
-		std::timespec getRefreshTime(void) 
+		std::timespec getRefreshTime(void)  const
 		{
 			return m_refreshTime; 
 		}
@@ -1398,12 +1410,12 @@ namespace godot
 			m_editModeQuadrantSelected = b;
 		}
 
-		bool editModeQuadrantSelected(void)
+		bool editModeQuadrantSelected(void) const
 		{
 			return m_editModeQuadrantSelected;
 		}
 
-		enum class ShaderTerrainData::LookDev getLookDev(void)
+		enum class ShaderTerrainData::LookDev getLookDev(void) const
 		{
 			return m_lookDev;
 		}
@@ -1415,7 +1427,7 @@ namespace godot
 		{
 			return m_root.get();
 		}
-		bool forceRecalcOptimizationLevel(void)
+		bool forceRecalcOptimizationLevel(void) const
 		{
 			return m_forceRecalcOptimizationLevel;
 		}

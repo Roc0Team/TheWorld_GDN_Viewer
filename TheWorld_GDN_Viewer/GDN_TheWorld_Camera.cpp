@@ -446,7 +446,7 @@ void GDN_TheWorld_Camera::deactivateCamera(void)
 	}
 }
 
-bool GDN_TheWorld_Camera::isActiveCamera(void)
+bool GDN_TheWorld_Camera::isActiveCamera(void) const
 {
 	return m_isActive;
 	//return is_in_group(GD_ACTIVE_CAMERA_GROUP);

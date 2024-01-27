@@ -3230,13 +3230,14 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 				godot::TypedArray<godot::Image> normalRoughnessImageArray;
 				std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
 				groundTextureLayers.clear();
-				int idx = 0;
+				int layer = 0;
 				for (const auto& groundTexture : groundTextures)
 				{
 					albedoBumpImageArray.push_back(groundTexture.second->m_albedo_bump_tex->get_image());
 					normalRoughnessImageArray.push_back(groundTexture.second->m_normal_roughness_tex->get_image());
-					groundTextureLayers[groundTexture.first] = idx;
-					idx++;
+					groundTextureLayers[groundTexture.first] = layer;
+					Globals()->debugPrint((std::string("Ground_texture [") + groundTexture.first + "] ==> layer = " + std::to_string(layer)).c_str());
+					layer++;
 				}
 				godot::Error e = albedoBumpTexture2DArray->create_from_images(albedoBumpImageArray);
 				e = normalRoughnessTexture2DArray->create_from_images(normalRoughnessImageArray);

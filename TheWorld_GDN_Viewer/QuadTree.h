@@ -774,45 +774,49 @@ namespace godot
 		};
 
 		// Shader Params
-#define SHADER_PARAM_TERRAIN_HEIGHTMAP	"u_terrain_heightmap"
-#define SHADER_PARAM_TERRAIN_NORMALMAP	"u_terrain_normalmap"
-#define SHADER_PARAM_TERRAIN_SPLATMAP	"u_terrain_splatmap"
-#define SHADER_PARAM_TERRAIN_COLORMAP	"u_terrain_colormap"
-#define SHADER_PARAM_TERRAIN_GLOBALMAP	"u_terrain_globalmap"
+#define SHADER_PARAM_TERRAIN_HEIGHTMAP				"u_terrain_heightmap"
+#define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
+#define SHADER_PARAM_TERRAIN_SPLATMAP				"u_terrain_splatmap"
+#define SHADER_PARAM_TERRAIN_COLORMAP				"u_terrain_colormap"
+#define SHADER_PARAM_TERRAIN_GLOBALMAP				"u_terrain_globalmap"
 
-#define SHADER_PARAM_INVERSE_TRANSFORM	"u_terrain_inverse_transform"
-#define SHADER_PARAM_NORMAL_BASIS		"u_terrain_normal_basis"
-#define SHADER_PARAM_GRID_STEP			"u_grid_step"
-#define SHADER_PARAM_FORCE_ELEVATION_0	"u_force_height_0"
-#define SHADER_PARAM_USE_GLOBALMAP		"u_use_globalmap"
-#define SHADER_PARAM_OPTIMIZATION_LEVEL	"u_optimization_level"
+#define SHADER_PARAM_INVERSE_TRANSFORM				"u_terrain_inverse_transform"
+#define SHADER_PARAM_NORMAL_BASIS					"u_terrain_normal_basis"
+#define SHADER_PARAM_GRID_STEP						"u_grid_step"
+#define SHADER_PARAM_FORCE_ELEVATION_0				"u_force_height_0"
+#define SHADER_PARAM_USE_GLOBALMAP					"u_use_globalmap"
+#define SHADER_PARAM_OPTIMIZATION_LEVEL				"u_optimization_level"
 
 #define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
 #define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
 #define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY		"gu_ground_albedo_bump_array"
 #define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
 
-#define SHADER_PARAM_GROUND_LAYERS		"u_ground_layers"	// godot::Plane (vec4) ==> normal_x (vec4 x) = low, normal_y (vec4 y) = high, normal_z (vec4 z) = dirt, d (vec4 w) = rock
+#define SHADER_PARAM_GROUND_LAYERS					"u_ground_layers"	// godot::Plane (vec4) ==> normal_x (vec4 x) = low, normal_y (vec4 y) = high, normal_z (vec4 z) = dirt, d (vec4 w) = rock
+#define SHADER_PARAM_NORTH_GROUND_LAYERS			"u_north_ground_layers"
+#define SHADER_PARAM_SOUTH_GROUND_LAYERS			"u_south_ground_layers"
+#define SHADER_PARAM_EAST_GROUND_LAYERS				"u_east_ground_layers"
+#define SHADER_PARAM_WEST_GROUND_LAYERS				"u_west_ground_layers"
 
-#define SHADER_PARAM_EDITMODE_SELECTED	"u_editmode_selected"
-#define SHADER_PARAM_MOUSE_HIT			"u_mouse_hit"
-#define SHADER_PARAM_MOUSE_HIT_RADIUS	"u_mouse_hit_radius"
-#define SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS	"u_quad_border_line_thickness"
+#define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"
+#define SHADER_PARAM_MOUSE_HIT						"u_mouse_hit"
+#define SHADER_PARAM_MOUSE_HIT_RADIUS				"u_mouse_hit_radius"
+#define SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS		"u_quad_border_line_thickness"
 
-#define SHADER_PARAM_VERTICES_PER_CHUNK	"u_num_vertices_per_chunk"
-#define SHADER_PARAM_LOOKDEV_LOD		"u_lod"
-#define	SHADER_PARAM_LOD_GRID_STEP		"u_lod_grid_step"
-#define	SHADER_PARAM_LOD_CHUNK_SIZE		"u_lod_chunk_size"
+#define SHADER_PARAM_VERTICES_PER_CHUNK				"u_num_vertices_per_chunk"
+#define SHADER_PARAM_LOOKDEV_LOD					"u_lod"
+#define	SHADER_PARAM_LOD_GRID_STEP					"u_lod_grid_step"
+#define	SHADER_PARAM_LOD_CHUNK_SIZE					"u_lod_chunk_size"
 
-#define SHADER_PARAM_GROUND_ALBEDO_BUMP_0		"u_ground_albedo_bump_0"
-#define SHADER_PARAM_GROUND_ALBEDO_BUMP_1		"u_ground_albedo_bump_1"
-#define SHADER_PARAM_GROUND_ALBEDO_BUMP_2		"u_ground_albedo_bump_2"
-#define SHADER_PARAM_GROUND_ALBEDO_BUMP_3		"u_ground_albedo_bump_3"
+#define SHADER_PARAM_GROUND_ALBEDO_BUMP_0			"u_ground_albedo_bump_0"
+#define SHADER_PARAM_GROUND_ALBEDO_BUMP_1			"u_ground_albedo_bump_1"
+#define SHADER_PARAM_GROUND_ALBEDO_BUMP_2			"u_ground_albedo_bump_2"
+#define SHADER_PARAM_GROUND_ALBEDO_BUMP_3			"u_ground_albedo_bump_3"
 
-#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0	"u_ground_normal_roughness_0"
-#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1	"u_ground_normal_roughness_1"
-#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2	"u_ground_normal_roughness_2"
-#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3	"u_ground_normal_roughness_3"
+#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0		"u_ground_normal_roughness_0"
+#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1		"u_ground_normal_roughness_1"
+#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2		"u_ground_normal_roughness_2"
+#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3		"u_ground_normal_roughness_3"
 
 #define SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE	"u_ground_uv_scale_per_texture"
 #define SHADER_PARAM_DEPTH_BLENDING					"u_depth_blending"
@@ -822,15 +826,15 @@ namespace godot
 #define SHADER_PARAM_GLOBALMAP_BLEND_DISTANCE		"u_globalmap_blend_distance"
 #define SHADER_PARAM_COLORMAP_OPACITY_PER_TEXTURE	"u_colormap_opacity_per_texture"
 
-#define SHADER_PARAM_LOOKDEV_MAP		"u_map"
+#define SHADER_PARAM_LOOKDEV_MAP					"u_map"
 
-#define SHADER_PARAM_SLOPE_VERTICAL_FACTOR	"u_slope_vertical_factor"
-#define SHADER_PARAM_SLOPE_FLAT_FACTOR		"u_slope_flat_factor"
-#define SHADER_PARAM_DIRT_ON_ROCKS_FACTOR	"u_dirt_on_rocks_factor"
-#define SHADER_PARAM_HIGH_ELEVATION_FACTOR	"u_high_elevation_factor"
-#define SHADER_PARAM_LOW_ELEVATION_FACTOR	"u_low_elevation_factor"
-#define SHADER_PARAM_MAX_HEIGHT				"u_max_heigth"
-#define SHADER_PARAM_MIN_HEIGHT				"u_min_heigth"
+#define SHADER_PARAM_SLOPE_VERTICAL_FACTOR			"u_slope_vertical_factor"
+#define SHADER_PARAM_SLOPE_FLAT_FACTOR				"u_slope_flat_factor"
+#define SHADER_PARAM_DIRT_ON_ROCKS_FACTOR			"u_dirt_on_rocks_factor"
+#define SHADER_PARAM_HIGH_ELEVATION_FACTOR			"u_high_elevation_factor"
+#define SHADER_PARAM_LOW_ELEVATION_FACTOR			"u_low_elevation_factor"
+#define SHADER_PARAM_MAX_HEIGHT						"u_max_heigth"
+#define SHADER_PARAM_MIN_HEIGHT						"u_min_heigth"
 
 	public:
 

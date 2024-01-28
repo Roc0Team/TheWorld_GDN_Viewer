@@ -287,6 +287,41 @@ namespace godot
 		//	, high = 2
 		//};
 
+		class NeighborQuadrantData
+		{
+		public:
+			bool initialized(void) const
+			{
+				return m_initialized;
+			}
+			void initialized(bool b)
+			{
+				m_initialized = b;
+			}
+			bool shaderUpdated(void) const
+			{
+				return m_shaderUpdated;
+			}
+			void shaderUpdated(bool b)
+			{
+				m_shaderUpdated = b;
+			}
+			godot::Vector4 groundTextureLayers(void) const
+			{
+				return m_groundTextureLayers;
+			}
+			void groundTextureLayers(godot::Vector4 layers)
+			{
+				m_groundTextureLayers = layers;
+				initialized(true);
+				shaderUpdated(false);
+			}
+		private:
+			bool m_initialized = false;
+			godot::Vector4 m_groundTextureLayers;
+			bool m_shaderUpdated = false;
+		};
+
 	public:
 		Quadrant(QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 
@@ -698,6 +733,24 @@ namespace godot
 		{
 			m_terrainDataJustLoaded = b;
 		}
+		
+		godot::Vector4 quadrantTextureLayers(void) const;
+		NeighborQuadrantData& northQuadrantData(void)
+		{
+			return m_northQuadrantData;
+		}
+		NeighborQuadrantData& southQuadrantData(void)
+		{
+			return m_southQuadrantData;
+		}
+		NeighborQuadrantData& westQuadrantData(void)
+		{
+			return m_westQuadrantData;
+		}
+		NeighborQuadrantData& eastQuadrantData(void)
+		{
+			return m_eastQuadrantData;
+		}
 
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
@@ -732,6 +785,11 @@ namespace godot
 		std::unique_ptr<TheWorld_Utils::TerrainEdit> m_terrainEdit;
 		godot::PackedFloat32Array m_heightsForCollider;
 		// Terrain Values
+
+		NeighborQuadrantData m_northQuadrantData;
+		NeighborQuadrantData m_southQuadrantData;
+		NeighborQuadrantData m_westQuadrantData;
+		NeighborQuadrantData m_eastQuadrantData;
 
 		bool m_heightsUpdated;
 		bool m_normalsUpdated;
@@ -797,6 +855,8 @@ namespace godot
 #define SHADER_PARAM_SOUTH_GROUND_LAYERS			"u_south_ground_layers"
 #define SHADER_PARAM_EAST_GROUND_LAYERS				"u_east_ground_layers"
 #define SHADER_PARAM_WEST_GROUND_LAYERS				"u_west_ground_layers"
+
+#define SHADER_PARAM_TEXTURE_BLENDING_SIZE			"gu_texture_blending_size"
 
 #define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT						"u_mouse_hit"
@@ -1056,6 +1116,8 @@ namespace godot
 		static bool s_groundTexturesNeedProcessing;
 		//static std::recursive_mutex s_groundTexturesMutex;
 		static std::map<std::string, int32_t> s_groundTextureLayers;
+
+		bool m_sendTextureToShader = false;
 	};
 	
 	class Quad
@@ -1436,6 +1498,33 @@ namespace godot
 			return m_forceRecalcOptimizationLevel;
 		}
 
+		void requestInitDelayed(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced)
+		{
+			my_assert(status() == QuadrantStatus::uninitialized && !m_initDelayed);
+			if (status() != QuadrantStatus::uninitialized || m_initDelayed)
+				throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Quadrant status not compliant: " + std::to_string((int)status())).c_str()));
+
+			m_initDelayed = true;
+			m_cameraX = cameraX;
+			m_cameraY = cameraY;
+			m_cameraZ = cameraZ;
+			m_cameraYaw = cameraYaw;
+			m_cameraPitch = cameraPitch;
+			m_cameraRoll = cameraRoll;
+			m_setCamera = setCamera;
+			m_cameraDistanceFromTerrainForced = cameraDistanceFromTerrainForced;
+		}
+			
+		void initDelayed(void)
+		{
+			if (m_initDelayed)
+			{
+				init(m_cameraX, m_cameraY, m_cameraZ, m_cameraYaw, m_cameraPitch, m_cameraRoll, m_setCamera, m_cameraDistanceFromTerrainForced);
+				m_initDelayed = false;
+			}
+		}
+
+
 	private:
 		void internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired);
 
@@ -1464,5 +1553,16 @@ namespace godot
 		int m_numSplits;
 		int m_numJoins;
 		int m_numLeaf;
+
+		// init delayed
+		bool m_initDelayed = false;
+		float m_cameraX = 0.0f;
+		float m_cameraY = 0.0f;
+		float m_cameraZ = 0.0f;
+		float m_cameraYaw = 0.0f;
+		float m_cameraPitch = 0.0f;
+		float m_cameraRoll = 0.0f;
+		bool m_setCamera = false;
+		float m_cameraDistanceFromTerrainForced = 0.0f;
 	};
 }

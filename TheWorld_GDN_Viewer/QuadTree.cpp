@@ -1407,9 +1407,10 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularMaterial(bool reload)
 		godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 		m_viewer->getMainProcessingMutex().unlock();
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-		//String shaderPath = "res://addons/twviewer/shaders/regularChunk.gdshader";		// from simple4.gdshader
-		String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
-		//String shaderPath = "res://addons/twviewer/test/test_quadrant.tres";
+		//String shaderPath = "res://addons/twviewer/shaders/regularChunkOld.gdshader";	m_sendTextureToShader = true;
+		//String shaderPath = "res://addons/twviewer/shaders/regularChunk.gdshader";
+		//String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
+		String shaderPath = "res://addons/twviewer/test/test_quadrant.tres";	m_sendTextureToShader = true;
 		//godot::Ref<godot::Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
 		godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
@@ -2710,73 +2711,67 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 
 			if (quadrant->textureUpdated() && lookdev == LookDev::NotSet)
 			{
-				godot::Vector4 v(-1, -1, -1, -1);
-				std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
-				if (groundTextureLayers.contains(terrainEdit->extraValues.lowElevationTexName_r))
-					v.x = (float)groundTextureLayers[terrainEdit->extraValues.lowElevationTexName_r];
-				if (groundTextureLayers.contains(terrainEdit->extraValues.highElevationTexName_g))
-					v.y = (float)groundTextureLayers[terrainEdit->extraValues.highElevationTexName_g];
-				if (groundTextureLayers.contains(terrainEdit->extraValues.dirtTexName_b))
-					v.z = (float)groundTextureLayers[terrainEdit->extraValues.dirtTexName_b];
-				if (groundTextureLayers.contains(terrainEdit->extraValues.rocksTexName_a))
-					v.w = (float)groundTextureLayers[terrainEdit->extraValues.rocksTexName_a];
+				godot::Vector4 v = quadrant->quadrantTextureLayers();
 				currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
 				
-				//godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_albedo_bump_tex;
-				//if (lowElevation_albedo_bump_tex != nullptr)
-				//{
-				//	//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_0));
-				//	currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
-				//}
+				if (m_sendTextureToShader)
+				{
+					godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_albedo_bump_tex;
+					if (lowElevation_albedo_bump_tex != nullptr)
+					{
+						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_0));
+						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
+					}
 
-				//godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_normal_roughness_tex;
-				//if (lowElevation_normal_roughness_tex != nullptr)
-				//{
-				//	//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0));
-				//	currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
-				//}
+					godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_normal_roughness_tex;
+					if (lowElevation_normal_roughness_tex != nullptr)
+					{
+						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0));
+						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
+					}
 
-				//godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_albedo_bump_tex;
-				//if (highElevation_albedo_bump_tex != nullptr)
-				//{
-				//	//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_1));
-				//	currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
-				//}
+					godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_albedo_bump_tex;
+					if (highElevation_albedo_bump_tex != nullptr)
+					{
+						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_1));
+						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
+					}
 
-				//godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_normal_roughness_tex;
-				//if (highElevation_normal_roughness_tex != nullptr)
-				//{
-				//	//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1));
-				//	currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
-				//}
+					godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_normal_roughness_tex;
+					if (highElevation_normal_roughness_tex != nullptr)
+					{
+						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1));
+						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
+					}
 
-				//godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_albedo_bump_tex;
-				//if (dirt_albedo_bump_tex != nullptr)
-				//{
-				//	//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_2));
-				//	currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
-				//}
+					godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_albedo_bump_tex;
+					if (dirt_albedo_bump_tex != nullptr)
+					{
+						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_2));
+						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
+					}
 
-				//godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_normal_roughness_tex;
-				//if (dirt_normal_roughness_tex != nullptr)
-				//{
-				//	//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2));
-				//	currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
-				//}
+					godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_normal_roughness_tex;
+					if (dirt_normal_roughness_tex != nullptr)
+					{
+						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2));
+						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
+					}
 
-				//godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_albedo_bump_tex;
-				//if (rocks_albedo_bump_tex != nullptr)
-				//{
-				//	//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_3));
-				//	currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
-				//}
+					godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_albedo_bump_tex;
+					if (rocks_albedo_bump_tex != nullptr)
+					{
+						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_3));
+						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
+					}
 
-				//godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_normal_roughness_tex;
-				//if (rocks_normal_roughness_tex != nullptr)
-				//{
-				//	//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3));
-				//	currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
-				//}
+					godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_normal_roughness_tex;
+					if (rocks_normal_roughness_tex != nullptr)
+					{
+						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3));
+						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
+					}
+				}
 
 				quadrant->setTextureUpdated(false);
 			}
@@ -3678,6 +3673,23 @@ bool Quadrant::canHaveHiResCollisionInfo(void)
 	
 	return colliderCanHaveHiResCollisionInfo;
 }
+
+godot::Vector4 Quadrant::quadrantTextureLayers(void) const
+{
+	godot::Vector4 v(-1, -1, -1, -1);
+	std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
+	if (groundTextureLayers.contains(m_terrainEdit->extraValues.lowElevationTexName_r))
+		v.x = (float)groundTextureLayers[m_terrainEdit->extraValues.lowElevationTexName_r];
+	if (groundTextureLayers.contains(m_terrainEdit->extraValues.highElevationTexName_g))
+		v.y = (float)groundTextureLayers[m_terrainEdit->extraValues.highElevationTexName_g];
+	if (groundTextureLayers.contains(m_terrainEdit->extraValues.dirtTexName_b))
+		v.z = (float)groundTextureLayers[m_terrainEdit->extraValues.dirtTexName_b];
+	if (groundTextureLayers.contains(m_terrainEdit->extraValues.rocksTexName_a))
+		v.w = (float)groundTextureLayers[m_terrainEdit->extraValues.rocksTexName_a];
+
+	return v;
+}
+
 
 godot::Vector3 Quadrant::getNormalFromNormalmap(size_t index, bool& ok)
 {

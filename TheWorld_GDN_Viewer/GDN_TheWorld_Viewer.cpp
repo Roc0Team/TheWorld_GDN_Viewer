@@ -1595,8 +1595,16 @@ void GDN_TheWorld_Viewer::preDeinit(void)
 	m_streamerThreadRequiredExit = true;
 }
 
-bool GDN_TheWorld_Viewer::canDeinit(void) const
+bool GDN_TheWorld_Viewer::canDeinit(void)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+
+	for (auto& it : m_mapQuadTree)
+	{
+		if (it.second->getQuadrant()->internalDataLocked())
+			return false;
+	}
+	
 	return !m_streamerThreadRunning;
 }
 
@@ -1665,6 +1673,13 @@ void GDN_TheWorld_Viewer::deinit(void)
 			itQuadTree->second->getQuadrant()->getCollider()->exitWorld();
 		}
 		//}
+
+		for (auto& it : m_mapQuadTree)
+		{
+			while(it.second->getQuadrant()->internalDataLocked())
+				Sleep(1);;
+		}
+
 
 		m_streamerThreadRequiredExit = true;
 		if (m_streamerThread.joinable())
@@ -2089,7 +2104,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 			clearMapQuadTree();
 			m_mapQuadTree[quadrantPos] = make_unique<QuadTree>(this, quadrantPos);
-			m_mapQuadTree[quadrantPos]->init(cameraPosX, cameraPosY, cameraPosZ, cameraYaw, cameraPitch, cameraRoll, true, cameraDistanceFromTerrainForced);
+			m_mapQuadTree[quadrantPos]->requestInitDelayed(cameraPosX, cameraPosY, cameraPosZ, cameraYaw, cameraPitch, cameraRoll, true, cameraDistanceFromTerrainForced);
 		}
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_DEPLOYWORLD)
 		{
@@ -3254,7 +3269,11 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			return;
 
 		if (!WorldCamera() || !m_initialWordlViewerPosSet)
+		{
+			for (auto& item : m_mapQuadTree)
+				item.second->initDelayed();
 			return;
+		}
 
 		godot::Camera3D* activeCamera = nullptr;
 		if (IS_EDITOR_HINT())
@@ -3683,6 +3702,8 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 
 	for (auto& item : m_mapQuadTree)
 	{
+		item.second->initDelayed();
+		
 		item.second->getQuadrant()->lockInternalDataUntilCompleteProcessExecution(false);
 
 		item.second->getQuadrant()->process_mapModder(_delta);
@@ -3693,7 +3714,6 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 			std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, item.second->getQuadrant());
 			m_tpClientWorker.QueueJob(f);
 		}
-
 	}
 }
 
@@ -4866,6 +4886,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 			{
 				//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1 ") + __FUNCTION__, "Quadrant locked");
 
+				process_neighborQuadrantData(itQuadTree->second.get());
+
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.1 ") + __FUNCTION__, "resetMaterialParams");
 					materialParamsReset = itQuadTree->second->resetMaterialParams(m_lastProcessExecutionInterrupted);
@@ -4920,6 +4942,107 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 
 			if ((materialParamsReset || materialParamsUpdated || colliderUpdated) && !m_desideredLookDevChanged)
 				break;
+		}
+	}
+}
+
+void GDN_TheWorld_Viewer::process_neighborQuadrantData(QuadTree* quadTree)
+{
+	//return;
+	if (quadTree->statusInitialized())
+	{
+		Quadrant* quadrant = quadTree->getQuadrant();
+		QuadrantPos quadrantPos = quadrant->getPos();
+
+		Quadrant::NeighborQuadrantData& northQuadrantData = quadrant->northQuadrantData();
+		if (!northQuadrantData.initialized())
+		{
+			QuadrantPos northPos = quadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
+			if (m_mapQuadTree.contains(northPos))
+			{
+				QuadTree* northQuadTree = m_mapQuadTree[northPos].get();
+				if (!northQuadTree->statusToErase() && northQuadTree->statusInitialized())
+				{
+					northQuadrantData.groundTextureLayers(northQuadTree->getQuadrant()->quadrantTextureLayers());
+					northQuadTree->getQuadrant()->southQuadrantData().groundTextureLayers(quadrant->quadrantTextureLayers());
+				}
+			}
+		}
+
+		Quadrant::NeighborQuadrantData& southQuadrantData = quadrant->southQuadrantData();
+		if (!southQuadrantData.initialized())
+		{
+			QuadrantPos southPos = quadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
+			if (m_mapQuadTree.contains(southPos))
+			{
+				QuadTree* southQuadTree = m_mapQuadTree[southPos].get();
+				if (!southQuadTree->statusToErase() && southQuadTree->statusInitialized())
+				{
+					southQuadrantData.groundTextureLayers(southQuadTree->getQuadrant()->quadrantTextureLayers());
+					southQuadTree->getQuadrant()->northQuadrantData().groundTextureLayers(quadrant->quadrantTextureLayers());
+				}
+			}
+		}
+
+		Quadrant::NeighborQuadrantData& westQuadrantData = quadrant->westQuadrantData();
+		if (!westQuadrantData.initialized())
+		{
+			QuadrantPos westPos = quadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
+			if (m_mapQuadTree.contains(westPos))
+			{
+				QuadTree* westQuadTree = m_mapQuadTree[westPos].get();
+				if (!westQuadTree->statusToErase() && westQuadTree->statusInitialized())
+				{
+					westQuadrantData.groundTextureLayers(westQuadTree->getQuadrant()->quadrantTextureLayers());
+					westQuadTree->getQuadrant()->eastQuadrantData().groundTextureLayers(quadrant->quadrantTextureLayers());
+				}
+			}
+		}
+		
+		Quadrant::NeighborQuadrantData& eastQuadrantData = quadrant->eastQuadrantData();
+		if (!eastQuadrantData.initialized())
+		{
+			QuadrantPos eastPos = quadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
+			if (m_mapQuadTree.contains(eastPos))
+			{
+				QuadTree* eastQuadTree = m_mapQuadTree[eastPos].get();
+				if (!eastQuadTree->statusToErase() && eastQuadTree->statusInitialized())
+				{
+					eastQuadrantData.groundTextureLayers(eastQuadTree->getQuadrant()->quadrantTextureLayers());
+					eastQuadTree->getQuadrant()->westQuadrantData().groundTextureLayers(quadrant->quadrantTextureLayers());
+				}
+			}
+		}
+
+		if (is_inside_tree() && quadTree->getLookDev() == ShaderTerrainData::LookDev::NotSet)
+		{
+			if (northQuadrantData.initialized() && !northQuadrantData.shaderUpdated())
+			{
+				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularMaterial();
+				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, northQuadrantData.groundTextureLayers());
+				northQuadrantData.shaderUpdated(true);
+			}
+
+			if (southQuadrantData.initialized() && !southQuadrantData.shaderUpdated())
+			{
+				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularMaterial();
+				currentMaterial->set_shader_parameter(SHADER_PARAM_SOUTH_GROUND_LAYERS, southQuadrantData.groundTextureLayers());
+				southQuadrantData.shaderUpdated(true);
+			}
+
+			if (westQuadrantData.initialized() && !westQuadrantData.shaderUpdated())
+			{
+				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularMaterial();
+				currentMaterial->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, westQuadrantData.groundTextureLayers());
+				westQuadrantData.shaderUpdated(true);
+			}
+
+			if (eastQuadrantData.initialized() && !eastQuadrantData.shaderUpdated())
+			{
+				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularMaterial();
+				currentMaterial->set_shader_parameter(SHADER_PARAM_EAST_GROUND_LAYERS, eastQuadrantData.groundTextureLayers());
+				eastQuadrantData.shaderUpdated(true);
+			}
 		}
 	}
 }

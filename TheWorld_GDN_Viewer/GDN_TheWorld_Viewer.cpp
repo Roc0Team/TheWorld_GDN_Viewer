@@ -473,7 +473,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
 			godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 			//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader", "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
-			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader");
+			//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader");
+			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.tres");
 			mat->set_shader(shader);
 			float gridStepInWU = m_viewer->Globals()->gridStepInWU();
 			mat->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, normalTexture);
@@ -484,7 +485,42 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			mat->set_shader_parameter(SHADER_PARAM_LOW_ELEVATION_FACTOR, m_lowElevationFactor);
 			mat->set_shader_parameter(SHADER_PARAM_MIN_HEIGHT, m_minHeigth);
 			mat->set_shader_parameter(SHADER_PARAM_MAX_HEIGHT, m_maxHeigth);
-			mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+			//t->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+
+			{
+				Quadrant* quadrant = m_quadTree->getQuadrant();
+				QuadrantPos quadrantPos = quadrant->getPos();
+				
+				QuadrantPos northPos = quadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
+				QuadTree* northQuadTree = m_viewer->getQuadTree(northPos, true, false);
+				if (northQuadTree != nullptr && northQuadTree->statusInitialized())
+				{
+					godot::Vector2 heights(northQuadTree->getQuadrant()->getTerrainEdit()->minHeight, northQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
+					mat->set_shader_parameter(SHADER_PARAM_NORTH_HEIGHTS, heights);
+				}
+				QuadrantPos southPos = quadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
+				QuadTree* southQuadTree = m_viewer->getQuadTree(southPos, true, false);
+				if (southQuadTree != nullptr && southQuadTree->statusInitialized())
+				{
+					godot::Vector2 heights(southQuadTree->getQuadrant()->getTerrainEdit()->minHeight, southQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
+					mat->set_shader_parameter(SHADER_PARAM_SOUTH_HEIGHTS, heights);
+				}
+				QuadrantPos westPos = quadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
+				QuadTree* westQuadTree = m_viewer->getQuadTree(westPos, true, false);
+				if (westQuadTree != nullptr && westQuadTree->statusInitialized())
+				{
+					godot::Vector2 heights(westQuadTree->getQuadrant()->getTerrainEdit()->minHeight, westQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
+					mat->set_shader_parameter(SHADER_PARAM_WEST_HEIGHTS, heights);
+				}
+				QuadrantPos eastPos = quadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
+				QuadTree* eastQuadTree = m_viewer->getQuadTree(eastPos, true, false);
+				if (eastQuadTree != nullptr && eastQuadTree->statusInitialized())
+				{
+					godot::Vector2 heights(eastQuadTree->getQuadrant()->getTerrainEdit()->minHeight, eastQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
+					mat->set_shader_parameter(SHADER_PARAM_EAST_HEIGHTS, heights);
+				}
+			}
+
 			m_map->set_material(mat);
 		}
 	}
@@ -3223,7 +3259,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		{
 			std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
 
-			bool resetProcessing = true;
+			bool resetgroundTexturesProcessing = true;
 
 			for (const auto& groundTexture : groundTextures)
 			{
@@ -3232,12 +3268,12 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 					std::string s(groundTexture.first);
 					ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + s.c_str(), groundTexture.second.get(), this);
 					globals->addNumElementInitialized();
-					resetProcessing = false;
+					resetgroundTexturesProcessing = false;
 					break;
 				}
 			}
 
-			if (resetProcessing)
+			if (resetgroundTexturesProcessing)
 			{
 				godot::Ref<godot::Texture2DArray> albedoBumpTexture2DArray = memnew(godot::Texture2DArray);
 				godot::TypedArray<godot::Image> albedoBumpImageArray;

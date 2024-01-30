@@ -356,7 +356,9 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("quadrant_size_in_wus"), &GDN_TheWorld_Globals::heightmapSizeInWUs);
 		ClassDB::bind_method(D_METHOD("quadrant_step_in_wus"), &GDN_TheWorld_Globals::gridStepInWU);
 
-		
+		ClassDB::bind_method(D_METHOD("set_texture_blending_size"), &GDN_TheWorld_Globals::setTextureBlendingSize);
+		ClassDB::bind_method(D_METHOD("set_splatmap_blending_size"), &GDN_TheWorld_Globals::setSplatmapBlendingSize);
+
 		// perfparam_
 		ClassDB::bind_method(D_METHOD("set_perfparam_stream_world"), &GDN_TheWorld_Globals::setStreamWorld);
 		ClassDB::bind_method(D_METHOD("get_perfparam_stream_world"), &GDN_TheWorld_Globals::getStreamWorld);

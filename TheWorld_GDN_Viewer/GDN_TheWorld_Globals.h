@@ -659,6 +659,23 @@ namespace godot
 		//}
 		//void setParamDepthQuadWithCollisionInfo(int64_t f);
 
+		void setTextureBlendingSize(float f)
+		{
+			m_textureBlendingSize = f;
+		}
+		float getTextureBlendingSize(void) const
+		{
+			return m_textureBlendingSize;
+		}
+		void setSplatmapBlendingSize(float f)
+		{
+			m_splatmapBlendingSize = f;
+		}
+		float getSplatmapBlendingSize(void) const
+		{
+			return m_splatmapBlendingSize;
+		}
+
 		// DEBUG
 		//static size_t s_num;
 		//static size_t s_elapsed1;
@@ -693,6 +710,9 @@ namespace godot
 		size_t m_totElementToInitialize;
 		size_t m_numElementInitialized;
 
+		float m_textureBlendingSize = 0.0f;
+		float m_splatmapBlendingSize = 0.0f;
+		
 		// Node cache
 		GDN_TheWorld_Viewer* m_viewer;
 

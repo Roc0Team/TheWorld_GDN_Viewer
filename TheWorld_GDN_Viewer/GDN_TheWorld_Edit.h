@@ -304,7 +304,7 @@ namespace godot
 		void editModeBlendAction(void);
 		bool hiResCollisionGridEnabled(void);
 		bool lowResCollisionGridEnabled(void);
-		//void editModeResetNormalsSplatmapAction(void);
+		void editModeResetNormalsSplatmapAction(void);
 		//void editModeGenNormalsAction(void);
 		//void editModeApplyTexturesAction(void);
 		void editModeSaveAction(void);

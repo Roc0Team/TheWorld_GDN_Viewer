@@ -845,18 +845,19 @@ namespace godot
 #define SHADER_PARAM_USE_GLOBALMAP					"u_use_globalmap"
 #define SHADER_PARAM_OPTIMIZATION_LEVEL				"u_optimization_level"
 
-#define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
-#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
+//#define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
+//#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
 #define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY		"gu_ground_albedo_bump_array"
 #define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
+//#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_texture_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
+//#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_splatmap_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_splatmapBlendingSize to avoid reading it from RenderingServer (slow operation)
+
 
 #define SHADER_PARAM_GROUND_LAYERS					"u_ground_layers"	// godot::Plane (vec4) ==> normal_x (vec4 x) = low, normal_y (vec4 y) = high, normal_z (vec4 z) = dirt, d (vec4 w) = rock
 #define SHADER_PARAM_NORTH_GROUND_LAYERS			"u_north_ground_layers"
 #define SHADER_PARAM_SOUTH_GROUND_LAYERS			"u_south_ground_layers"
 #define SHADER_PARAM_EAST_GROUND_LAYERS				"u_east_ground_layers"
 #define SHADER_PARAM_WEST_GROUND_LAYERS				"u_west_ground_layers"
-
-#define SHADER_PARAM_TEXTURE_BLENDING_SIZE			"gu_texture_blending_size"
 
 #define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT						"u_mouse_hit"
@@ -895,6 +896,10 @@ namespace godot
 #define SHADER_PARAM_LOW_ELEVATION_FACTOR			"u_low_elevation_factor"
 #define SHADER_PARAM_MAX_HEIGHT						"u_max_heigth"
 #define SHADER_PARAM_MIN_HEIGHT						"u_min_heigth"
+#define SHADER_PARAM_NORTH_HEIGHTS					"u_north_heights"
+#define SHADER_PARAM_SOUTH_HEIGHTS					"u_south_heights"
+#define SHADER_PARAM_WEST_HEIGHTS					"u_west_heights"
+#define SHADER_PARAM_EAST_HEIGHTS					"u_east_heights"
 
 	public:
 

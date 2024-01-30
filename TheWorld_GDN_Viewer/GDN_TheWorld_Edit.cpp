@@ -56,7 +56,7 @@ void GDN_TheWorld_Edit::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("edit_mode_generate"), &GDN_TheWorld_Edit::editModeGenerateAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_blend"), &GDN_TheWorld_Edit::editModeBlendAction);
-	//ClassDB::bind_method(D_METHOD("edit_mode_reset_normals_splatmap"), &GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction);
+	ClassDB::bind_method(D_METHOD("edit_mode_reset_normals_splatmap"), &GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction);
 	//ClassDB::bind_method(D_METHOD("edit_mode_gen_normals"), &GDN_TheWorld_Edit::editModeGenNormalsAction);
 	//ClassDB::bind_method(D_METHOD("edit_mode_apply_textures"), &GDN_TheWorld_Edit::editModeApplyTexturesAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_save"), &GDN_TheWorld_Edit::editModeSaveAction);
@@ -354,8 +354,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		button->set_self_modulate(BUTTON_COLOR);
 		button = createControl<godot::Button>(hBoxContainer, "", "Reload shader", "pressed", this, "edit_mode_reload_shader");
 		button->set_self_modulate(BUTTON_COLOR);
-		//button = createControl<godot::Button>(hBoxContainer, "", "Reset Normals/Textures", "pressed", this, "edit_mode_reset_normals_splatmap");
-		//button->set_self_modulate(BUTTON_COLOR);
+		button = createControl<godot::Button>(hBoxContainer, "", "Reset Normals/Textures", "pressed", this, "edit_mode_reset_normals_splatmap");
+		button->set_self_modulate(BUTTON_COLOR);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Apply Texs", "pressed", this, "edit_mode_apply_textures");
 		//button->set_self_modulate(BUTTON_COLOR);
 		m_innerData->m_allCheckBox = createControl<godot::CheckBox>(hBoxContainer);
@@ -605,20 +605,6 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 		separator = createControl<HSeparator>(m_innerData->m_terrEditVBoxContainer);
 
-		label = createControl<godot::Label>(m_innerData->m_terrEditVBoxContainer, "", c_highElevationEditTextureName.c_str());
-		m_innerData->m_highElevationTexPanel = createControl<godot::PanelContainer>(m_innerData->m_terrEditVBoxContainer, "HighElevationTexPanel");
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_highElevationTexPanel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", c_highElevationEditTextureName.c_str());
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_highElevationTexPanel, "godot::PanelContainer", "mouse_exited", this, "void_signal_manager", c_highElevationEditTextureName.c_str());
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_highElevationTexPanel, "godot::PanelContainer", "gui_input", this, "gui_input_event", c_highElevationEditTextureName.c_str());
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_highElevationTexPanel);
-		m_innerData->m_highElevationTex = createControl<godot::TextureRect>(hBoxContainer);
-		m_innerData->m_highElevationTex->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
-		m_innerData->m_highElevationTex->set_custom_minimum_size(size);
-		m_innerData->m_highElevationTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
-		m_innerData->m_highElevationTexName = createControl<godot::Label>(hBoxContainer);
-		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
-		//button->set_self_modulate(BUTTON_COLOR);
-
 		label = createControl<godot::Label>(m_innerData->m_terrEditVBoxContainer, "", c_lowElevationEditTextureName.c_str());
 		m_innerData->m_lowElevationTexPanel = createControl<godot::PanelContainer>(m_innerData->m_terrEditVBoxContainer, "LowElevationTexPanel");
 		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_lowElevationTexPanel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", c_lowElevationEditTextureName.c_str());
@@ -633,17 +619,17 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
 		//button->set_self_modulate(BUTTON_COLOR);
 
-		label = createControl<godot::Label>(m_innerData->m_terrEditVBoxContainer, "", c_rocksEditTextureName.c_str());
-		m_innerData->m_rocksTexPanel = createControl<godot::PanelContainer>(m_innerData->m_terrEditVBoxContainer, "RocksTexPanel");
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_rocksTexPanel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", c_rocksEditTextureName.c_str());
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_rocksTexPanel, "godot::PanelContainer", "mouse_exited", this, "void_signal_manager", c_rocksEditTextureName.c_str());
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_rocksTexPanel, "godot::PanelContainer", "gui_input", this, "gui_input_event", c_rocksEditTextureName.c_str());
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_rocksTexPanel);
-		m_innerData->m_rocksTex = createControl<godot::TextureRect>(hBoxContainer);
-		m_innerData->m_rocksTex->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
-		m_innerData->m_rocksTex->set_custom_minimum_size(size);
-		m_innerData->m_rocksTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
-		m_innerData->m_rocksTexName = createControl<godot::Label>(hBoxContainer);
+		label = createControl<godot::Label>(m_innerData->m_terrEditVBoxContainer, "", c_highElevationEditTextureName.c_str());
+		m_innerData->m_highElevationTexPanel = createControl<godot::PanelContainer>(m_innerData->m_terrEditVBoxContainer, "HighElevationTexPanel");
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_highElevationTexPanel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", c_highElevationEditTextureName.c_str());
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_highElevationTexPanel, "godot::PanelContainer", "mouse_exited", this, "void_signal_manager", c_highElevationEditTextureName.c_str());
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_highElevationTexPanel, "godot::PanelContainer", "gui_input", this, "gui_input_event", c_highElevationEditTextureName.c_str());
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_highElevationTexPanel);
+		m_innerData->m_highElevationTex = createControl<godot::TextureRect>(hBoxContainer);
+		m_innerData->m_highElevationTex->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
+		m_innerData->m_highElevationTex->set_custom_minimum_size(size);
+		m_innerData->m_highElevationTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
+		m_innerData->m_highElevationTexName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
 		//button->set_self_modulate(BUTTON_COLOR);
 
@@ -658,6 +644,20 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_dirtTex->set_custom_minimum_size(size);
 		m_innerData->m_dirtTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_dirtTexName = createControl<godot::Label>(hBoxContainer);
+		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
+		//button->set_self_modulate(BUTTON_COLOR);
+
+		label = createControl<godot::Label>(m_innerData->m_terrEditVBoxContainer, "", c_rocksEditTextureName.c_str());
+		m_innerData->m_rocksTexPanel = createControl<godot::PanelContainer>(m_innerData->m_terrEditVBoxContainer, "RocksTexPanel");
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_rocksTexPanel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", c_rocksEditTextureName.c_str());
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_rocksTexPanel, "godot::PanelContainer", "mouse_exited", this, "void_signal_manager", c_rocksEditTextureName.c_str());
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_rocksTexPanel, "godot::PanelContainer", "gui_input", this, "gui_input_event", c_rocksEditTextureName.c_str());
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_rocksTexPanel);
+		m_innerData->m_rocksTex = createControl<godot::TextureRect>(hBoxContainer);
+		m_innerData->m_rocksTex->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
+		m_innerData->m_rocksTex->set_custom_minimum_size(size);
+		m_innerData->m_rocksTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
+		m_innerData->m_rocksTexName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
 		//button->set_self_modulate(BUTTON_COLOR);
 
@@ -3236,19 +3236,19 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 	}
 }
 
-//void GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction(void)
-//{
-//	if (m_actionInProgress)
-//		return;
-//
-//	m_actionInProgress = true;
-//	m_allItems = 0;
-//	setElapsed(0, true);
-//	setNote1(0);
-//
-//	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeResetNormalsSplatmap, this);
-//	m_tp.QueueJob(f);
-//}
+void GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction(void)
+{
+	if (m_actionInProgress)
+		return;
+
+	m_actionInProgress = true;
+	m_allItems = 0;
+	setElapsed(0, true);
+	setNote1(0);
+
+	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeResetNormalsSplatmap, this);
+	m_tp.QueueJob(f);
+}
 
 void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 {

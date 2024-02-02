@@ -377,7 +377,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 		// assume square buffer
 		m_imageSize = (size_t)sqrt(float(m_float32HeigthsBuffer->size() / sizeof(float)));
 		my_assert(size_t(pow((float)m_imageSize, 2) * sizeof(float)) == m_float32HeigthsBuffer->size());	// verify buffer is square
-		my_assert(m_imageSize / m_tileSize * m_tileSize == m_imageSize - 1);								// verify tile can cover all the image with the exception of the left/botton border
+		//my_assert(m_imageSize / m_tileSize * m_tileSize == m_imageSize - 1);								// verify tile can cover all the image with the exception of the left/botton border
 	}
 
 	godot::RenderingServer* vs = godot::RenderingServer::get_singleton();
@@ -406,6 +406,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			}
 	}
 
+	godot::Ref<godot::ImageTexture> heightmapTexture;
 	if (m_initialized != MapType::initializedForGlobalmap)
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("MapModder startProcessing 1.2 ") + __FUNCTION__, "Create Image/Texture from heights buffer");
@@ -431,6 +432,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 		//heigthTexture = tex;
 		//m_map->set_texture(heigthTexture);
 		m_map->set_texture(tex);
+		heightmapTexture = tex;
 	}
 
 	if (m_initialized == MapType::initializedForNormals)
@@ -476,7 +478,9 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader");
 			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.tres");
 			mat->set_shader(shader);
-			float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+			//float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+			//mat->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, heightmapTexture);
+			//mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
 			mat->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, normalTexture);
 			mat->set_shader_parameter(SHADER_PARAM_SLOPE_VERTICAL_FACTOR, m_slopeVerticalFactor);
 			mat->set_shader_parameter(SHADER_PARAM_SLOPE_FLAT_FACTOR, m_slopeFlatFactor);
@@ -485,7 +489,6 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			mat->set_shader_parameter(SHADER_PARAM_LOW_ELEVATION_FACTOR, m_lowElevationFactor);
 			mat->set_shader_parameter(SHADER_PARAM_MIN_HEIGHT, m_minHeigth);
 			mat->set_shader_parameter(SHADER_PARAM_MAX_HEIGHT, m_maxHeigth);
-			//t->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
 
 			{
 				Quadrant* quadrant = m_quadTree->getQuadrant();

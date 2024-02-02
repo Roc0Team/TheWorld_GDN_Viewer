@@ -934,6 +934,11 @@ void QuadTree::setRegularMaterial(bool reload)
 	getQuadrant()->setColorsUpdated(true);
 	getQuadrant()->setGlobalmapUpdated(true);
 
+	getQuadrant()->northQuadrantData().shaderUpdated(false);
+	getQuadrant()->southQuadrantData().shaderUpdated(false);
+	getQuadrant()->westQuadrantData().shaderUpdated(false);
+	getQuadrant()->eastQuadrantData().shaderUpdated(false);
+
 	Chunk::SetMaterialChunkAction action(getQuadrant()->getShaderTerrainData()->getRegularMaterial(reload));
 	ForAllChunk(action);
 
@@ -3327,8 +3332,8 @@ void Quadrant::process_mapModder(double _delta)
 
 	m_mapModder->debug_process(_delta);
 
-	//if (GDN_TheWorld_MapModder::getNumWorking() > 0)	// DEBUG
-	//	return;
+	if (GDN_TheWorld_MapModder::getNumWorking() > 10)	// DEBUG
+		return;
 
 	if (internalDataLocked())
 		return;
@@ -3356,7 +3361,7 @@ void Quadrant::process_mapModder(double _delta)
 		bool lockAcquired = lockInternalData();
 		if (lockAcquired)
 		{
-			m_mapModder->initForNormals(m_quadTree, &getFloat32HeightsBuffer(), 1024, 1, true);		// atm border = 0 will be the same
+			m_mapModder->initForNormals(m_quadTree, &getFloat32HeightsBuffer(), /*1024*/ getPos().getNumVerticesPerSize(), 0, true);		// atm border = 0 will be the same
 		}
 		return;
 	}
@@ -3366,7 +3371,7 @@ void Quadrant::process_mapModder(double _delta)
 		bool lockAcquired = lockInternalData();
 		if (lockAcquired)
 		{
-			m_mapModder->initForSplatmap(m_quadTree, &getFloat32HeightsBuffer(), &getNormalsBuffer(), terrainEdit->extraValues.slopeVerticalFactor, terrainEdit->extraValues.slopeFlatFactor, terrainEdit->extraValues.dirtOnRocksFactor, terrainEdit->extraValues.highElevationFactor, terrainEdit->extraValues.lowElevationFactor, terrainEdit->minHeight, terrainEdit->maxHeight, 1024, 0, true);
+			m_mapModder->initForSplatmap(m_quadTree, &getFloat32HeightsBuffer(), &getNormalsBuffer(), terrainEdit->extraValues.slopeVerticalFactor, terrainEdit->extraValues.slopeFlatFactor, terrainEdit->extraValues.dirtOnRocksFactor, terrainEdit->extraValues.highElevationFactor, terrainEdit->extraValues.lowElevationFactor, terrainEdit->minHeight, terrainEdit->maxHeight, /*1024*/ getPos().getNumVerticesPerSize(), 0, true);
 		}
 		return;
 	}

@@ -1876,7 +1876,10 @@ void GDN_TheWorld_Edit::changeTextureAction()
 	// Shader need refresh
 	quadTreeSel->getQuadrant()->setTextureUpdated(true);
 	quadTreeSel->getQuadrant()->getShaderTerrainData()->materialParamsNeedReset(true);
-
+	quadTreeSel->getQuadrant()->northQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->southQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->westQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->eastQuadrantData().initialized(false);
 }
 
 godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
@@ -2755,6 +2758,10 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->setColorsUpdated(true);
 	quadTreeSel->materialParamsNeedReset(true);
 	quadTreeSel->colliderNeedReset(true);
+	quadTreeSel->getQuadrant()->northQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->southQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->westQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->eastQuadrantData().initialized(false);
 
 	// 10. unlock internal datas so that they can be passed to the shader/collider
 	quadTreeSel->getQuadrant()->unlockInternalData();
@@ -2830,11 +2837,11 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 	QuadTree* quadTreeSel = nullptr;
 	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
 
-	if (!allCheched && quadrantSelPos.empty())
+	if (quadrantSelPos.empty())
 	{
 		m_actionClock.tock();
 		m_actionInProgress = false;
-		setMessage(godot::String("Completed!"), true);
+		setMessage(godot::String("Must select a quadrant!"), true);
 		return;
 	}
 
@@ -3292,6 +3299,8 @@ void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 		{
 			quadTree->getQuadrant()->getTerrainEdit()->normalsNeedRegen = true;
 			quadTree->getQuadrant()->getNormalsBuffer().clear(__FUNCTION__);
+			//quadTree->getQuadrant()->getSplatmapBuffer().clear(__FUNCTION__);
+			//quadTree->getQuadrant()->getGlobalmapBuffer().clear(__FUNCTION__);
 			quadTree->getQuadrant()->unlockInternalData();
 
 			m_completedItems++;

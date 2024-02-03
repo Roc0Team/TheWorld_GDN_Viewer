@@ -327,9 +327,9 @@ void QuadTree::mouseHitChanged(godot::Vector3 mouseHit, bool hit)
 	if (hit)
 	{
 		QuadrantPos pos = getQuadrant()->getPos();
-		float s = pos.getSizeInWU();							// DEBUG ONLY
-		float dx = mouseHit.x - pos.getLowerXGridVertex();		// DEBUG ONLY
-		float dz = mouseHit.z - pos.getLowerZGridVertex();		// DEBUG ONLY
+		//float s = pos.getSizeInWU();							// DEBUG ONLY
+		//float dx = mouseHit.x - pos.getLowerXGridVertex();		// DEBUG ONLY
+		//float dz = mouseHit.z - pos.getLowerZGridVertex();		// DEBUG ONLY
 		viewportMouseHit.x = (mouseHit.x - pos.getLowerXGridVertex()) / pos.getSizeInWU();
 		viewportMouseHit.y = (mouseHit.z - pos.getLowerZGridVertex()) / pos.getSizeInWU();
 	}

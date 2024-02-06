@@ -787,6 +787,27 @@ namespace godot
 			if (!m_positionVisible)
 				trackingDistance(false);
 		}
+		bool gridOn(void) const
+		{
+			return m_gridOn;
+		}
+		void gridOn(bool b)
+		{
+			if (m_gridOn != b)
+			{
+				if (isQuadrantSelectedForEdit())
+				{
+					QuadTree* quadTreeSelectedForEdit = nullptr;
+					QuadrantPos pos = getQuadrantSelForEdit(&quadTreeSelectedForEdit);
+					quadTreeSelectedForEdit->materialParamsNeedUpdate(true);
+				}
+
+				if (!b)
+					updateMaterialParamsForEveryQuadrant();
+			}
+
+			m_gridOn = b;
+		}
 		bool trackingDistance(void) const
 		{
 			return m_trackingDistance;
@@ -1089,6 +1110,7 @@ namespace godot
 		bool m_gizmoVisible = false;
 		bool m_positionVisible = false;
 		bool m_trackingDistance = false;
+		bool m_gridOn = false;
 		godot::Vector3 m_savedPosForTrackingDistance;
 
 		bool m_debugContentVisibility;

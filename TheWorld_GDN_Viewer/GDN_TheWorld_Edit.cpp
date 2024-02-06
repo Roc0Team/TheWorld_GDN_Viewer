@@ -203,7 +203,8 @@ void GDN_TheWorld_Edit::editModeMouseExitedEditPanel(void)
 {
 	m_requiredUIAcceptFocus = false;
 	//setUIAcceptFocus(false);
-	m_innerData->m_mouseInsideEditPanel = false;
+	if (m_innerData.get() != nullptr)
+		m_innerData->m_mouseInsideEditPanel = false;
 }
 
 bool GDN_TheWorld_Edit::UIAcceptingFocus(void) const
@@ -398,10 +399,16 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_showNormal->set_text("Show Normal");
 		m_innerData->m_showNormal->set_toggle_mode(true);
 		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showNormal, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
-		m_innerData->m_showNormal = createControl<godot::CheckBox>(hBoxContainer, "ShowPositionCheckBox");
-		m_innerData->m_showNormal->set_text("Show Position");
-		m_innerData->m_showNormal->set_toggle_mode(true);
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showNormal, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		m_innerData->m_showPosition = createControl<godot::CheckBox>(hBoxContainer, "ShowPositionCheckBox");
+		m_innerData->m_showPosition->set_text("Show Position");
+		m_innerData->m_showPosition->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showPosition, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_infoVBoxContainer);
+		m_innerData->m_gridON = createControl<godot::CheckBox>(hBoxContainer, "GridOnCheckBox");
+		m_innerData->m_gridON->set_text("Grid ON");
+		m_innerData->m_gridON->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_gridON, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 
 		m_innerData->m_infoLabel = createControl<godot::Label>(m_innerData->m_infoVBoxContainer);
 	}
@@ -2335,7 +2342,17 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 		if (pressed)
 			m_viewer->positionVisible(true);
 		else
+		{
 			m_viewer->positionVisible(false);
+			m_innerData->m_gridON->set_pressed(false);
+		}
+	}
+	else if (_objectName == "GridOnCheckBox")
+	{
+		if (pressed)
+			m_viewer->gridOn(true);
+		else
+			m_viewer->gridOn(false);
 	}
 	else if (_objectName == "CollisonHiResGridCheckBox")
 	{

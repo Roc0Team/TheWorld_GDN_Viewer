@@ -702,6 +702,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			material->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
 			material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
 			material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+			material->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 			material->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 			godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
 			godot::Variant inverseTransform = t.affine_inverse();
@@ -2624,9 +2625,15 @@ void GDN_TheWorld_Viewer::toggleEditMode(void)
 	m_previousTrackedMouseHit = godot::Vector3();
 	m_editMode = !m_editMode;
 	if (m_editMode)
+	{
 		trackMouse(true);
+	}
 	else
-		trackMouse(false);
+	{
+		if (!positionVisible() && !normalVisible() && !gizmoVisible())
+			trackMouse(false);
+		//gridOn(false);
+	}
 }
 
 void GDN_TheWorld_Viewer::toggleDebugVisibility(void)

@@ -173,6 +173,8 @@ namespace godot
 			godot::Control* m_infoVBoxContainer;
 			godot::CheckBox* m_showGizmo = nullptr;
 			godot::CheckBox* m_showNormal = nullptr;
+			godot::CheckBox* m_showPosition = nullptr;
+			godot::CheckBox* m_gridON = nullptr;
 			godot::Label* m_infoLabel;
 
 			godot::Button* m_noiseButton;

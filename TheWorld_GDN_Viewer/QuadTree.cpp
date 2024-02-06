@@ -1423,6 +1423,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularMaterial(bool reload)
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		m_regularMaterial = mat;
 	}
 	
@@ -1508,6 +1509,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevMaterial(enum class Sha
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		m_lookDevMaterial = mat;
 	}
 
@@ -1556,6 +1558,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lo
 		mat->set_shader_parameter(SHADER_PARAM_LOD_CHUNK_SIZE, lodChunkSizeInWu);
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		m_lookDevChunkLodMaterials[lod] = mat;
 	}
 
@@ -1847,18 +1850,30 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 			if (item.second != nullptr)
 			{
 				if (m_viewer->positionVisible())
+				{
 					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
+					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
+				}
 				else
+				{
 					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+					//item.second->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
+				}
 			}
 	}
 	else
 	{
 		godot::Ref<godot::ShaderMaterial> currentMaterial = (lookdev == LookDev::NotSet ? getRegularMaterial() : getLookDevMaterial(lookdev));
 		if (currentMaterial != nullptr && m_viewer->positionVisible())
+		{
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
+			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
+		}
 		else
+		{
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			//currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
+		}
 	}
 }
 
@@ -2677,6 +2692,10 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 		if (selected)
 			editMode = 1.0f;
 
+		bool gridOn = false;
+		if (selected)
+			gridOn = m_viewer->gridOn();
+
 		Quadrant* quadrant = m_quadTree->getQuadrant();
 
 		TheWorld_Utils::TerrainEdit* terrainEdit = quadrant->getTerrainEdit();
@@ -2690,6 +2709,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				item.second->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
 				item.second->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
 				item.second->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, editMode);
+				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, gridOn);
 				item.second->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 				item.second->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, quadrant->optimizationLevel());
@@ -2711,6 +2731,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 			currentMaterial->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, editMode);
+			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, gridOn);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 

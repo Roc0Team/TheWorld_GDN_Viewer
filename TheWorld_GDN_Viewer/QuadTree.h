@@ -864,6 +864,8 @@ namespace godot
 #define SHADER_PARAM_MOUSE_HIT_RADIUS				"u_mouse_hit_radius"
 #define SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS		"u_quad_border_line_thickness"
 
+#define SHADER_PARAM_MOUSE_GRID_ON					"u_grid_on"
+
 #define SHADER_PARAM_VERTICES_PER_CHUNK				"u_num_vertices_per_chunk"
 #define SHADER_PARAM_LOOKDEV_LOD					"u_lod"
 #define	SHADER_PARAM_LOD_GRID_STEP					"u_lod_grid_step"

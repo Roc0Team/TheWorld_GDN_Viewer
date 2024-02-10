@@ -5,6 +5,7 @@
 #pragma warning(push, 0)
 #include <godot_cpp/classes/window.hpp>
 #include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/classes/rendering_server.hpp>
 #pragma warning(pop)
 
 static bool g_plogInitialized = false;

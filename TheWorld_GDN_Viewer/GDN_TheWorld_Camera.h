@@ -133,12 +133,19 @@ namespace godot {
 			m_trackingOffset = v;
 		}
 
+		void updateAltitude(void);
+
+		float cameraAltitude(void) const
+		{
+			return m_lastCameraAltitudeComputed;
+		}
+
 	private:
 
 	private:
 		bool m_ready;
 		bool m_quitting;
-		Transform3D m_lastCameraPosInWorld;
+		godot::Transform3D m_lastCameraPosInWorld;
 		bool m_WorldCamera;
 		bool m_updateCameraRequired;
 		bool m_isActive;
@@ -147,6 +154,10 @@ namespace godot {
 		bool m_trackingPlayer = false;
 		float m_trackingLerpSpeed = 10.0f;
 		godot::Vector3 m_trackingOffset = godot::Vector3(0.0f, 7.0f, 5.0f);
+		
+		godot::Vector3 m_savedCameraPos = godot::Vector3(0.0f, 0.0f, 0.0f);
+		float m_lastCameraAltitudeComputed = -1.0f;
+		godot::Vector3 m_lastComputedCameraVerticalOnTerrain = godot::Vector3(0.0f, 0.0f, 0.0f);
 
 		float m_angleFromNorthDeg;	// angle expressed in degrees of the projection of the camera on XZ plane: 0 ==> camera points to north, 90 camera points to east, 180 camera points to south, 270 camera points to west
 
@@ -188,9 +199,9 @@ namespace godot {
 		//bool m_rightMovementOn;
 		//bool m_upwardMovementOn;
 		//bool m_downwardMovementOn;
-		Vector2 m_mouseRelativePosToRotate;
-		Vector2 m_mouseRelativePosToShiftOriz;
-		Vector2 m_mouseRelativePosToShiftVert;
+		godot::Vector2 m_mouseRelativePosToRotate;
+		godot::Vector2 m_mouseRelativePosToShiftOriz;
+		godot::Vector2 m_mouseRelativePosToShiftVert;
 		float m_sensitivity;			// 0.0 - 1.0
 		float m_smoothness;				// 0.0 - 0.999 tick 0.001
 		float m_yaw;

@@ -12,6 +12,9 @@
 #include <godot_cpp/classes/viewport.hpp>
 #include <godot_cpp/classes/window.hpp>
 #include <godot_cpp/classes/array_mesh.hpp>
+#include <godot_cpp/classes/world3d.hpp>
+#include <godot_cpp/classes/physics_direct_space_state3d.hpp>
+#include <godot_cpp/classes/physics_ray_query_parameters3d.hpp>
 #pragma warning (pop)
 
 #include <math.h> 
@@ -36,6 +39,7 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_camera_tracking_speed"), &GDN_TheWorld_Camera::getCameraTrackingSpeed);
 	ClassDB::bind_method(D_METHOD("set_camera_tracking_offset", "p_value"), &GDN_TheWorld_Camera::setCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_tracking_offset"), &GDN_TheWorld_Camera::getCameraTrackingOffeset);
+	ClassDB::bind_method(D_METHOD("get_camera_altitude_from_terrain"), &GDN_TheWorld_Camera::cameraAltitude);
 
 	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
 	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_camera_tracking_speed", "get_camera_tracking_speed");
@@ -601,6 +605,8 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 		look_at(m_trackedPlayer->get_global_transform().origin, Vector3Up);
 	}
 
+	updateAltitude();
+
 	return true;
 }
 
@@ -608,7 +614,10 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 {
 	if (!m_updateCameraRequired)
+	{
+		updateAltitude();
 		return true;
+	}
 
 	m_updateCameraRequired = false;
 
@@ -758,7 +767,41 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		m_numMoveStepUp = 0;
 	}
 
+	updateAltitude();
+
 	return true;
+}
+
+void GDN_TheWorld_Camera::updateAltitude(void)
+{
+#define DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE	5.0f
+#define MAX_ALTITUDE_DETECTED					1000.0f
+
+	if (Globals()->status() != TheWorldStatus::worldDeployed)
+		return;
+	
+	godot::Vector3 cameraGlobalPosition = get_global_position();
+	
+	if (cameraGlobalPosition.distance_to(m_savedCameraPos) > DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE)
+	{
+		godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
+		godot::Dictionary rayArray;
+		godot::Vector3 rayOrigin = cameraGlobalPosition;
+		godot::Vector3 rayEnd = rayOrigin + godot::Vector3(0.0f, -MAX_ALTITUDE_DETECTED, 0.0f);
+		godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd);
+		rayArray = spaceState->intersect_ray(query);
+		if (rayArray.has("position"))
+		{
+			m_lastComputedCameraVerticalOnTerrain = rayArray["position"];
+			m_lastCameraAltitudeComputed = abs(cameraGlobalPosition.y - m_lastComputedCameraVerticalOnTerrain.y);
+		}
+		else
+		{
+			m_lastCameraAltitudeComputed = -1;
+		}
+
+		m_savedCameraPos = cameraGlobalPosition;
+	}
 }
 
 GDN_TheWorld_Globals* GDN_TheWorld_Camera::Globals(bool useCache)

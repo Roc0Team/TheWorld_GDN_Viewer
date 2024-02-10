@@ -1488,6 +1488,10 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	globals->addElementToInitialize();
 	
+	float _gridStepInWU = Globals()->gridStepInWU();
+	godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
+	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GRID_STEP, _gridStepInWU);
+
 	//m_isInEditor = IS_EDITOR_HINT();
 	
 	// From _notification ENTER_WORLD
@@ -3506,7 +3510,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 	godot::Vector3 cameraPosGlobalCoord = activeCamera->get_global_transform().get_origin();
 	bool processCameraPosForQuadrants = true;
 	bool processCameraPosForChunks = true;
-	if (Globals()->status() == TheWorldStatus::worldDeployed)
+	if (globals->status() == TheWorldStatus::worldDeployed)
 	{
 		processCameraPosForQuadrants = false;
 		processCameraPosForChunks = false;
@@ -3566,6 +3570,16 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.05 ") + __FUNCTION__, "Track mouse");
 		process_trackMouse(activeCamera);
 		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_trackMouse))
+		{
+			m_lastProcessExecutionInterrupted = true;
+			return;
+		}
+	}
+
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.05 ") + __FUNCTION__, "Update camera in quadrants");
+		process_updateCameraPosInShader(activeCamera);
+		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateCameraInQuadrants))
 		{
 			m_lastProcessExecutionInterrupted = true;
 			return;
@@ -3962,6 +3976,26 @@ void GDN_TheWorld_Viewer::writeStatisticsNewQuadrants(void)
 	m_elapsedSetHiResCollisionData = 0;
 	m_numSetLowResCollisionData = 0;
 	m_elapsedSetLowResCollisionData = 0;
+}
+
+void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activeCamera)
+{
+	GDN_TheWorld_Globals* globals = Globals(); 
+	
+	if (globals->status() != TheWorldStatus::worldDeployed)
+		return;
+
+	GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+	if (cam != nullptr)
+	{
+		float camAltitude = cam->cameraAltitude();
+		if (camAltitude != m_lastCameraAltitudeSetToShader)
+		{
+			godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
+			rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_ALTITUDE, camAltitude);
+			m_lastCameraAltitudeSetToShader = camAltitude;
+		}
+	}
 }
 
 void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)

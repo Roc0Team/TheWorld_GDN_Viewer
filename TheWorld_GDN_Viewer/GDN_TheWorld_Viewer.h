@@ -241,6 +241,7 @@ namespace godot
 				, Quadrant_updateMaterialParams = 16
 				, Quadrant_updateCollider = 17
 				, EndOfProcessExecution = 18
+				, process_updateCameraInQuadrants = 19
 			};
 			ProcessStep(enum class ProcessStepIdx idx, size_t elapsed, int num = 1)
 			{
@@ -975,6 +976,7 @@ namespace godot
 		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
 		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord);
 		void process_initNewQuads(bool processCameraPosForQuadrants);
+		void process_updateCameraPosInShader(godot::Camera3D* activeCamera);
 		void process_trackMouse(godot::Camera3D* activeCamera);
 		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord);
 		void process_updateMeshForUpdatedChunks(void);
@@ -1181,6 +1183,8 @@ namespace godot
 		godot::Vector3 m_lastProcessedCameraPosForQuadrants;
 		int64_t m_timeElapsedFromLastProcessCameraPosForQuadrants = 0;
 		godot::Vector3 m_lastProcessedCameraPosForChunks;
+
+		float m_lastCameraAltitudeSetToShader = -1.0f;
 
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
 

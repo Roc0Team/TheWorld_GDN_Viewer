@@ -15,7 +15,7 @@ namespace godot
 		Collider(QuadTree* quadTree);
 		~Collider(void);
 
-		void init(Node* attachedNode, uint32_t initialLayer, uint32_t initialMask);
+		void init(Node* attachedNode, uint32_t layer, uint32_t mask);
 		void deinit(void);
 
 		void enterWorld(void);

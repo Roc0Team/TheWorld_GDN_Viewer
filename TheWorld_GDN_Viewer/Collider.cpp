@@ -30,7 +30,7 @@ namespace godot
 		deinit();
 	}
 
-	void Collider::init(Node* attachedNode, uint32_t initialLayer, uint32_t initialMask)
+	void Collider::init(Node* attachedNode, uint32_t layer, uint32_t mask)
 	{
 		if (m_quadTree->Viewer()->Globals()->getParamDisableTerrainCollisions())
 			return;
@@ -42,8 +42,8 @@ namespace godot
 		m_shapeRID = ps->heightmap_shape_create();
 		m_bodyRID = ps->body_create();
 		ps->body_set_mode(m_bodyRID, godot::PhysicsServer3D::BODY_MODE_STATIC);
-		ps->body_set_collision_layer(m_bodyRID, initialLayer);
-		ps->body_set_collision_mask(m_bodyRID, initialMask);
+		ps->body_set_collision_layer(m_bodyRID, layer);
+		ps->body_set_collision_mask(m_bodyRID, mask);
 
 		//ps->body_set_ray_pickable(m_bodyRID, false);		// SUPERDEBUGRIC - This is an attempt to workaround https://github.com/godotengine/godot/issues/24390
 

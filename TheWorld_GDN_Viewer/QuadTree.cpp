@@ -1133,7 +1133,7 @@ bool QuadTree::updateCollider(void)
 				collider->exitWorld();
 			if (collider->initialized())
 				collider->deinit();
-			collider->init(m_GDN_Quadrant, 1, 1);
+			collider->init(m_GDN_Quadrant, THEWORLD_TERRAIN_COLLISION_LAYER, 4294967295);
 			collider->enterWorld();
 			{
 				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 5.3.1 ") + __FUNCTION__, "Quadrant: set data for hires collider");

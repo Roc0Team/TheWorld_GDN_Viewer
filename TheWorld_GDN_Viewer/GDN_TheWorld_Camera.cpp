@@ -783,7 +783,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 void GDN_TheWorld_Camera::updateAltitude(void)
 {
 #define DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE	5.0f
-#define MAX_ALTITUDE_DETECTED					1000.0f
+#define MAX_ALTITUDE_DETECTED					5000.0f
 
 	if (Globals()->status() != TheWorldStatus::worldDeployed)
 		return;
@@ -796,7 +796,7 @@ void GDN_TheWorld_Camera::updateAltitude(void)
 		godot::Dictionary rayArray;
 		godot::Vector3 rayOrigin = cameraGlobalPosition;
 		godot::Vector3 rayEnd = rayOrigin + godot::Vector3(0.0f, -MAX_ALTITUDE_DETECTED, 0.0f);
-		godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd);
+		godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
 		rayArray = spaceState->intersect_ray(query);
 		if (rayArray.has("position"))
 		{

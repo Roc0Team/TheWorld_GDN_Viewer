@@ -1414,8 +1414,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularMaterial(bool reload)
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
 		//String shaderPath = "res://addons/twviewer/shaders/regularChunkOld.gdshader";	m_sendTextureToShader = true;
 		//String shaderPath = "res://addons/twviewer/shaders/regularChunk.gdshader";
-		//String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
-		String shaderPath = "res://addons/twviewer/test/test_quadrant.tres";	m_sendTextureToShader = true;
+		String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
+		//String shaderPath = "res://addons/twviewer/test/test_quadrant.tres";	m_sendTextureToShader = true;
 		//godot::Ref<godot::Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
 		godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);

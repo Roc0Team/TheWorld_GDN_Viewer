@@ -482,6 +482,8 @@ namespace godot
 		void trackMouse(bool b);
 		void toggleTrackMouse(void);
 		void toggleEditMode(void);
+		void setEditMode(bool editMode);
+		bool isEditMode(void) const;
 		void toggleDebugVisibility(void);
 		void rotateChunkDebugMode(void);
 		void toggleWireframe(void) const;

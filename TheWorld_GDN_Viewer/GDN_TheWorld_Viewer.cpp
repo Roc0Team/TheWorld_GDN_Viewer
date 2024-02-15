@@ -1145,6 +1145,8 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("toggle_track_mouse"), &GDN_TheWorld_Viewer::toggleTrackMouse);
 	ClassDB::bind_method(D_METHOD("get_track_mouse_state"), &GDN_TheWorld_Viewer::getTrackMouseState);
 	ClassDB::bind_method(D_METHOD("toggle_edit_mode"), &GDN_TheWorld_Viewer::toggleEditMode);
+	ClassDB::bind_method(D_METHOD("set_edit_mode"), &GDN_TheWorld_Viewer::setEditMode);
+	ClassDB::bind_method(D_METHOD("is_edit_mode"), &GDN_TheWorld_Viewer::isEditMode);
 	ClassDB::bind_method(D_METHOD("toggle_debug_visibility"), &GDN_TheWorld_Viewer::toggleDebugVisibility);
 	ClassDB::bind_method(D_METHOD("rotate_chunk_debug_mode"), &GDN_TheWorld_Viewer::rotateChunkDebugMode);
 	ClassDB::bind_method(D_METHOD("rotate_drawing_mode"), &GDN_TheWorld_Viewer::rotateDrawingMode);
@@ -2630,6 +2632,30 @@ void GDN_TheWorld_Viewer::toggleEditMode(void)
 			trackMouse(false);
 		//gridOn(false);
 	}
+}
+
+void GDN_TheWorld_Viewer::setEditMode(bool editMode)
+{
+	if (m_editMode != editMode)
+	{
+		m_previousTrackedMouseHit = godot::Vector3();
+		m_editMode = editMode;
+		if (m_editMode)
+		{
+			trackMouse(true);
+		}
+		else
+		{
+			if (!positionVisible() && !normalVisible() && !gizmoVisible())
+				trackMouse(false);
+			//gridOn(false);
+		}
+	}
+}
+
+bool GDN_TheWorld_Viewer::isEditMode(void) const
+{
+	return m_editMode;
 }
 
 void GDN_TheWorld_Viewer::toggleDebugVisibility(void)

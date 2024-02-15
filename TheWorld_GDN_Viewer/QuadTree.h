@@ -138,6 +138,19 @@ namespace godot
 			resetName();
 		}
 
+		QuadrantPos(int x, int z, int level, int numVerticesPerSize, float gridStepInWU)
+		{
+			float gridSizeInWU = (numVerticesPerSize - 1) * gridStepInWU;
+			m_lowerXGridVertex = x * gridSizeInWU;
+			m_lowerZGridVertex = z * gridSizeInWU;
+			m_numVerticesPerSize = numVerticesPerSize;
+			m_level = level;
+			m_gridStepInWU = gridStepInWU;
+			m_sizeInWU = (m_numVerticesPerSize - 1) * m_gridStepInWU;
+			m_initialized = true;
+			resetName();
+		}
+
 		bool operator<(const QuadrantPos& quadrantPos) const
 		{
 			assert(m_initialized == true);
@@ -221,6 +234,16 @@ namespace godot
 		{
 			return m_sizeInWU; 
 		};
+		int getIndexPosX(void) const
+		{
+			float gridSizeInWU = (m_numVerticesPerSize - 1) * m_gridStepInWU;
+			return (int)(m_lowerXGridVertex / gridSizeInWU);
+		}
+		int getIndexPosZ(void) const
+		{
+			float gridSizeInWU = (m_numVerticesPerSize - 1) * m_gridStepInWU;
+			return (int)(m_lowerZGridVertex / gridSizeInWU);
+		}
 		_declspec(dllexport) QuadrantPos getQuadrantPos(enum class DirectionSlot dir, int numSlot = 1);
 		void setTag(std::string tag)
 		{

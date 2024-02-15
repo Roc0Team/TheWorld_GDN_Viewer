@@ -507,6 +507,7 @@ namespace godot
 		void createEditModeUI(void);
 		void deployWorld(float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll, int level, int chunkSizeShift, int heightmapResolutionShift);
 		void undeployWorld(void);
+		void destroyModeUIControl(void);
 		bool initialWordlViewerPosSet(void) const
 		{
 			return m_initialWordlViewerPosSet;
@@ -946,6 +947,7 @@ namespace godot
 		}
 
 		bool loadQuadrantData(float posX, float posZ, int level);
+		bool loadQuadrantDataIndex(int posX, int posZ, int level);
 		void clearQuadrantData(void);
 		godot::Ref<godot::Image> getQuadrantHeightmapImage(void);
 		godot::Ref<godot::Image> getQuadrantNormalmapImage(void);
@@ -953,6 +955,7 @@ namespace godot
 		godot::Ref<godot::Image> getQuadrantGlobalmapImage(void);
 		godot::Ref<godot::Image> getQuadrantColormapImage(void);
 		godot::Vector2 getQuadrantPos(void);
+		godot::Vector2 getQuadrantPosIndex(void);
 		godot::String getGroundTextureName(int type);
 		godot::Ref<godot::ImageTexture> getGroundTextureAlbedoBump(godot::String texName);
 		godot::Ref<godot::ImageTexture> getGroundTextureNormalRoughness(godot::String texName);

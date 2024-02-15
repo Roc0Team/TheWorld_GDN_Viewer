@@ -1206,8 +1206,10 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("viewport_size_changed"), &GDN_TheWorld_Viewer::viewportSizeChanged);
 	ClassDB::bind_method(D_METHOD("quadrant_modder_work_done", "map_type", "x", "z", "num_vertices_per_side", "level", "grid_step"), &GDN_TheWorld_Viewer::quadrantModderWorkDone);
 	ClassDB::bind_method(D_METHOD("load_quadrant_data", "pos_x", "pos_z", "level"), &GDN_TheWorld_Viewer::loadQuadrantData);
+	ClassDB::bind_method(D_METHOD("load_quadrant_data_index", "index_pos_x", "index_pos_z", "level"), &GDN_TheWorld_Viewer::loadQuadrantDataIndex);
 	ClassDB::bind_method(D_METHOD("clear_quadrant_data"), &GDN_TheWorld_Viewer::clearQuadrantData);
 	ClassDB::bind_method(D_METHOD("get_quadrant_pos"), &GDN_TheWorld_Viewer::getQuadrantPos);
+	ClassDB::bind_method(D_METHOD("get_quadrant_pos_index"), &GDN_TheWorld_Viewer::getQuadrantPosIndex);
 	ClassDB::bind_method(D_METHOD("get_quadrant_heightmap_image"), &GDN_TheWorld_Viewer::getQuadrantHeightmapImage);
 	ClassDB::bind_method(D_METHOD("get_quadrant_normalmap_image"), &GDN_TheWorld_Viewer::getQuadrantNormalmapImage);
 	ClassDB::bind_method(D_METHOD("get_quadrant_splatmap_image"), &GDN_TheWorld_Viewer::getQuadrantSplatmapImage);
@@ -1748,17 +1750,7 @@ void GDN_TheWorld_Viewer::deinit(void)
 		//}
 		m_meshCache.reset();
 
-		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-		if (editModeUIControl != nullptr)
-		{
-			editModeUIControl->deinit();
-			
-			Node* parent = editModeUIControl->get_parent();
-			if (parent != nullptr)
-				parent->call_deferred("remove_child", editModeUIControl);
-			editModeUIControl->queue_free();
-			m_editModeUIControl = nullptr;
-		}
+		destroyModeUIControl();
 
 		GDN_TheWorld_Camera* camera = CameraNode(true);
 		if (camera != nullptr)
@@ -6101,7 +6093,29 @@ void GDN_TheWorld_Viewer::undeployWorld(void)
 
 	Globals()->Client()->MapManagerUndeployWorld(isInEditor());
 
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl != nullptr)
+	{
+		editModeUIControl->setQuadrantHit(nullptr);
+		editModeUIControl->set_visible(false);
+	}
+
 	m_stopDeploy = false;
+}
+
+void GDN_TheWorld_Viewer::destroyModeUIControl(void)
+{
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl != nullptr)
+	{
+		editModeUIControl->deinit();
+
+		Node* parent = editModeUIControl->get_parent();
+		if (parent != nullptr)
+			parent->call_deferred("remove_child", editModeUIControl);
+		editModeUIControl->queue_free();
+		m_editModeUIControl = nullptr;
+	}
 }
 
 Node3D* GDN_TheWorld_Viewer::getWorldNode(void) const
@@ -6765,6 +6779,15 @@ Transform3D GDN_TheWorld_Viewer::getInternalGlobalTransform(void) const
 	return gt;
 }
 
+bool GDN_TheWorld_Viewer::loadQuadrantDataIndex(int posX, int posZ, int level)
+{
+	size_t numVerticesPerSize = Globals()->numVerticesPerQuadrantSize();
+	float gridStepInWU = Globals()->gridStepInWU();
+	QuadrantPos pos(posX, posZ, level, (int)numVerticesPerSize, gridStepInWU);
+	
+	return loadQuadrantData(pos.getLowerXGridVertex(), pos.getLowerZGridVertex(), level);
+}
+
 bool GDN_TheWorld_Viewer::loadQuadrantData(float posX, float posZ, int level)
 {
 	size_t numVerticesPerSize = Globals()->numVerticesPerQuadrantSize();
@@ -6840,6 +6863,11 @@ godot::Ref<godot::Image> GDN_TheWorld_Viewer::getQuadrantColormapImage()
 godot::Vector2 GDN_TheWorld_Viewer::getQuadrantPos(void)
 {
 	return godot::Vector2(m_tempPos.getLowerXGridVertex(), m_tempPos.getLowerZGridVertex());
+}
+
+godot::Vector2 GDN_TheWorld_Viewer::getQuadrantPosIndex(void)
+{
+	return godot::Vector2((real_t)m_tempPos.getIndexPosX(), (real_t)m_tempPos.getIndexPosZ());
 }
 
 godot::String GDN_TheWorld_Viewer::getGroundTextureName(int type)

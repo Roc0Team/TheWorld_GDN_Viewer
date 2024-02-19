@@ -48,20 +48,6 @@ namespace fs = std::filesystem;
 int32_t GDN_TheWorld_MapModder::s_numWorking = 0;
 std::recursive_mutex GDN_TheWorld_MapModder::s_mtxInternal;
 
-// TODO
-// . passare allo shader (nuova texture ?):
-//		- il numero dei vertici di un quad (u_num_vertices_per_chunk_side=32)
-//		- le 4 altezze nelle 4 direzioni adiacenti per: 
-//			- calcolare le normali dinamicamente se la normal map presenta un vettore nullo
-//			- eseguire lo streching verso l'esterno dei vertici sul perimetro in modo da sovrapporsi con i chunk adiacenti ed evitare l'effetto "Fireflies along seams" --SE CI LIMITIAMO A QUESTO BASTA UNA SOLA DIREZIONE PER I VERTICI SUL BORDO(NEI 4 ANGOLI PREVALE UNO DEI DUE BORDI)--
-// . nello shader calcolare il LOD in base alla distanza dalla camera
-// . in base al LOD corrente verificare se il VERTEX è sul perimetro del chunk: si verifica se le coordinate sono 0 o vicine ad esso oppure se sono pari allo step in WU (u_grid_step) * il numero di vertici della grid 
-//		che separano vertici aidacenti della mesh al lod corrente (da calcolare in base al lod) per il numero dei vertici di una mesh (u_num_vertices_per_chunk_side)
-// . eseguire lo streching verso l'esterno dei vertici sul perimetro in modo da sovrapporsi con i chunk adiacenti ed evitare l'effetto "Fireflies along seams" --SE CI LIMITIAMO A QUESTO BASTA UNA SOLA DIREZIONE PER I VERTICI SUL BORDO(NEI 4 ANGOLI PREVALE UNO DEI DUE BORDI)--
-//		la quantità dello stretching dipende dal lod corrente (maggiore per lod minori ovvero per risoluzioni maggiori)
-// . calcolare le normali tramite uno shader applicato ad uno sprite 2D per sfruttare le capacità di calcolo della GPU (vedi: normalmap_baker.gd e bump2normal_tex.shader)
-// TODO
-
 // World Node Local Coordinate System is the same as MapManager coordinate system
 // Viewer Node origin is in the lower corner (X and Z) of the vertex bitmap at altitude 0
 // Chunk and QuadTree coordinates are in Viewer Node local coordinate System
@@ -867,7 +853,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			material->set_shader_parameter(SHADER_PARAM_TRIPLANAR, false);
 			material->set_shader_parameter(SHADER_PARAM_TILE_REDUCTION_PER_TEXTURE, godot::Plane(0.0f, 0.0f, 0.0f, 0.0f));	// disabled for every texture
 			material->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_START, 0);
-			material->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_DISTANCE, 0);	// Disable use of globalmap
+			material->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_DISTANCE, 0);	// Disable use of globalmap on far pixels
+			material->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);			// Disable forced use of globalmap
 			material->set_shader_parameter(SHADER_PARAM_COLORMAP_OPACITY_PER_TEXTURE, godot::Plane(1.0f, 1.0f, 1.0f, 1.0f));	// Notset
 			material->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, true);
 
@@ -1155,6 +1142,8 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_depth_quad"), &GDN_TheWorld_Viewer::getDepthQuadOnPerimeter);
 	ClassDB::bind_method(D_METHOD("set_cache_quad"), &GDN_TheWorld_Viewer::setCacheQuadOnPerimeter);
 	ClassDB::bind_method(D_METHOD("get_cache_quad"), &GDN_TheWorld_Viewer::getCacheQuadOnPerimeter);
+	ClassDB::bind_method(D_METHOD("set_force_shader_elevation_0"), &GDN_TheWorld_Viewer::setForceShaderElevation0);
+	ClassDB::bind_method(D_METHOD("get_force_shader_elevation_0"), &GDN_TheWorld_Viewer::getForceShaderElevation0);
 	ClassDB::bind_method(D_METHOD("deploy_world"), &GDN_TheWorld_Viewer::deployWorld);
 	ClassDB::bind_method(D_METHOD("undeploy_world"), &GDN_TheWorld_Viewer::undeployWorld);
 	ClassDB::bind_method(D_METHOD("initial_world_viewer_pos_set"), &GDN_TheWorld_Viewer::initialWordlViewerPosSet);
@@ -1443,6 +1432,11 @@ void GDN_TheWorld_Viewer::setShaderParam(godot::String name, godot::Variant valu
 	{
 		m_shaderParam_colormapOpacity.set_normal(godot::Vector3(value, value, value));
 		m_shaderParam_colormapOpacity.d = value;
+		m_shaderParamChanged = true;
+	}
+	else if (name == "force_elevation_0")
+	{
+		setForceShaderElevation0(value);
 		m_shaderParamChanged = true;
 	}
 }
@@ -2952,6 +2946,17 @@ void GDN_TheWorld_Viewer::setCacheQuadOnPerimeter(int cache)
 int GDN_TheWorld_Viewer::getCacheQuadOnPerimeter(void) const
 {
 	return (int)m_cacheQuadOnPerimeter;
+}
+
+void GDN_TheWorld_Viewer::setForceShaderElevation0(bool elevation0)
+{
+	m_forceShaderElevation0 = elevation0;
+	//ReloadAllShadersRequired(true);
+}
+
+bool GDN_TheWorld_Viewer::getForceShaderElevation0(void) const
+{
+	return m_forceShaderElevation0;
 }
 
 String GDN_TheWorld_Viewer::getInfoCamera(void)

@@ -500,6 +500,8 @@ namespace godot
 		int getDepthQuadOnPerimeter(void) const;
 		void setCacheQuadOnPerimeter(int cache);
 		int getCacheQuadOnPerimeter(void) const;
+		void setForceShaderElevation0(bool elevation0);
+		bool getForceShaderElevation0(void) const;
 		String getInfoCamera(void);
 		int getCameraProjectionMode(void);
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
@@ -1184,6 +1186,7 @@ namespace godot
 		godot::Control* m_editor3dOverlay;
 		size_t m_depthQuadOnPerimeter;
 		size_t m_cacheQuadOnPerimeter;
+		bool m_forceShaderElevation0 = false;
 
 		godot::Vector3 m_lastProcessedCameraPosForQuadrants;
 		int64_t m_timeElapsedFromLastProcessCameraPosForQuadrants = 0;

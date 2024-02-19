@@ -1414,13 +1414,14 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularMaterial(bool reload)
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
 		//String shaderPath = "res://addons/twviewer/shaders/regularChunkOld.gdshader";	m_sendTextureToShader = true;
 		//String shaderPath = "res://addons/twviewer/shaders/regularChunk.gdshader";
-		String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
-		//String shaderPath = "res://addons/twviewer/test/test_quadrant.tres";	m_sendTextureToShader = true;
+		//String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
+		String shaderPath = "res://addons/twviewer/test/test_quadrant.tres";	m_sendTextureToShader = true;
 		//godot::Ref<godot::Shader> shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
 		godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
 		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
@@ -1507,6 +1508,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevMaterial(enum class Sha
 		mat->set_shader(shader);
 		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
@@ -1553,6 +1555,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lo
 		float lodChunkSizeInWu = numVerticesPerChuckSide * lodGridStepInWU;
 		mat->set_shader_parameter(SHADER_PARAM_LOOKDEV_LOD, float(lod));
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, numVerticesPerChuckSide);
 		mat->set_shader_parameter(SHADER_PARAM_LOD_GRID_STEP, lodGridStepInWU);
 		mat->set_shader_parameter(SHADER_PARAM_LOD_CHUNK_SIZE, lodChunkSizeInWu);
@@ -2713,6 +2716,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				item.second->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 				item.second->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, quadrant->optimizationLevel());
+				item.second->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 				if (m_heightMapTexModified && m_heightmapTexture != nullptr)
 					item.second->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
 		
@@ -2733,6 +2737,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 			currentMaterial->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, editMode);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, gridOn);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
+			currentMaterial->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 
 			if (quadrant->textureUpdated() && lookdev == LookDev::NotSet)

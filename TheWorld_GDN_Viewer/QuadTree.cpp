@@ -2592,28 +2592,31 @@ void ShaderTerrainData::resetMaterialParams(bool& lastProcessExecutionInterrupte
 		return;
 	}
 
-	if (quadrant->renderGlobalMap() && (quadrant->globalmapUpdated() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged))
+	if (quadrant->renderGlobalMap())	// to always pass globalmap to shader: comment this line
 	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Globalmap");
-
-		std::string profileHeader("WorldDeploy 3.4.1 ");
-		godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::globalmap, optimizationLevel, newResolution);
-
-		if (image != nullptr)
+		if (quadrant->globalmapUpdated() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged)
 		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Globalmap");
+
+			std::string profileHeader("WorldDeploy 3.4.1 ");
+			godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::globalmap, optimizationLevel, newResolution);
+
+			if (image != nullptr)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.3 ") + __FUNCTION__, "Create Texture from globalmap image");
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.3 ") + __FUNCTION__, "Create Texture from globalmap image");
 
-				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-				//tex->create_from_image(image, godot::Texture::FLAG_FILTER | godot::Texture::FLAG_MIPMAPS);
-				m_globalmapTexture = godot::ImageTexture::create_from_image(image);
-				m_globalMapTexModified = true;
-				//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
+					// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+					//tex->create_from_image(image, godot::Texture::FLAG_FILTER | godot::Texture::FLAG_MIPMAPS);
+					m_globalmapTexture = godot::ImageTexture::create_from_image(image);
+					m_globalMapTexModified = true;
+					//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
+				}
 			}
-		}
 
-		quadrant->renderGlobalMapChanged(false);
-		quadrant->setGlobalmapUpdated(false);
+			quadrant->renderGlobalMapChanged(false);
+			quadrant->setGlobalmapUpdated(false);
+		}
 	}
 	if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_globalmap))
 	{
@@ -2825,8 +2828,9 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 			{
 				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_GLOBALMAP));
 				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, m_globalmapTexture);
-				currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, true);
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, nullptr);
+				//currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);			// to always pass globalmap to shader: UNCOMMENT this line
+				currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, true);			// to always pass globalmap to shader: comment this line
+				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, nullptr);		// to always pass globalmap to shader: comment this line
 				m_globalMapTexModified = false;
 			}
 
@@ -2835,7 +2839,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_SPLATMAP));
 				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, m_splatmapTexture);
 				currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, nullptr);
+				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, nullptr);		// to always pass globalmap to shader: comment this line
 				m_splatMapTexModified = false;
 			}
 

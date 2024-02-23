@@ -40,6 +40,7 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_camera_tracking_offset", "p_value"), &GDN_TheWorld_Camera::setCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_tracking_offset"), &GDN_TheWorld_Camera::getCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_altitude_from_terrain"), &GDN_TheWorld_Camera::cameraAltitude);
+	ClassDB::bind_method(D_METHOD("set_camera_global_transform"), &GDN_TheWorld_Camera::setCameraGlobalTransform);
 
 	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
 	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_camera_tracking_speed", "get_camera_tracking_speed");
@@ -104,6 +105,7 @@ GDN_TheWorld_Camera::GDN_TheWorld_Camera()
 
 GDN_TheWorld_Camera::~GDN_TheWorld_Camera()
 {
+	remove_from_group(GD_CUSTOM_CAMERAS_GROUP);
 }
 
 void GDN_TheWorld_Camera::_init()
@@ -127,6 +129,8 @@ void GDN_TheWorld_Camera::_ready()
 	}
 
 	m_ready = true;
+
+	add_to_group(GD_CUSTOM_CAMERAS_GROUP);
 }
 
 void GDN_TheWorld_Camera::_notification(int p_what)
@@ -170,6 +174,11 @@ void GDN_TheWorld_Camera::_process(double _delta)
 	{
 		return;
 	}
+
+	if (!is_current())
+	{
+		return;
+	}
 }
 
 void GDN_TheWorld_Camera::_physics_process(double _delta)
@@ -178,9 +187,6 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 
 	// To activate _process method add this Node to a Godot Scene
 	//Globals()->debugPrint("GDN_TheWorld_Camera::_physics_process");
-
-	if (IS_EDITOR_HINT())
-		return;
 
 	GDN_TheWorld_Globals* globals = Globals();
 	if (globals == nullptr)
@@ -193,8 +199,24 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 	if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
 		return;
 
+	if (IS_EDITOR_HINT())
+	{
+		calcYawPitchRoll();
+		updateAltitude();
+		return;
+	}
+
 	if (!isActiveCamera())
 	{
+		calcYawPitchRoll();
+		updateAltitude();
+		return;
+	}
+
+	if (!is_current())
+	{
+		calcYawPitchRoll();
+		updateAltitude();
 		return;
 	}
 
@@ -337,17 +359,19 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 
 	{
 		bool b = updateCamera(_delta);
-
-		godot::Vector3 euler = get_global_transform().basis.get_euler();
-
-		m_pitchEuler = euler.x;
-		m_yawEuler = euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
-		// - PI or PI = camera aligned with z axis pointing to increasing z (south), PI/2 = camera aligned with x axis pointing to decreasing X (west)
-		m_rollEuler = euler.z;
-
-		float angleFromNorthRad = (m_yawEuler < 0 ? -m_yawEuler : (m_yawEuler == 0 ? 0 : TheWorld_Utils::kPi * 2 - m_yawEuler));
-		m_angleFromNorthDeg = (angleFromNorthRad * 180) / TheWorld_Utils::kPi;		// transform angle from radiant to degree
+		calcYawPitchRoll();
 	}
+}
+
+void GDN_TheWorld_Camera::calcYawPitchRoll(void)
+{
+	godot::Vector3 euler = get_global_transform().basis.get_euler();
+	m_pitchEuler = euler.x;
+	m_yawEuler = euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
+	// - PI or PI = camera aligned with z axis pointing to increasing z (south), PI/2 = camera aligned with x axis pointing to decreasing X (west)
+	m_rollEuler = euler.z;
+	float angleFromNorthRad = (m_yawEuler < 0 ? -m_yawEuler : (m_yawEuler == 0 ? 0 : TheWorld_Utils::kPi * 2 - m_yawEuler));
+	m_angleFromNorthDeg = (angleFromNorthRad * 180) / TheWorld_Utils::kPi;		// transform angle from radiant to degree
 }
 
 void GDN_TheWorld_Camera::_input(const Ref<godot::InputEvent>& event)
@@ -366,6 +390,11 @@ void GDN_TheWorld_Camera::_input(const Ref<godot::InputEvent>& event)
 		return;
 
 	if (!isActiveCamera())
+	{
+		return;
+	}
+
+	if (!is_current())
 	{
 		return;
 	}
@@ -460,6 +489,7 @@ void GDN_TheWorld_Camera::deactivateCamera(void)
 
 bool GDN_TheWorld_Camera::isActiveCamera(void) const
 {
+	bool b = is_current();
 	return m_isActive;
 	//return is_in_group(GD_ACTIVE_CAMERA_GROUP);
 }

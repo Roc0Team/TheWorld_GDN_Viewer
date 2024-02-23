@@ -9,7 +9,8 @@
 
 #include "Utils.h"
 
-#define GD_ACTIVE_CAMERA_GROUP	"ActiveCamera"
+#define GD_ACTIVE_CAMERA_GROUP	"TheWorldViewerActiveCamera"
+#define GD_CUSTOM_CAMERAS_GROUP	"TheWorldViewerCustomCameras"
 
 namespace godot {
 
@@ -36,6 +37,7 @@ namespace godot {
 		bool initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll);
 		//bool initPlayerCamera(void);
 		//bool initOtherEntityCamera(void);
+		void calcYawPitchRoll(void);
 		bool updateCamera(double _delta);
 		bool updateFreeLookCamera(double _delta);
 		bool updatePlayerCamera(double _delta);
@@ -138,6 +140,11 @@ namespace godot {
 		float cameraAltitude(void) const
 		{
 			return m_lastCameraAltitudeComputed;
+		}
+
+		void setCameraGlobalTransform(godot::Transform3D t)
+		{
+			set_global_transform(t);
 		}
 
 	private:

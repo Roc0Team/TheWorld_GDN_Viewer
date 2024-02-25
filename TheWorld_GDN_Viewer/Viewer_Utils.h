@@ -58,108 +58,108 @@ static constexpr float kNormalEpsilon = 0.001f;
 
 namespace TheWorld_Viewer_Utils
 {
-	template <class TimeT = std::chrono::milliseconds, class ClockT = std::chrono::steady_clock> class Timer
-	{
-		using timep_t = typename ClockT::time_point;
-		timep_t _start = ClockT::now(), _end = {};
-
-	public:
-		Timer(std::string method = "", std::string headerMsg = "", bool tickMsg = false, bool tockMsg = false)
-		{
-			_counterStarted = false;
-			_headerMsg = headerMsg;
-			_save_headerMsg = headerMsg;
-			_method = method;
-			_tickMsg = tickMsg;
-			_tockMsg = tockMsg;
-		}
-
-		~Timer()
-		{
-			if (_tockMsg)
-				tock();
-		}
-
-		void tick()
-		{
-			_end = timep_t{};
-			_start = ClockT::now();
-			_counterStarted = true;
-
-			if (_tickMsg)
-			{
-				std::string method = _method;
-				if (method.length() > 0)
-					method += " ";
-				std::string headerMsg = _headerMsg;
-				if (headerMsg.length() > 0)
-					headerMsg = "- " + headerMsg;
-				else
-					headerMsg = "-";
-				PLOG_DEBUG << std::string("START ") + method + headerMsg;
-			}
-		}
-
-		void tock()
-		{
-			if (_counterStarted)
-			{
-				_end = ClockT::now();
-				_counterStarted = false;
-
-				if (_tockMsg)
-				{
-					std::string method = _method;
-					if (method.length() > 0)
-						method += " ";
-					std::string headerMsg = _headerMsg;
-					if (headerMsg.length() > 0)
-						headerMsg = "- " + headerMsg;
-					else
-						headerMsg = "-";
-					PLOG_DEBUG << std::string("ELAPSED ") + method + headerMsg + " ==> " + std::to_string(duration().count()).c_str() + " ms";
-				}
-			}
-		}
-
-		void headerMsg(std::string headerMsg)
-		{
-			_headerMsg = headerMsg;
-		}
-
-		void headerMsgSuffix(std::string _headerMsgSuffix)
-		{
-			_headerMsg = _save_headerMsg + _headerMsgSuffix;
-		}
-
-		void method(std::string method)
-		{
-			_method = method;
-		}
-
-		template <class TT = TimeT>	TT duration() const
-		{
-			Expects(_end != timep_t{} && "toc before reporting");
-			//assert(_end != timep_t{} && "toc before reporting");
-			return std::chrono::duration_cast<TT>(_end - _start);
-		}
-
-		template <class TT = TimeT>	TT partialDuration() const
-		{
-			return std::chrono::duration_cast<TT>(ClockT::now() - _start);
-		}
-
-	private:
-		bool _counterStarted;
-		std::string _headerMsg;
-		std::string _save_headerMsg;
-		std::string _method;
-		bool _tickMsg;
-		bool _tockMsg;
-	};
-
-#define TimerMs Timer<std::chrono::milliseconds, std::chrono::steady_clock>
-#define TimerMcs Timer<std::chrono::microseconds, std::chrono::steady_clock>
+//	template <class TimeT = std::chrono::milliseconds, class ClockT = std::chrono::steady_clock> class Timer
+//	{
+//		using timep_t = typename ClockT::time_point;
+//		timep_t _start = ClockT::now(), _end = {};
+//
+//	public:
+//		Timer(std::string method = "", std::string headerMsg = "", bool tickMsg = false, bool tockMsg = false)
+//		{
+//			_counterStarted = false;
+//			_headerMsg = headerMsg;
+//			_save_headerMsg = headerMsg;
+//			_method = method;
+//			_tickMsg = tickMsg;
+//			_tockMsg = tockMsg;
+//		}
+//
+//		~Timer()
+//		{
+//			if (_tockMsg)
+//				tock();
+//		}
+//
+//		void tick()
+//		{
+//			_end = timep_t{};
+//			_start = ClockT::now();
+//			_counterStarted = true;
+//
+//			if (_tickMsg)
+//			{
+//				std::string method = _method;
+//				if (method.length() > 0)
+//					method += " ";
+//				std::string headerMsg = _headerMsg;
+//				if (headerMsg.length() > 0)
+//					headerMsg = "- " + headerMsg;
+//				else
+//					headerMsg = "-";
+//				PLOG_DEBUG << std::string("START ") + method + headerMsg;
+//			}
+//		}
+//
+//		void tock()
+//		{
+//			if (_counterStarted)
+//			{
+//				_end = ClockT::now();
+//				_counterStarted = false;
+//
+//				if (_tockMsg)
+//				{
+//					std::string method = _method;
+//					if (method.length() > 0)
+//						method += " ";
+//					std::string headerMsg = _headerMsg;
+//					if (headerMsg.length() > 0)
+//						headerMsg = "- " + headerMsg;
+//					else
+//						headerMsg = "-";
+//					PLOG_DEBUG << std::string("ELAPSED ") + method + headerMsg + " ==> " + std::to_string(duration().count()).c_str() + " ms";
+//				}
+//			}
+//		}
+//
+//		void headerMsg(std::string headerMsg)
+//		{
+//			_headerMsg = headerMsg;
+//		}
+//
+//		void headerMsgSuffix(std::string _headerMsgSuffix)
+//		{
+//			_headerMsg = _save_headerMsg + _headerMsgSuffix;
+//		}
+//
+//		void method(std::string method)
+//		{
+//			_method = method;
+//		}
+//
+//		template <class TT = TimeT>	TT duration() const
+//		{
+//			Expects(_end != timep_t{} && "toc before reporting");
+//			//assert(_end != timep_t{} && "toc before reporting");
+//			return std::chrono::duration_cast<TT>(_end - _start);
+//		}
+//
+//		template <class TT = TimeT>	TT partialDuration() const
+//		{
+//			return std::chrono::duration_cast<TT>(ClockT::now() - _start);
+//		}
+//
+//	private:
+//		bool _counterStarted;
+//		std::string _headerMsg;
+//		std::string _save_headerMsg;
+//		std::string _method;
+//		bool _tickMsg;
+//		bool _tockMsg;
+//	};
+//
+//#define TimerMsViewer TheWorld_Viewer_Utils::Timer<std::chrono::milliseconds, std::chrono::steady_clock>
+//#define TimerMcsViewer TheWorld_Viewer_Utils::Timer<std::chrono::microseconds, std::chrono::steady_clock>
 
 	std::string ToString(GUID* guid);
 
@@ -288,7 +288,7 @@ namespace TheWorld_Viewer_Utils
 
 		static bool isFinite(float f) 
 		{
-			FloatUint32 fu;
+			FloatUint32 fu = { 0 };
 			fu.f = f;
 			return fu.u != 0x7F800000u && fu.u != 0x7F800001u;
 		}
@@ -521,19 +521,19 @@ namespace TheWorld_Viewer_Utils
 			return "Level=" + std::to_string(level) + "-X=" + std::to_string(x) + "-Z=" + std::to_string(z) + "-Altitude=" + std::to_string(y);
 		}
 
-		float altitude(void)
+		float altitude(void) const
 		{
 			return y; 
 		}
-		float posX(void) 
+		float posX(void) const
 		{
 			return x; 
 		}
-		float posZ(void)
+		float posZ(void) const
 		{
 			return z; 
 		}
-		int lvl(void) 
+		int lvl(void)  const
 		{
 			return level; 
 		}

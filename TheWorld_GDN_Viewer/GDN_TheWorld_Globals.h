@@ -691,7 +691,7 @@ namespace godot
 		bool m_quitting;
 		bool m_ready;
 		enum class TheWorldStatus m_status;
-		TheWorld_Utils::TimerMs m_statusChangeClock;
+		TimerMs m_statusChangeClock;
 		bool m_isDebugEnabled;
 		int m_chunkSizeShift;
 		int m_heightmapResolutionShift;

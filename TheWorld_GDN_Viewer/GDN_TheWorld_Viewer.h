@@ -355,7 +355,7 @@ namespace godot
 
 		private:
 			std::map<enum class ProcessStep::ProcessStepIdx, ProcessStep> m_steps;
-			TheWorld_Viewer_Utils::TimerMcs m_processClock;
+			TimerMcs m_processClock;
 			enum class ProcessStep::ProcessStepIdx m_lastStepIdx = ProcessStep::ProcessStepIdx::not_set;
 		};
 
@@ -1065,8 +1065,8 @@ namespace godot
 		int m_numinitializedVisibleQuadrant;
 		int m_numQuadrantNeedResetMaterialParam = 0;
 		
-		TheWorld_Utils::TimerMs m_streamingTime;
-		TheWorld_Utils::TimerMs m_notStreamingTime;
+		TimerMs m_streamingTime;
+		TimerMs m_notStreamingTime;
 		size_t m_numVisibleQuadrantsStreamed = 0;
 		size_t m_numInvisibleQuadrantsStreamed = 0;
 		size_t m_numTextureResizing = 0;

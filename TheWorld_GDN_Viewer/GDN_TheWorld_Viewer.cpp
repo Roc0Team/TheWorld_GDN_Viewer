@@ -1797,7 +1797,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			}
 			else
 			{
-				//TheWorld_Viewer_Utils::TimerMs clock("GDN_TheWorld_Viewer::replyFromServer", "CLIENT SIDE", false, true);
+				//TimerMs clock("GDN_TheWorld_Viewer::replyFromServer", "CLIENT SIDE", false, true);
 
 				if (reply.getNumReplyParams() < 3)
 				{
@@ -3258,7 +3258,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	m_processSteps.init();
 
 	{
-		//TheWorld_Viewer_Utils::TimerMcs clock;
+		//TimerMcs clock;
 		//clock.tick();
 		//auto save_duration = TheWorld_Viewer_Utils::finally([&clock, this] {
 		//	clock.tock();
@@ -3388,7 +3388,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		//// DEBUG
 
 		{
-			TheWorld_Viewer_Utils::TimerMcs clock;
+			TimerMcs clock;
 			clock.tick();
 			auto save_duration = TheWorld_Viewer_Utils::finally([&clock, this] {
 				clock.tock();
@@ -3701,7 +3701,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl)
 {
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Erase Out-Of-View Quadrants", false, false);
+	TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Erase Out-Of-View Quadrants", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();
@@ -3757,7 +3757,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 
 void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta)
 {
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Process Map Modder", false, false);
+	TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Process Map Modder", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();
@@ -3802,7 +3802,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 
 void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord)
 {
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Camera Quad", false, false);
+	TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Camera Quad", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();
@@ -3853,7 +3853,7 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants");
 
-		//TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Recalc in memory map of quadrants", false, false);
+		//TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Recalc in memory map of quadrants", false, false);
 		//clock1.tick();
 		//auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		//	clock1.tock();
@@ -3877,7 +3877,7 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 
 void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants)
 {
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Init new quads", false, false);
+	TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Init new quads", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();
@@ -4032,7 +4032,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 		int64_t timeElapsed = TIME()->get_ticks_msec();
 		if (timeElapsed - m_timeElapsedFromLastMouseTrack > TIME_INTERVAL_BETWEEN_MOUSE_TRACK)
 		{
-			TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Track Mouse Chunk", false, false);
+			TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Track Mouse Chunk", false, false);
 			clock1.tick();
 			auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 				clock1.tock();
@@ -4331,7 +4331,7 @@ void GDN_TheWorld_Viewer::process_updateLodInQuads(Vector3& cameraPosGlobalCoord
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.06.1 ") + __FUNCTION__, "Update quadrants Stage 1");
 
-		TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Quads Stage 1", false, false);
+		TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Quads Stage 1", false, false);
 		clock1.tick();
 		auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 			clock1.tock();
@@ -4355,7 +4355,7 @@ void GDN_TheWorld_Viewer::process_updateLodInQuads(Vector3& cameraPosGlobalCoord
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.06.2 ") + __FUNCTION__, "Update quadrants Stage 2");
 
-			TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Quads Stage 2", false, false);
+			TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Quads Stage 2", false, false);
 			clock1.tick();
 			auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 				clock1.tock();
@@ -4378,7 +4378,7 @@ void GDN_TheWorld_Viewer::process_updateLodInQuads(Vector3& cameraPosGlobalCoord
 			// UPDATE QUADS - Stage 3
 			TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.06.3 ") + __FUNCTION__, "Update quadrants Stage 3");
 
-			TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Quads Stage 3", false, false);
+			TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Quads Stage 3", false, false);
 			clock1.tick();
 			auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 				clock1.tock();
@@ -4415,7 +4415,7 @@ void GDN_TheWorld_Viewer::process_updateMeshForUpdatedChunks(void)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.07.1 ") + __FUNCTION__, "Update Chunks");
 
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Chunks", false, false);
+	TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Chunks", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();
@@ -4900,7 +4900,7 @@ void GDN_TheWorld_Viewer::process_lookDev(void)
 
 void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks)
 {
-	TheWorld_Viewer_Utils::TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Material Params", false, false);
+	TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Material Params", false, false);
 	clock1.tick();
 	auto save_duration = TheWorld_Viewer_Utils::finally([&clock1, this] {
 		clock1.tock();

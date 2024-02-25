@@ -498,8 +498,8 @@ namespace godot
 		
 		bool m_actionInProgress;
 		bool m_actionStopRequested;
-		TheWorld_Utils::TimerMs m_actionClock;
-		TheWorld_Utils::TimerMs m_refreshUI;
+		TimerMs m_actionClock;
+		TimerMs m_refreshUI;
 		bool m_onGoingElapsedLabel;
 		//Color m_elapsedLabelNormalColor;
 		size_t m_completedItems;

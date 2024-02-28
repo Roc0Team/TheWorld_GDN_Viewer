@@ -269,7 +269,7 @@ void Chunk::update(bool isVisible)
 		// if we are on left border of quadrant
 		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosX == 0)
 		{
-			QuadrantPos XMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
+			TheWorld_Utils::QuadrantPos XMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
 			QuadTree* XMinusQuadTree = m_viewer->getQuadTree(XMinusQuadrantPos);
 			if (XMinusQuadTree != nullptr && XMinusQuadTree->isValid())
 			{
@@ -288,7 +288,7 @@ void Chunk::update(bool isVisible)
 		// if we are on top border of quadrant
 		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosZ == 0)
 		{
-			QuadrantPos ZMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
+			TheWorld_Utils::QuadrantPos ZMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
 			QuadTree* ZMinusQuadTree = m_viewer->getQuadTree(ZMinusQuadrantPos);
 			if (ZMinusQuadTree != nullptr && ZMinusQuadTree->isValid())
 			{
@@ -315,7 +315,7 @@ void Chunk::update(bool isVisible)
 		// if we are on right border of quadrant
 		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosX == numChunksPerSideAtCurrentLod - 1)
 		{
-			QuadrantPos XPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
+			TheWorld_Utils::QuadrantPos XPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);
 			QuadTree* XPlusQuadTree = m_viewer->getQuadTree(XPlusQuadrantPos);
 			if (XPlusQuadTree != nullptr && XPlusQuadTree->isValid())
 			{
@@ -334,7 +334,7 @@ void Chunk::update(bool isVisible)
 		// if we are on top border of quadrant
 		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosZ == 0)
 		{
-			QuadrantPos ZMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
+			TheWorld_Utils::QuadrantPos ZMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
 			QuadTree* ZMinusQuadTree = m_viewer->getQuadTree(ZMinusQuadrantPos);
 			if (ZMinusQuadTree != nullptr && ZMinusQuadTree->isValid())
 			{
@@ -361,7 +361,7 @@ void Chunk::update(bool isVisible)
 		// if we are on left border of quadrant
 		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosX == 0)
 		{
-			QuadrantPos XMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
+			TheWorld_Utils::QuadrantPos XMinusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
 			QuadTree* XMinusQuadTree = m_viewer->getQuadTree(XMinusQuadrantPos);
 			if (XMinusQuadTree != nullptr && XMinusQuadTree->isValid())
 			{
@@ -380,7 +380,7 @@ void Chunk::update(bool isVisible)
 		// if we are on bottom border of quadrant
 		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosZ == numChunksPerSideAtCurrentLod - 1)
 		{
-			QuadrantPos ZPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
+			TheWorld_Utils::QuadrantPos ZPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
 			QuadTree* ZPlusQuadTree = m_viewer->getQuadTree(ZPlusQuadrantPos);
 			if (ZPlusQuadTree != nullptr && ZPlusQuadTree->isValid())
 			{
@@ -407,7 +407,7 @@ void Chunk::update(bool isVisible)
 		// if we are on right border of quadrant
 		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosX == numChunksPerSideAtCurrentLod - 1)
 		{
-			QuadrantPos XPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
+			TheWorld_Utils::QuadrantPos XPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);
 			QuadTree* XPlusQuadTree = m_viewer->getQuadTree(XPlusQuadrantPos);
 			if (XPlusQuadTree != nullptr && XPlusQuadTree->isValid())
 			{
@@ -426,7 +426,7 @@ void Chunk::update(bool isVisible)
 		// if we are on bottom border of quadrant
 		if (numChunksPerSideAtGreaterLod > 0 && m_slotPosZ == numChunksPerSideAtCurrentLod - 1)
 		{
-			QuadrantPos ZPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
+			TheWorld_Utils::QuadrantPos ZPlusQuadrantPos = m_quadTree->getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
 			QuadTree* ZPlusQuadTree = m_viewer->getQuadTree(ZPlusQuadrantPos);
 			if (ZPlusQuadTree != nullptr && ZPlusQuadTree->isValid())
 			{

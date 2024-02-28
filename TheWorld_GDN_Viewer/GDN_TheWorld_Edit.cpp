@@ -161,7 +161,7 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			}
 			int level = *_level;
 
-			QuadrantPos pos(lowerXGridVertex, lowerZGridVertex, level, numVerticesPerSize, gridStepInWU);
+			TheWorld_Utils::QuadrantPos pos(lowerXGridVertex, lowerZGridVertex, level, numVerticesPerSize, gridStepInWU);
 			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 			if (quadTree != nullptr)
 			{
@@ -1373,7 +1373,7 @@ void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToU
 	numToUpload = 0;
 	numLocked = 0;
 
-	std::vector<QuadrantPos> allQuandrantPos;
+	std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
 	m_viewer->getAllQuadrantPos(allQuandrantPos);
 
 	for (auto& pos : allQuandrantPos)
@@ -1840,7 +1840,7 @@ void GDN_TheWorld_Edit::changeTextureAction()
 		return;
 
 	QuadTree* quadTreeSel = nullptr;
-	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
 
 	if (quadTreeSel == nullptr)
 		return;
@@ -2518,10 +2518,10 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 
 	TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1 ") + __FUNCTION__, "ALL");
 
-	std::vector<QuadrantPos> allQuandrantPos;
+	std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
 	m_viewer->getAllQuadrantPos(allQuandrantPos);
 
-	std::vector<QuadrantPos> quandrantPos;
+	std::vector<TheWorld_Utils::QuadrantPos> quandrantPos;
 	for (auto& pos : allQuandrantPos)
 	{
 		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
@@ -2630,7 +2630,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	m_actionClock.tick();
 
 	QuadTree* quadTreeSel = nullptr;
-	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
 
 	if (quadrantSelPos.empty())
 	{
@@ -2853,7 +2853,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 	bool allCheched = m_innerData->m_blendAllCheckBox->is_pressed();
 
 	QuadTree* quadTreeSel = nullptr;
-	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
 
 	if (quadrantSelPos.empty())
 	{
@@ -2863,10 +2863,10 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 		return;
 	}
 
-	std::vector<QuadrantPos> allQuandrantPos;
+	std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
 	m_viewer->getAllQuadrantPos(allQuandrantPos);
 
-	std::vector<QuadrantPos> quandrantPos;
+	std::vector<TheWorld_Utils::QuadrantPos> quandrantPos;
 	for (auto& pos : allQuandrantPos)
 	{
 		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
@@ -2933,7 +2933,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				TheWorld_Utils::MemoryBuffer northHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer northHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northQuadrantData;
-				QuadrantPos northPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
+				TheWorld_Utils::QuadrantPos northPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
 				QuadTree* northQuadTree = nullptr;
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
@@ -2948,7 +2948,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				TheWorld_Utils::MemoryBuffer southHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer southHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southQuadrantData;
-				QuadrantPos southPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
+				TheWorld_Utils::QuadrantPos southPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
 				QuadTree* southQuadTree = nullptr;
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
@@ -2963,7 +2963,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				TheWorld_Utils::MemoryBuffer westHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer westHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData westQuadrantData;
-				QuadrantPos westPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
+				TheWorld_Utils::QuadrantPos westPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
 				QuadTree* westQuadTree = nullptr;
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
@@ -2978,7 +2978,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				TheWorld_Utils::MemoryBuffer eastHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer eastHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData eastQuadrantData;
-				QuadrantPos eastPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
+				TheWorld_Utils::QuadrantPos eastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);
 				QuadTree* eastQuadTree = nullptr;
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
@@ -2993,7 +2993,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				TheWorld_Utils::MemoryBuffer northwestHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer northwestHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northwestQuadrantData;
-				QuadrantPos northwestPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinusXMinus);
+				TheWorld_Utils::QuadrantPos northwestPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXMinus);
 				QuadTree* northwestQuadTree = nullptr;
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
@@ -3008,7 +3008,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				TheWorld_Utils::MemoryBuffer northeastHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer northeastHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northeastQuadrantData;
-				QuadrantPos northeastPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZMinusXPlus);
+				TheWorld_Utils::QuadrantPos northeastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXPlus);
 				QuadTree* northeastQuadTree = nullptr;
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
@@ -3023,7 +3023,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				TheWorld_Utils::MemoryBuffer southwestHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer southwestHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southwestQuadrantData;
-				QuadrantPos southwestPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlusXMinus);
+				TheWorld_Utils::QuadrantPos southwestPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXMinus);
 				QuadTree* southwestQuadTree = nullptr;
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
@@ -3038,7 +3038,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 				TheWorld_Utils::MemoryBuffer southeastHeights16Buffer;
 				TheWorld_Utils::MemoryBuffer southeastHeights32Buffer;
 				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southeastQuadrantData;
-				QuadrantPos southeastPos = pos.getQuadrantPos(QuadrantPos::DirectionSlot::ZPlusXPlus);
+				TheWorld_Utils::QuadrantPos southeastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXPlus);
 				QuadTree* southeastQuadTree = nullptr;
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
@@ -3168,13 +3168,13 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 	//	editModeApplyTextures_1(false, false);
 	//}
 }
-void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer)
+void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending in thread");
 	*quadTree = prepareHeightsForQuadrantBlend(lockAcquired, pos, quadrantData, terrainEditValuesBuffer, heights16Buffer, heights32Buffer);
 }
 
-QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(bool* lockAcquired, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer)
+QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer)
 {
 	QuadTree* quadTree = nullptr;
 
@@ -3288,7 +3288,7 @@ void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 	m_actionClock.tick();
 
 	QuadTree* quadTreeSel = nullptr;
-	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
 	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
 	if (!allCheched && quadrantSelPos.empty())
 	{
@@ -3298,7 +3298,7 @@ void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 		return;
 	}
 
-	std::vector<QuadrantPos> quandrantPosToRegen;
+	std::vector<TheWorld_Utils::QuadrantPos> quandrantPosToRegen;
 	if (allCheched)
 		m_viewer->getAllQuadrantPos(quandrantPosToRegen);
 	else
@@ -3374,7 +3374,7 @@ void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool eva
 	m_actionClock.tick();
 
 	QuadTree* quadTreeSel = nullptr;
-	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
 
 	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
 
@@ -3386,10 +3386,10 @@ void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool eva
 		return;
 	}
 
-	std::vector<QuadrantPos> allQuandrantPos;
+	std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
 	m_viewer->getAllQuadrantPos(allQuandrantPos);
 
-	std::vector<QuadrantPos> quandrantPosToRegen;
+	std::vector<TheWorld_Utils::QuadrantPos> quandrantPosToRegen;
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.1 ") + __FUNCTION__, "Select quads");
 
@@ -3516,7 +3516,7 @@ void GDN_TheWorld_Edit::editModeGenNormals_2(QuadTree* quadTree)
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenNormals 1.2.1.2 ") + __FUNCTION__, "Single QuadTree");
 
-		QuadrantPos pos = quadTree->getQuadrant()->getPos();
+		TheWorld_Utils::QuadrantPos pos = quadTree->getQuadrant()->getPos();
 		TheWorld_Utils::MemoryBuffer& float32HeigthsBuffer = quadTree->getQuadrant()->getFloat32HeightsBuffer(true);
 
 		{
@@ -3681,7 +3681,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 	m_actionClock.tick();
 
 	QuadTree* quadTreeSel = nullptr;
-	QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
 
 	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
 
@@ -3693,10 +3693,10 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 		return;
 	}
 
-	std::vector<QuadrantPos> allQuandrantPos;
+	std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
 	m_viewer->getAllQuadrantPos(allQuandrantPos);
 
-	std::vector<QuadrantPos> quandrantPos;
+	std::vector<TheWorld_Utils::QuadrantPos> quandrantPos;
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("EditSetTextures 1.1 ") + __FUNCTION__, "Select Quads");
 
@@ -3824,7 +3824,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_2(QuadTree* quadTree)
 
 		editModeGenNormals_2(quadTree);
 
-		QuadrantPos pos = quadTree->getQuadrant()->getPos();
+		TheWorld_Utils::QuadrantPos pos = quadTree->getQuadrant()->getPos();
 
 		TheWorld_Utils::MeshCacheBuffer& cache = quadTree->getQuadrant()->getMeshCacheBuffer();
 
@@ -3934,26 +3934,26 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 	TheWorld_Utils::TerrainEdit terrainEdit(terrainType);
 
 	QuadTree* selectedQuadTree = nullptr;
-	QuadrantPos selectedQuadrantPos = m_viewer->getQuadrantSelForEdit(&selectedQuadTree);
+	TheWorld_Utils::QuadrantPos selectedQuadrantPos = m_viewer->getQuadrantSelForEdit(&selectedQuadTree);
 	if (!selectedQuadrantPos.empty() && selectedQuadTree != nullptr)
 	{
 		TheWorld_Utils::TerrainEdit* northSideTerrainEdit = nullptr;
-		QuadrantPos pos = selectedQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::NorthZMinus);
+		TheWorld_Utils::QuadrantPos pos = selectedQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
 		QuadTree* q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr && !q->getQuadrant()->empty())
 			northSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		TheWorld_Utils::TerrainEdit* southSideTerrainEdit = nullptr;
-		pos = selectedQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::SouthZPlus);
+		pos = selectedQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
 		q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr && !q->getQuadrant()->empty())
 			southSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		TheWorld_Utils::TerrainEdit* westSideTerrainEdit = nullptr;
-		pos = selectedQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::WestXMinus);
+		pos = selectedQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
 		q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr && !q->getQuadrant()->empty())
 			westSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		TheWorld_Utils::TerrainEdit* eastSideTerrainEdit = nullptr;
-		pos = selectedQuadrantPos.getQuadrantPos(QuadrantPos::DirectionSlot::EastXPlus);
+		pos = selectedQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
 		q = m_viewer->getQuadTree(pos, false);
 		if (q != nullptr && !q->getQuadrant()->empty())
 			eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();

@@ -169,7 +169,7 @@ void Quad::setCameraPos(Vector3 globalCoordCameraLastPos)
 	}
 }
 	
-QuadTree::QuadTree(GDN_TheWorld_Viewer* viewer, QuadrantPos quadrantPos)
+QuadTree::QuadTree(GDN_TheWorld_Viewer* viewer, TheWorld_Utils::QuadrantPos quadrantPos)
 {
 	setStatus(QuadrantStatus::uninitialized);
 	m_isVisible = false;
@@ -243,7 +243,7 @@ void QuadTree::init(float cameraX, float cameraY, float cameraZ, float cameraYaw
 
 void QuadTree::onGlobalTransformChanged(void)
 {
-	QuadrantPos quadrantPos = getQuadrant()->getPos();
+	TheWorld_Utils::QuadrantPos quadrantPos = getQuadrant()->getPos();
 	Transform3D gt = m_viewer->get_global_transform();
 	Transform3D t = gt * Transform3D(Basis(), Vector3(quadrantPos.getLowerXGridVertex(), 0, quadrantPos.getLowerZGridVertex()));
 	m_GDN_Quadrant->set_global_transform(t);
@@ -326,7 +326,7 @@ void QuadTree::mouseHitChanged(godot::Vector3 mouseHit, bool hit)
 
 	if (hit)
 	{
-		QuadrantPos pos = getQuadrant()->getPos();
+		TheWorld_Utils::QuadrantPos pos = getQuadrant()->getPos();
 		//float s = pos.getSizeInWU();							// DEBUG ONLY
 		//float dx = mouseHit.x - pos.getLowerXGridVertex();		// DEBUG ONLY
 		//float dz = mouseHit.z - pos.getLowerZGridVertex();		// DEBUG ONLY
@@ -345,37 +345,37 @@ void QuadTree::mouseHitChanged(godot::Vector3 mouseHit, bool hit)
 void QuadTree::getAdjacentQuadrants(std::list<QuadTree*>& adjacentQuadrantsHit)
 {
 	adjacentQuadrantsHit.clear();
-	QuadrantPos currentPos = getQuadrant()->getPos();
+	TheWorld_Utils::QuadrantPos currentPos = getQuadrant()->getPos();
 
-	QuadrantPos pos = currentPos.getQuadrantPos(QuadrantPos::DirectionSlot::WestXMinus);
+	TheWorld_Utils::QuadrantPos pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
 	QuadTree* quadTree = m_viewer->getQuadTree(pos);
 	if (quadTree != nullptr)
 		adjacentQuadrantsHit.push_back(quadTree);
-	pos = currentPos.getQuadrantPos(QuadrantPos::DirectionSlot::EastXPlus);
+	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
 	quadTree = m_viewer->getQuadTree(pos);
 	if (quadTree != nullptr)
 		adjacentQuadrantsHit.push_back(quadTree);
-	pos = currentPos.getQuadrantPos(QuadrantPos::DirectionSlot::NorthZMinus);
+	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
 	quadTree = m_viewer->getQuadTree(pos);
 	if (quadTree != nullptr)
 		adjacentQuadrantsHit.push_back(quadTree);
-	pos = currentPos.getQuadrantPos(QuadrantPos::DirectionSlot::SouthZPlus);
+	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
 	quadTree = m_viewer->getQuadTree(pos);
 	if (quadTree != nullptr)
 		adjacentQuadrantsHit.push_back(quadTree);
-	pos = currentPos.getQuadrantPos(QuadrantPos::DirectionSlot::NorthwestZMinusXMinus);
+	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus);
 	quadTree = m_viewer->getQuadTree(pos);
 	if (quadTree != nullptr)
 		adjacentQuadrantsHit.push_back(quadTree);
-	pos = currentPos.getQuadrantPos(QuadrantPos::DirectionSlot::NortheastZMinusXPlus);
+	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NortheastZMinusXPlus);
 	quadTree = m_viewer->getQuadTree(pos);
 	if (quadTree != nullptr)
 		adjacentQuadrantsHit.push_back(quadTree);
-	pos = currentPos.getQuadrantPos(QuadrantPos::DirectionSlot::SouthwestZPlusXMinus);
+	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthwestZPlusXMinus);
 	quadTree = m_viewer->getQuadTree(pos);
 	if (quadTree != nullptr)
 		adjacentQuadrantsHit.push_back(quadTree);
-	pos = currentPos.getQuadrantPos(QuadrantPos::DirectionSlot::SoutheastZPlusXPlus);
+	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus);
 	quadTree = m_viewer->getQuadTree(pos);
 	if (quadTree != nullptr)
 		adjacentQuadrantsHit.push_back(quadTree);
@@ -690,19 +690,19 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 	}
 }
 
-bool QuadTree::isChunkOnBorderOfQuadrant(Chunk::ChunkPos pos, QuadrantPos& XMinusQuadrantPos, QuadrantPos& XPlusQuadrantPos, QuadrantPos& ZMinusQuadrantPos, QuadrantPos& ZPlusQuadrantPos)
+bool QuadTree::isChunkOnBorderOfQuadrant(Chunk::ChunkPos pos, TheWorld_Utils::QuadrantPos& XMinusQuadrantPos, TheWorld_Utils::QuadrantPos& XPlusQuadrantPos, TheWorld_Utils::QuadrantPos& ZMinusQuadrantPos, TheWorld_Utils::QuadrantPos& ZPlusQuadrantPos)
 {
 	bool ret = false;
 
 	if (pos.getSlotPosX() == 0)
 	{
-		XMinusQuadrantPos = getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XMinus);
+		XMinusQuadrantPos = getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
 		ret = true;
 	}
 
 	if (pos.getSlotPosZ() == 0)
 	{
-		ZMinusQuadrantPos = getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZMinus);
+		ZMinusQuadrantPos = getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
 		ret = true;
 	}
 
@@ -710,13 +710,13 @@ bool QuadTree::isChunkOnBorderOfQuadrant(Chunk::ChunkPos pos, QuadrantPos& XMinu
 
 	if (pos.getSlotPosX() == (numChunksPerSide - 1))
 	{
-		XPlusQuadrantPos = getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::XPlus);
+		XPlusQuadrantPos = getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);
 		ret = true;
 	}
 
 	if (pos.getSlotPosZ() == (numChunksPerSide - 1))
 	{
-		ZPlusQuadrantPos = getQuadrant()->getPos().getQuadrantPos(QuadrantPos::DirectionSlot::ZPlus);
+		ZPlusQuadrantPos = getQuadrant()->getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
 		ret = true;
 	}
 
@@ -2997,6 +2997,7 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 //	_file->close();
 //}
 
+/*
 QuadrantPos QuadrantPos::getQuadrantPos(enum class DirectionSlot dir, int numSlot)
 {
 	QuadrantPos pos = *this;
@@ -3063,8 +3064,9 @@ size_t QuadrantPos::distanceInPerimeter(QuadrantPos& q) const
 	else
 		return distanceOnZ;
 }
+*/
 
-Quadrant::Quadrant(QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
+Quadrant::Quadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
 {
 	m_quadrantPos = quadrantPos;
 	m_viewer = viewer;
@@ -3483,7 +3485,7 @@ void Quadrant::saveQuadrantToDiskCache(void)
 	cacheQuadrantData.splatmapBuffer = &getSplatmapBuffer(false);
 	cacheQuadrantData.colormapBuffer = &getColormapBuffer(false);
 	cacheQuadrantData.globalmapBuffer = &getGlobalmapBuffer(false);
-	QuadrantPos pos = getPos();
+	TheWorld_Utils::QuadrantPos pos = getPos();
 	TheWorld_Utils::MemoryBuffer buffer;
 	m_cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
 	m_cache.writeBufferToDiskCache(buffer);
@@ -3515,7 +3517,7 @@ bool Quadrant::needSaveToCache(void)
 	if (editModeUIControl != nullptr)
 	{
 		//editModeUIControl->eraseQuadToSave(pos);
-		QuadrantPos pos = getPos();
+		TheWorld_Utils::QuadrantPos pos = getPos();
 		if (editModeUIControl->isQuadToSave(pos))
 			needToSave = true;
 	}

@@ -344,8 +344,8 @@ namespace godot
 		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
 
 		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer);
-		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
-		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
+		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
+		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
 
 		void setEmptyTerrainEditValues(void);
 		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
@@ -441,21 +441,21 @@ namespace godot
 		//	return m_mapQuadToSave;
 		//}
 
-		void addQuadToSave(QuadrantPos& pos)
+		void addQuadToSave(TheWorld_Utils::QuadrantPos& pos)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
 			if (!m_mapQuadToSave.contains(pos))
 				m_mapQuadToSave[pos] = "";
 		}
 
-		void eraseQuadToSave(QuadrantPos& pos)
+		void eraseQuadToSave(TheWorld_Utils::QuadrantPos& pos)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
 			if (m_mapQuadToSave.contains(pos))
 				m_mapQuadToSave.erase(pos);
 		}
 		
-		bool isQuadToSave(QuadrantPos& pos)
+		bool isQuadToSave(TheWorld_Utils::QuadrantPos& pos)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
 			if (m_mapQuadToSave.contains(pos))
@@ -522,7 +522,7 @@ namespace godot
 		
 		bool m_lastMessageChanged;
 
-		std::map<QuadrantPos, std::string> m_mapQuadToSave;
+		std::map<TheWorld_Utils::QuadrantPos, std::string> m_mapQuadToSave;
 		std::recursive_mutex m_mtxMapQuadToSave;
 
 		TheWorld_Utils::ThreadPool m_tp;

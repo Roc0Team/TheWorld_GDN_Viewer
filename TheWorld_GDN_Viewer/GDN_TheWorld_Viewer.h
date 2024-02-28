@@ -40,7 +40,7 @@ namespace godot
 	class GDN_TheWorld_Drawer;
 	class GDN_TheWorld_Gizmo3d;
 
-	typedef std::map<QuadrantPos, std::unique_ptr<QuadTree>> MapQuadTree;
+	typedef std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<QuadTree>> MapQuadTree;
 
 #define STREAMER_SLEEP_TIME			10
 #define STREAMER_SYNC_PERIOD_TIME	1000
@@ -582,9 +582,9 @@ namespace godot
 		{
 			m_refreshMapQuadTree = true; 
 		}
-		void getAllQuadrantPos(std::vector<QuadrantPos>& allQuandrantPos);
-		QuadTree* getQuadTree(QuadrantPos pos, bool excludeToErase = true, bool lockQuadrant = false);
-		Chunk* getActiveChunkAt(QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
+		void getAllQuadrantPos(std::vector<TheWorld_Utils::QuadrantPos>& allQuandrantPos);
+		QuadTree* getQuadTree(TheWorld_Utils::QuadrantPos pos, bool excludeToErase = true, bool lockQuadrant = false);
+		Chunk* getActiveChunkAt(TheWorld_Utils::QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		bool terrainShiftPermitted(void);
 		godot::Vector3 getMouseHit(void) const
@@ -804,7 +804,7 @@ namespace godot
 				if (isQuadrantSelectedForEdit())
 				{
 					QuadTree* quadTreeSelectedForEdit = nullptr;
-					QuadrantPos pos = getQuadrantSelForEdit(&quadTreeSelectedForEdit);
+					TheWorld_Utils::QuadrantPos pos = getQuadrantSelForEdit(&quadTreeSelectedForEdit);
 					quadTreeSelectedForEdit->materialParamsNeedUpdate(true);
 				}
 
@@ -994,7 +994,7 @@ namespace godot
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
 		void writeStatisticsNewQuadrants(void);
-		QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
+		TheWorld_Utils::QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isQuadrantSelectedForEdit(void);
 		godot::Camera3D* m_editorCamera;
 
@@ -1099,10 +1099,10 @@ namespace godot
 		std::string m_mouseQuadrantHitTag;
 		float m_mouseQuadrantHitSize;
 		godot::Vector3 m_mouseQuadrantHitPos;
-		QuadrantPos m_quadrantHitPos;
+		TheWorld_Utils::QuadrantPos m_quadrantHitPos;
 		QuadTree* m_quadrantHit = nullptr;
 		std::list<QuadTree*> m_adjacentQuadrantsHit;
-		QuadrantPos m_quadrantSelPos;
+		TheWorld_Utils::QuadrantPos m_quadrantSelPos;
 		Chunk* m_mouseHitChunk;
 		GDN_TheWorld_Drawer* m_normalDrawer = nullptr;
 		GDN_TheWorld_Drawer* m_positionDrawer = nullptr;
@@ -1148,8 +1148,8 @@ namespace godot
 		// World Data
 		MapQuadTree m_mapQuadTree;	// Actually only 1 level is managed (to manage more levels we shold have a map for each level)
 		std::recursive_mutex m_mtxQuadTreeAndMainProcessing;
-		std::map<QuadrantPos, bool> m_toErase;
-		QuadrantPos m_computedCameraQuadrantPos;
+		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
+		TheWorld_Utils::QuadrantPos m_computedCameraQuadrantPos;
 		bool m_recalcQuadrantsInViewNeeded;
 		bool m_refreshMapQuadTree;
 		int m_numWorldVerticesPerSize;
@@ -1197,7 +1197,7 @@ namespace godot
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
 
 		// Loaded quadrant images (mostly for testing)
-		QuadrantPos m_tempPos;
+		TheWorld_Utils::QuadrantPos m_tempPos;
 		TheWorld_Utils::TerrainEdit m_tempTerrainEdit;
 		godot::Ref<godot::Image> m_tempHeightmapImage;
 		godot::Ref<godot::Image> m_tempNormalmapImage;

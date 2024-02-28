@@ -27,6 +27,7 @@ namespace godot
 	//class QuadTree;
 	//class TerrainEdit;
 
+	/*
 	class QuadrantPos
 	{
 	public:
@@ -286,7 +287,7 @@ namespace godot
 		float m_sizeInWU;
 		std::string m_tag;
 		std::string m_name;
-	};
+	};*/
 
 	class Quadrant
 	{
@@ -346,7 +347,7 @@ namespace godot
 		};
 
 	public:
-		Quadrant(QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
+		Quadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 
 		~Quadrant();
 
@@ -363,7 +364,7 @@ namespace godot
 			return m_heightsForCollider;
 		}
 
-		QuadrantPos getPos(void)
+		TheWorld_Utils::QuadrantPos getPos(void)
 		{
 			return m_quadrantPos;
 		}
@@ -780,7 +781,7 @@ namespace godot
 		void loadTerrainDataFromCache(void);
 
 	private:
-		QuadrantPos m_quadrantPos;
+		TheWorld_Utils::QuadrantPos m_quadrantPos;
 		GDN_TheWorld_Viewer* m_viewer;
 		QuadTree* m_quadTree;
 		bool m_lockInternalDataUntilCompleteProcessExecution = false;
@@ -1267,7 +1268,7 @@ namespace godot
 	class QuadTree
 	{
 	public:
-		QuadTree(GDN_TheWorld_Viewer* viewer, QuadrantPos quadrantId);
+		QuadTree(GDN_TheWorld_Viewer* viewer, TheWorld_Utils::QuadrantPos quadrantId);
 		~QuadTree();
 
 		void onGlobalTransformChanged(void);
@@ -1283,7 +1284,7 @@ namespace godot
 		void update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updateStage, int& numSplitRequired);
 		Chunk* getChunkAt(Chunk::ChunkPos pos, enum class Chunk::DirectionSlot dir);
 		Chunk* getChunkAt(Chunk::ChunkPos pos);
-		bool isChunkOnBorderOfQuadrant(Chunk::ChunkPos pos, QuadrantPos& XMinusQuadrantPos, QuadrantPos& XPlusQuadrantPos, QuadrantPos& ZMinusQuadrantPos, QuadrantPos& ZPlusQuadrantPos);
+		bool isChunkOnBorderOfQuadrant(Chunk::ChunkPos pos, TheWorld_Utils::QuadrantPos& XMinusQuadrantPos, TheWorld_Utils::QuadrantPos& XPlusQuadrantPos, TheWorld_Utils::QuadrantPos& ZMinusQuadrantPos, TheWorld_Utils::QuadrantPos& ZPlusQuadrantPos);
 		void addChunk(Chunk* chunk);
 		void addChunkUpdate(Chunk* chunk);
 		void clearChunkUpdate(void);

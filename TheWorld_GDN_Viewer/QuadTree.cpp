@@ -3386,6 +3386,9 @@ void Quadrant::process_mapModder(double _delta)
 
 	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
 
+	if (terrainEdit->extraValues1.heightsNeedRegen)
+		return;
+		
 	if (terrainEdit->normalsNeedRegen)
 	{
 		bool lockAcquired = lockInternalData();
@@ -3812,10 +3815,11 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 
 	float minAltitude = 0, maxAltitude = 0;
 	
+	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.1 ") + __FUNCTION__, "m_cache.refreshMapsFromBuffer");
 
-		TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, updateCache);
 		if (terrainEditValuesBuffer.size() > 0)
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);
@@ -3830,8 +3834,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 
 	setEmpty(false);
 
-	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-	if (outMeshIdFromBuffer.size() == 0 || m_float16HeigthsBuffer.empty())
+	if (outMeshIdFromBuffer.size() == 0 || terrainEditValuesBuffer.empty())
 	{
 		// Buffer from server was empty
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.2 ") + __FUNCTION__, "m_cache.readMapsFromMeshCache");
@@ -3844,7 +3847,15 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 			setEmpty(true);
 	}
 
-	assert(!m_float16HeigthsBuffer.empty());
+	//assert(!m_float16HeigthsBuffer.empty());
+	if (m_float16HeigthsBuffer.empty())
+	{
+		getTerrainEdit()->extraValues1.heightsNeedRegen = true;
+		getTerrainEdit()->normalsNeedRegen = true;
+		getTerrainEdit()->extraValues.splatmapNeedRegen = true;
+		getTerrainEdit()->extraValues.globalmapNeedRegen = true;
+		getTerrainEdit()->extraValues.colormapNeedRegen = true;
+	}
 
 	if (getTerrainEdit()->needUploadToServer)
 		setNeedUploadToServer(true);

@@ -2741,6 +2741,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	heights16Buffer.adjustSize(heights16BufferSize);
 	heights32Buffer.adjustSize(heights32BufferSize);
 	quadTreeSel->getQuadrant()->setHeightsUpdated(true);
+	terrainEdit->extraValues1.heightsNeedRegen = false;
 
 	// 5. invalidata normals and textures as heigths have been changed and set flags according (normals need regen and empty normals have to be passed to shader)
 	quadTreeSel->getQuadrant()->resetNormalsBuffer(__FUNCTION__);

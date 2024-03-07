@@ -412,6 +412,11 @@ namespace godot
 			return m_collider.get();
 		}
 
+		std::string getMeshId() const
+		{
+			return m_meshId;
+		}
+
 		size_t getIndexFromMap(float posX, float posZ);
 		float getAltitudeFromHeigthmap(size_t index);
 		float getPosXFromHeigthmap(size_t index);
@@ -502,28 +507,28 @@ namespace godot
 			return m_globalmapBuffer;
 		}
 
-		void fillQuadrantData(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData)
-		{
-			quadrantData.meshId = getMeshCacheBuffer().getMeshId();
-			quadrantData.terrainEdit = getTerrainEdit();
-			quadrantData.minHeight = getTerrainEdit()->minHeight;
-			quadrantData.maxHeight = getTerrainEdit()->maxHeight;
-			TheWorld_Utils::MemoryBuffer& heights16Buffer = getFloat16HeightsBuffer();
-			quadrantData.heights16Buffer = &heights16Buffer;
-			TheWorld_Utils::MemoryBuffer& heights32Buffer = getFloat32HeightsBuffer();
-			quadrantData.heights32Buffer = &heights32Buffer;
-			TheWorld_Utils::MemoryBuffer& normalsBuffer = getNormalsBuffer();
-			quadrantData.normalsBuffer = &normalsBuffer;
-			TheWorld_Utils::MemoryBuffer& splatmapBuffer = getSplatmapBuffer();
-			quadrantData.splatmapBuffer = &splatmapBuffer;
-			TheWorld_Utils::MemoryBuffer& colormapBuffer = getColormapBuffer();
-			quadrantData.colormapBuffer = &colormapBuffer;
-			TheWorld_Utils::MemoryBuffer& globalmapBuffer = getGlobalmapBuffer();
-			quadrantData.globalmapBuffer = &globalmapBuffer;
-			quadrantData.heightsUpdated = heightsUpdated();
-			quadrantData.normalsUpdated = normalsUpdated();
-			quadrantData.texturesUpdated = textureUpdated();
-		}
+		//void fillQuadrantData(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData)
+		//{
+		//	quadrantData.meshId = getMeshCacheBuffer().getMeshId();
+		//	quadrantData.terrainEdit = getTerrainEdit();
+		//	quadrantData.minHeight = getTerrainEdit()->minHeight;
+		//	quadrantData.maxHeight = getTerrainEdit()->maxHeight;
+		//	TheWorld_Utils::MemoryBuffer& heights16Buffer = getFloat16HeightsBuffer();
+		//	quadrantData.heights16Buffer = &heights16Buffer;
+		//	TheWorld_Utils::MemoryBuffer& heights32Buffer = getFloat32HeightsBuffer();
+		//	quadrantData.heights32Buffer = &heights32Buffer;
+		//	TheWorld_Utils::MemoryBuffer& normalsBuffer = getNormalsBuffer();
+		//	quadrantData.normalsBuffer = &normalsBuffer;
+		//	TheWorld_Utils::MemoryBuffer& splatmapBuffer = getSplatmapBuffer();
+		//	quadrantData.splatmapBuffer = &splatmapBuffer;
+		//	TheWorld_Utils::MemoryBuffer& colormapBuffer = getColormapBuffer();
+		//	quadrantData.colormapBuffer = &colormapBuffer;
+		//	TheWorld_Utils::MemoryBuffer& globalmapBuffer = getGlobalmapBuffer();
+		//	quadrantData.globalmapBuffer = &globalmapBuffer;
+		//	quadrantData.heightsUpdated = heightsUpdated();
+		//	quadrantData.normalsUpdated = normalsUpdated();
+		//	quadrantData.texturesUpdated = textureUpdated();
+		//}
 
 		//void resetHeightsBuffer(std::string actor)
 		//{
@@ -589,7 +594,7 @@ namespace godot
 			return m_needUploadToServer;
 		}
 
-		bool needSaveToCache(void);
+		bool needSaveToCache(bool& manual);
 
 		bool lockInternalData(void)
 		{
@@ -688,7 +693,10 @@ namespace godot
 			return m_mapModder;
 		}
 
-		void saveQuadrantToDiskCache(void);
+		void getQuadrantBufferForCache(TheWorld_Utils::MemoryBuffer& buffer);
+		void getQuadrantBufferForCache(std::string& buffer);
+		void saveQuadrantToDiskCache(TheWorld_Utils::MemoryBuffer& buffer, bool needUploadToserver = true, bool newMeshId = false);
+		void saveQuadrantToDiskCache(bool newMeshId = false);
 
 		void renderGlobalMap(bool b)
 		{

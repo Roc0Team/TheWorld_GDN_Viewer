@@ -120,7 +120,7 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			const auto _lowerXGridVertex(std::get_if<float>(&v));
 			if (_lowerXGridVertex == NULL)
 			{
-				std::string m = std::string("Reply MapManager::getVertices did not have a float as first input param");
+				std::string m = std::string("Reply MapManager::uploadCacheBuffer did not have a float as first input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
 			float lowerXGridVertex = *_lowerXGridVertex;
@@ -129,7 +129,7 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			const auto _lowerZGridVertex(std::get_if<float>(&v));
 			if (_lowerZGridVertex == NULL)
 			{
-				std::string m = std::string("Reply MapManager::getVertices did not have a float as second input param");
+				std::string m = std::string("Reply MapManager::uploadCacheBuffer did not have a float as second input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
 			float lowerZGridVertex = *_lowerZGridVertex;
@@ -138,7 +138,7 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			const auto _numVerticesPerSize(std::get_if<int>(&v));
 			if (_numVerticesPerSize == NULL)
 			{
-				std::string m = std::string("Reply MapManager::getVertices did not have an int as third input param");
+				std::string m = std::string("Reply MapManager::uploadCacheBuffer did not have an int as third input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
 			int numVerticesPerSize = *_numVerticesPerSize;
@@ -147,7 +147,7 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			const auto _gridStepinWU(std::get_if<float>(&v));
 			if (_gridStepinWU == NULL)
 			{
-				std::string m = std::string("Reply MapManager::getVertices did not have a float as forth input param");
+				std::string m = std::string("Reply MapManager::uploadCacheBuffer did not have a float as forth input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
 			float gridStepInWU = *_gridStepinWU;
@@ -156,16 +156,26 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			const auto _level(std::get_if<int>(&v));
 			if (_level == NULL)
 			{
-				std::string m = std::string("Reply MapManager::getVertices did not have an int as fifth input param");
+				std::string m = std::string("Reply MapManager::uploadCacheBuffer did not have an int as fifth input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
 			int level = *_level;
+
+			v = reply.getReplyParam(0);
+			const auto _refreshRequired(std::get_if<bool>(&v));
+			if (_refreshRequired == NULL)
+			{
+				std::string m = std::string("Reply MapManager::uploadCacheBuffer did not have an int as fifth reply param");
+				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+			}
+			bool refreshRequired = *_refreshRequired;
 
 			TheWorld_Utils::QuadrantPos pos(lowerXGridVertex, lowerZGridVertex, level, numVerticesPerSize, gridStepInWU);
 			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 			if (quadTree != nullptr)
 			{
-				quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+				if (refreshRequired)
+					quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
 				quadTree->getQuadrant()->setNeedUploadToServer(false);
 			}
 
@@ -1877,7 +1887,9 @@ void GDN_TheWorld_Edit::changeTextureAction()
 	terrainEdit->needUploadToServer = true;
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-		m_mapQuadToSave[quadrantSelPos] = "";
+		//m_mapQuadToSave[quadrantSelPos] = "";
+		bool manual = true;
+		addQuadToSave(quadrantSelPos, manual);
 	}
 
 	// Shader need refresh
@@ -2553,7 +2565,8 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 
 			TheWorld_Utils::MeshCacheBuffer& cache = quadTree->getQuadrant()->getMeshCacheBuffer();
 			TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
-			cacheQuadrantData.meshId = cache.getMeshId();
+			//cacheQuadrantData.meshId = cache.getMeshId();
+			cacheQuadrantData.meshId = cache.generateNewMeshId();
 			TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
 			terrainEdit->needUploadToServer = false;
 			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer((BYTE*)terrainEdit, terrainEdit->size);
@@ -2568,15 +2581,13 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 			cacheQuadrantData.globalmapBuffer = &quadTree->getQuadrant()->getGlobalmapBuffer(false);
 			std::string buffer;
 			cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
-			
+			cache.writeBufferToDiskCache(buffer);
+
 			float lowerXGridVertex = pos.getLowerXGridVertex();
 			float lowerZGridVertex = pos.getLowerZGridVertex();
 			int numVerticesPerSize = pos.getNumVerticesPerSize();
 			float gridStepinWU = pos.getGridStepInWU();
 			int lvl = pos.getLevel();
-
-			cache.writeBufferToDiskCache(buffer);
-
 			quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(quadTree->Viewer()->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepinWU, lvl, buffer);
 
 			//quadTree->getQuadrant()->setNeedUploadToServer(false);
@@ -2702,7 +2713,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	terrainEdit->needUploadToServer = true;
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-		m_mapQuadToSave[quadrantSelPos] = "";
+		//m_mapQuadToSave[quadrantSelPos] = "";
+		bool manual = true;
+		addQuadToSave(quadrantSelPos, manual);
 	}
 
 	// 4. refresh new heights on internal datas 16-bit heights (for shader), 32-bit heigths (for collider), terrain data for editing and set flag according (new heigths have to be passed to shader)
@@ -3224,7 +3237,11 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 		
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
+			//m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
+			TheWorld_Utils::QuadrantPos pos = quadTree->getQuadrant()->getPos();
+			bool manual = true;
+			addQuadToSave(pos, manual);
+
 		}
 		quadTree->getQuadrant()->setEmpty(false);
 		quadTree->getQuadrant()->getTerrainEdit()->needUploadToServer = true;
@@ -3538,7 +3555,9 @@ void GDN_TheWorld_Edit::editModeGenNormals_2(QuadTree* quadTree)
 
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			m_mapQuadToSave[pos] = "";
+			//m_mapQuadToSave[pos] = "";
+			bool manual = true;
+			addQuadToSave(pos, manual);
 		}
 		quadTree->getQuadrant()->getTerrainEdit()->needUploadToServer = true;
 		quadTree->getQuadrant()->setNeedUploadToServer(true);
@@ -3884,7 +3903,9 @@ void GDN_TheWorld_Edit::editModeApplyTextures_2(QuadTree* quadTree)
 
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			m_mapQuadToSave[pos] = "";
+			//m_mapQuadToSave[pos] = "";
+			bool manual = true;
+			addQuadToSave(pos, manual);
 		}
 		quadTree->getQuadrant()->getTerrainEdit()->needUploadToServer = true;
 		quadTree->getQuadrant()->setNeedUploadToServer(true);

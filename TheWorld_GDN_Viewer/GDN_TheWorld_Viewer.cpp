@@ -1380,7 +1380,7 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		if (editModeUIControl != nullptr)
 		{
 			//editModeUIControl->eraseQuadToSave(pos);
-			editModeUIControl->addQuadToSave(pos);
+			editModeUIControl->addQuadToSave(pos, false);
 		}
 	}
 }
@@ -1940,6 +1940,8 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				float cameraRoll = *_cameraRoll;
 
 				TheWorld_Utils::QuadrantPos quadrantPos(lowerXGridVertex, lowerZGridVertex, level, numVerticesPerSize, gridStepInWU);
+				if (quadrantPos.getIndexPosX() == 100 && quadrantPos.getIndexPosZ() == 100)
+					v = reply.getInputParam(13);
 
 				m_mtxQuadTreeAndMainProcessing.lock();
 				if (m_mapQuadTree.contains(quadrantPos) && !m_mapQuadTree[quadrantPos]->statusToErase())
@@ -2132,6 +2134,12 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			TheWorld_Utils::QuadrantPos quadrantPos(cameraPosX, cameraPosZ, level, (int)numVerticesPerSize, gridStepInWU);
 			quadrantPos.setTag("Camera");
 
+			size_t maxThreads;
+			while (m_tpClientWorker.getNumWorkingThreads(maxThreads) > 0)
+			{
+				Sleep(1);
+			}
+
 			std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 
 			clearMapQuadTree();
@@ -2264,6 +2272,12 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			{
 				Sleep(1);
 			}
+			
+			size_t maxThreads;
+			while (m_tpClientWorker.getNumWorkingThreads(maxThreads) > 0)
+			{
+				Sleep(1);
+			}
 
 			while (m_editModeUIControl != nullptr && m_editModeUIControl->getNumWorkingThread() > 0)
 			{
@@ -2306,64 +2320,76 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			}
 			float gridStepinWU = *_gridStepinWU;
 
-			v = reply.getReplyParam(0);
-			const auto _foundUpdatedQuadrant(std::get_if<bool>(&v));
-			if (_foundUpdatedQuadrant == NULL)
+			v = reply.getInputParam(3);
+			//const auto clientQuadrants(std::get_if<std::string>(&v));
+			std::vector<unsigned char>* _clientQuadrants = std::get_if<std::vector<unsigned char>>(&v);
+			if (_clientQuadrants == NULL)
 			{
-				std::string m = std::string("Reply MapManager::getVertices did not return a bool as first return param");
+				std::string m = std::string("Reply MapManager::sync did not return a std::string as fourth input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
-			bool foundUpdatedQuadrant = *_foundUpdatedQuadrant;
+			std::string clientQuadrants((*_clientQuadrants).begin(), (*_clientQuadrants).end());
 
-			if (foundUpdatedQuadrant)
+			v = reply.getReplyParam(0);
+			const auto replyQuadrants(std::get_if<std::string>(&v));
+			if (replyQuadrants == NULL)
 			{
-				v = reply.getReplyParam(1);
-				const auto _level(std::get_if<int>(&v));
-				if (_level == NULL)
+				std::string m = std::string("Reply MapManager::getVertices did not return a std::string as first return param");
+				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+			}
+
+			if (clientQuadrants.length() > 0 && replyQuadrants->length() > 0)
+			{
+				size_t size = 0;
+
+				size_t l1 = clientQuadrants.size();
+				size_t l2 = replyQuadrants->size();
+				size_t clientQuadrantsCursor = 1;	// bypassing first byte '0'
+				size_t numClientQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
+				clientQuadrantsCursor += size;
+
+				size_t replyCursor = 1;				// bypassing first byte '0'
+				size_t numReplyQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyQuadrants->c_str() + replyCursor, size);
+				replyCursor += size;
+
+				my_assert(numClientQuadrants == numReplyQuadrants);
+
+				if (numClientQuadrants > 0)
 				{
-					std::string m = std::string("Reply MapManager::getVertices did not return a int as second return param");
-					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
-				}
-				int level = *_level;
+					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 
-				v = reply.getReplyParam(2);
-				const auto _lowerXGridVertex(std::get_if<float>(&v));
-				if (_lowerXGridVertex == NULL)
-				{
-					std::string m = std::string("Reply MapManager::getVertices did not return a float as third return param");
-					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
-				}
-				float lowerXGridVertex = *_lowerXGridVertex;
-
-				v = reply.getReplyParam(3);
-				const auto _lowerZGridVertex(std::get_if<float>(&v));
-				if (_lowerZGridVertex == NULL)
-				{
-					std::string m = std::string("Reply MapManager::getVertices did not return a float as forth return param");
-					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
-				}
-				float lowerZGridVertex = *_lowerZGridVertex;
-
-				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
-
-				for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
-				{
-					if (!itQuadTree->second->isValid())
-						continue;
-
-					TheWorld_Utils::QuadrantPos pos = itQuadTree->second->getQuadrant()->getPos();
-					if (pos.isInitialized()
-						&& pos.getNumVerticesPerSize() == numVerticesPerSize
-						&& pos.getGridStepInWU() == gridStepinWU
-						&& pos.getLevel() == level
-						&& pos.getLowerXGridVertex() == lowerXGridVertex
-						&& pos.getLowerZGridVertex() == lowerZGridVertex)
+					for (size_t idx = 0; idx < numClientQuadrants; idx++)
 					{
-						itQuadTree->second->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
-						break;
+						size_t quadrantPosSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
+						clientQuadrantsCursor += size;
+
+						TheWorld_Utils::MemoryBuffer tmpBuffer((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, quadrantPosSize);
+						clientQuadrantsCursor += quadrantPosSize;
+
+						TheWorld_Utils::QuadrantPos pos;
+						pos.deserialize(tmpBuffer);
+
+						size_t meshIdSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
+						clientQuadrantsCursor += size;
+
+						std::string clientMeshId((char*)clientQuadrants.c_str() + clientQuadrantsCursor, meshIdSize);
+						clientQuadrantsCursor += meshIdSize;
+
+						bool quadrantRefreshNeeded = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyQuadrants->c_str() + replyCursor, size);
+						replyCursor += size;
+
+						if (quadrantRefreshNeeded && m_mapQuadTree.contains(pos))
+						{
+							QuadTree* quadTree = m_mapQuadTree[pos].get();
+							if (quadTree->isValid() && quadTree->getQuadrant()->getPos().isInitialized())
+								quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+						}
 					}
 				}
 			}
+
+			if (clientQuadrants.length() > 0)
+				m_quadrantSyncRunning = false;
 		}
 		else
 		{
@@ -3727,8 +3753,9 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 			{
 				if (editModeUIControl != nullptr)
 				{
+					bool manualSave;
 					QuadTree* quadTreeToErase = m_mapQuadTree[pos].get();
-					if (!editModeUIControl->isQuadToSave(pos) && !quadTreeToErase->getQuadrant()->needUploadToServer())
+					if (!editModeUIControl->isQuadToSave(pos, manualSave) && !quadTreeToErase->getQuadrant()->needUploadToServer())
 					{
 						numErased = m_mapQuadTree.erase(pos);
 						m_adjacentQuadrantsHit.remove(quadTreeToErase);
@@ -6574,7 +6601,8 @@ void GDN_TheWorld_Viewer::dump()
 
 			int terrainType = (int)quadTree.second->getQuadrant()->getTerrainEdit()->terrainType;
 			TheWorld_Utils::QuadrantPos pos = quadTree.second->getQuadrant()->getPos();
-			if (editModeUIControl != nullptr && editModeUIControl->isQuadToSave(pos))
+			bool manual;
+			if (editModeUIControl != nullptr && editModeUIControl->isQuadToSave(pos, manual))
 			{
 				if (mapQuadrantsToSaveTerrainType.contains(terrainType))
 					mapQuadrantsToSaveTerrainType[terrainType]++;
@@ -6764,7 +6792,53 @@ void GDN_TheWorld_Viewer::streamer(void)
 				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 				if ((now - lastSyncTime).count() > STREAMER_SYNC_PERIOD_TIME)
 				{
-					Globals()->Client()->Sync(isInEditor(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+					std::string quadrants;
+					if (!m_quadrantSyncRunning && Globals()->status() == TheWorldStatus::worldDeployed)
+					{
+						std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
+						if (lock.owns_lock())
+						{
+							m_quadrantSyncRunning = true;
+
+							TheWorld_Utils::MemoryBuffer buffer;
+							buffer.reserve(100000);
+							
+							*buffer.ptr() = '0';
+							size_t cursor = 1;
+
+							size_t size;
+							TheWorld_Utils::serializeToByteStream<size_t>(m_mapQuadTree.size(), buffer.ptr() + cursor, size);
+							cursor += size;
+							
+							for (auto& mapQuadTreeItem : m_mapQuadTree)
+							{
+								TheWorld_Utils::MemoryBuffer quadrantPosBuffer;
+								mapQuadTreeItem.first.serialize(quadrantPosBuffer);
+
+								buffer.reserve(cursor + 8);		// to avoid memory overflow
+								TheWorld_Utils::serializeToByteStream<size_t>(quadrantPosBuffer.size(), buffer.ptr() + cursor, size);
+								cursor += size;
+
+								buffer.reserve(cursor + quadrantPosBuffer.size());		// to avoid memory overflow
+								memcpy(buffer.ptr() + cursor, quadrantPosBuffer.ptr(), quadrantPosBuffer.size());
+								cursor += quadrantPosBuffer.size();
+
+								std::string meshId = mapQuadTreeItem.second->getQuadrant()->getMeshId();
+
+								buffer.reserve(cursor + 8);		// to avoid memory overflow
+								TheWorld_Utils::serializeToByteStream<size_t>(meshId.size(), buffer.ptr() + cursor, size);
+								cursor += size;
+
+								buffer.reserve(cursor + meshId.size());		// to avoid memory overflow
+								memcpy(buffer.ptr() + cursor, meshId.c_str(), meshId.size());
+								cursor += meshId.size();
+							}
+							
+							buffer.adjustSize(cursor);
+							buffer.toString(quadrants);
+						}
+					}
+					Globals()->Client()->Sync(isInEditor(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU(), quadrants);
 					lastSyncTime = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 				}
 
@@ -6842,7 +6916,7 @@ bool GDN_TheWorld_Viewer::loadQuadrantData(float posX, float posZ, int level)
 	TheWorld_Utils::MemoryBuffer splatmapBuffer;
 	TheWorld_Utils::MemoryBuffer globalmapBuffer;
 	TheWorld_Utils::MemoryBuffer colormapBuffer;
-	cacheQuadrantData.terrainEdit = &m_tempTerrainEdit;
+	//cacheQuadrantData.terrainEdit = &m_tempTerrainEdit;
 	cacheQuadrantData.terrainEditValues = &terrainEditValues;
 	cacheQuadrantData.heights16Buffer = &heights16Buffer;
 	cacheQuadrantData.heights32Buffer = &heights32Buffer;

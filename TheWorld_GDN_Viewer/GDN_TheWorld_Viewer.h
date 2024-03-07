@@ -1196,6 +1196,8 @@ namespace godot
 
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
 
+		bool m_quadrantSyncRunning = false;
+
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;
 		TheWorld_Utils::TerrainEdit m_tempTerrainEdit;

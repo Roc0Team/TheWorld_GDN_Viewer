@@ -124,6 +124,9 @@ namespace godot
 			if (cameraTransform != m_lastCameraTransform)
 			{
 				m_lastCameraTransform = cameraTransform;
+				//Quadrant* q = m_quadTree->getQuadrant();
+				//Collider* coll = q->getCollider();
+				//coll->onCameraTransformChanged();
 				m_quadTree->getQuadrant()->getCollider()->onCameraTransformChanged();
 			}
 		}

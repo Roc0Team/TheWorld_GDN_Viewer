@@ -94,7 +94,7 @@ namespace godot
 		void MapManagerSetLogMaxSeverity(plog::Severity sev);
 		void ServerInitializeSession(bool isInEditor, plog::Severity sev);
 		void MapManagerGetQuadrantVertices(bool isInEditor, float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, float lowerXGridVertex, float lowerZGridVertex, int anchorType, int numVerticesPerSize, float gridStepinWU, int level, bool setCamera, float cameraDistanceFromTerrainForced, std::string meshId);
-		void Sync(bool isInEditor, size_t numVerticesPerSize, float gridStepinWU);
+		void Sync(bool isInEditor, size_t numVerticesPerSize, float gridStepinWU, std::string& quadrants);
 		void MapManagerUploadBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepinWU, int level, std::string buffer);
 		void MapManagerDeployLevel(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepinWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll);
 		void MapManagerDeployWorld(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepinWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll);

@@ -185,13 +185,18 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::Sync(bool isInEditor, size_t numVerticesPerSize, float gridStepinWU)
+	void GDN_TheWorld_Globals_Client::Sync(bool isInEditor, size_t numVerticesPerSize, float gridStepinWU, std::string& quadrants)
 	{
 		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(isInEditor);
 		inputParams.push_back(numVerticesPerSize);
 		inputParams.push_back(gridStepinWU);
+		std::vector<unsigned char> _quadrants(quadrants.begin(), quadrants.end());
+		size_t l1 = quadrants.size();
+		size_t l2 = _quadrants.size();
+		//inputParams.push_back(quadrants);
+		inputParams.push_back(_quadrants);
 		std::string ref;
 		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)

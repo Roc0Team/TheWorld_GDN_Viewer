@@ -3082,6 +3082,7 @@ Quadrant::Quadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer
 	m_cache = TheWorld_Utils::MeshCacheBuffer(dir, mapName, m_quadrantPos.getGridStepInWU(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getLevel(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex());
 	m_shaderTerrainData = make_unique<ShaderTerrainData>(viewer, quadTree);
 	m_collider = make_unique<Collider>(quadTree);
+	Collider* c = m_collider.get();
 	m_heightsUpdated = false;
 	m_normalsUpdated = false;
 	m_colorsUpdated = false;
@@ -3257,7 +3258,8 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 	//return;
 
 	// i buffers durante il caricamento devono essere distrutti appena lavorati perché fanno esaurire la memoria di sistema rallentando notevolmente il caricamento
-	if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache() || internalDataLockedUntilCompleteProcessExecution())
+	bool manualSave;
+	if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache(manualSave) || internalDataLockedUntilCompleteProcessExecution())
 		return;
 
 	if (m_quadTree->materialParamsNeedReset() || m_quadTree->materialParamsNeedUpdate() || m_quadTree->colliderNeedReset() || terrainDataJustLoaded())
@@ -3425,6 +3427,21 @@ void Quadrant::process_mapModder(double _delta)
 		}
 		return;
 	}
+
+	bool manual = true;
+	if (editModeUIControl->isQuadToSave(m_quadrantPos, manual))
+	{
+		if (!manual)
+		{
+			saveQuadrantToDiskCache(true);
+			editModeUIControl->eraseQuadToSave(m_quadrantPos);
+			terrainEdit->needUploadToServer = false;
+			std::string buffer;
+			getQuadrantBufferForCache(buffer);
+			m_viewer->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_quadrantPos.getLevel(), buffer);
+			return;
+		}
+	}
 }
 
 TheWorld_Utils::MeshCacheBuffer& Quadrant::getMeshCacheBuffer(void)
@@ -3467,14 +3484,20 @@ float Quadrant::getPosZFromHeigthmap(size_t index)
 	return m_quadrantPos.getLowerZGridVertex() + numStepsZAxis * m_quadrantPos.getGridStepInWU();
 }
 
-void Quadrant::saveQuadrantToDiskCache(void)
+void Quadrant::getQuadrantBufferForCache(std::string& buffer)
 {
-	setNeedUploadToServer(true);
-	
+	TheWorld_Utils::MemoryBuffer _buffer;
+	getQuadrantBufferForCache(_buffer);
+	buffer.clear();
+	buffer.reserve(_buffer.size());
+	buffer.assign((char*)_buffer.ptr(), _buffer.size());
+}
+
+void Quadrant::getQuadrantBufferForCache(TheWorld_Utils::MemoryBuffer& buffer)
+{
 	TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
 	cacheQuadrantData.meshId = m_cache.getMeshId();
 	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
-	terrainEdit->needUploadToServer = true;
 	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer((BYTE*)terrainEdit, terrainEdit->size);
 	cacheQuadrantData.minHeight = terrainEdit->minHeight;
 	cacheQuadrantData.maxHeight = terrainEdit->maxHeight;
@@ -3486,9 +3509,39 @@ void Quadrant::saveQuadrantToDiskCache(void)
 	cacheQuadrantData.colormapBuffer = &getColormapBuffer(false);
 	cacheQuadrantData.globalmapBuffer = &getGlobalmapBuffer(false);
 	TheWorld_Utils::QuadrantPos pos = getPos();
-	TheWorld_Utils::MemoryBuffer buffer;
+	m_cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
+}
+
+void Quadrant::saveQuadrantToDiskCache(TheWorld_Utils::MemoryBuffer& buffer, bool needUploadToserver, bool newMeshId)
+{
+	setNeedUploadToServer(true);
+
+	if (newMeshId)
+		m_cache.generateNewInternalMeshId();
+
+	TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
+	cacheQuadrantData.meshId = m_cache.getMeshId();
+	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
+	terrainEdit->needUploadToServer = needUploadToserver;
+	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer((BYTE*)terrainEdit, terrainEdit->size);
+	cacheQuadrantData.minHeight = terrainEdit->minHeight;
+	cacheQuadrantData.maxHeight = terrainEdit->maxHeight;
+	cacheQuadrantData.terrainEditValues = &terrainEditValuesBuffer;
+	cacheQuadrantData.heights16Buffer = &getFloat16HeightsBuffer(false);
+	cacheQuadrantData.heights32Buffer = &getFloat32HeightsBuffer(false);
+	cacheQuadrantData.normalsBuffer = &getNormalsBuffer(false);
+	cacheQuadrantData.splatmapBuffer = &getSplatmapBuffer(false);
+	cacheQuadrantData.colormapBuffer = &getColormapBuffer(false);
+	cacheQuadrantData.globalmapBuffer = &getGlobalmapBuffer(false);
+	TheWorld_Utils::QuadrantPos pos = getPos();
 	m_cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
 	m_cache.writeBufferToDiskCache(buffer);
+}
+
+void Quadrant::saveQuadrantToDiskCache(bool newMeshId)
+{
+	TheWorld_Utils::MemoryBuffer buffer;
+	saveQuadrantToDiskCache(buffer, true, newMeshId);
 }
 
 godot::AABB Quadrant::getGlobalAABB(void)
@@ -3509,16 +3562,17 @@ godot::AABB Quadrant::getGlobalAABB(void)
 	return aabb;
 }
 
-bool Quadrant::needSaveToCache(void)
+bool Quadrant::needSaveToCache(bool& manual)
 {
 	bool needToSave = false;
+	manual = true;
 
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
 	if (editModeUIControl != nullptr)
 	{
 		//editModeUIControl->eraseQuadToSave(pos);
 		TheWorld_Utils::QuadrantPos pos = getPos();
-		if (editModeUIControl->isQuadToSave(pos))
+		if (editModeUIControl->isQuadToSave(pos, manual))
 			needToSave = true;
 	}
 
@@ -3566,6 +3620,10 @@ void Quadrant::loadTerrainDataFromCache(void)
 
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
 	int resolution = globals->heightmapResolution() + 1;
+
+	enum class TheWorldStatus status = globals->status();
+	if (status > TheWorldStatus::worldDeployed)
+		return;
 
 	while (lockInternalData() == false)
 		Sleep(1);

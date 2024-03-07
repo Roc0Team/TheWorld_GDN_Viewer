@@ -13,7 +13,7 @@
 #include <iterator>
 #include <thread>
 
-typedef std::variant<size_t, int, long, float, std::string, bool> ClientServerVariant;
+typedef std::variant<size_t, int, long, float, std::string, bool, std::vector<unsigned char>> ClientServerVariant;
 
 namespace TheWorld_ClientServer
 {

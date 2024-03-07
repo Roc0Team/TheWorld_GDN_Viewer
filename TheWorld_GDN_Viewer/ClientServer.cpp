@@ -511,7 +511,7 @@ namespace TheWorld_ClientServer
 				float* gridStepinWU = std::get_if<float>(&reply->m_inputParams[3]);
 				if (gridStepinWU == nullptr)
 				{
-					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Forth param must be a FLOAT");
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Fourth param must be a FLOAT");
 					return;
 				}
 
@@ -532,7 +532,10 @@ namespace TheWorld_ClientServer
 				if (expiredTimeToLive(reply))
 					return;
 
-				m_threadContextPool->getCurrentContext()->getMapManager()->uploadCacheBuffer(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, *gridStepinWU, *level, *buffer);
+				bool refreshRequired;
+				m_threadContextPool->getCurrentContext()->getMapManager()->uploadCacheBuffer(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, *gridStepinWU, *level, *buffer, refreshRequired);
+
+				reply->replyParam(refreshRequired);
 
 				reply->replyComplete();
 			}
@@ -698,16 +701,20 @@ namespace TheWorld_ClientServer
 					return;
 				}
 
-				int level = 0;
-				float lowerXGridVertex = 0.0f;
-				float lowerZGridVertex = 0.0f;
-				bool foundUpdatedQuadrant = false;;
-				m_threadContextPool->getCurrentContext()->getMapManager()->sync(*isInEditor, *numVerticesPerSize, *gridStepinWU, foundUpdatedQuadrant, level, lowerXGridVertex, lowerZGridVertex);
+				//std::string* clientQuadrants = std::get_if<std::string>(&reply->m_inputParams[3]);
+				std::vector<unsigned char>* _clientQuadrants = std::get_if<std::vector<unsigned char>>(&reply->m_inputParams[3]);
+				if (_clientQuadrants == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Fourth param must be a std::string");
+					return;
+				}
+				std::string clientQuadrants((*_clientQuadrants).begin(), (*_clientQuadrants).end());
+				size_t l1 = clientQuadrants.size();
+				
+				std::string replyQuadrants;
+				m_threadContextPool->getCurrentContext()->getMapManager()->sync(*isInEditor, *numVerticesPerSize, *gridStepinWU, &clientQuadrants, replyQuadrants);
 
-				reply->replyParam(foundUpdatedQuadrant);
-				reply->replyParam(level);
-				reply->replyParam(lowerXGridVertex);
-				reply->replyParam(lowerZGridVertex);
+				reply->replyParam(replyQuadrants);
 
 				reply->replyComplete();
 			}

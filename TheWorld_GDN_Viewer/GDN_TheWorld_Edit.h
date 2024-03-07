@@ -441,11 +441,17 @@ namespace godot
 		//	return m_mapQuadToSave;
 		//}
 
-		void addQuadToSave(TheWorld_Utils::QuadrantPos& pos)
+		void addQuadToSave(TheWorld_Utils::QuadrantPos& pos, bool manual = true)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			if (!m_mapQuadToSave.contains(pos))
-				m_mapQuadToSave[pos] = "";
+			if (m_mapQuadToSave.contains(pos))
+			{
+				if (manual)
+					if (!m_mapQuadToSave[pos] == manual)
+						m_mapQuadToSave[pos] = manual;
+			}
+			else
+				m_mapQuadToSave[pos] = manual;
 		}
 
 		void eraseQuadToSave(TheWorld_Utils::QuadrantPos& pos)
@@ -455,11 +461,14 @@ namespace godot
 				m_mapQuadToSave.erase(pos);
 		}
 		
-		bool isQuadToSave(TheWorld_Utils::QuadrantPos& pos)
+		bool isQuadToSave(TheWorld_Utils::QuadrantPos& pos, bool& manual)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
 			if (m_mapQuadToSave.contains(pos))
+			{
+				manual = m_mapQuadToSave[pos];
 				return true;
+			}
 			else
 				return false;
 		}
@@ -522,7 +531,7 @@ namespace godot
 		
 		bool m_lastMessageChanged;
 
-		std::map<TheWorld_Utils::QuadrantPos, std::string> m_mapQuadToSave;
+		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadToSave;
 		std::recursive_mutex m_mtxMapQuadToSave;
 
 		TheWorld_Utils::ThreadPool m_tp;

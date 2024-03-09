@@ -1824,12 +1824,22 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				float cameraPosZ = *_cameraPosZ;
 
 				ClientServerVariant vbuffGridVertices = reply.getReplyParam(2);
-				const auto _buffGridVerticesFromServer(std::get_if<std::string>(&vbuffGridVertices));
+				const auto _buffGridVerticesFromServer(std::get_if<std::vector<unsigned char>>(&vbuffGridVertices));
 				if (_buffGridVerticesFromServer == NULL)
 				{
 					std::string m = std::string("Reply MapManager::getVertices did not return a string as third return param");
 					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 				}
+				std::string buffGridVerticesFromServer(_buffGridVerticesFromServer->begin(), _buffGridVerticesFromServer->end());
+
+				ClientServerVariant vmeshIdFromServer = reply.getReplyParam(3);
+				const auto _meshIdFromServer(std::get_if<std::vector<unsigned char>>(&vmeshIdFromServer));
+				if (_meshIdFromServer == NULL)
+				{
+					std::string m = std::string("Reply MapManager::getVertices did not return a std::vector<unsigned char> as fourth return param");
+					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+				}
+				std::string meshIdFromServer(_meshIdFromServer->begin(), _meshIdFromServer->end());
 
 				v = reply.getInputParam(2);
 				const auto _lowerXGridVertex(std::get_if<float>(&v));
@@ -1876,14 +1886,14 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				}
 				int level = *_level;
 
-				v = reply.getInputParam(7);
-				const auto _meshIdFromServer(std::get_if<std::string>(&v));
-				if (_meshIdFromServer == NULL)
-				{
-					std::string m = std::string("Reply MapManager::getVertices did not have a string as eight input param");
-					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
-				}
-				std::string meshIdFromServer = *_meshIdFromServer;
+				//v = reply.getInputParam(7);
+				//const auto _meshIdFromServer(std::get_if<std::vector<unsigned char>>(&v));
+				//if (_meshIdFromServer == NULL)
+				//{
+				//	std::string m = std::string("Reply MapManager::getVertices did not have a string as eight input param");
+				//	throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+				//}
+				//std::string meshIdFromServer(_meshIdFromServer->begin(), _meshIdFromServer->end());
 
 				v = reply.getInputParam(8);
 				const auto _setCamera(std::get_if<bool>(&v));
@@ -1940,8 +1950,8 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				float cameraRoll = *_cameraRoll;
 
 				TheWorld_Utils::QuadrantPos quadrantPos(lowerXGridVertex, lowerZGridVertex, level, numVerticesPerSize, gridStepInWU);
-				if (quadrantPos.getIndexPosX() == 100 && quadrantPos.getIndexPosZ() == 100)
-					v = reply.getInputParam(13);
+				//if (quadrantPos.getIndexPosX() == 100 && quadrantPos.getIndexPosZ() == 100)	// DEBUG ONLY
+				//	v = reply.getInputParam(13);												// DEBUG ONLY
 
 				m_mtxQuadTreeAndMainProcessing.lock();
 				if (m_mapQuadTree.contains(quadrantPos) && !m_mapQuadTree[quadrantPos]->statusToErase())
@@ -1968,12 +1978,19 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							{
 								//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);	// SUPERDEBUGRIC : to remove when the mock for altitudes is removed from cache.refreshMeshCacheFromBuffer
 								TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1 ") + __FUNCTION__, "quadTree->getQuadrant()->refreshGridVertices");
-								quadTree->getQuadrant()->refreshGridVerticesFromServer(*_buffGridVerticesFromServer, meshIdFromServer, meshIdFromBuffer, true);
+								quadTree->getQuadrant()->refreshGridVerticesFromServer(buffGridVerticesFromServer, meshIdFromServer, meshIdFromBuffer, true);
 							}
 
 							{
 								quadTree->materialParamsNeedReset(true);
 								quadTree->colliderNeedReset(true);
+								if (quadTree->statusRefreshTerrainDataInProgress())
+								{
+									quadTree->getQuadrant()->northQuadrantData().initialized(false);
+									quadTree->getQuadrant()->southQuadrantData().initialized(false);
+									quadTree->getQuadrant()->westQuadrantData().initialized(false);
+									quadTree->getQuadrant()->eastQuadrantData().initialized(false);
+								}
 							}
 
 							if (setCamera)
@@ -2011,10 +2028,12 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 								m_initialWordlViewerPosSet = true;
 							}
 
+							if (quadTree->statusRefreshTerrainDataInProgress())
+								Globals()->debugPrint((std::string("Refreshed quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " " + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+							
 							quadTree->setStatus(QuadrantStatus::initialized);
 
 							quadTree->getQuadrant()->unlockInternalData();
-
 						}
 					}
 				}
@@ -2321,35 +2340,35 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			float gridStepinWU = *_gridStepinWU;
 
 			v = reply.getInputParam(3);
-			//const auto clientQuadrants(std::get_if<std::string>(&v));
 			std::vector<unsigned char>* _clientQuadrants = std::get_if<std::vector<unsigned char>>(&v);
 			if (_clientQuadrants == NULL)
 			{
-				std::string m = std::string("Reply MapManager::sync did not return a std::string as fourth input param");
+				std::string m = std::string("Reply MapManager::sync did not return a std::vector<unsigned char> as fourth input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
 			std::string clientQuadrants((*_clientQuadrants).begin(), (*_clientQuadrants).end());
 
 			v = reply.getReplyParam(0);
-			const auto replyQuadrants(std::get_if<std::string>(&v));
-			if (replyQuadrants == NULL)
+			std::vector<unsigned char>* _replyQuadrants = std::get_if<std::vector<unsigned char>>(&v);
+			if (_replyQuadrants == NULL)
 			{
-				std::string m = std::string("Reply MapManager::getVertices did not return a std::string as first return param");
+				std::string m = std::string("Reply MapManager::getVertices did not return a std::vector<unsigned char> as first return param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
+			std::string replyQuadrants((*_replyQuadrants).begin(), (*_replyQuadrants).end());
 
-			if (clientQuadrants.length() > 0 && replyQuadrants->length() > 0)
+			if (clientQuadrants.length() > 0 && replyQuadrants.length() > 0)
 			{
 				size_t size = 0;
 
 				size_t l1 = clientQuadrants.size();
-				size_t l2 = replyQuadrants->size();
+				size_t l2 = replyQuadrants.size();
 				size_t clientQuadrantsCursor = 1;	// bypassing first byte '0'
 				size_t numClientQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
 				clientQuadrantsCursor += size;
 
 				size_t replyCursor = 1;				// bypassing first byte '0'
-				size_t numReplyQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyQuadrants->c_str() + replyCursor, size);
+				size_t numReplyQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyQuadrants.c_str() + replyCursor, size);
 				replyCursor += size;
 
 				my_assert(numClientQuadrants == numReplyQuadrants);
@@ -2375,7 +2394,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						std::string clientMeshId((char*)clientQuadrants.c_str() + clientQuadrantsCursor, meshIdSize);
 						clientQuadrantsCursor += meshIdSize;
 
-						bool quadrantRefreshNeeded = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyQuadrants->c_str() + replyCursor, size);
+						bool quadrantRefreshNeeded = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyQuadrants.c_str() + replyCursor, size);
 						replyCursor += size;
 
 						if (quadrantRefreshNeeded && m_mapQuadTree.contains(pos))
@@ -3813,6 +3832,8 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	for (auto& item : m_mapQuadTree)
 	{
 		item.second->initDelayed();
+
+		item.second->getQuadrant()->checkInternalData(_delta);
 		
 		item.second->getQuadrant()->lockInternalDataUntilCompleteProcessExecution(false);
 
@@ -3943,7 +3964,10 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 						if (itQuadTree->second->statusUninitialized())
 							itQuadTree->second->init(x, y, z, yaw, pitch, roll, false, 0.0f);
 						else	// itQuadTree->second->statusRefreshTerrainDataNeeded()
+						{
 							itQuadTree->second->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
+							Globals()->debugPrint((std::string("Refreshing quadrant ") + itQuadTree->second->getQuadrant()->getPos().getIdStr() + " " + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(itQuadTree->second->getQuadrant()->getMeshId())).c_str());
+						}
 						exitForNow = true;
 						break;
 					}
@@ -4465,9 +4489,9 @@ void GDN_TheWorld_Viewer::process_updateMeshForUpdatedChunks(void)
 		// All chunk that need an update (those are chunk that got split or joined)
 		std::vector<Chunk*> vectChunkUpdate = itQuadTree->second->getChunkUpdate();
 
-		// Forcing update to all neighboring chunks to readjust the seams (by populating vectAdditionalUpdateChunk)
-		// chunks affected are neighboring ones with same lod or less (more definded) ==> neighboring chunks with greater lod (less defined) are not selected
-		// as the seams are calculated on chunks with lesser lod (more defined chunks) if the neighborings have different lod
+		// Forcing update to all neighbouring chunks to readjust the seams (by populating vectAdditionalUpdateChunk)
+		// chunks affected are neighbouring ones with same lod or less (more definded) ==> neighbouring chunks with greater lod (less defined) are not selected
+		// as the seams are calculated on chunks with lesser lod (more defined chunks) if the neighbourings have different lod
 		std::vector<Chunk*> vectAdditionalUpdateChunk;
 		for (std::vector<Chunk*>::iterator itChunk = vectChunkUpdate.begin(); itChunk != vectChunkUpdate.end(); itChunk++)
 		{
@@ -5016,7 +5040,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 			{
 				//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1 ") + __FUNCTION__, "Quadrant locked");
 
-				process_neighborQuadrantData(itQuadTree->second.get());
+				process_neighbourQuadrantData(itQuadTree->second.get());
 
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.1 ") + __FUNCTION__, "resetMaterialParams");
@@ -5076,7 +5100,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosGlobalC
 	}
 }
 
-void GDN_TheWorld_Viewer::process_neighborQuadrantData(QuadTree* quadTree)
+void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 {
 	//return;
 	if (quadTree->statusInitialized())
@@ -5084,7 +5108,7 @@ void GDN_TheWorld_Viewer::process_neighborQuadrantData(QuadTree* quadTree)
 		Quadrant* quadrant = quadTree->getQuadrant();
 		TheWorld_Utils::QuadrantPos quadrantPos = quadrant->getPos();
 
-		Quadrant::NeighborQuadrantData& northQuadrantData = quadrant->northQuadrantData();
+		Quadrant::NeighbourQuadrantData& northQuadrantData = quadrant->northQuadrantData();
 		if (!northQuadrantData.initialized())
 		{
 			TheWorld_Utils::QuadrantPos northPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
@@ -5099,7 +5123,7 @@ void GDN_TheWorld_Viewer::process_neighborQuadrantData(QuadTree* quadTree)
 			}
 		}
 
-		Quadrant::NeighborQuadrantData& southQuadrantData = quadrant->southQuadrantData();
+		Quadrant::NeighbourQuadrantData& southQuadrantData = quadrant->southQuadrantData();
 		if (!southQuadrantData.initialized())
 		{
 			TheWorld_Utils::QuadrantPos southPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
@@ -5114,7 +5138,7 @@ void GDN_TheWorld_Viewer::process_neighborQuadrantData(QuadTree* quadTree)
 			}
 		}
 
-		Quadrant::NeighborQuadrantData& westQuadrantData = quadrant->westQuadrantData();
+		Quadrant::NeighbourQuadrantData& westQuadrantData = quadrant->westQuadrantData();
 		if (!westQuadrantData.initialized())
 		{
 			TheWorld_Utils::QuadrantPos westPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
@@ -5129,7 +5153,7 @@ void GDN_TheWorld_Viewer::process_neighborQuadrantData(QuadTree* quadTree)
 			}
 		}
 		
-		Quadrant::NeighborQuadrantData& eastQuadrantData = quadrant->eastQuadrantData();
+		Quadrant::NeighbourQuadrantData& eastQuadrantData = quadrant->eastQuadrantData();
 		if (!eastQuadrantData.initialized())
 		{
 			TheWorld_Utils::QuadrantPos eastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);

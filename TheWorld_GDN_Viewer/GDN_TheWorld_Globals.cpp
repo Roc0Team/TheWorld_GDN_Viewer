@@ -168,7 +168,8 @@ namespace godot
 		inputParams.push_back(numVerticesPerSize);
 		inputParams.push_back(gridStepinWU);
 		inputParams.push_back(level);
-		inputParams.push_back(meshId);
+		std::vector<unsigned char> _meshId(meshId.begin(), meshId.end());
+		inputParams.push_back(_meshId);
 		inputParams.push_back(setCamera);
 		inputParams.push_back(cameraDistanceFromTerrainForced);
 		inputParams.push_back(cameraY);
@@ -215,7 +216,8 @@ namespace godot
 		inputParams.push_back(numVerticesPerSize);
 		inputParams.push_back(gridStepinWU);
 		inputParams.push_back(level);
-		inputParams.push_back(buffer);
+		std::vector<unsigned char> _buffer(buffer.begin(), buffer.end());
+		inputParams.push_back(_buffer);
 		inputParams.push_back(isInEditor);
 		std::string ref;
 		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());

@@ -481,6 +481,14 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_1_grow).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_1_grow);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_2).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_2);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_2_grow).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_2_grow);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_3).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_3);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_3_grow).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_3_grow);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_4).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_4);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_4_grow).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_4_grow);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::coastal).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::coastal);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_1);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_2).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_2);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_3).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_3);
 		m_innerData->m_terrTypeOptionButton->add_separator();
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::noise_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::noise_1);
 		separator = createControl<godot::VSeparator>(hBoxContainer);
@@ -1784,7 +1792,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		}
 	}
 	
-	if (m_infoLabelTextChanged)
+	if (m_infoLabelTextChanged && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) && m_innerData->m_quadTreeHit != nullptr)
 	{
 		std::string optimizationLevelInfoStr, colliderInfoStr;
 		if (m_innerData->m_quadTreeHit != nullptr)
@@ -2566,7 +2574,10 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 			TheWorld_Utils::MeshCacheBuffer& cache = quadTree->getQuadrant()->getMeshCacheBuffer();
 			TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
 			//cacheQuadrantData.meshId = cache.getMeshId();
-			cacheQuadrantData.meshId = cache.generateNewMeshId();
+			cache.generateNewInternalMeshId();
+			std::string newMeshId = cache.getMeshId();
+			quadTree->getQuadrant()->setMeshId(newMeshId);
+			cacheQuadrantData.meshId = newMeshId;
 			TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
 			terrainEdit->needUploadToServer = false;
 			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer((BYTE*)terrainEdit, terrainEdit->size);

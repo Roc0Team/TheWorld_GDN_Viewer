@@ -989,7 +989,7 @@ namespace godot
 		void process_updateMeshForUpdatedChunks(void);
 		void process_lookDev(void);
 		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
-		void process_neighborQuadrantData(QuadTree* quadTree);
+		void process_neighbourQuadrantData(QuadTree* quadTree);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 

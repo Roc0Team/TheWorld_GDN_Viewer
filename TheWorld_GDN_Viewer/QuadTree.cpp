@@ -3349,6 +3349,14 @@ size_t Quadrant::calcResizedTexMemoryOccupation(void)
 	return m_shaderTerrainData->calcResizedTexMemoryOccupation();
 }
 
+void Quadrant::checkInternalData(double _delta)
+{
+	if (!empty() && getMeshId().length() > 0 && getMeshCacheBuffer().getMeshId().length() > 0 && getMeshId() != getMeshCacheBuffer().getMeshId())
+	{
+		PLOG_DEBUG << "WARNING: quadrant meshId [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(getMeshId()) << "] not equal cache meshId [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(getMeshCacheBuffer().getMeshId()) << "]";
+	}
+}
+
 void Quadrant::process_mapModder(double _delta)
 {
 	if (m_mapModder == nullptr)
@@ -3517,7 +3525,10 @@ void Quadrant::saveQuadrantToDiskCache(TheWorld_Utils::MemoryBuffer& buffer, boo
 	setNeedUploadToServer(true);
 
 	if (newMeshId)
+	{
 		m_cache.generateNewInternalMeshId();
+		setMeshId(m_cache.getMeshId());
+	}
 
 	TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
 	cacheQuadrantData.meshId = m_cache.getMeshId();
@@ -3887,7 +3898,11 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 
 	if (outMeshIdFromBuffer.size() > 0)
 	{
-		assert(outMeshIdFromBuffer == meshIdFromServer);
+		size_t l1 = outMeshIdFromBuffer.size();
+		size_t l2 = meshIdFromServer.size();
+		const char* c1 = outMeshIdFromBuffer.c_str();
+		const char* c2 = meshIdFromServer.c_str();
+		//assert(outMeshIdFromBuffer == meshIdFromServer);
 		if (outMeshIdFromBuffer != meshIdFromServer)
 			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("MeshId from buffer not equal to meshId from server").c_str()));
 	}

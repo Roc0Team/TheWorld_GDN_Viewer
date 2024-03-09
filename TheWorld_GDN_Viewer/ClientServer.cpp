@@ -522,18 +522,19 @@ namespace TheWorld_ClientServer
 					return;
 				}
 				
-				std::string* buffer = std::get_if<std::string>(&reply->m_inputParams[5]);
-				if (buffer == nullptr)
+				std::vector<unsigned char>* _buffer = std::get_if<std::vector<unsigned char>>(&reply->m_inputParams[5]);
+				if (_buffer == nullptr)
 				{
 					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Sixth param must be an std::string");
 					return;
 				}
+				std::string buffer(_buffer->begin(), _buffer->end());
 
 				if (expiredTimeToLive(reply))
 					return;
 
 				bool refreshRequired;
-				m_threadContextPool->getCurrentContext()->getMapManager()->uploadCacheBuffer(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, *gridStepinWU, *level, *buffer, refreshRequired);
+				m_threadContextPool->getCurrentContext()->getMapManager()->uploadCacheBuffer(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, *gridStepinWU, *level, buffer, refreshRequired);
 
 				reply->replyParam(refreshRequired);
 
@@ -592,19 +593,20 @@ namespace TheWorld_ClientServer
 					return;
 				}
 
-				std::string* meshId = std::get_if<std::string>(&reply->m_inputParams[7]);
-				if (meshId == nullptr)
+				std::vector<unsigned char>* _meshId = std::get_if<std::vector<unsigned char>>(&reply->m_inputParams[7]);
+				if (_meshId == nullptr)
 				{
 					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Eight param must be an std::string");
 					return;
 				}
+				std::string meshId(_meshId->begin(), _meshId->end());
 
 				//TheWorld_Viewer_Utils::TimerMs clock;
 				//clock.tick();
 				float _gridStepInWU;
 				std::string meshBuffer;
 				TheWorld_MapManager::MapManager* mapManager = m_threadContextPool->getCurrentContext()->getMapManager();
-				mapManager->getQuadrantVertices(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, _gridStepInWU, *level, *meshId, meshBuffer);
+				mapManager->getQuadrantVertices(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, _gridStepInWU, *level, meshId, meshBuffer);
 				//clock.tock();
 				//PLOG_DEBUG << std::string("ELAPSED MapManager::getVertices=") + std::to_string(clock.duration().count()).c_str() + " ms";
 
@@ -622,7 +624,11 @@ namespace TheWorld_ClientServer
 				f = mapManager->calcNextCoordOnTheGridInWUs(*cameraZ);
 				reply->replyParam(f);
 				
-				reply->replyParam(meshBuffer);
+				std::vector<unsigned char> _meshBuffer(meshBuffer.begin(), meshBuffer.end());
+				reply->replyParam(_meshBuffer);
+
+				std::vector<unsigned char> _mesh(meshId.begin(), meshId.end());
+				reply->replyParam(_mesh);
 
 				reply->replyComplete();
 			}
@@ -701,7 +707,6 @@ namespace TheWorld_ClientServer
 					return;
 				}
 
-				//std::string* clientQuadrants = std::get_if<std::string>(&reply->m_inputParams[3]);
 				std::vector<unsigned char>* _clientQuadrants = std::get_if<std::vector<unsigned char>>(&reply->m_inputParams[3]);
 				if (_clientQuadrants == nullptr)
 				{
@@ -714,7 +719,8 @@ namespace TheWorld_ClientServer
 				std::string replyQuadrants;
 				m_threadContextPool->getCurrentContext()->getMapManager()->sync(*isInEditor, *numVerticesPerSize, *gridStepinWU, &clientQuadrants, replyQuadrants);
 
-				reply->replyParam(replyQuadrants);
+				std::vector<unsigned char> _replyQuadrants(replyQuadrants.begin(), replyQuadrants.end());
+				reply->replyParam(_replyQuadrants);
 
 				reply->replyComplete();
 			}

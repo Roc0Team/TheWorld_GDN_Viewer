@@ -311,7 +311,7 @@ namespace godot
 		//	, high = 2
 		//};
 
-		class NeighborQuadrantData
+		class NeighbourQuadrantData
 		{
 		public:
 			bool initialized(void) const
@@ -686,6 +686,8 @@ namespace godot
 			return m_cache.getCacheFilePath();
 		}
 
+		void checkInternalData(double _delta);
+
 		void process_mapModder(double _delta);
 
 		GDN_TheWorld_MapModder* getMapModder(void)
@@ -767,19 +769,19 @@ namespace godot
 		}
 		
 		godot::Vector4 quadrantTextureLayers(void) const;
-		NeighborQuadrantData& northQuadrantData(void)
+		NeighbourQuadrantData& northQuadrantData(void)
 		{
 			return m_northQuadrantData;
 		}
-		NeighborQuadrantData& southQuadrantData(void)
+		NeighbourQuadrantData& southQuadrantData(void)
 		{
 			return m_southQuadrantData;
 		}
-		NeighborQuadrantData& westQuadrantData(void)
+		NeighbourQuadrantData& westQuadrantData(void)
 		{
 			return m_westQuadrantData;
 		}
-		NeighborQuadrantData& eastQuadrantData(void)
+		NeighbourQuadrantData& eastQuadrantData(void)
 		{
 			return m_eastQuadrantData;
 		}
@@ -818,10 +820,10 @@ namespace godot
 		godot::PackedFloat32Array m_heightsForCollider;
 		// Terrain Values
 
-		NeighborQuadrantData m_northQuadrantData;
-		NeighborQuadrantData m_southQuadrantData;
-		NeighborQuadrantData m_westQuadrantData;
-		NeighborQuadrantData m_eastQuadrantData;
+		NeighbourQuadrantData m_northQuadrantData;
+		NeighbourQuadrantData m_southQuadrantData;
+		NeighbourQuadrantData m_westQuadrantData;
+		NeighbourQuadrantData m_eastQuadrantData;
 
 		bool m_heightsUpdated;
 		bool m_normalsUpdated;

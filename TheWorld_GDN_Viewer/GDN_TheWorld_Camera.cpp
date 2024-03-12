@@ -634,13 +634,37 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 	}
 	else
 	{
+#define STOP_ANGLE_TO_CAMERA_MOVE		0.05f
+#define STOP_DISTANCE_TO_CAMERA_MOVE	1.0f
+
+		//if (!m_pos_toTrackInitialized)
+		//{
+		//	m_posToTrack = target;
+		//	m_pos_toTrackInitialized = true;
+		//}
+		//else
+		//{
+		//	if (target.origin.distance_to(m_posToTrack.origin) > OFFSET_DISTANCE_TO_CHANGE_TRACKED_TARGET)
+		//	{
+		//		m_posToTrack = target;
+		//	}
+		//}
+
 		godot::Transform3D target = m_trackedPlayer->get_global_transform();
+		godot::Transform3D camera = get_global_transform();
 		godot::Vector3 trackingOffset = target.basis.xform(m_trackingOffset);
-		target = target.translated(trackingOffset);
-		godot::Transform3D targetCameraTransform = get_global_transform().interpolate_with(target, float(m_trackingLerpSpeed * _delta));
-		//set_global_transform(cameraTransform);
-		set_global_position(targetCameraTransform.origin);
-		look_at(m_trackedPlayer->get_global_transform().origin, Vector3Up);
+		godot::Transform3D desideredCameraTarget = target.translated(trackingOffset);
+		float cameraDistanceFromNewCameraTarget = camera.origin.distance_to(desideredCameraTarget.origin);
+		godot::Vector3 rayToTarget = target.origin - camera.origin;
+		godot::Vector3 desideredRayToTarget = target.origin - desideredCameraTarget.origin;
+		float angle = rayToTarget.angle_to(desideredRayToTarget);
+		if (cameraDistanceFromNewCameraTarget > STOP_DISTANCE_TO_CAMERA_MOVE || angle > STOP_ANGLE_TO_CAMERA_MOVE)
+		{
+			//godot::UtilityFunctions::print((std::string("Distance=") + std::to_string(cameraDistanceFromNewCameraTarget) + " angle=" + std::to_string(angle)).c_str());
+			godot::Transform3D targetCameraTransform = get_global_transform().interpolate_with(desideredCameraTarget, float(m_trackingLerpSpeed * _delta));
+			set_global_position(targetCameraTransform.origin);
+			look_at(target.origin, Vector3Up);
+		}
 	}
 
 	updateAltitude();
@@ -858,7 +882,7 @@ GDN_TheWorld_Globals* GDN_TheWorld_Camera::Globals(bool useCache)
 	return m_globals;
 }
 
-Ref<ArrayMesh> GDN_TheWorld_Camera::DrawViewFrustum(Color c)
+godot::Ref<godot::ArrayMesh> GDN_TheWorld_Camera::DrawViewFrustum(Color c)
 {
 	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
 

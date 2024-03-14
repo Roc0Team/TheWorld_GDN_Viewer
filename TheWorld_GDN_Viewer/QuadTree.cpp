@@ -381,6 +381,42 @@ void QuadTree::getAdjacentQuadrants(std::list<QuadTree*>& adjacentQuadrantsHit)
 		adjacentQuadrantsHit.push_back(quadTree);
 }
 
+void QuadTree::checkMouseHit()
+{
+	if (statusLoadTerrainDataFromCacheInProgress() || statusLoadTerrainDataFromCacheNeeded())
+	{
+		m_viewer->forceProcessCameraPosForChunks();
+		return;
+	}
+
+	if (!isValid())
+		return;
+
+	if (!isVisible())
+		return;
+
+	if (getQuadrant()->internalDataLocked())
+		return;
+
+	internalCheckMouseHit(m_root.get());
+}
+
+void QuadTree::internalCheckMouseHit(Quad* quad)
+{
+	if (quad->isLeaf())
+	{
+		quad->getChunk()->checkMouseHit();
+	}
+	else
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			Quad* child = quad->getChild(i);
+			internalCheckMouseHit(child);
+		}
+	}
+}
+
 void QuadTree::update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updateStage, int& numSplitRequired)
 {
 	if (statusLoadTerrainDataFromCacheInProgress() || statusLoadTerrainDataFromCacheNeeded())
@@ -388,7 +424,6 @@ void QuadTree::update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updat
 		m_viewer->forceProcessCameraPosForChunks();
 		return;
 	}
-	
 	
 	if (!isValid())
 		return;

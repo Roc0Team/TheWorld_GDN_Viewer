@@ -3656,6 +3656,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.06 ") + __FUNCTION__, "Update quadrants");
+		bool b = processCameraPosForChunks;
+		//processCameraPosForChunks = true;
 		if (processCameraPosForChunks)
 		{
 			process_updateLodInQuads(cameraPosGlobalCoord);
@@ -3665,6 +3667,14 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 				return;
 			}
 		}
+		else
+		{
+			for (auto& itQuadTree : m_mapQuadTree)
+			{
+				itQuadTree.second->checkMouseHit();
+			}
+		}
+		processCameraPosForChunks = b;
 	}
 
 	{
@@ -3776,8 +3786,8 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 					QuadTree* quadTreeToErase = m_mapQuadTree[pos].get();
 					if (!editModeUIControl->isQuadToSave(pos, manualSave) && !quadTreeToErase->getQuadrant()->needUploadToServer())
 					{
-						numErased = m_mapQuadTree.erase(pos);
 						m_adjacentQuadrantsHit.remove(quadTreeToErase);
+						numErased = m_mapQuadTree.erase(pos);
 						toErase.push_back(pos);
 						break;
 					}

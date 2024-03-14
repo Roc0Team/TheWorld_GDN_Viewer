@@ -32,7 +32,7 @@ Chunk::Chunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, Q
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
 	m_numVerticesPerChuckSide = globals->numVerticesPerChuckSide();
 	m_numChunksPerWorldGridSide = globals->numChunksPerHeightmapSide(m_lod);
-	m_gridStepInGridInWGVs = globals->gridStepInHeightmap(m_lod);
+	m_gridStepInGridInWGVs = globals->gridStepInVertices(m_lod);
 	m_gridStepInWUs = globals->gridStepInHeightmapWUs(m_lod);
 	m_chunkSizeInWGVs = m_numVerticesPerChuckSide * m_gridStepInGridInWGVs;
 	m_chunkSizeInWUs = m_numVerticesPerChuckSide * m_gridStepInWUs;
@@ -99,6 +99,68 @@ void Chunk::initVisual(godot::Ref<godot::Material>& mat)
 	m_globalTransformApplied = getGlobalTransform();
 
 	godot::RenderingServer::get_singleton()->instance_set_transform(m_meshInstanceRID, m_globalTransformApplied);		// World coordinates
+
+	printDebugInfo("initVisual");
+}
+
+void Chunk::printDebugInfo(std::string method)
+{
+	TheWorld_Utils::QuadrantPos pos = m_quadTree->getQuadrant()->getPos();
+	if (pos.getIndexPosX() == 103 && pos.getIndexPosZ() == 98)
+	{
+		if (m_lod == 0 && ((m_slotPosX == 96 && m_slotPosZ == 126) || (m_slotPosX == 96 && m_slotPosZ == 127)))
+		{
+			GDN_TheWorld_Globals* globals = m_viewer->Globals();
+
+			if (method == "initVisual" || method == "onGlobalTransformChanged")
+			{
+				std::string s = method + " " + pos.getName() + " " + getIdStr() + " ";
+				s += "origin=" + std::to_string(m_globalTransformApplied.origin.x) + "," + std::to_string(m_globalTransformApplied.origin.y) + "," + std::to_string(m_globalTransformApplied.origin.z);
+				globals->debugPrint(s.c_str());
+			}
+			else if (method == "setMesh")
+			{
+				if (m_mesh == nullptr)
+				{
+					std::string s = method + " " + pos.getName() + " " + getIdStr() + " ";
+					s += "Mesh null";
+					globals->debugPrint(s.c_str());
+				}
+				else
+				{
+					std::string s = method + " " + pos.getName() + " " + getIdStr() + " ";
+					godot::AABB meshAABB = m_mesh->get_aabb();
+					s += "mesh AABB=" + std::to_string(meshAABB.position.x) + "," + std::to_string(meshAABB.position.y) + "," + std::to_string(meshAABB.position.z) + " " + std::to_string(meshAABB.size.x) + "," + std::to_string(meshAABB.size.y) + "," + std::to_string(meshAABB.size.z);
+					globals->debugPrint(s.c_str());
+
+					int64_t num = m_mesh->get_surface_count();
+					godot::Array arrays = m_mesh->surface_get_arrays(0);
+					PackedVector3Array positions = arrays[ArrayMesh::ARRAY_VERTEX];
+					num = positions.size();
+					if (num > 0)
+					{
+						float numElementsPerSize = sqrtf(float(num));
+						int x = 0, z = 0;
+						std::string s = "Z=" + std::to_string(z);
+						for (int idx = 0; idx < num; idx++)
+						{
+							godot::Vector3 p = positions[idx];
+							s += " " + std::to_string(x) + ":" + std::to_string(p.x + m_globalTransformApplied.origin.x) + "," + std::to_string(p.y + m_globalTransformApplied.origin.y) + "," + std::to_string(p.z + m_globalTransformApplied.origin.z);
+							x++;
+							if (x == numElementsPerSize)
+							{
+								globals->debugPrint(s.c_str());
+								x = 0;
+								z++;
+								s = "Z=" + std::to_string(z);
+							}
+						}
+					}
+				}
+			}
+
+		}
+	}
 }
 
 void Chunk::deinit(void)
@@ -149,6 +211,8 @@ void Chunk::onGlobalTransformChanged(void)
 	m_globalTransformApplied = getGlobalTransform();
 	// Set the mesh pos in global coord
 	godot::RenderingServer::get_singleton()->instance_set_transform(m_meshInstanceRID, m_globalTransformApplied);		// World coordinates
+
+	printDebugInfo("onGlobalTransformChanged");
 }
 
 void Chunk::setVisible(bool b)
@@ -185,7 +249,7 @@ void Chunk::applyAABB(void)
 		godot::RenderingServer::get_singleton()->instance_set_custom_aabb(m_meshInstanceRID, m_aabb);
 }
 
-void Chunk::setMesh(Ref<Mesh> mesh)
+void Chunk::setMesh(godot::Ref<godot::Mesh> mesh)
 {
 	godot::RID meshRID = (mesh != nullptr ? mesh->get_rid() : godot::RID());
 
@@ -197,6 +261,8 @@ void Chunk::setMesh(Ref<Mesh> mesh)
 
 	m_meshRID = meshRID;
 	m_mesh = mesh;
+
+	printDebugInfo("setMesh");
 }
 
 bool Chunk::isMeshNull(void)
@@ -595,6 +661,8 @@ void Chunk::getGlobalCoordAABB(godot::AABB& aabb, int firstWorldVertCol, int las
 	godot::Vector3 endPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxLastColLastRowWorldVert), maxHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxLastColLastRowWorldVert));
 
 	godot::Vector3 size = endPosition - startPosition;
+	//size.x += 1;
+	//size.z += 1;
 
 	aabb.set_position(startPosition);
 	aabb.set_size(size);

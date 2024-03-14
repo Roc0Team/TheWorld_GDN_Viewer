@@ -1291,6 +1291,8 @@ namespace godot
 			Stage2 = 2,
 			Stage3 = 3
 		};
+		void checkMouseHit();
+		void internalCheckMouseHit(Quad* quad);
 		void update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updateStage, int& numSplitRequired);
 		Chunk* getChunkAt(Chunk::ChunkPos pos, enum class Chunk::DirectionSlot dir);
 		Chunk* getChunkAt(Chunk::ChunkPos pos);

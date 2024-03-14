@@ -50,7 +50,7 @@ namespace godot
 #define TIME_INTERVAL_BETWEEN_DUMP 0			// secs, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_STATISTICS 1000	// ms, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_MOUSE_TRACK 50	// 250	// ms
-#define TIME_INTERVAL_BETWEEN_ELAB_CAMERA -1	// 2000	// ms
+#define TIME_INTERVAL_BETWEEN_ELAB_CAMERA 2000	// -1	// ms
 
 	class GDN_TheWorld_MapModder : public godot::Node
 	{

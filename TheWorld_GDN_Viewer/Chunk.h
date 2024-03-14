@@ -411,6 +411,7 @@ namespace godot
 		
 		void initVisual(Ref<Material>& mat);
 		void deinit(void);
+		void printDebugInfo(std::string method);
 
 		// Actions
 		virtual void enterWorld(void);
@@ -602,9 +603,9 @@ namespace godot
 		bool m_visible;
 		bool m_pendingUpdate;
 		bool m_justJoined = false;
-		RID m_meshInstanceRID;
-		RID m_meshRID;
-		Ref<Mesh> m_mesh;
+		godot::RID m_meshInstanceRID;
+		godot::RID m_meshRID;
+		godot::Ref<godot::Mesh> m_mesh;
 	};
 
 	class ChunkDebug : public Chunk

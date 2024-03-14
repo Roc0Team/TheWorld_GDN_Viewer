@@ -457,9 +457,9 @@ namespace godot
 		// The number of World Grid vertices (-1) or heightmap vertices (-1) which separate the vertices of the mesh at the specified lod value
 		int strideInWorldGrid(int lod) const
 		{
-			return gridStepInHeightmap(lod); 
+			return gridStepInVertices(lod);
 		}
-		int gridStepInHeightmap(int lod) const
+		int gridStepInVertices(int lod) const
 		{
 			assert(!(lod < 0 || lod > lodMaxDepth()));
 			if (lod < 0 || lod > lodMaxDepth())
@@ -480,7 +480,7 @@ namespace godot
 			assert(!(lod < 0 || lod > lodMaxDepth()));
 			if (lod < 0 || lod > lodMaxDepth())
 				return -1;
-			return (gridStepInHeightmap(lod) * gridStepInWU());
+			return (gridStepInVertices(lod) * gridStepInWU());
 		}
 
 		float splitScale(void) const

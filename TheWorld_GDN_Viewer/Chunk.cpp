@@ -105,6 +105,7 @@ void Chunk::initVisual(godot::Ref<godot::Material>& mat)
 
 void Chunk::printDebugInfo(std::string method)
 {
+	return;
 	TheWorld_Utils::QuadrantPos pos = m_quadTree->getQuadrant()->getPos();
 	if (pos.getIndexPosX() == 103 && pos.getIndexPosZ() == 98)
 	{

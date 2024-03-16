@@ -353,13 +353,27 @@ namespace godot
 
 		_declspec(dllexport) void populateGridVertices(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced);
 
+#ifdef REAL_T_IS_DOUBLE
+		PackedFloat64Array& getHeightsForCollider(bool reload = true)
+#else
 		PackedFloat32Array& getHeightsForCollider(bool reload = true)
+#endif // REAL_T_IS_DOUBLE
 		{
 			if (m_heightsForCollider.size() == 0 && reload)
 			{
 				int numVertices = getPos().getNumVerticesPerSize() * getPos().getNumVerticesPerSize();
 				m_heightsForCollider.resize((int)numVertices);
+				my_assert(getFloat32HeightsBuffer().size() == numVertices * sizeof(float));
+#ifdef REAL_T_IS_DOUBLE
+				float* f = (float*)getFloat32HeightsBuffer().ptr();
+				for (idx = 0; idx < numVertices; idx++)
+				{
+					m_heightsForCollider.set(idx, (real_t)*f);
+					f++;
+				}
+#else
 				memcpy((char*)m_heightsForCollider.ptrw(), getFloat32HeightsBuffer().ptr(), getFloat32HeightsBuffer().size());
+#endif // REAL_T_IS_DOUBLE
 			}
 			return m_heightsForCollider;
 		}
@@ -817,7 +831,11 @@ namespace godot
 		TheWorld_Utils::MemoryBuffer m_colormapBuffer;			// Vertices color
 		TheWorld_Utils::MemoryBuffer m_globalmapBuffer;
 		std::unique_ptr<TheWorld_Utils::TerrainEdit> m_terrainEdit;
+#ifdef REAL_T_IS_DOUBLE
+		godot::PackedFloat64Array m_heightsForCollider;
+#else
 		godot::PackedFloat32Array m_heightsForCollider;
+#endif // REAL_T_IS_DOUBLE
 		// Terrain Values
 
 		NeighbourQuadrantData m_northQuadrantData;
@@ -1589,7 +1607,7 @@ namespace godot
 		enum class ShaderTerrainData::LookDev m_lookDev;
 		bool m_colliderNeedReset = false;
 		//godot::Vector3 m_quadCenterGlobal;
-		//real_t m_splitDistance = 0;
+		//float m_splitDistance = 0;
 		float m_lastComputedDistanceFromCamera = 0;
 		bool m_forceRecalcOptimizationLevel = false;
 

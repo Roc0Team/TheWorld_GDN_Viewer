@@ -242,7 +242,7 @@ void GDN_TheWorld_Gizmo3d::_process(double _delta)
 		//m_zAxisLabel3d->look_at(cameraPos, godot::Vector3(0, 1, 0));
 		//m_zAxisLabel3d->rotate_y(TheWorld_Utils::kPi);
 
-		float distanceFromCamera = cameraPos.distance_to(get_global_transform().origin);
+		float distanceFromCamera = (float)cameraPos.distance_to(get_global_transform().origin);
 		float scaleFactor = 1.2f;
 		if (distanceFromCamera > 5000)
 			scaleFactor = distanceFromCamera / 400.0f;

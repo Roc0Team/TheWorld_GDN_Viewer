@@ -203,8 +203,8 @@ namespace godot
 	//		positions.resize((int)pow(numVerticesPerSide, 2));
 	//		colors.resize((int)pow(numVerticesPerSide, 2));
 	//		int pos = 0;
-	//		for (real_t z = 0; z < numVerticesPerSide; z++)
-	//			for (real_t x = 0; x < numVerticesPerSide; x++)
+	//		for (float z = 0; z < numVerticesPerSide; z++)
+	//			for (float x = 0; x < numVerticesPerSide; x++)
 	//			{
 	//				Vector3 v(x, heights[pos], z);
 	//				positions.set(pos, v);

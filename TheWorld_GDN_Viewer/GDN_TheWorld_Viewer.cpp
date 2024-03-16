@@ -3583,7 +3583,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		processCameraPosForQuadrants = false;
 		processCameraPosForChunks = false;
 		int64_t timeElapsed = TIME()->get_ticks_msec();
-		if (TIME_INTERVAL_BETWEEN_ELAB_CAMERA != -1 && timeElapsed - m_timeElapsedFromLastProcessCameraPosForQuadrants > TIME_INTERVAL_BETWEEN_ELAB_CAMERA)
+		if (m_cameraChunk == nullptr || m_lastCameraChunk == nullptr || (TIME_INTERVAL_BETWEEN_ELAB_CAMERA != -1 && timeElapsed - m_timeElapsedFromLastProcessCameraPosForQuadrants > TIME_INTERVAL_BETWEEN_ELAB_CAMERA))
 		{
 			m_timeElapsedFromLastProcessCameraPosForQuadrants = timeElapsed;
 			processCameraPosForQuadrants = true;
@@ -3591,19 +3591,27 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		}
 		else
 		{
-			float distance = cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForQuadrants);
+			float distance = (float)cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForQuadrants);
 			float threshold = globals->getRefreshQuadrantTreeThreshold();
 			if (m_lastProcessedCameraPosForQuadrants == godot::Vector3() || distance > threshold)
 			{
 				m_lastProcessedCameraPosForQuadrants = cameraPosGlobalCoord;
 				processCameraPosForQuadrants = true;
 			}
-			distance = cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForChunks);
+			distance = (float)cameraPosGlobalCoord.distance_to(m_lastProcessedCameraPosForChunks);
 			threshold = globals->getRefreshChunkLodThreshold();
 			if (m_lastProcessedCameraPosForChunks == godot::Vector3() || distance > threshold)
 			{
 				m_lastProcessedCameraPosForChunks = cameraPosGlobalCoord;
 				processCameraPosForChunks = true;
+			}
+			else
+			{
+				if (m_lastCameraChunk != m_cameraChunk)
+				{
+					processCameraPosForChunks = true;
+					m_lastCameraChunk = m_cameraChunk;
+				}
 			}
 		}
 	}
@@ -3787,6 +3795,8 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 					if (!editModeUIControl->isQuadToSave(pos, manualSave) && !quadTreeToErase->getQuadrant()->needUploadToServer())
 					{
 						m_adjacentQuadrantsHit.remove(quadTreeToErase);
+						if (m_quadrantHit == quadTreeToErase)
+							m_quadrantHit = nullptr;
 						numErased = m_mapQuadTree.erase(pos);
 						toErase.push_back(pos);
 						break;
@@ -3894,7 +3904,7 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 	if (cameraQuadrantPos.empty())	// boh not found camera-quad-tree (it seems impossible) ...
 	{
 		// ... btw we create new quad tree containing camera
-		float x = cameraPosGlobalCoord.x, z = cameraPosGlobalCoord.z;
+		float x = (float)cameraPosGlobalCoord.x, z = (float)cameraPosGlobalCoord.z;
 		float _gridStepInWU = globals->gridStepInWU();
 		TheWorld_Utils::QuadrantPos q(x, z, m_worldViewerLevel, m_numWorldVerticesPerSize, _gridStepInWU);
 		cameraQuadrantPos = q;
@@ -4106,7 +4116,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 			godot::Dictionary rayArray;
 			godot::Vector2 mousePosInVieport = getMousPosInViewport();
 			godot::Vector3 rayOrigin = activeCamera->project_ray_origin(mousePosInVieport);
-			godot::Vector3 rayEnd = rayOrigin + activeCamera->project_ray_normal(mousePosInVieport) * (real_t)activeCamera->get_far() * 1.5;
+			godot::Vector3 rayEnd = rayOrigin + activeCamera->project_ray_normal(mousePosInVieport) * (float)activeCamera->get_far() * 1.5;
 			godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd);
 			//query->set_collide_with_bodies(true);	// DEFAULT
 			rayArray = spaceState->intersect_ray(query);
@@ -4153,7 +4163,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeCamera)
 							float gridStepInWu = collider->get_meta("QuadrantStep");
 							int level = collider->get_meta("QuadrantLevel");
 							int numVerticesPerSize = collider->get_meta("QuadrantNumVert");
-							TheWorld_Utils::QuadrantPos quadrantHitPos(mouseQuadrantHitPos.x, mouseQuadrantHitPos.z, level, numVerticesPerSize, gridStepInWu);
+							TheWorld_Utils::QuadrantPos quadrantHitPos((float)mouseQuadrantHitPos.x, (float)mouseQuadrantHitPos.z, level, numVerticesPerSize, gridStepInWu);
 							//quadrantHitPos.setTag(mouseQuadrantHitTag);
 
 							trackedMouseHitChanged(m_quadrantHit, m_adjacentQuadrantsHit, false, godot::Vector3());
@@ -4277,7 +4287,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::lis
 					godot::Vector3 normal = normalHit;
 					if (normal == Vector3Zero && quadrantHit != nullptr)
 					{
-						size_t index = quadrantHit->getQuadrant()->getIndexFromMap(mouseHit.x, mouseHit.z);
+						size_t index = quadrantHit->getQuadrant()->getIndexFromMap((float)mouseHit.x, (float)mouseHit.z);
 						if (index != -1)
 						{
 							bool ok;
@@ -4290,7 +4300,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::lis
 					{
 						const float lineSize = 50;
 						godot::Vector3 end = mouseHit + normal * lineSize;
-						float radAngleWithVertical = acos(normal.dot(Vector3Up));
+						float radAngleWithVertical = (float)acos(normal.dot(Vector3Up));
 						float slope = (radAngleWithVertical * 180) / TheWorld_Utils::kPi;
 
 						if (m_normalLineIdx != -1 && m_normalSphereIdx != -1)
@@ -4341,7 +4351,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::lis
 
 					if (trackingDistance())
 					{
-						float distance = mouseHit.distance_to(m_savedPosForTrackingDistance);
+						float distance = (float)mouseHit.distance_to(m_savedPosForTrackingDistance);
 						m_positionDrawer->updateLine(m_positionLineIdx, m_savedPosForTrackingDistance, mouseHit, std::to_string(distance));
 						m_positionDrawer->updateSphere(m_positionSphereStartIdx, m_savedPosForTrackingDistance, 5);
 						m_positionDrawer->updateSphere(m_positionSphereEndIdx, mouseHit, 5);
@@ -7006,7 +7016,7 @@ godot::Vector2 GDN_TheWorld_Viewer::getQuadrantPos(void)
 
 godot::Vector2 GDN_TheWorld_Viewer::getQuadrantPosIndex(void)
 {
-	return godot::Vector2((real_t)m_tempPos.getIndexPosX(), (real_t)m_tempPos.getIndexPosZ());
+	return godot::Vector2((float)m_tempPos.getIndexPosX(), (float)m_tempPos.getIndexPosZ());
 }
 
 godot::String GDN_TheWorld_Viewer::getGroundTextureName(int type)

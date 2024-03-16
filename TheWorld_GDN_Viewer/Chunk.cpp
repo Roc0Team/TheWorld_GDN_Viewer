@@ -52,7 +52,7 @@ Chunk::Chunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, Q
 	m_originXInWUsGlobal = m_quadTree->getQuadrant()->getPos().getLowerXGridVertex() + m_originXInWUsLocalToGrid;
 	m_originZInWUsGlobal = m_quadTree->getQuadrant()->getPos().getLowerZGridVertex() + m_originZInWUsLocalToGrid;
 
-	m_initialGlobalTransform = Transform3D(Basis(), Vector3((real_t)m_originXInWUsGlobal, 0, m_originZInWUsGlobal));
+	m_initialGlobalTransform = Transform3D(Basis(), Vector3(m_originXInWUsGlobal, 0, m_originZInWUsGlobal));
 
 	//checkAndCalcAABB();
 
@@ -718,15 +718,15 @@ void Chunk::dump(void)
 	
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
 
-	//Transform localT(Basis(), Vector3((real_t)m_originXInWUsLocalToGrid, 0, (real_t)m_originZInWUsLocalToGrid));
+	//Transform localT(Basis(), Vector3((float)m_originXInWUsLocalToGrid, 0, (float)m_originZInWUsLocalToGrid));
 	//Transform worldT = m_parentTransform * localT;
 	//Transform worldT = m_initialGlobalTransform;
-	//Vector3 v1 = worldT * Vector3((real_t)m_originXInWUsLocalToGrid, 0, (real_t)m_originZInWUsLocalToGrid);
-	//Vector3 v2 = m_parentTransform * Vector3((real_t)m_originXInWUsLocalToGrid, 0, (real_t)m_originZInWUsLocalToGrid);
-	//Vector3 v3 = m_viewer->to_global(Vector3((real_t)m_originXInWUsLocalToGrid, 0, (real_t)m_originZInWUsLocalToGrid));
+	//Vector3 v1 = worldT * Vector3((float)m_originXInWUsLocalToGrid, 0, (float)m_originZInWUsLocalToGrid);
+	//Vector3 v2 = m_parentTransform * Vector3((float)m_originXInWUsLocalToGrid, 0, (float)m_originZInWUsLocalToGrid);
+	//Vector3 v3 = m_viewer->to_global(Vector3((float)m_originXInWUsLocalToGrid, 0, (float)m_originZInWUsLocalToGrid));
 
-	float globalOriginXInGridInWUs = m_viewer->get_global_transform().origin.x + m_originXInWUsLocalToGrid;
-	float globalOriginZInGridInWUs = m_viewer->get_global_transform().origin.z + m_originZInWUsLocalToGrid;
+	float globalOriginXInGridInWUs = (float)m_viewer->get_global_transform().origin.x + m_originXInWUsLocalToGrid;
+	float globalOriginZInGridInWUs = (float)m_viewer->get_global_transform().origin.z + m_originZInWUsLocalToGrid;
 
 	globals->debugPrint(String("Chunk ID: ") + getPos().getIdStr().c_str()
 		+ " - chunk size (WUs) " + to_string(m_chunkSizeInWUs).c_str()
@@ -947,8 +947,8 @@ void ChunkDebug::setCameraPos(Vector3 globalCoordCameraLastPos)
 	
 	if (isCameraVerticalOnChunk() && !prevCameraVerticalOnChunk)
 	{
-		float globalOriginXInGridInWUs = m_viewer->get_global_transform().origin.x + m_originXInWUsLocalToGrid;
-		float globalOriginZInGridInWUs = m_viewer->get_global_transform().origin.z + m_originZInWUsLocalToGrid;
+		float globalOriginXInGridInWUs = (float)m_viewer->get_global_transform().origin.x + m_originXInWUsLocalToGrid;
+		float globalOriginZInGridInWUs = (float)m_viewer->get_global_transform().origin.z + m_originZInWUsLocalToGrid;
 
 		//m_viewer->Globals()->debugPrint("Camera vertical on chunk ("
 		//	+ String(to_string(getPos().getSlotPosX()).c_str()) + ":" + to_string(getPos().getSlotPosZ()).c_str()

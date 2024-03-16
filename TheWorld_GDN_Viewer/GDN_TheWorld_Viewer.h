@@ -50,7 +50,7 @@ namespace godot
 #define TIME_INTERVAL_BETWEEN_DUMP 0			// secs, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_STATISTICS 1000	// ms, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_MOUSE_TRACK 50	// 250	// ms
-#define TIME_INTERVAL_BETWEEN_ELAB_CAMERA 2000	// -1	// ms
+#define TIME_INTERVAL_BETWEEN_ELAB_CAMERA -1	// 2000	// ms
 
 	class GDN_TheWorld_MapModder : public godot::Node
 	{
@@ -599,7 +599,7 @@ namespace godot
 			if (m_mouseTrackedOnSomething)
 			{
 				godot::Camera3D* camera = getCamera();
-				return camera->get_global_transform().origin.distance_to(m_trackedMouseHit);
+				return (float)camera->get_global_transform().origin.distance_to(m_trackedMouseHit);
 			}
 			else
 				return 0.0f;
@@ -1141,8 +1141,8 @@ namespace godot
 		std::unique_ptr<MeshCache> m_meshCache;
 
 		// Viewer (Camera)
-		GDN_TheWorld_Camera* m_worldCamera;
-		Chunk* m_cameraChunk;
+		GDN_TheWorld_Camera* m_worldCamera = nullptr;
+		Chunk* m_cameraChunk = nullptr;
 		//QuadTree* m_cameraQuadTree;
 		
 		// World Data
@@ -1189,6 +1189,7 @@ namespace godot
 		bool m_forceShaderElevation0 = false;
 
 		godot::Vector3 m_lastProcessedCameraPosForQuadrants;
+		Chunk* m_lastCameraChunk = nullptr;
 		int64_t m_timeElapsedFromLastProcessCameraPosForQuadrants = 0;
 		godot::Vector3 m_lastProcessedCameraPosForChunks;
 

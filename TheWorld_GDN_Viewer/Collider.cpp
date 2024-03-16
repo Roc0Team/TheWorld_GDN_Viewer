@@ -48,7 +48,11 @@ namespace godot
 		//ps->body_set_ray_pickable(m_bodyRID, false);		// SUPERDEBUGRIC - This is an attempt to workaround https://github.com/godotengine/godot/issues/24390
 
 		// Initial data - This is a workaround to https://github.com/godotengine/godot/issues/25304
+#ifdef REAL_T_IS_DOUBLE
+		PackedFloat64Array arr;
+#else
 		PackedFloat32Array arr;
+#endif // REAL_T_IS_DOUBLE
 		arr.resize(4);
 		arr.set(0, 0);
 		arr.set(1, 0);
@@ -148,8 +152,13 @@ namespace godot
 		Quadrant* quadrant = m_quadTree->getQuadrant();
 
 		int numVerticesPerSize = 0;
+#ifdef REAL_T_IS_DOUBLE
+		PackedFloat64Array* heightsForCollider = nullptr;
+		PackedFloat64Array resizedHeightsForCollider;
+#else
 		PackedFloat32Array* heightsForCollider = nullptr;
 		PackedFloat32Array resizedHeightsForCollider;
+#endif // REAL_T_IS_DOUBLE
 		float gridStepInWU = 0.0f;
 		gridStepInWU = quadrant->getPos().getGridStepInWU();
 
@@ -157,7 +166,11 @@ namespace godot
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.1 ") + __FUNCTION__, "get heigths opt level = 0");
 			numVerticesPerSize = quadrant->getPos().getNumVerticesPerSize();
+#ifdef REAL_T_IS_DOUBLE
+			PackedFloat64Array& _heightsForCollider = quadrant->getHeightsForCollider();
+#else
 			PackedFloat32Array& _heightsForCollider = quadrant->getHeightsForCollider();
+#endif // REAL_T_IS_DOUBLE
 			heightsForCollider = &_heightsForCollider;
 			m_hasHiResData = true;
 		}
@@ -190,7 +203,7 @@ namespace godot
 				{
 					TheWorld_Utils::FLOAT_32 f(0);
 					f.u32 = half_to_float(*p);
-					resizedHeightsForCollider[idx] = f.f32;
+					resizedHeightsForCollider[idx] = (real_t)f.f32;
 					p++;
 				}
 			}
@@ -207,7 +220,7 @@ namespace godot
 		if (areaSize != heightsForCollider->size())
 			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Size of Heigths inconsistent, areaSize=" + std::to_string(areaSize) + " Heigths size=" + std::to_string(heightsForCollider->size())).c_str()));
 
-		//size_t size = heightsForCollider.size();
+		//size_t size = heightsForCollider.size();	// DEBUG
 		Dictionary data;
 		data["width"] = numVerticesPerSize;			// data["map_width"];	
 		data["depth"] = numVerticesPerSize;			// data["map_depth"];
@@ -263,7 +276,7 @@ namespace godot
 	
 	float Collider::getColliderAltitude(void) const
 	{
-		float colliderAltitude = -(m_cameraGlobalTranform.origin.y / (float)2.34);
+		float colliderAltitude = float(-(m_cameraGlobalTranform.origin.y / (float)2.34));
 		colliderAltitude = 0;
 		return colliderAltitude;
 	}

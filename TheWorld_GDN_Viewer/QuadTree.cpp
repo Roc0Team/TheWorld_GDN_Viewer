@@ -450,16 +450,16 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		float chunkSizeInWUs = globals->gridStepInHeightmapWUs(quad->Lod()) * globals->numVerticesPerChuckSide();									// chunk size in World Units
 		AABB chunkAABB = quad->getChunkAABB();
-		Vector3 quadCenterGlobal(real_t((quad->slotPosX() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerXGridVertex() + chunkSizeInWUs / 2),
+		Vector3 quadCenterGlobal(float((quad->slotPosX() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerXGridVertex() + chunkSizeInWUs / 2),
 			(chunkAABB.position + chunkAABB.size / 2).y,
-			real_t((quad->slotPosZ() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerZGridVertex() + chunkSizeInWUs / 2));
+			float((quad->slotPosZ() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerZGridVertex() + chunkSizeInWUs / 2));
 
 		Transform3D gt = m_viewer->get_global_transform();
 		Transform3D t = gt * Transform3D(Basis(), quadCenterGlobal);
 		quadCenterGlobal = t.origin;
 
 		float splitDistance = chunkSizeInWUs * globals->splitScale();
-		//real_t splitDistance = m_worldQuadrant->getPos().getSizeInWU() * globals->splitScale();
+		//float splitDistance = m_worldQuadrant->getPos().getSizeInWU() * globals->splitScale();
 		if (quad->isLeaf())
 		{
 			bool trackChunk = false;
@@ -470,7 +470,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 			m_numLeaf++;
 			if (quad->Lod() > 0)
 			{
-				real_t distance = quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+				float distance = (float)quadCenterGlobal.distance_to(cameraPosGlobalCoord);
 				quad->getChunk()->setDistanceFromCamera(distance);
 				if (distance < splitDistance)
 				{
@@ -521,7 +521,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 
 			if (allChildrenAreLeaf)
 			{
-				real_t distance = quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+				float distance = (float)quadCenterGlobal.distance_to(cameraPosGlobalCoord);
 				if (distance > splitDistance)
 				{
 					// Join
@@ -705,7 +705,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 
 			//if (allChildrenAreLeaf)
 			//{
-			//	real_t distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+			//	float distance = m_quadCenterGlobal.distance_to(cameraPosGlobalCoord);
 			//	if (distance > m_splitDistance && !quad->gotJustSplitted())
 			//	{
 			//		// Join
@@ -1014,7 +1014,7 @@ void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
 {
 	godot::Vector3 quadrantCenter  = getQuadrant()->getCenter();
 	quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
-	m_lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
+	m_lastComputedDistanceFromCamera = (float)abs((cameraPosGlobalCoord - quadrantCenter).length());
 
 	{
 		if (m_viewer->Globals()->getParamThresholdForGlobalmap() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdForGlobalmap())
@@ -1241,7 +1241,7 @@ void QuadTree::materialParamsNeedUpdate(bool b)
 
 Transform3D QuadTree::getInternalGlobalTransform(void)
 {
-	Transform3D t(Basis(), Vector3((real_t)getQuadrant()->getPos().getLowerXGridVertex(), 0, (real_t)getQuadrant()->getPos().getLowerZGridVertex()));
+	Transform3D t(Basis(), Vector3((float)getQuadrant()->getPos().getLowerXGridVertex(), 0, (float)getQuadrant()->getPos().getLowerZGridVertex()));
 	Transform3D gt = m_viewer->getInternalGlobalTransform();
 	Transform3D t1 = gt * t;
 	return t1;
@@ -3330,7 +3330,7 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 
 size_t Quadrant::calcMapMemoryOccupation(void)
 {
-	size_t occupation = m_float16HeigthsBuffer.reserved() + m_float32HeigthsBuffer.reserved() + m_normalsBuffer.reserved() + m_splatmapBuffer.reserved() + m_colormapBuffer.reserved() + m_globalmapBuffer.reserved() + (m_terrainEdit == nullptr ? 0 : m_terrainEdit->size) + m_heightsForCollider.size() * sizeof(real_t);
+	size_t occupation = m_float16HeigthsBuffer.reserved() + m_float32HeigthsBuffer.reserved() + m_normalsBuffer.reserved() + m_splatmapBuffer.reserved() + m_colormapBuffer.reserved() + m_globalmapBuffer.reserved() + (m_terrainEdit == nullptr ? 0 : m_terrainEdit->size) + m_heightsForCollider.size() * sizeof(float);
 	return occupation;
 }
 
@@ -3371,7 +3371,7 @@ size_t Quadrant::calcTerrainEditMemoryOccupation(void)
 
 size_t Quadrant::calcColliderHeightsMemoryOccupation(void)
 {
-	return m_heightsForCollider.size() * sizeof(real_t);
+	return m_heightsForCollider.size() * sizeof(float);
 }
 
 size_t Quadrant::calcTexMemoryOccupation(void)
@@ -3848,8 +3848,9 @@ godot::Vector3 Quadrant::getNormalFromNormalmap(size_t index, bool& ok)
 
 	rgb += index;
 	godot::Vector3 packedNormal(float(rgb->r) / 255, float(rgb->g) / 255, float(rgb->b) / 255);
-	godot::Vector3 normal;
-	TheWorld_Utils::unpackNormal(packedNormal.x, packedNormal.y, packedNormal.z, normal.x, normal.y, normal.z);
+	float normalX = 0, normalY = 0, normalZ = 0;
+	TheWorld_Utils::unpackNormal((float)packedNormal.x, (float)packedNormal.y, (float)packedNormal.z, normalX, normalY, normalZ);
+	godot::Vector3 normal(normalX, normalY, normalZ);
 	return normal;
 }
 

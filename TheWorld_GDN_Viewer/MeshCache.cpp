@@ -70,8 +70,8 @@ namespace godot
 		positions.resize((int)pow(numVerticesPerChuckSide + 1, 2));
 		colors.resize((int)pow(numVerticesPerChuckSide + 1, 2));
 		int pos = 0;
-		for (real_t z = 0; z < numVerticesPerChuckSide + 1; z++)
-			for (real_t x = 0; x < numVerticesPerChuckSide + 1; x++)
+		for (float z = 0; z < numVerticesPerChuckSide + 1; z++)
+			for (float x = 0; x < numVerticesPerChuckSide + 1; x++)
 			{
 				Vector3 v(x * strideInWUs, 0, z * strideInWUs);
 				positions.set(pos, v);

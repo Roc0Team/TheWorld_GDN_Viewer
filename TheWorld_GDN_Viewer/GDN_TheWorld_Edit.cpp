@@ -1554,11 +1554,11 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	godot::Rect2 scrollableContentRect = m_innerData->m_mainScrolledVBoxContainer->get_global_rect();
 	godot::Size2 scrollableContentSize = m_innerData->m_mainScrolledVBoxContainer->get_rect().size;
 
-	float lookdevOptionButtonHeight = m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
-	float noiseButtonHeight = m_innerData->m_noiseButton->get_rect().size.height + 3;
-	float terrBlendingButtonHeight = m_innerData->m_terrBlendingButton->get_rect().size.height + 3;
-	float terrEditButtonHeight = m_innerData->m_terrEditButton->get_rect().size.height + 3;
-	float dummyLabelHeight = m_innerData->m_dummyLabel->get_rect().size.height + 3;
+	float lookdevOptionButtonHeight = (float)m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
+	float noiseButtonHeight = (float)m_innerData->m_noiseButton->get_rect().size.height + 3;
+	float terrBlendingButtonHeight = (float)m_innerData->m_terrBlendingButton->get_rect().size.height + 3;
+	float terrEditButtonHeight = (float)m_innerData->m_terrEditButton->get_rect().size.height + 3;
+	float dummyLabelHeight = (float)m_innerData->m_dummyLabel->get_rect().size.height + 3;
 
 	static float noiseVBoxCExpandedHeight = 0;
 	float noiseVBoxCHeight;
@@ -1566,7 +1566,7 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	{
 		if (noiseVBoxCExpandedHeight == 0)
 		{
-			noiseVBoxCExpandedHeight = m_innerData->m_noiseVBoxContainer->get_rect().size.height + 4;
+			noiseVBoxCExpandedHeight = (float)m_innerData->m_noiseVBoxContainer->get_rect().size.height + 4;
 		}
 		noiseVBoxCHeight = noiseVBoxCExpandedHeight;
 	}
@@ -1579,7 +1579,7 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	{
 		if (terrBlendingVBoxcExpandedHeight == 0)
 		{
-			terrBlendingVBoxcExpandedHeight = m_innerData->m_terrBlendingVBoxContainer->get_rect().size.height + 4;
+			terrBlendingVBoxcExpandedHeight = (float)m_innerData->m_terrBlendingVBoxContainer->get_rect().size.height + 4;
 		}
 		terrBlendingVBoxcHeight = terrBlendingVBoxcExpandedHeight;
 	}
@@ -1592,7 +1592,7 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	{
 		if (terrEditVBoxcExpandedHeight == 0)
 		{
-			terrEditVBoxcExpandedHeight = m_innerData->m_terrEditVBoxContainer->get_rect().size.height + 4;
+			terrEditVBoxcExpandedHeight = (float)m_innerData->m_terrEditVBoxContainer->get_rect().size.height + 4;
 		}
 		terrEditVBoxcHeight = terrEditVBoxcExpandedHeight;
 	}
@@ -2775,9 +2775,20 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	// 6. prepare new heigths for collider (PackedFloat32Array) - // WARNING useless ? Same instructions are executed in Collider::setData called in QuadTree::updateMaterialParams
 	{
+#ifdef REAL_T_IS_DOUBLE
+		PackedFloat64Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
+		heightsForCollider.resize((int)numVertices);
+		float* f = (float*)heights32Buffer.ptr();
+		for (idx = 0; idx < numVertices; idx++)
+		{
+			heightsForCollider.set(idx, (real_t)*f);
+			f++;
+		}
+#else
 		PackedFloat32Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
 		heightsForCollider.resize((int)numVertices);
 		memcpy((char*)heightsForCollider.ptrw(), heights32Buffer.ptr(), heights32Buffer.size());
+#endif
 	}
 
 
@@ -3268,9 +3279,21 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 
 
 		{
+			my_assert(quadTree->getQuadrant()->getFloat32HeightsBuffer().size() == quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * sizeof(float));
+#ifdef REAL_T_IS_DOUBLE
+			godot::PackedFloat64Array& heightsForCollider = quadTree->getQuadrant()->getHeightsForCollider(false);
+			heightsForCollider.resize((int64_t)(quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * quadTree->getQuadrant()->getPos().getNumVerticesPerSize()));
+			float* f = (float*)quadTree->getQuadrant()->getFloat32HeightsBuffer().ptr();
+			for (idx = 0; idx < numVertices; idx++)
+			{
+				heightsForCollider.set(idx, (real_t)*f);
+				f++;
+			}
+#else
 			godot::PackedFloat32Array& heightsForCollider = quadTree->getQuadrant()->getHeightsForCollider(false);
 			heightsForCollider.resize((int64_t)(quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * quadTree->getQuadrant()->getPos().getNumVerticesPerSize()));
 			memcpy((char*)heightsForCollider.ptrw(), quadTree->getQuadrant()->getFloat32HeightsBuffer().ptr(), quadTree->getQuadrant()->getFloat32HeightsBuffer().size());
+#endif
 		}
 
 		Vector3 startPosition(quadTree->getQuadrant()->getPos().getLowerXGridVertex(), quadTree->getQuadrant()->getTerrainEdit()->minHeight, quadTree->getQuadrant()->getPos().getLowerZGridVertex());

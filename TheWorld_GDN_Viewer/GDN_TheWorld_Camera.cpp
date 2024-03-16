@@ -366,11 +366,11 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 void GDN_TheWorld_Camera::calcYawPitchRoll(void)
 {
 	godot::Vector3 euler = get_global_transform().basis.get_euler();
-	m_pitchEuler = euler.x;
-	m_yawEuler = euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
+	m_pitchEuler = (float)euler.x;
+	m_yawEuler = (float)euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
 	// - PI or PI = camera aligned with z axis pointing to increasing z (south), PI/2 = camera aligned with x axis pointing to decreasing X (west)
-	m_rollEuler = euler.z;
-	float angleFromNorthRad = (m_yawEuler < 0 ? -m_yawEuler : (m_yawEuler == 0 ? 0 : TheWorld_Utils::kPi * 2 - m_yawEuler));
+	m_rollEuler = (float)euler.z;
+	float angleFromNorthRad = (float)(m_yawEuler < 0 ? -m_yawEuler : (m_yawEuler == 0 ? 0 : TheWorld_Utils::kPi * 2 - m_yawEuler));
 	m_angleFromNorthDeg = (angleFromNorthRad * 180) / TheWorld_Utils::kPi;		// transform angle from radiant to degree
 }
 
@@ -557,9 +557,9 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 	setPitch(cameraPitch, false);
 	setRoll(cameraRoll, false);
 
-	//real_t z_near = Camera::get_znear();
-	//real_t z_far = Camera::get_zfar();
-	//real_t size = Camera::get_size();
+	//float z_near = Camera::get_znear();
+	//float z_far = Camera::get_zfar();
+	//float size = Camera::get_size();
 	//Vector2 offset = Camera::get_frustum_offset();
 
 	Camera3D::set_far(30000.0);
@@ -598,8 +598,8 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 			if (m_ctrlPressed)
 				sensitivity *= 2;
 			m_mouseRelativePosToRotate *= sensitivity;
-			m_yaw = m_yaw * m_smoothness + m_mouseRelativePosToRotate.x * (1.0F - m_smoothness);
-			m_pitch = m_pitch * m_smoothness + m_mouseRelativePosToRotate.y * (1.0F - m_smoothness);
+			m_yaw = m_yaw * m_smoothness + (float)m_mouseRelativePosToRotate.x * (1.0F - m_smoothness);
+			m_pitch = m_pitch * m_smoothness + (float)m_mouseRelativePosToRotate.y * (1.0F - m_smoothness);
 			m_mouseRelativePosToRotate = Vector2(0, 0);
 
 			if (m_yawLimit < 360)
@@ -611,9 +611,9 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 
 			float pitch = Math::deg_to_rad(-m_pitch);
 			if ((pitch + get_rotation().x) > kPi / 2)
-				pitch = (kPi / 2) - get_rotation().x;
+				pitch = (kPi / 2) - (float)get_rotation().x;
 			if ((pitch + get_rotation().x) < -(kPi / 2))
-				pitch = (-(kPi / 2)) - get_rotation().x;
+				pitch = (-(kPi / 2)) - (float)get_rotation().x;
 
 			rotate_y(Math::deg_to_rad(-m_yaw));
 			rotate_object_local(Vector3(1, 0, 0), pitch);
@@ -654,10 +654,10 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 		godot::Transform3D camera = get_global_transform();
 		godot::Vector3 trackingOffset = target.basis.xform(m_trackingOffset);
 		godot::Transform3D desideredCameraTarget = target.translated(trackingOffset);
-		float cameraDistanceFromNewCameraTarget = camera.origin.distance_to(desideredCameraTarget.origin);
+		float cameraDistanceFromNewCameraTarget = (float)camera.origin.distance_to(desideredCameraTarget.origin);
 		godot::Vector3 rayToTarget = target.origin - camera.origin;
 		godot::Vector3 desideredRayToTarget = target.origin - desideredCameraTarget.origin;
-		float angle = rayToTarget.angle_to(desideredRayToTarget);
+		float angle = (float)rayToTarget.angle_to(desideredRayToTarget);
 		if (cameraDistanceFromNewCameraTarget > STOP_DISTANCE_TO_CAMERA_MOVE || angle > STOP_ANGLE_TO_CAMERA_MOVE)
 		{
 			//godot::UtilityFunctions::print((std::string("Distance=") + std::to_string(cameraDistanceFromNewCameraTarget) + " angle=" + std::to_string(angle)).c_str());
@@ -691,8 +691,8 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		if (m_ctrlPressed)
 			sensitivity *= 2;
 		m_mouseRelativePosToRotate *= sensitivity;
-		m_yaw = m_yaw * m_smoothness + m_mouseRelativePosToRotate.x * (1.0F - m_smoothness);
-		m_pitch = m_pitch * m_smoothness + m_mouseRelativePosToRotate.y * (1.0F - m_smoothness);
+		m_yaw = m_yaw * m_smoothness + (float)m_mouseRelativePosToRotate.x * (1.0F - m_smoothness);
+		m_pitch = m_pitch * m_smoothness + (float)m_mouseRelativePosToRotate.y * (1.0F - m_smoothness);
 		m_mouseRelativePosToRotate = Vector2(0, 0);
 
 		if (m_yawLimit < 360)
@@ -704,9 +704,9 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 
 		float pitch = Math::deg_to_rad(-m_pitch);
 		if ((pitch + get_rotation().x) > kPi / 2)
-			pitch = (kPi / 2) - get_rotation().x;
+			pitch = (kPi / 2) - (float)get_rotation().x;
 		if ((pitch + get_rotation().x) < -(kPi / 2))
-			pitch = (-(kPi / 2)) - get_rotation().x;
+			pitch = (-(kPi / 2)) - (float)get_rotation().x;
 
 		rotate_y(Math::deg_to_rad(-m_yaw));
 		rotate_object_local(Vector3(1, 0, 0), pitch);
@@ -844,7 +844,7 @@ void GDN_TheWorld_Camera::updateAltitude(void)
 	
 	godot::Vector3 cameraGlobalPosition = get_global_position();
 	
-	if (cameraGlobalPosition.distance_to(m_savedCameraPos) > DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE)
+	if (m_lastCameraAltitudeComputed == -1 || cameraGlobalPosition.distance_to(m_savedCameraPos) > DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE)
 	{
 		godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
 		godot::Dictionary rayArray;
@@ -855,7 +855,7 @@ void GDN_TheWorld_Camera::updateAltitude(void)
 		if (rayArray.has("position"))
 		{
 			m_lastComputedCameraVerticalOnTerrain = rayArray["position"];
-			m_lastCameraAltitudeComputed = abs(cameraGlobalPosition.y - m_lastComputedCameraVerticalOnTerrain.y);
+			m_lastCameraAltitudeComputed = (float)abs(cameraGlobalPosition.y - m_lastComputedCameraVerticalOnTerrain.y);
 		}
 		else
 		{
@@ -888,8 +888,8 @@ godot::Ref<godot::ArrayMesh> GDN_TheWorld_Camera::DrawViewFrustum(Color c)
 
 	float m_FarOffset = (float)godot::Camera3D::get_far();
 	float m_NearOffset = (float)godot::Camera3D::get_near();
-	float m_ScreenWidth = godot::Camera3D::get_viewport()->get_visible_rect().get_size().x;
-	float m_ScreenHeight = godot::Camera3D::get_viewport()->get_visible_rect().get_size().y;
+	float m_ScreenWidth = (float)godot::Camera3D::get_viewport()->get_visible_rect().get_size().x;
+	float m_ScreenHeight = (float)godot::Camera3D::get_viewport()->get_visible_rect().get_size().y;
 
 	float m_AspectRatio = (m_ScreenWidth > m_ScreenHeight) ? (m_ScreenWidth / m_ScreenHeight) : (m_ScreenHeight / m_ScreenWidth);
 

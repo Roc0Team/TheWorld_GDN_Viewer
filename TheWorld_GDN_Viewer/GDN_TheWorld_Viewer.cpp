@@ -3797,6 +3797,9 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 						m_adjacentQuadrantsHit.remove(quadTreeToErase);
 						if (m_quadrantHit == quadTreeToErase)
 							m_quadrantHit = nullptr;
+						if (m_editMode && editModeUIControl && editModeUIControl->initialized())
+							if (editModeUIControl->getQuadrantHit() == quadTreeToErase)
+								editModeUIControl->setQuadrantHit(nullptr);
 						numErased = m_mapQuadTree.erase(pos);
 						toErase.push_back(pos);
 						break;
@@ -4088,6 +4091,13 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 			godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
 			rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_ALTITUDE, camAltitude);
 			m_lastCameraAltitudeSetToShader = camAltitude;
+		}
+		godot::Vector3 cameraPos = cam->get_global_position();
+		if (cameraPos != m_lastCameraPosSetToShader)
+		{
+			godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
+			rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_POS, cameraPos);
+			m_lastCameraPosSetToShader = cameraPos;
 		}
 	}
 }

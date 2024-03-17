@@ -366,7 +366,7 @@ namespace godot
 				my_assert(getFloat32HeightsBuffer().size() == numVertices * sizeof(float));
 #ifdef REAL_T_IS_DOUBLE
 				float* f = (float*)getFloat32HeightsBuffer().ptr();
-				for (idx = 0; idx < numVertices; idx++)
+				for (int idx = 0; idx < numVertices; idx++)
 				{
 					m_heightsForCollider.set(idx, (real_t)*f);
 					f++;
@@ -901,6 +901,7 @@ namespace godot
 #define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY		"gu_ground_albedo_bump_array"
 #define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
 #define GLOBAL_SHADER_PARAM_CAM_ALTITUDE			"gu_camera_altitude_from_terrain"
+#define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
 //#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_texture_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_splatmap_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_splatmapBlendingSize to avoid reading it from RenderingServer (slow operation)

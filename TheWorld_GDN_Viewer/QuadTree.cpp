@@ -3371,7 +3371,7 @@ size_t Quadrant::calcTerrainEditMemoryOccupation(void)
 
 size_t Quadrant::calcColliderHeightsMemoryOccupation(void)
 {
-	return m_heightsForCollider.size() * sizeof(float);
+	return m_heightsForCollider.size() * sizeof(real_t);
 }
 
 size_t Quadrant::calcTexMemoryOccupation(void)
@@ -3780,7 +3780,16 @@ void Quadrant::loadTerrainDataFromCache(void)
 		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.7 ") + __FUNCTION__, "SetColliderHeights");
 
 		m_heightsForCollider.resize((int)numFloat32Heights);
+#ifdef REAL_T_IS_DOUBLE
+		float* f = (float*)m_float32HeigthsBuffer.ptr();
+		for (int idx = 0; idx < numFloat32Heights; idx++)
+		{
+			m_heightsForCollider.set(idx, (real_t)*f);
+			f++;
+		}
+#else
 		memcpy((char*)m_heightsForCollider.ptrw(), m_float32HeigthsBuffer.ptr(), m_float32HeigthsBuffer.size());
+#endif
 	}
 
 	m_viewer->getMainProcessingMutex().lock();
@@ -4110,7 +4119,16 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.8 ") + __FUNCTION__, "SetColliderHeights");
 
 		m_heightsForCollider.resize((int)numFloat32Heights);
+#ifdef REAL_T_IS_DOUBLE
+		float* f = (float*)m_float32HeigthsBuffer.ptr();
+		for (int idx = 0; idx < numFloat32Heights; idx++)
+		{
+			m_heightsForCollider.set(idx, (real_t)*f);
+			f++;
+		}
+#else
 		memcpy((char*)m_heightsForCollider.ptrw(), m_float32HeigthsBuffer.ptr(), m_float32HeigthsBuffer.size());
+#endif // REAL_T_IS_DOUBLE
 		//{
 		//	uint16_t* ptrFrom = (uint16_t*)m_float16HeigthsBuffer.ptr();
 		//	m_heights.resize((int)numFloat16Heights);

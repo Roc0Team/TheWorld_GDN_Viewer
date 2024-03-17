@@ -1194,6 +1194,7 @@ namespace godot
 		godot::Vector3 m_lastProcessedCameraPosForChunks;
 
 		float m_lastCameraAltitudeSetToShader = -1.0f;
+		godot::Vector3 m_lastCameraPosSetToShader;
 
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
 

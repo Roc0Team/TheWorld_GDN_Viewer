@@ -1332,20 +1332,37 @@ size_t GDN_TheWorld_Edit::elapsed(void)
 
 void GDN_TheWorld_Edit::setMouseHitLabelText(std::string text)
 {
-	m_innerData->m_mouseHitStr = text;
-	m_infoLabelTextChanged = true;
+	if (m_innerData != nullptr)
+	{
+		m_innerData->m_mouseHitStr = text;
+		m_infoLabelTextChanged = true;
+	}
+}
+
+QuadTree* GDN_TheWorld_Edit::getQuadrantHit(void) const
+{
+	if (m_innerData != nullptr)
+		return m_innerData->m_quadTreeHit;
+	else
+		return nullptr;
 }
 
 void GDN_TheWorld_Edit::setQuadrantHit(QuadTree* quadTree)
 {
-	m_innerData->m_quadTreeHit = quadTree;
-	m_infoLabelTextChanged = true;
+	if (m_innerData != nullptr)
+	{
+		m_innerData->m_quadTreeHit = quadTree;
+		m_infoLabelTextChanged = true;
+	}
 }
 
 void GDN_TheWorld_Edit::setMouseQuadHitLabelText(std::string text)
 {
-	m_innerData->m_mouseQuadHitStr = text;
-	m_infoLabelTextChanged = true;
+	if (m_innerData != nullptr)
+	{
+		m_innerData->m_mouseQuadHitStr = text;
+		m_infoLabelTextChanged = true;
+	}
 }
 
 void GDN_TheWorld_Edit::setMouseQuadHitPosLabelText(std::string text)
@@ -2779,7 +2796,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		PackedFloat64Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
 		heightsForCollider.resize((int)numVertices);
 		float* f = (float*)heights32Buffer.ptr();
-		for (idx = 0; idx < numVertices; idx++)
+		for (int idx = 0; idx < numVertices; idx++)
 		{
 			heightsForCollider.set(idx, (real_t)*f);
 			f++;
@@ -3284,7 +3301,7 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 			godot::PackedFloat64Array& heightsForCollider = quadTree->getQuadrant()->getHeightsForCollider(false);
 			heightsForCollider.resize((int64_t)(quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * quadTree->getQuadrant()->getPos().getNumVerticesPerSize()));
 			float* f = (float*)quadTree->getQuadrant()->getFloat32HeightsBuffer().ptr();
-			for (idx = 0; idx < numVertices; idx++)
+			for (int idx = 0; idx < quadTree->getQuadrant()->getPos().getNumVerticesPerSize(); idx++)
 			{
 				heightsForCollider.set(idx, (real_t)*f);
 				f++;

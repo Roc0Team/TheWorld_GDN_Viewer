@@ -416,6 +416,7 @@ namespace godot
 			return m_actionInProgress;
 		}
 
+		QuadTree* getQuadrantHit(void) const;
 		void setQuadrantHit(QuadTree* quadTree);
 		void setMouseHitLabelText(std::string text);
 		void setMouseQuadHitLabelText(std::string text);

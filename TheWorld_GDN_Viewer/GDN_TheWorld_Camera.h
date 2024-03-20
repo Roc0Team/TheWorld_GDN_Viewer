@@ -35,6 +35,8 @@ namespace godot {
 		virtual void _input(const godot::Ref<godot::InputEvent>& event) override;
 		
 		bool initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll);
+		godot::Transform3D getCameraMapTransform(void);
+		void setCameraMapTransform(godot::Transform3D map);
 		//bool initPlayerCamera(void);
 		//bool initOtherEntityCamera(void);
 		void calcYawPitchRoll(void);
@@ -141,6 +143,10 @@ namespace godot {
 		{
 			return m_lastCameraAltitudeComputed;
 		}
+		void forceRecalcCameraAltitude(void)
+		{
+			m_lastCameraAltitudeComputed = -1.0f;
+		}
 
 		void setCameraGlobalTransform(godot::Transform3D t)
 		{
@@ -187,9 +193,12 @@ namespace godot {
 		float m_rollEuler;
 
 		// Camera Movement
-		int m_numMoveStepForward;
-		int m_numMoveStepLeft;
+		int m_numMoveStepForward = 0;
+		int m_numLongMoveStepForward = 0;
+		int m_numMoveStepLeft = 0;
+		int m_numLongMoveStepLeft = 0;
 		int m_numMoveStepUp;
+		float m_wheelVeryFastVelocity;
 		float m_wheelFastVelocity;
 		float m_wheelNormalVelocity;
 		float m_wheelSlowVelocity;

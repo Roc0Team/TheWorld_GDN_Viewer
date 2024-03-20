@@ -45,6 +45,7 @@
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION					5000.0f
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR					4
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				2
+#define THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR									5
 //#define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
 #define PLOG_DEFAULT_LEVEL plog::Severity::info
@@ -655,6 +656,11 @@ namespace godot
 			return m_paramTextureOptimizationResolutionIncrement;
 		}
 		void setParamTextureOptimizationResolutionIncrement(int64_t f);
+		int64_t getParamOriginShiftFactor(void) const
+		{
+			return m_paramOriginShiftFactor;
+		}
+		void setParamOriginShiftFactor(int64_t f);
 		//int64_t getParamDepthQuadWithCollisionInfo(void)
 		//{
 		//	return m_paramDepthQuadWithCollisionInfo;
@@ -733,6 +739,7 @@ namespace godot
 		float m_paramThresholdForMapTextureOptimization = THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION;
 		float m_paramTextureOptimizationIncrementFactor = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR;
 		int64_t m_paramTextureOptimizationResolutionIncrement = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT;
+		int64_t m_paramOriginShiftFactor = THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR;
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 	};
 }

@@ -548,25 +548,25 @@ void Chunk::setActive(bool b)
 		if (m_viewer->m_cameraChunk == this)
 			m_viewer->m_cameraChunk = nullptr;
 		m_isCameraVerticalOnChunk = false;
-		m_globalCoordCameraLastPos = Vector3(0, 0, 0);
+		m_lastCameraPosInMap = Vector3(0, 0, 0);
 	}
 }
 
-void Chunk::setCameraPos(Vector3 globalCoordCameraLastPos)
+void Chunk::setCameraPosInMap(Vector3 cameraPosInMap)
 {
 	if (!isActive())
 	{
-		m_globalCoordCameraLastPos = Vector3(0, 0, 0);
+		m_lastCameraPosInMap = Vector3(0, 0, 0);
 		if (m_viewer->m_cameraChunk == this)
 			m_viewer->m_cameraChunk = nullptr;
 		m_isCameraVerticalOnChunk = false;
 	}
 	else
 	{
-		m_globalCoordCameraLastPos = globalCoordCameraLastPos;
+		m_lastCameraPosInMap = cameraPosInMap;
 
-		if (globalCoordCameraLastPos.x >= m_originXInWUsGlobal && globalCoordCameraLastPos.x < m_originXInWUsGlobal + m_chunkSizeInWUs
-			&& globalCoordCameraLastPos.z >= m_originZInWUsGlobal && globalCoordCameraLastPos.z < m_originZInWUsGlobal + m_chunkSizeInWUs)
+		if (cameraPosInMap.x >= m_originXInWUsGlobal && cameraPosInMap.x < m_originXInWUsGlobal + m_chunkSizeInWUs
+			&& cameraPosInMap.z >= m_originZInWUsGlobal && cameraPosInMap.z < m_originZInWUsGlobal + m_chunkSizeInWUs)
 			m_isCameraVerticalOnChunk = true;
 		else
 		{
@@ -580,9 +580,9 @@ void Chunk::setCameraPos(Vector3 globalCoordCameraLastPos)
 		m_viewer->setCameraChunk(this, m_quadTree);
 }
 
-void Chunk::getCameraPos(Vector3& globalCoordCameraLastPos) const
+void Chunk::getCameraPosInMap(Vector3& lastCameraPosInMap) const
 {
-	globalCoordCameraLastPos = m_globalCoordCameraLastPos;
+	lastCameraPosInMap = m_lastCameraPosInMap;
 }
 
 Transform3D Chunk::getGlobalTransform(void)
@@ -681,7 +681,7 @@ float Chunk::getDistanceFromCamera(void) const
 
 void Chunk::checkMouseHit(void)
 {
-	godot::Vector3 mouseHit = m_viewer->getMouseHit();
+	godot::Vector3 mouseHit = m_viewer->getMouseHitInMap();
 	if (checkHit(mouseHit))
 	{
 		//m_viewer->setMouseHitQuadTree(m_quadTree);
@@ -725,8 +725,10 @@ void Chunk::dump(void)
 	//Vector3 v2 = m_parentTransform * Vector3((float)m_originXInWUsLocalToGrid, 0, (float)m_originZInWUsLocalToGrid);
 	//Vector3 v3 = m_viewer->to_global(Vector3((float)m_originXInWUsLocalToGrid, 0, (float)m_originZInWUsLocalToGrid));
 
-	float globalOriginXInGridInWUs = (float)m_viewer->get_global_transform().origin.x + m_originXInWUsLocalToGrid;
-	float globalOriginZInGridInWUs = (float)m_viewer->get_global_transform().origin.z + m_originZInWUsLocalToGrid;
+	//float globalOriginXInGridInWUs = (float)m_viewer->get_global_transform().origin.x + m_originXInWUsLocalToGrid;
+	float globalOriginXInGridInWUs = (float)m_viewer->getInternalGlobalTransform().origin.x + m_originXInWUsLocalToGrid;
+	//float globalOriginZInGridInWUs = (float)m_viewer->get_global_transform().origin.z + m_originZInWUsLocalToGrid;
+	float globalOriginZInGridInWUs = (float)m_viewer->getInternalGlobalTransform().origin.z + m_originZInWUsLocalToGrid;
 
 	globals->debugPrint(String("Chunk ID: ") + getPos().getIdStr().c_str()
 		+ " - chunk size (WUs) " + to_string(m_chunkSizeInWUs).c_str()
@@ -937,18 +939,20 @@ bool ChunkDebug::isDebugMeshNull(void)
 	return (m_debugMeshRID == godot::RID() ? true : false);
 }
 
-void ChunkDebug::setCameraPos(Vector3 globalCoordCameraLastPos)
+void ChunkDebug::setCameraPosInMap(godot::Vector3 cameraPosInMap)
 {
 	bool prevCameraVerticalOnChunk = isCameraVerticalOnChunk();
 
-	Chunk::setCameraPos(globalCoordCameraLastPos);
+	Chunk::setCameraPosInMap(cameraPosInMap);
 
 	//return;
 	
 	if (isCameraVerticalOnChunk() && !prevCameraVerticalOnChunk)
 	{
-		float globalOriginXInGridInWUs = (float)m_viewer->get_global_transform().origin.x + m_originXInWUsLocalToGrid;
-		float globalOriginZInGridInWUs = (float)m_viewer->get_global_transform().origin.z + m_originZInWUsLocalToGrid;
+		//float globalOriginXInGridInWUs = (float)m_viewer->get_global_transform().origin.x + m_originXInWUsLocalToGrid;
+		float globalOriginXInGridInWUs = (float)m_viewer->getInternalGlobalTransform().origin.x + m_originXInWUsLocalToGrid;
+		//float globalOriginZInGridInWUs = (float)m_viewer->get_global_transform().origin.z + m_originZInWUsLocalToGrid;
+		float globalOriginZInGridInWUs = (float)m_viewer->getInternalGlobalTransform().origin.z + m_originZInWUsLocalToGrid;
 
 		//m_viewer->Globals()->debugPrint("Camera vertical on chunk ("
 		//	+ String(to_string(getPos().getSlotPosX()).c_str()) + ":" + to_string(getPos().getSlotPosZ()).c_str()

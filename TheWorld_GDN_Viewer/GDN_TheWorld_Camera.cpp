@@ -41,6 +41,8 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_camera_tracking_offset"), &GDN_TheWorld_Camera::getCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_altitude_from_terrain"), &GDN_TheWorld_Camera::cameraAltitude);
 	ClassDB::bind_method(D_METHOD("set_camera_global_transform"), &GDN_TheWorld_Camera::setCameraGlobalTransform);
+	ClassDB::bind_method(D_METHOD("set_camera_map_transform", "p_transform"), &GDN_TheWorld_Camera::setCameraMapTransform);
+	ClassDB::bind_method(D_METHOD("get_camera_map_transform"), &GDN_TheWorld_Camera::getCameraMapTransform);
 
 	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
 	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_camera_tracking_speed", "get_camera_tracking_speed");
@@ -65,6 +67,7 @@ GDN_TheWorld_Camera::GDN_TheWorld_Camera()
 	m_numMoveStepForward = 0;
 	m_numMoveStepLeft = 0;
 	m_numMoveStepUp = 0;
+	m_wheelVeryFastVelocity = 500.0f;	// 40.0;	// 10.0;
 	m_wheelFastVelocity = 20.0f;	// 40.0;	// 10.0;
 	m_wheelNormalVelocity = 5.0f;	// 10.0;
 	m_wheelSlowVelocity = 0.3F;		// 10.0;
@@ -181,6 +184,37 @@ void GDN_TheWorld_Camera::_process(double _delta)
 	}
 }
 
+godot::Transform3D GDN_TheWorld_Camera::getCameraMapTransform(void)
+{
+	godot::Transform3D map;
+
+	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
+	if (viewer == nullptr)
+		return map;
+
+	godot::Transform3D cameraT = get_global_transform();
+	map = viewer->globalToMap(cameraT);
+	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
+	//ret = viewerT * cameraT;
+
+	//godot::Transform3D cameraT1 = viewer->mapToGlobal(map);	// DEBUG ONLY
+
+	return map;
+}
+
+void GDN_TheWorld_Camera::setCameraMapTransform(godot::Transform3D map)
+{
+	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
+	if (viewer == nullptr)
+		return;
+
+	godot::Transform3D cameraT = get_global_transform();	// DEBUG ONLY
+	godot::Transform3D newCameraT = viewer->mapToGlobal(map);
+	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
+	//godot::Transform3D newCameraT = viewerT * t;
+	set_global_transform(newCameraT);
+}
+
 void GDN_TheWorld_Camera::_physics_process(double _delta)
 {
 	//TheWorld_Utils::GuardProfiler profiler(std::string("_physics_process 1 ") + __FUNCTION__, "ALL");
@@ -292,7 +326,10 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 		{
 			if (viewer->terrainShiftPermitted() /* && !viewer->editMode()*/)
 			{
-				m_numMoveStepLeft++;
+				if (input->is_key_pressed(godot::KEY_LEFT) && m_ctrlPressed)
+					m_numLongMoveStepLeft++;
+				else
+					m_numMoveStepLeft++;
 				m_updateCameraRequired = true;
 				//m_leftMovementOn = true;
 			}
@@ -304,7 +341,10 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 		{
 			if (viewer->terrainShiftPermitted() /* && !viewer->editMode()*/)
 			{
-				m_numMoveStepLeft--;
+				if (input->is_key_pressed(godot::KEY_RIGHT) && m_ctrlPressed)
+					m_numLongMoveStepLeft--;
+				else
+					m_numMoveStepLeft--;
 				m_updateCameraRequired = true;
 				//m_rightMovementOn = true;
 			}
@@ -316,7 +356,10 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 		{
 			if (viewer->terrainShiftPermitted() /* && !viewer->editMode()*/)
 			{
-				m_numMoveStepUp++;
+				if (input->is_key_pressed(godot::KEY_UP) && m_ctrlPressed)
+					m_numLongMoveStepForward--;
+				else
+					m_numMoveStepUp++;
 				m_updateCameraRequired = true;
 				//m_upwardMovementOn = true;
 			}
@@ -328,7 +371,10 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 		{
 			if (viewer->terrainShiftPermitted() /* && !viewer->editMode()*/)
 			{
-				m_numMoveStepUp--;
+				if (input->is_key_pressed(godot::KEY_DOWN) && m_ctrlPressed)
+					m_numLongMoveStepForward++;
+				else
+					m_numMoveStepUp--;
 				m_updateCameraRequired = true;
 				//m_downwardMovementOn = true;
 			}
@@ -547,9 +593,11 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 	activateCamera();
 
 	// cameraPos and lookAt are in WorldNode local coordinates and must be transformed in godot global coordinates
-	Vector3 worldNodePosGlobalCoord = Globals()->Viewer()->getWorldNode()->get_global_transform().origin;
-	Vector3 cameraPosGlobalCoord = cameraPos + worldNodePosGlobalCoord;
-	Vector3 lookAtGlobalCoord = lookAt + worldNodePosGlobalCoord;
+	//Vector3 worldNodePosGlobalCoord = Globals()->Viewer()->getWorldNode()->get_global_transform().origin;
+	//Vector3 cameraPosGlobalCoord = cameraPos + worldNodePosGlobalCoord;
+	//Vector3 lookAtGlobalCoord = lookAt + worldNodePosGlobalCoord;
+	Vector3 cameraPosGlobalCoord = Globals()->Viewer()->mapToGlobal(godot::Transform3D(godot::Basis(), cameraPos)).origin;
+	Vector3 lookAtGlobalCoord = Globals()->Viewer()->mapToGlobal(godot::Transform3D(godot::Basis(), lookAt)).origin;;
 	if (cameraPosGlobalCoord != lookAtGlobalCoord)
 		Camera3D::look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, Vector3(0, 1, 0));
 
@@ -736,6 +784,18 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		translate_object_local(Vector3(0, 0, -m_mouseRelativePosToShiftVert.y));
 
 		m_mouseRelativePosToShiftVert = Vector2(0, 0);
+	}
+
+	if (m_numLongMoveStepForward)
+	{
+		translate_object_local(Vector3(0, 0, m_numLongMoveStepForward * m_wheelVeryFastVelocity));
+		m_numLongMoveStepForward = 0;
+	}
+
+	if (m_numLongMoveStepLeft)
+	{
+		translate_object_local(Vector3(-m_numLongMoveStepLeft * m_wheelVeryFastVelocity, 0, 0));
+		m_numLongMoveStepLeft = 0;
 	}
 
 	if (m_numMoveStepForward)

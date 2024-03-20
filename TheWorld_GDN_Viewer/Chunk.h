@@ -422,7 +422,7 @@ namespace godot
 		virtual void applyAABB(void);
 		virtual void checkAndCalcAABB();
 		virtual void dump(void);
-		virtual void setCameraPos(Vector3 globalCoordCameraLastPos);
+		virtual void setCameraPosInMap(Vector3 cameraPosInMap);
 		virtual void setDebugMode(enum class GDN_TheWorld_Globals::ChunkDebugMode mode);
 		virtual void applyDebugMesh(void);
 		virtual Transform3D getDebugGlobalTransform(void);
@@ -493,7 +493,7 @@ namespace godot
 			checkAndCalcAABB();
 			return m_aabb;
 		};
-		void getCameraPos(Vector3& globalCoordCameraLastPos) const;
+		void getCameraPosInMap(Vector3& lastCameraPosInMap) const;
 		bool isCameraVerticalOnChunk(void) const
 		{
 			return m_isCameraVerticalOnChunk;
@@ -569,7 +569,7 @@ namespace godot
 		AABB m_aabb;						// AABB of the chunk in WUs relative to the chunk so X and Z are 0
 		AABB m_globalCoordAABB;				// AABB of the chunk in WUs in global coord.
 		int m_lod;
-		Vector3 m_globalCoordCameraLastPos;
+		Vector3 m_lastCameraPosInMap;
 		bool m_isCameraVerticalOnChunk;
 		enum class GDN_TheWorld_Globals::ChunkDebugMode m_debugMode;
 		bool m_debugContentVisible;
@@ -622,7 +622,7 @@ namespace godot
 		virtual void applyAABB(void);
 		virtual void checkAndCalcDebugMeshAABB();
 		virtual void dump(void);
-		virtual void setCameraPos(Vector3 globalCoordCameraLastPos);
+		virtual void setCameraPosInMap(Vector3 cameraPosInMap);
 		virtual void setDebugMode(enum class GDN_TheWorld_Globals::ChunkDebugMode mode);
 		virtual void applyDebugMesh(void);
 		//virtual Transform getGlobalTransformOfAABB(void);

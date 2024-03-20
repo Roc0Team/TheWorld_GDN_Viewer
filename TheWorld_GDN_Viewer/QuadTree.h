@@ -990,13 +990,21 @@ namespace godot
 			m_materialParamsNeedReset = b;
 		}
 		void resetMaterialParams(bool& lastProcessExecutionInterrupted, LookDev lookdev);
+		bool materialParamsNeedUpdateTransformChanged(void) const
+		{
+			return m_materialParamsNeedUpdateTransformChanged;
+		}
 		bool materialParamsNeedUpdate(void) const
 		{
 			return m_materialParamsNeedUpdate;
 		}
-		void materialParamsNeedUpdate(bool b)
+		void materialParamsNeedUpdate(bool b, bool transformChanged = false)
 		{
 			m_materialParamsNeedUpdate = b;
+			if (b)
+				m_materialParamsNeedUpdateTransformChanged = transformChanged;
+			else
+				m_materialParamsNeedUpdateTransformChanged = false;
 		}
 		void updateMaterialParams(LookDev lookdev);
 		enum class ImageType
@@ -1146,6 +1154,7 @@ namespace godot
 		static GDN_TheWorld_ShaderTexture* g_lookDevShaderTexture;
 		std::map<int, godot::Ref<godot::ShaderMaterial>> m_lookDevChunkLodMaterials;
 		bool m_materialParamsNeedUpdate;
+		bool m_materialParamsNeedUpdateTransformChanged = false;
 		bool m_materialParamsNeedReset;
 
 		godot::Ref<godot::Texture> m_heightmapTexture;
@@ -1251,7 +1260,7 @@ namespace godot
 		{
 			return m_chunkSizeInWUs; 
 		}
-		void setCameraPos(Vector3 globalCoordCameraLastPos);
+		void setCameraPosInMap(godot::Vector3 cameraPosInMap);
 		void setSplitRequired(bool b)
 		{
 			if (b)
@@ -1312,7 +1321,7 @@ namespace godot
 		};
 		void checkMouseHit();
 		void internalCheckMouseHit(Quad* quad);
-		void update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updateStage, int& numSplitRequired);
+		void update(Vector3 cameraPosInMap, enum class UpdateStage updateStage, int& numSplitRequired);
 		Chunk* getChunkAt(Chunk::ChunkPos pos, enum class Chunk::DirectionSlot dir);
 		Chunk* getChunkAt(Chunk::ChunkPos pos);
 		bool isChunkOnBorderOfQuadrant(Chunk::ChunkPos pos, TheWorld_Utils::QuadrantPos& XMinusQuadrantPos, TheWorld_Utils::QuadrantPos& XPlusQuadrantPos, TheWorld_Utils::QuadrantPos& ZMinusQuadrantPos, TheWorld_Utils::QuadrantPos& ZPlusQuadrantPos);
@@ -1413,7 +1422,7 @@ namespace godot
 		void setRegularMaterial(bool reload = false);
 		Ref<Material> getCurrentMaterial(int lod);
 		void reloadCurrentMaterial(void);
-		void setOptimizations(godot::Vector3& cameraPosGlobalCoord);
+		void setOptimizations(godot::Vector3& cameraPosInMap);
 		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, bool force = false);
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
@@ -1422,7 +1431,7 @@ namespace godot
 		void colliderNeedReset(bool b);
 		bool updateMaterialParams(void);
 		bool materialParamsNeedUpdate(void);
-		void materialParamsNeedUpdate(bool b);
+		void materialParamsNeedUpdate(bool b, bool transformChanged = false);
 		bool statusInitialized(void)
 		{
 			return status() == QuadrantStatus::initialized;
@@ -1587,9 +1596,13 @@ namespace godot
 			}
 		}
 
+		float getLastComputedDistanceFromCamera(void) const
+		{
+			return m_lastComputedDistanceFromCamera;
+		}
 
 	private:
-		void internalUpdate(Vector3 cameraPosGlobalCoord, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired);
+		void internalUpdate(Vector3 cameraPosInMap, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired);
 
 	private:
 		enum class QuadrantStatus m_status;

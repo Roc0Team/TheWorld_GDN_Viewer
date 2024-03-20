@@ -242,6 +242,7 @@ namespace godot
 				, Quadrant_updateCollider = 17
 				, EndOfProcessExecution = 18
 				, process_updateCameraInQuadrants = 19
+				, process_updateOriginShift = 20
 			};
 			ProcessStep(enum class ProcessStepIdx idx, size_t elapsed, int num = 1)
 			{
@@ -587,10 +588,10 @@ namespace godot
 		Chunk* getActiveChunkAt(TheWorld_Utils::QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
 		bool terrainShiftPermitted(void);
-		godot::Vector3 getMouseHit(void) const
+		godot::Vector3 getMouseHitInMap(void) const
 		{
 			if (m_mouseTrackedOnSomething)
-				return m_trackedMouseHit;
+				return m_trackedMouseHitInMap;
 			else
 				return godot::Vector3();
 		}
@@ -599,7 +600,7 @@ namespace godot
 			if (m_mouseTrackedOnSomething)
 			{
 				godot::Camera3D* camera = getCamera();
-				return (float)camera->get_global_transform().origin.distance_to(m_trackedMouseHit);
+				return (float)camera->get_global_transform().origin.distance_to(m_trackedMouseHitGlobal);
 			}
 			else
 				return 0.0f;
@@ -966,6 +967,11 @@ namespace godot
 		int getGroundTextureLayer(godot::String texName);
 		godot::Vector4 getGroundTextureLayers(void);
 
+		godot::Transform3D globalToMap(godot::Transform3D global) const;
+		godot::Transform3D globalPosToMapTransform(godot::Vector3 global) const;
+		godot::Transform3D mapToGlobal(godot::Transform3D map) const;
+		godot::Transform3D mapPosToGlobalTransform(godot::Vector3 map) const;
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -981,14 +987,17 @@ namespace godot
 		void streamer(void);
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
-		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosGlobalCoord);
+		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap);
 		void process_initNewQuads(bool processCameraPosForQuadrants);
 		void process_updateCameraPosInShader(godot::Camera3D* activeCamera);
+		void process_updateOriginShift(godot::Camera3D* activeCamera);
+		void setAnchorForOriginShift(godot::Node3D* anchorForOriginShift);
+		godot::Node3D* getAnchorForOriginShift(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
-		void process_updateLodInQuads(godot::Vector3& cameraPosGlobalCoord);
+		void process_updateLodInQuads(godot::Vector3& cameraPosInMap);
 		void process_updateMeshForUpdatedChunks(void);
 		void process_lookDev(void);
-		void process_materialParam(godot::Vector3& cameraPosGlobalCoord, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
+		void process_materialParam(godot::Vector3& cameraPosInMap, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_neighbourQuadrantData(QuadTree* quadTree);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
@@ -1000,6 +1009,7 @@ namespace godot
 
 	private:
 		bool m_initialized;
+		godot::Node3D* m_anchorForOriginShift = nullptr;
 		bool m_worldEntered = false;
 		bool m_quitting;
 		bool m_visibleInTree;
@@ -1067,6 +1077,7 @@ namespace godot
 		
 		TimerMs m_streamingTime;
 		TimerMs m_notStreamingTime;
+		bool m_streamingInProgress = false;
 		size_t m_numVisibleQuadrantsStreamed = 0;
 		size_t m_numInvisibleQuadrantsStreamed = 0;
 		size_t m_numTextureResizing = 0;
@@ -1091,8 +1102,9 @@ namespace godot
 		bool m_trackMouse = false;
 		bool m_editMode = false;
 		int64_t m_timeElapsedFromLastMouseTrack;
-		godot::Vector3 m_trackedMouseHit;
-		godot::Vector3 m_previousTrackedMouseHit;
+		godot::Vector3 m_trackedMouseHitGlobal;
+		godot::Vector3 m_trackedMouseHitInMap;
+		godot::Vector3 m_previousTrackedMouseHitInMap;
 		bool m_mouseTrackedOnSomething = false;
 		bool m_mouseTrackedOnTerrain = false;
 		std::string m_mouseQuadrantHitName;
@@ -1150,6 +1162,8 @@ namespace godot
 		std::recursive_mutex m_mtxQuadTreeAndMainProcessing;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
 		TheWorld_Utils::QuadrantPos m_computedCameraQuadrantPos;
+		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;
+		godot::Vector3 m_lastOriginShiftCameraPosInMap;
 		bool m_recalcQuadrantsInViewNeeded;
 		bool m_refreshMapQuadTree;
 		int m_numWorldVerticesPerSize;
@@ -1195,6 +1209,7 @@ namespace godot
 
 		float m_lastCameraAltitudeSetToShader = -1.0f;
 		godot::Vector3 m_lastCameraPosSetToShader;
+		bool m_lastCameraPosSetToShaderInitialized = false;
 
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
 

@@ -159,13 +159,13 @@ void Quad::assignChunk(void)
 	}
 }
 
-void Quad::setCameraPos(Vector3 globalCoordCameraLastPos)
+void Quad::setCameraPosInMap(Vector3 cameraPosInMap)
 {
 	if (isLeaf())
 	{
 		Chunk* chunk = getChunk();
 		if (chunk != nullptr)
-			chunk->setCameraPos(globalCoordCameraLastPos);
+			chunk->setCameraPosInMap(cameraPosInMap);
 	}
 }
 	
@@ -181,7 +181,8 @@ QuadTree::QuadTree(GDN_TheWorld_Viewer* viewer, TheWorld_Utils::QuadrantPos quad
 	m_GDN_Quadrant = nullptr;
 	m_tag = quadrantPos.getTag();
 	int ret = timespec_get(&m_refreshTime, TIME_UTC);
-	m_lookDev = ShaderTerrainData::LookDev::NotSet;
+	//m_lookDev = ShaderTerrainData::LookDev::NotSet;
+	m_lookDev = m_viewer->getDesideredLookDev();
 }
 
 void QuadTree::refreshTerrainData(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrain)
@@ -243,10 +244,10 @@ void QuadTree::init(float cameraX, float cameraY, float cameraZ, float cameraYaw
 
 void QuadTree::onGlobalTransformChanged(void)
 {
-	TheWorld_Utils::QuadrantPos quadrantPos = getQuadrant()->getPos();
-	Transform3D gt = m_viewer->get_global_transform();
-	Transform3D t = gt * Transform3D(Basis(), Vector3(quadrantPos.getLowerXGridVertex(), 0, quadrantPos.getLowerZGridVertex()));
-	m_GDN_Quadrant->set_global_transform(t);
+	//TheWorld_Utils::QuadrantPos quadrantPos = getQuadrant()->getPos();
+	//Transform3D gt = m_viewer->getInternalGlobalTransform();
+	//Transform3D t = gt * Transform3D(Basis(), Vector3(quadrantPos.getLowerXGridVertex(), 0, quadrantPos.getLowerZGridVertex()));
+	//m_GDN_Quadrant->set_global_transform(t);
 }
 
 QuadTree::~QuadTree()
@@ -417,7 +418,7 @@ void QuadTree::internalCheckMouseHit(Quad* quad)
 	}
 }
 
-void QuadTree::update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updateStage, int& numSplitRequired)
+void QuadTree::update(Vector3 cameraPosInMap, enum class UpdateStage updateStage, int& numSplitRequired)
 {
 	if (statusLoadTerrainDataFromCacheInProgress() || statusLoadTerrainDataFromCacheNeeded())
 	{
@@ -435,11 +436,11 @@ void QuadTree::update(Vector3 cameraPosGlobalCoord, enum class UpdateStage updat
 		return;
 
 	m_numLeaf = 0;
-	internalUpdate(cameraPosGlobalCoord, m_root.get(), updateStage, numSplitRequired);
+	internalUpdate(cameraPosInMap, m_root.get(), updateStage, numSplitRequired);
 	assert(!m_root->isLeaf() || m_root->getChunk() != nullptr);
 }
 
-void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, enum class UpdateStage updateStage, int& numSplitRequired)
+void QuadTree::internalUpdate(godot::Vector3 cameraPosInMap, Quad* quad, enum class UpdateStage updateStage, int& numSplitRequired)
 {
 	if (updateStage == UpdateStage::Stage1)
 	{
@@ -450,13 +451,14 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		float chunkSizeInWUs = globals->gridStepInHeightmapWUs(quad->Lod()) * globals->numVerticesPerChuckSide();									// chunk size in World Units
 		AABB chunkAABB = quad->getChunkAABB();
-		Vector3 quadCenterGlobal(float((quad->slotPosX() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerXGridVertex() + chunkSizeInWUs / 2),
+		Vector3 quadCenterInMap(float((quad->slotPosX() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerXGridVertex() + chunkSizeInWUs / 2),
 			(chunkAABB.position + chunkAABB.size / 2).y,
 			float((quad->slotPosZ() * chunkSizeInWUs) + m_worldQuadrant->getPos().getLowerZGridVertex() + chunkSizeInWUs / 2));
 
-		Transform3D gt = m_viewer->get_global_transform();
-		Transform3D t = gt * Transform3D(Basis(), quadCenterGlobal);
-		quadCenterGlobal = t.origin;
+		//Transform3D gt = m_viewer->getInternalGlobalTransform();
+		//Transform3D t = gt * Transform3D(Basis(), quadCenterGlobal);
+		Transform3D t = Transform3D(Basis(), quadCenterInMap);
+		quadCenterInMap = t.origin;
 
 		float splitDistance = chunkSizeInWUs * globals->splitScale();
 		//float splitDistance = m_worldQuadrant->getPos().getSizeInWU() * globals->splitScale();
@@ -470,15 +472,12 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 			m_numLeaf++;
 			if (quad->Lod() > 0)
 			{
-				float distance = (float)quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+				float distance = (float)quadCenterInMap.distance_to(cameraPosInMap);
 				quad->getChunk()->setDistanceFromCamera(distance);
 				if (distance < splitDistance)
 				{
 					if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
 					{
-						//godot::Vector3 quadrantCenter = getQuadrant()->getCenter();
-						//quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
-						//float lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
 						setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 						m_viewer->forceProcessCameraPosForChunks();
 					}
@@ -488,7 +487,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 						quad->split();
 						for (int i = 0; i < 4; i++)
 						{
-							quad->getChild(i)->setCameraPos(cameraPosGlobalCoord);
+							quad->getChild(i)->setCameraPosInMap(cameraPosInMap);
 							if (trackChunk)
 								quad->getChild(i)->getChunk()->checkMouseHit();
 							quad->getChild(i)->getChunk()->setDistanceFromCamera(distance);
@@ -514,14 +513,14 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 			for (int i = 0; i < 4; i++)
 			{
 				Quad* child = quad->getChild(i);
-				internalUpdate(cameraPosGlobalCoord, child, updateStage, numSplitRequired);
+				internalUpdate(cameraPosInMap, child, updateStage, numSplitRequired);
 				if (!child->isLeaf())
 					allChildrenAreLeaf = false;
 			}
 
 			if (allChildrenAreLeaf)
 			{
-				float distance = (float)quadCenterGlobal.distance_to(cameraPosGlobalCoord);
+				float distance = (float)quadCenterInMap.distance_to(cameraPosInMap);
 				if (distance > splitDistance)
 				{
 					// Join
@@ -538,7 +537,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 		}
 
 		// after all if quad is leaf: just joined or was leaf and it has not been splitted
-		quad->setCameraPos(cameraPosGlobalCoord);
+		quad->setCameraPosInMap(cameraPosInMap);
 	}
 	else if (updateStage == UpdateStage::Stage2)
 	{
@@ -644,7 +643,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 		else
 		{
 			for (int i = 0; i < 4; i++)
-				internalUpdate(cameraPosGlobalCoord, quad->getChild(i), updateStage, numSplitRequired);
+				internalUpdate(cameraPosInMap, quad->getChild(i), updateStage, numSplitRequired);
 		}
 
 	}
@@ -673,7 +672,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 					quad->split();
 					for (int i = 0; i < 4; i++)
 					{
-						quad->getChild(i)->setCameraPos(cameraPosGlobalCoord);
+						quad->getChild(i)->setCameraPosInMap(cameraPosInMap);
 						if (trackChunk)
 							quad->getChild(i)->getChunk()->checkMouseHit();
 						quad->getChild(i)->getChunk()->setDistanceFromCamera(0);
@@ -698,7 +697,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosGlobalCoord, Quad* quad, e
 			for (int i = 0; i < 4; i++)
 			{
 				Quad* child = quad->getChild(i);
-				internalUpdate(cameraPosGlobalCoord, child, updateStage, numSplitRequired);
+				internalUpdate(cameraPosInMap, child, updateStage, numSplitRequired);
 				if (!child->isLeaf())
 					allChildrenAreLeaf = false;
 			}
@@ -1010,11 +1009,11 @@ void QuadTree::reloadCurrentMaterial(void)
 	}
 }
 
-void QuadTree::setOptimizations(godot::Vector3& cameraPosGlobalCoord)
+void QuadTree::setOptimizations(godot::Vector3& cameraPosInMap)
 {
 	godot::Vector3 quadrantCenter  = getQuadrant()->getCenter();
 	quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
-	m_lastComputedDistanceFromCamera = (float)abs((cameraPosGlobalCoord - quadrantCenter).length());
+	m_lastComputedDistanceFromCamera = (float)abs((cameraPosInMap - quadrantCenter).length());
 
 	{
 		if (m_viewer->Globals()->getParamThresholdForGlobalmap() > 0 && m_lastComputedDistanceFromCamera > m_viewer->Globals()->getParamThresholdForGlobalmap())
@@ -1220,7 +1219,8 @@ bool QuadTree::updateMaterialParams(void)
 
 		getQuadrant()->getShaderTerrainData()->updateMaterialParams(m_lookDev);
 
-		updated = true;
+		if (!getQuadrant()->getShaderTerrainData()->materialParamsNeedUpdateTransformChanged())
+			updated = true;
 
 		getQuadrant()->getShaderTerrainData()->materialParamsNeedUpdate(false);
 
@@ -1234,9 +1234,9 @@ bool QuadTree::materialParamsNeedUpdate(void)
 	return getQuadrant()->getShaderTerrainData()->materialParamsNeedUpdate();
 }
 
-void QuadTree::materialParamsNeedUpdate(bool b)
+void QuadTree::materialParamsNeedUpdate(bool b, bool transformChanged)
 {
-	getQuadrant()->getShaderTerrainData()->materialParamsNeedUpdate(b);
+	getQuadrant()->getShaderTerrainData()->materialParamsNeedUpdate(b, transformChanged);
 }
 
 Transform3D QuadTree::getInternalGlobalTransform(void)
@@ -2749,6 +2749,10 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 			{
 				item.second->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
 				item.second->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
+				
+				if (materialParamsNeedUpdateTransformChanged())
+					continue;
+				
 				item.second->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, editMode);
 				item.second->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, gridOn);
 				item.second->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
@@ -2772,201 +2776,203 @@ void ShaderTerrainData::updateMaterialParams(LookDev lookdev)
 
 			currentMaterial->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
-			currentMaterial->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, editMode);
-			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, gridOn);
-			currentMaterial->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
-			currentMaterial->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
-			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 
-			if (quadrant->textureUpdated() && lookdev == LookDev::NotSet)
+			if (!materialParamsNeedUpdateTransformChanged())
 			{
-				godot::Vector4 v = quadrant->quadrantTextureLayers();
-				currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
-				
-				if (m_sendTextureToShader)
+				currentMaterial->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, editMode);
+				currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, gridOn);
+				currentMaterial->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
+				currentMaterial->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
+				currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
+
+				if (quadrant->textureUpdated() && lookdev == LookDev::NotSet)
 				{
-					godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_albedo_bump_tex;
-					if (lowElevation_albedo_bump_tex != nullptr)
+					godot::Vector4 v = quadrant->quadrantTextureLayers();
+					currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
+
+					if (m_sendTextureToShader)
 					{
-						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_0));
-						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
+						godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_albedo_bump_tex;
+						if (lowElevation_albedo_bump_tex != nullptr)
+						{
+							//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_0));
+							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
+						}
+
+						godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_normal_roughness_tex;
+						if (lowElevation_normal_roughness_tex != nullptr)
+						{
+							//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0));
+							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
+						}
+
+						godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_albedo_bump_tex;
+						if (highElevation_albedo_bump_tex != nullptr)
+						{
+							//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_1));
+							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
+						}
+
+						godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_normal_roughness_tex;
+						if (highElevation_normal_roughness_tex != nullptr)
+						{
+							//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1));
+							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
+						}
+
+						godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_albedo_bump_tex;
+						if (dirt_albedo_bump_tex != nullptr)
+						{
+							//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_2));
+							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
+						}
+
+						godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_normal_roughness_tex;
+						if (dirt_normal_roughness_tex != nullptr)
+						{
+							//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2));
+							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
+						}
+
+						godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_albedo_bump_tex;
+						if (rocks_albedo_bump_tex != nullptr)
+						{
+							//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_3));
+							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
+						}
+
+						godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_normal_roughness_tex;
+						if (rocks_normal_roughness_tex != nullptr)
+						{
+							//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3));
+							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
+						}
 					}
 
-					godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_normal_roughness_tex;
-					if (lowElevation_normal_roughness_tex != nullptr)
-					{
-						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0));
-						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
-					}
-
-					godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_albedo_bump_tex;
-					if (highElevation_albedo_bump_tex != nullptr)
-					{
-						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_1));
-						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
-					}
-
-					godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_normal_roughness_tex;
-					if (highElevation_normal_roughness_tex != nullptr)
-					{
-						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1));
-						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
-					}
-
-					godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_albedo_bump_tex;
-					if (dirt_albedo_bump_tex != nullptr)
-					{
-						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_2));
-						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
-					}
-
-					godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_normal_roughness_tex;
-					if (dirt_normal_roughness_tex != nullptr)
-					{
-						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2));
-						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
-					}
-
-					godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_albedo_bump_tex;
-					if (rocks_albedo_bump_tex != nullptr)
-					{
-						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_3));
-						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
-					}
-
-					godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_normal_roughness_tex;
-					if (rocks_normal_roughness_tex != nullptr)
-					{
-						//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3));
-						currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
-					}
+					quadrant->setTextureUpdated(false);
 				}
 
-				quadrant->setTextureUpdated(false);
+				if (m_heightMapTexModified && m_heightmapTexture != nullptr)
+				{
+					//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_HEIGHTMAP));
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
+					m_heightMapTexModified = false;
+				}
+
+				if (m_normalMapTexModified && m_normalmapTexture != nullptr)
+				{
+					//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_NORMALMAP));
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, m_normalmapTexture);
+					m_normalMapTexModified = false;
+				}
+
+				if (lookdev == LookDev::NotSet && m_globalMapTexModified && m_globalmapTexture != nullptr)
+				{
+					//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_GLOBALMAP));
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, m_globalmapTexture);
+					//currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);			// to always pass globalmap to shader: UNCOMMENT this line
+					currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, true);			// to always pass globalmap to shader: comment this line
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, nullptr);		// to always pass globalmap to shader: comment this line
+					m_globalMapTexModified = false;
+				}
+
+				if (lookdev == LookDev::NotSet && m_splatMapTexModified && m_splatmapTexture != nullptr)
+				{
+					//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_SPLATMAP));
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, m_splatmapTexture);
+					currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, nullptr);		// to always pass globalmap to shader: comment this line
+					m_splatMapTexModified = false;
+				}
+
+				if (lookdev == LookDev::NotSet && m_colorMapTexModified && m_colormapTexture != nullptr)
+				{
+					//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_COLORMAP));
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
+					m_colorMapTexModified = false;
+				}
+
+				godot::Plane ground_uv_scale = m_viewer->getShaderParamGroundUVScale();
+				if (lookdev == LookDev::NotSet /* && ground_uv_scale.get_normal() != godot::Vector3(0.0f, 0.0f, 0.0f) && ground_uv_scale.d != 0.0f*/)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, ground_uv_scale);
+				}
+
+				currentMaterial->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, quadrant->optimizationLevel());
+
+				bool depthBlending = m_viewer->getShaderParamDepthBlening();
+				if (lookdev == LookDev::NotSet)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, depthBlending);
+				}
+
+				bool triplanar = m_viewer->getShaderParamTriplanar();
+				if (lookdev == LookDev::NotSet)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TRIPLANAR, triplanar);
+				}
+
+				godot::Plane tileReduction = m_viewer->getShaderParamTileReduction();
+				if (lookdev == LookDev::NotSet)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_TILE_REDUCTION_PER_TEXTURE, tileReduction);
+				}
+
+				float globalmapBlendStart = m_viewer->getShaderParamGlobalmapBlendStart();
+				if (lookdev == LookDev::NotSet)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_START, globalmapBlendStart);
+				}
+
+				float globalmapBlendDistance = m_viewer->getShaderParamGlobalmapBlendDistance();
+				if (lookdev == LookDev::NotSet)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_DISTANCE, globalmapBlendDistance);
+				}
+
+				godot::Plane colormapOpacity = m_viewer->getShaderParamColormapOpacity();
+				if (lookdev == LookDev::NotSet)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_COLORMAP_OPACITY_PER_TEXTURE, colormapOpacity);
+				}
+
+				if (lookdev == LookDev::Heights && m_heightmapTexture != nullptr)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_heightmapTexture);
+				}
+
+				if (lookdev == LookDev::Normals && m_normalmapTexture != nullptr)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_normalmapTexture);
+				}
+
+				if (lookdev == LookDev::Splat && m_splatmapTexture != nullptr)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_splatmapTexture);
+				}
+
+				if (lookdev == LookDev::Color && m_colormapTexture != nullptr)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_colormapTexture);
+				}
+
+				if (lookdev == LookDev::Global && m_globalmapTexture != nullptr)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_globalmapTexture);
+				}
+
+				if ((lookdev == LookDev::Universe
+					|| lookdev == LookDev::ShaderArt
+					|| lookdev == LookDev::Lightning
+					|| lookdev == LookDev::StarNest
+					|| lookdev == LookDev::FlaringStar
+					|| lookdev == LookDev::AnimatedDiamond
+					|| lookdev == LookDev::PlasmaWaves)
+					&& g_lookDevShaderTexture != nullptr)
+				{
+					currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, g_lookDevShaderTexture->getTexture());
+				}
 			}
-
-			if (m_heightMapTexModified && m_heightmapTexture != nullptr)
-			{
-				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_HEIGHTMAP));
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
-				m_heightMapTexModified = false;
-			}
-
-			if (m_normalMapTexModified && m_normalmapTexture != nullptr)
-			{
-				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_NORMALMAP));
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, m_normalmapTexture);
-				m_normalMapTexModified = false;
-			}
-
-			if (lookdev == LookDev::NotSet && m_globalMapTexModified && m_globalmapTexture != nullptr)
-			{
-				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_GLOBALMAP));
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, m_globalmapTexture);
-				//currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);			// to always pass globalmap to shader: UNCOMMENT this line
-				currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, true);			// to always pass globalmap to shader: comment this line
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, nullptr);		// to always pass globalmap to shader: comment this line
-				m_globalMapTexModified = false;
-			}
-
-			if (lookdev == LookDev::NotSet && m_splatMapTexModified && m_splatmapTexture != nullptr)
-			{
-				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_SPLATMAP));
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, m_splatmapTexture);
-				currentMaterial->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_GLOBALMAP, nullptr);		// to always pass globalmap to shader: comment this line
-				m_splatMapTexModified = false;
-			}
-
-			if (lookdev == LookDev::NotSet && m_colorMapTexModified && m_colormapTexture != nullptr)
-			{
-				//m_viewer->Globals()->debugPrint("setting shader_param=" + String(SHADER_PARAM_TERRAIN_COLORMAP));
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
-				m_colorMapTexModified = false;
-			}
-
-			godot::Plane ground_uv_scale = m_viewer->getShaderParamGroundUVScale();
-			if (lookdev == LookDev::NotSet /* && ground_uv_scale.get_normal() != godot::Vector3(0.0f, 0.0f, 0.0f) && ground_uv_scale.d != 0.0f*/)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, ground_uv_scale);
-			}
-
-			currentMaterial->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, quadrant->optimizationLevel());
-
-			bool depthBlending = m_viewer->getShaderParamDepthBlening();
-			if (lookdev == LookDev::NotSet)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, depthBlending);
-			}
-
-			bool triplanar = m_viewer->getShaderParamTriplanar();
-			if (lookdev == LookDev::NotSet)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TRIPLANAR, triplanar);
-			}
-
-			godot::Plane tileReduction = m_viewer->getShaderParamTileReduction();
-			if (lookdev == LookDev::NotSet)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_TILE_REDUCTION_PER_TEXTURE, tileReduction);
-			}
-
-			float globalmapBlendStart = m_viewer->getShaderParamGlobalmapBlendStart();
-			if (lookdev == LookDev::NotSet)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_START, globalmapBlendStart);
-			}
-
-			float globalmapBlendDistance = m_viewer->getShaderParamGlobalmapBlendDistance();
-			if (lookdev == LookDev::NotSet)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_GLOBALMAP_BLEND_DISTANCE, globalmapBlendDistance);
-			}
-
-			godot::Plane colormapOpacity = m_viewer->getShaderParamColormapOpacity();
-			if (lookdev == LookDev::NotSet)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_COLORMAP_OPACITY_PER_TEXTURE, colormapOpacity);
-			}
-
-			if (lookdev == LookDev::Heights && m_heightmapTexture != nullptr)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_heightmapTexture);
-			}
-
-			if (lookdev == LookDev::Normals && m_normalmapTexture != nullptr)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_normalmapTexture);
-			}
-
-			if (lookdev == LookDev::Splat && m_splatmapTexture != nullptr)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_splatmapTexture);
-			}
-
-			if (lookdev == LookDev::Color && m_colormapTexture != nullptr)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_colormapTexture);
-			}
-
-			if (lookdev == LookDev::Global && m_globalmapTexture != nullptr)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_globalmapTexture);
-			}
-
-			if ((lookdev == LookDev::Universe 
-				|| lookdev == LookDev::ShaderArt
-				|| lookdev == LookDev::Lightning
-				|| lookdev == LookDev::StarNest
-				|| lookdev == LookDev::FlaringStar
-				|| lookdev == LookDev::AnimatedDiamond
-				|| lookdev == LookDev::PlasmaWaves)
-				&& g_lookDevShaderTexture != nullptr)
-			{
-				currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, g_lookDevShaderTexture->getTexture());
-			}
-
-			//Vector3 cameraPosViewerNodeLocalCoord = globalTransform.affine_inverse() * cameraPosGlobalCoord;	// Viewer Node (grid) local coordinates of the camera pos
 		}
 
 		m_heightMapTexModified = false;

@@ -276,8 +276,8 @@ namespace godot
 	
 	float Collider::getColliderAltitude(void) const
 	{
-		float colliderAltitude = float(-(m_cameraGlobalTranform.origin.y / (float)2.34));
-		colliderAltitude = 0;
+		//float colliderAltitude = float(-(m_cameraGlobalTranform.origin.y / (float)2.34));
+		float colliderAltitude = 0;
 		return colliderAltitude;
 	}
 

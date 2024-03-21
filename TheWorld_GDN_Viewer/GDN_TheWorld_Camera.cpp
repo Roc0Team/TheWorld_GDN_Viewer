@@ -64,6 +64,7 @@ GDN_TheWorld_Camera::GDN_TheWorld_Camera()
 	m_rollEuler = 0;
 
 	// Camera Movement
+	// Camera Movement
 	m_numMoveStepForward = 0;
 	m_numMoveStepLeft = 0;
 	m_numMoveStepUp = 0;
@@ -709,7 +710,7 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 		if (cameraDistanceFromNewCameraTarget > STOP_DISTANCE_TO_CAMERA_MOVE || angle > STOP_ANGLE_TO_CAMERA_MOVE)
 		{
 			//godot::UtilityFunctions::print((std::string("Distance=") + std::to_string(cameraDistanceFromNewCameraTarget) + " angle=" + std::to_string(angle)).c_str());
-			godot::Transform3D targetCameraTransform = get_global_transform().interpolate_with(desideredCameraTarget, float(m_trackingLerpSpeed * _delta));
+			godot::Transform3D targetCameraTransform = get_global_transform().interpolate_with(desideredCameraTarget, float(getCameraTrackingSpeed() * _delta));
 			set_global_position(targetCameraTransform.origin);
 			look_at(target.origin, Vector3Up);
 		}

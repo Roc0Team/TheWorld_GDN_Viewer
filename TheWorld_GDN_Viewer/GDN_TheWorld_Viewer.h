@@ -972,6 +972,9 @@ namespace godot
 		godot::Transform3D mapToGlobal(godot::Transform3D map) const;
 		godot::Transform3D mapPosToGlobalTransform(godot::Vector3 map) const;
 
+		void startInitializingStreamOfQuadrants(void);
+		void endInitializingStreamOfQuadrants(void);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);

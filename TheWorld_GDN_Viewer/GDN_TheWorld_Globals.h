@@ -45,7 +45,7 @@
 #define THEWORLD_DEFAULT_THRESHOLD_FOR_MAP_TEXTURE_OPTIMIZATION					5000.0f
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR					4
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				2
-#define THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR									5
+#define THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR									2
 //#define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
 #define PLOG_DEFAULT_LEVEL plog::Severity::info
@@ -68,7 +68,6 @@ namespace godot
 	class GDN_TheWorld_Globals;
 	class GDN_TheWorld_Viewer;
 	class TheWorld_MapManager::MapManager;
-
 
 	enum class TheWorldStatus
 	{

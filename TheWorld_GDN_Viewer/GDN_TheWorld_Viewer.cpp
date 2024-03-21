@@ -1217,7 +1217,9 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_ground_texture_layers"), &GDN_TheWorld_Viewer::getGroundTextureLayers);
 
 	ClassDB::bind_method(D_METHOD("global_transform_to_map_transform", "p_transform"), &GDN_TheWorld_Viewer::globalToMap);
+	ClassDB::bind_method(D_METHOD("global_pos_to_map_transform", "p_transform"), &GDN_TheWorld_Viewer::globalPosToMapTransform);
 	ClassDB::bind_method(D_METHOD("map_transform_to_global_transform", "p_transform"), &GDN_TheWorld_Viewer::mapToGlobal);
+	ClassDB::bind_method(D_METHOD("map_pos_to_global_transform", "p_transform"), &GDN_TheWorld_Viewer::mapPosToGlobalTransform);
 
 	ADD_SIGNAL(MethodInfo("tw_quadrant_selected_for_edit", PropertyInfo(Variant::BOOL, "value")));
 }
@@ -2385,7 +2387,8 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				size_t numReplyQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyQuadrants.c_str() + replyCursor, size);
 				replyCursor += size;
 
-				my_assert(numClientQuadrants == numReplyQuadrants);
+				if (numClientQuadrants != numReplyQuadrants)
+					my_assert(numClientQuadrants == numReplyQuadrants);
 
 				if (numClientQuadrants > 0)
 				{
@@ -3193,7 +3196,8 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 							m_notStreamingTime.tock();
 						PLOG_DEBUG << "\nStart initializing of a stream of quadrant";
 						m_streamingTime.tick();
-						m_streamingInProgress = true;
+
+						startInitializingStreamOfQuadrants();
 					}
 					//return;	// ???
 				}
@@ -3281,6 +3285,16 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	}
 	
 	quadrantToDelete.clear();
+}
+
+void GDN_TheWorld_Viewer::startInitializingStreamOfQuadrants(void)
+{
+	m_streamingInProgress = true;
+}
+
+void GDN_TheWorld_Viewer::endInitializingStreamOfQuadrants(void)
+{
+	m_streamingInProgress = false;
 }
 
 void GDN_TheWorld_Viewer::_process(double _delta)
@@ -4052,7 +4066,8 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 				writeStatisticsNewQuadrants();
 				m_streamingTime.tock();
 				m_notStreamingTime.tick();
-				m_streamingInProgress = false;
+				
+				endInitializingStreamOfQuadrants();
 			}
 		}
 	}
@@ -4183,6 +4198,13 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera3D* activeCamer
 
 		m_originShiftedQuadrantPos = m_computedCameraQuadrantPos;
 		m_lastOriginShiftCameraPosInMap = cameraMapTransform.origin;
+
+		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+		if (m_editMode && editModeUIControl && editModeUIControl->initialized())
+		{
+			editModeUIControl->setQuadrantHit(nullptr);
+		}
+
 	}
 }
 
@@ -6442,6 +6464,7 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 		item.second->ForAllChunk(action);
 
 		item.second->materialParamsNeedUpdate(true, true);
+		item.second->updateMaterialParams();
 
 		item.second->getQuadrant()->getCollider()->onGlobalTransformChanged();
 	}

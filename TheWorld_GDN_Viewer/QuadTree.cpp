@@ -37,8 +37,9 @@ GDN_TheWorld_ShaderTexture* ShaderTerrainData::g_lookDevShaderTexture = nullptr;
 
 // QuadTree coordinates are local to Viewer Node which contains the grid of quads: the first chunk (posX = posZ = 0) has its lower vertex in the origin of the Viwer Node
 
-Quad::Quad(int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
+Quad::Quad(enum class Chunk::ChunkType chunkType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
 {
+	m_chunkType = chunkType;
 	m_slotPosX = slotPosX;
 	m_slotPosZ = slotPosZ;
 	m_lod = lod;
@@ -80,7 +81,7 @@ void Quad::split(void)
 	{
 		//int x = (m_slotPosX * 2) + (i & 1);
 		//int z = (m_slotPosZ * 2) + ((i & 2) >> 1);
-		m_children[i] = make_unique<Quad>((m_slotPosX * 2) + (i & 1), (m_slotPosZ * 2) + ((i & 2) >> 1), m_lod - 1, enum PosInQuad(i + 1), m_viewer, m_quadTree);
+		m_children[i] = make_unique<Quad>(m_chunkType, (m_slotPosX * 2) + (i & 1), (m_slotPosZ * 2) + ((i & 2) >> 1), m_lod - 1, enum PosInQuad(i + 1), m_viewer, m_quadTree);
 	}
 	
 	recycleChunk();
@@ -129,14 +130,16 @@ void Quad::assignChunk(void)
 		mat = m;
 	}
 
+	Ref<Material> seaMat = ShaderTerrainData::getSeaMat();
+
 	if (m_chunk == nullptr)
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("Quad::assignChunk ") + __FUNCTION__, "new Chunk");
 		// create chunk for current quad because this is the first time that is needed for current lod and pos
 		if (_DEBUG_AAB)
-			m_chunk = new ChunkDebug(m_slotPosX, m_slotPosZ, m_lod, m_viewer, m_quadTree, mat);
+			m_chunk = new DebugTerrainChunk(m_slotPosX, m_slotPosZ, m_lod, m_viewer, m_quadTree, mat, seaMat);
 		else
-			m_chunk = new Chunk(m_slotPosX, m_slotPosZ, m_lod, m_viewer, m_quadTree, mat);
+			m_chunk = new TerrainChunk(m_slotPosX, m_slotPosZ, m_lod, m_viewer, m_quadTree, mat, seaMat);
 
 		// Set Viewer Pos in Global Coord
 		//m_chunk->setParentGlobalTransform(m_viewer->internalTransformGlobalCoord());
@@ -233,7 +236,7 @@ void QuadTree::init(float cameraX, float cameraY, float cameraZ, float cameraYaw
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 3");
 
-		m_root = make_unique<Quad>(0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
+		m_root = make_unique<Quad>(Chunk::ChunkType::Terrain, 0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
 
 		if (isVisible())
 			m_viewer->incNumVisibleQuadrantsStreamed();
@@ -303,6 +306,43 @@ QuadTree::~QuadTree()
 		delete m_worldQuadrant;
 	//clock.tock();
 	//godot::GDN_TheWorld_Globals::s_elapsed5 += clock.duration().count();
+}
+
+enum class QuadrantStatus QuadTree::status(void)
+{
+	if (m_status == QuadrantStatus::getTerrainDataInProgress)
+	{
+		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+		long long elapsedFromStatusChange = (now - m_lastStatusChange).count();
+		if (elapsedFromStatusChange > (THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE * 2))
+			m_status = QuadrantStatus::uninitialized;
+	}
+	return m_status;
+}
+
+void QuadTree::setStatus(enum class QuadrantStatus status)
+{
+	//if (status == QuadrantStatus::loadTerrainDataFromCacheNeeded)	// DEBUG ONLY
+	//	m_status = status;											// DEBUG ONLY
+
+	m_lastStatusChange = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+	m_status = status;
+	Quadrant* quadrant = getQuadrant();
+	if (quadrant != nullptr)
+		quadrant->lockInternalDataUntilCompleteProcessExecution();
+
+	if (m_status == QuadrantStatus::initialized)
+	{
+		if (getQuadrant()->getTerrainEdit()->extraValues1.seaInfoSet != 0 && getQuadrant()->getTerrainEdit()->extraValues1.containsSea != 0)
+			m_containsSea = true;
+		else
+			m_containsSea = false;
+
+		if (m_containsSea && m_seaQuadRoot == nullptr)
+		{
+			//m_seaQuadRoot = make_unique<Quad>(Chunk::ChunkType::Sea, 0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
+		}
+	}
 }
 
 void QuadTree::ForAllChunk(Chunk::ChunkAction& chunkAction)
@@ -1604,6 +1644,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lo
 }
 
 std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>> ShaderTerrainData::s_groundTextures;
+godot::Ref<godot::ShaderMaterial> ShaderTerrainData::s_seaMat;
 bool ShaderTerrainData::s_groundTexturesNeedProcessing = false;
 //std::recursive_mutex ShaderTerrainData::s_groundTexturesMutex;
 std::map<std::string, int32_t> ShaderTerrainData::s_groundTextureLayers;
@@ -1808,6 +1849,9 @@ void ShaderTerrainData::getGroundTextures(godot::String dirName, GDN_TheWorld_Vi
 
 	if (viewer != nullptr)
 		viewer->Globals()->debugPrint((std::string("Reading ground textures done! - Elapsed ") + std::to_string(elapsed) + " ms").c_str());
+
+	String materialPath = "res://addons/twviewer/shaders/m_sea.tres";
+	s_seaMat = godot::ResourceLoader::get_singleton()->load(materialPath);
 }
 
 void ShaderTerrainData::getGroundTexture(godot::String fileName, ShaderTerrainData::GroundTexture* groundTexture, GDN_TheWorld_Viewer* viewer)
@@ -2254,6 +2298,11 @@ godot::Ref<godot::Image> ShaderTerrainData::createColormapImage(TheWorld_Utils::
 
 		return godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGBA8, data);
 	}
+}
+
+godot::Ref<godot::ShaderMaterial> ShaderTerrainData::getSeaMat(void)
+{
+	return s_seaMat;
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::getImageAtResolution(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel, size_t resolution)
@@ -3936,6 +3985,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
 
 	float minAltitude = 0, maxAltitude = 0;
+	outMeshIdFromBuffer.clear();
 	
 	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 
@@ -3981,6 +4031,13 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		getTerrainEdit()->extraValues.splatmapNeedRegen = true;
 		getTerrainEdit()->extraValues.globalmapNeedRegen = true;
 		getTerrainEdit()->extraValues.colormapNeedRegen = true;
+	}
+
+	if (!getTerrainEdit()->extraValues1.heightsNeedRegen && getTerrainEdit()->extraValues1.seaInfoSet == 0)
+	{
+		bool done = getTerrainEdit()->detectSeaInQuadrant();
+		if (done)
+			getTerrainEdit()->extraValues1.seaInfoSet = 1;
 	}
 
 	if (getTerrainEdit()->needUploadToServer)

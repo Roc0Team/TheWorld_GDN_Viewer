@@ -209,7 +209,7 @@ void GDN_TheWorld_Camera::setCameraMapTransform(godot::Transform3D map)
 	if (viewer == nullptr)
 		return;
 
-	godot::Transform3D cameraT = get_global_transform();	// DEBUG ONLY
+	//godot::Transform3D cameraT = get_global_transform();	// DEBUG ONLY
 	godot::Transform3D newCameraT = viewer->mapToGlobal(map);
 	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
 	//godot::Transform3D newCameraT = viewerT * t;

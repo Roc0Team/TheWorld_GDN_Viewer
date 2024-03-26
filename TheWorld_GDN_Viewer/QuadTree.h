@@ -902,6 +902,8 @@ namespace godot
 #define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
 #define GLOBAL_SHADER_PARAM_CAM_ALTITUDE			"gu_camera_altitude_from_terrain"
 #define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
+//#define GLOBAL_SHADER_PARAM_SHOW_SEA				"gu_show_sea"
+//#define GLOBAL_SHADER_PARAM_SHOW_CHUNKS			"gu_show_chunks"
 //#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_texture_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_splatmap_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_splatmapBlendingSize to avoid reading it from RenderingServer (slow operation)
@@ -1060,6 +1062,8 @@ namespace godot
 		godot::Ref<godot::Image> getOrCreateColormapImage();
 		static godot::Ref<godot::Image> createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution);
 
+		static godot::Ref<godot::ShaderMaterial> getSeaMat(void);
+
 		godot::Ref<godot::Image> getHeightmapImage(void)
 		{
 			return m_heightmapImage;
@@ -1187,6 +1191,8 @@ namespace godot
 		//static std::recursive_mutex s_groundTexturesMutex;
 		static std::map<std::string, int32_t> s_groundTextureLayers;
 
+		static godot::Ref<godot::ShaderMaterial> s_seaMat;
+
 		bool m_sendTextureToShader = false;
 	};
 	
@@ -1194,7 +1200,7 @@ namespace godot
 	{
 	public:
 
-		Quad(int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
+		Quad(enum class Chunk::ChunkType chunkType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 		~Quad();
 
 		int slotPosX() const
@@ -1275,6 +1281,7 @@ namespace godot
 
 
 	private:
+		enum class Chunk::ChunkType m_chunkType = Chunk::ChunkType::NotSet;
 		enum PosInQuad m_posInQuad;
 		std::array<std::unique_ptr<Quad>, 4> m_children;
 		Chunk* m_chunk;
@@ -1473,28 +1480,8 @@ namespace godot
 		{
 			return m_status;
 		}
-		enum class QuadrantStatus status(void)
-		{
-			if (m_status == QuadrantStatus::getTerrainDataInProgress)
-			{
-				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-				long long elapsedFromStatusChange = (now - m_lastStatusChange).count();
-				if (elapsedFromStatusChange > (THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE * 2))
-					m_status = QuadrantStatus::uninitialized;
-			}
-			return m_status;
-		}
-		void setStatus(enum class QuadrantStatus status)
-		{
-			if (status == QuadrantStatus::loadTerrainDataFromCacheNeeded)
-				m_status = status;
-
-			m_lastStatusChange = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-			m_status = status;
-			Quadrant* quadrant = getQuadrant();
-			if (quadrant != nullptr)
-				quadrant->lockInternalDataUntilCompleteProcessExecution();
-		}
+		enum class QuadrantStatus status(void);
+		void setStatus(enum class QuadrantStatus status);
 		bool isValid(void)
 		{
 			return status() == QuadrantStatus::initialized;
@@ -1609,21 +1596,29 @@ namespace godot
 		TheWorld_Viewer_Utils::MsTimePoint m_lastStatusChange;
 		bool m_isVisible;
 		std::string m_tag;
-		std::unique_ptr<Quad> m_root;
 		GDN_TheWorld_Viewer* m_viewer;
-		Chunk::MapChunk m_mapChunk;
-		std::vector<Chunk*> m_vectChunkUpdate;
 		Quadrant* m_worldQuadrant;
 		std::timespec m_refreshTime;
 		GDN_TheWorld_Quadrant* m_GDN_Quadrant;
 		bool m_editModeQuadrantSelected = false;
-		bool m_hitByMouse = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
-		bool m_colliderNeedReset = false;
-		//godot::Vector3 m_quadCenterGlobal;
-		//float m_splitDistance = 0;
+		bool m_containsSea = false;
+
+		// Terrain Quads/Chunks
+		std::unique_ptr<Quad> m_root;
+		Chunk::MapChunk m_mapChunk;
+		std::vector<Chunk*> m_vectChunkUpdate;
 		float m_lastComputedDistanceFromCamera = 0;
 		bool m_forceRecalcOptimizationLevel = false;
+		bool m_colliderNeedReset = false;
+		bool m_hitByMouse = false;
+		//godot::Vector3 m_quadCenterGlobal;
+		//float m_splitDistance = 0;
+
+		// Sea
+		std::unique_ptr<Quad> m_seaQuadRoot;
+		Chunk::MapChunk m_seaMapChunk;
+		//std::vector<Chunk*> m_seaVectChunkUpdate;
 
 		// Statistics
 		int m_numSplits;

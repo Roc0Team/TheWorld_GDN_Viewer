@@ -404,6 +404,10 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_texture_optimization_resolution_increment"), &GDN_TheWorld_Globals::getParamTextureOptimizationResolutionIncrement);
 		ClassDB::bind_method(D_METHOD("set_perfparam_origin_shift_factor", "p_value"), &GDN_TheWorld_Globals::setParamOriginShiftFactor);
 		ClassDB::bind_method(D_METHOD("get_perfparam_origin_shift_factor"), &GDN_TheWorld_Globals::getParamOriginShiftFactor);
+		ClassDB::bind_method(D_METHOD("set_viewparam_show_sea", "p_value"), &GDN_TheWorld_Globals::setParamShowSea);
+		ClassDB::bind_method(D_METHOD("get_viewparam_show_sea"), &GDN_TheWorld_Globals::getParamShowSea);
+		ClassDB::bind_method(D_METHOD("set_viewparam_show_chunks", "p_value"), &GDN_TheWorld_Globals::setParamShowChunks);
+		ClassDB::bind_method(D_METHOD("get_viewparam_show_chunks"), &GDN_TheWorld_Globals::getParamShowChunks);
 
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "Performance", "perfparam_");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_stream_world"), "set_perfparam_stream_world", "get_perfparam_stream_world");
@@ -426,6 +430,10 @@ namespace godot
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_tex_opt_increment_factor"), "set_perfparam_texture_optimization_increment_factor", "get_perfparam_texture_optimization_increment_factor");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_tex_opt_resolution_increment"), "set_perfparam_texture_optimization_resolution_increment", "get_perfparam_texture_optimization_resolution_increment");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_origin_shift_factor"), "set_perfparam_origin_shift_factor", "get_perfparam_origin_shift_factor");
+
+		ClassDB::add_property_group("GDN_TheWorld_Globals", "View", "viewparam_");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_sea"), "set_viewparam_show_sea", "get_viewparam_show_sea");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_chunks"), "set_viewparam_show_chunks", "get_viewparam_show_chunks");
 
 		ADD_SIGNAL(MethodInfo("tw_status_changed", PropertyInfo(Variant::INT, "old_value"), PropertyInfo(Variant::INT, "new_value")));
 	}
@@ -847,6 +855,18 @@ namespace godot
 	void GDN_TheWorld_Globals::setParamOriginShiftFactor(int64_t f)
 	{
 		m_paramOriginShiftFactor = f;
+	}
+
+	void GDN_TheWorld_Globals::setParamShowSea(bool b)
+	{
+		m_paramShowSea = b;
+		//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
+	}
+
+	void GDN_TheWorld_Globals::setParamShowChunks(bool b)
+	{
+		m_paramShowChunks = b;
+		//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, m_paramShowChunks);
 	}
 
 	//void GDN_TheWorld_Globals::setParamDepthQuadWithCollisionInfo(int64_t f)

@@ -1505,6 +1505,8 @@ bool GDN_TheWorld_Viewer::init(void)
 	float _gridStepInWU = Globals()->gridStepInWU();
 	godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
 	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GRID_STEP, _gridStepInWU);
+	//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, globals->getParamShowSea());
+	//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, globals->getParamShowChunks());
 
 	//m_isInEditor = IS_EDITOR_HINT();
 	
@@ -4179,7 +4181,7 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera3D* activeCamer
 		//godot::Vector3 pos1 = activeCamera->get_global_position();	// DEBUG ONLY
 
 		// shift anchor
-		godot::Vector3 pos = anchorForOriginShift->get_global_position();	// DEBUG ONLY
+		//godot::Vector3 pos = anchorForOriginShift->get_global_position();	// DEBUG ONLY
 		//pos += originShift;
 		//anchorForOriginShift->set_global_position(pos);
 		anchorForOriginShift->set_global_position(originShift);
@@ -6440,7 +6442,7 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 		float distanceFromCamera = 0;
 		if (activeCamera != nullptr)
 		{
-			godot::Vector3 quadrantCenter(item.first.getCenterX(), 0, item.first.getCenterZ());	// DEBUG ONLY
+			//godot::Vector3 quadrantCenter(item.first.getCenterX(), 0, item.first.getCenterZ());	// DEBUG ONLY
 			godot::Transform3D t(godot::Basis(), item.second->getQuadrant()->getCenter());
 			godot::Vector3 quadrantCenterGlobal = mapToGlobal(t).origin;
 			distanceFromCamera = quadrantCenterGlobal.distance_to(activeCamera->get_global_position());

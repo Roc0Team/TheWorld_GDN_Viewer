@@ -21,6 +21,8 @@
 #include "Viewer_Utils.h"
 #include "Utils.h"
 
+#define THEWORLD_SEA_LEVEL														0
+
 #define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT										3	// 4	// 5
 #define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT								11	/* 11 */	/* 10 */	// exponent of 2
 #define MIN_RESOLUTION_SHIFT_FOR_TEXTURE_OPTIMIZATIONS							5	// exponent of 2
@@ -46,6 +48,8 @@
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR					4
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				2
 #define THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR									2
+#define THEWORLD_DEFAULT_SHOW_SEA												true
+#define THEWORLD_DEFAULT_SHOW_CHUNKS											false
 //#define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
 #define PLOG_DEFAULT_LEVEL plog::Severity::info
@@ -660,6 +664,16 @@ namespace godot
 			return m_paramOriginShiftFactor;
 		}
 		void setParamOriginShiftFactor(int64_t f);
+		bool getParamShowSea(void) const
+		{
+			return m_paramShowSea;
+		}
+		void setParamShowSea(bool b);
+		bool getParamShowChunks(void) const
+		{
+			return m_paramShowChunks;
+		}
+		void setParamShowChunks(bool f);
 		//int64_t getParamDepthQuadWithCollisionInfo(void)
 		//{
 		//	return m_paramDepthQuadWithCollisionInfo;
@@ -739,6 +753,8 @@ namespace godot
 		float m_paramTextureOptimizationIncrementFactor = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_INCREMENT_FACTOR;
 		int64_t m_paramTextureOptimizationResolutionIncrement = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT;
 		int64_t m_paramOriginShiftFactor = THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR;
+		bool m_paramShowSea = THEWORLD_DEFAULT_SHOW_SEA;
+		bool m_paramShowChunks = THEWORLD_DEFAULT_SHOW_CHUNKS;
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 	};
 }

@@ -86,6 +86,13 @@ namespace godot
 	class Chunk
 	{
 	public:
+		enum class ChunkType
+		{
+			NotSet = -1
+			, Terrain = 0
+			, Sea = 1
+		};
+
 		enum class LookForChunk
 		{
 			All = 0,
@@ -406,10 +413,11 @@ namespace godot
 		typedef std::map<Chunk::ChunkPos, Chunk*> MapChunkPerLod;
 		typedef std::map<int, MapChunkPerLod> MapChunk;
 
-		Chunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, Ref<Material>& mat);
+		Chunk(enum class ChunkType type, int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat, godot::Ref<godot::Material>& seaMat);
 		virtual ~Chunk();
 		
-		void initVisual(Ref<Material>& mat);
+		void initVisual(godot::Ref<godot::Material>& mat);
+		void initSeaVisual(godot::Ref<godot::Material>& seaMat);
 		void deinit(void);
 		void printDebugInfo(std::string method);
 
@@ -421,6 +429,7 @@ namespace godot
 		virtual void setDebugContentVisible(bool b);
 		virtual void applyAABB(void);
 		virtual void checkAndCalcAABB();
+		virtual void checkAndInitSeaVisual(godot::Ref<godot::Material>& seaMat);
 		virtual void dump(void);
 		virtual void setCameraPosInMap(Vector3 cameraPosInMap);
 		virtual void setDebugMode(enum class GDN_TheWorld_Globals::ChunkDebugMode mode);
@@ -555,13 +564,14 @@ namespace godot
 		{
 			return m_quad;
 		}
+		godot::AABB getSeaAABB(void);
 
 	private:
 		void setMesh(Ref<Mesh> mesh);
+		void setSeaMesh(Ref<Mesh> mesh);
 
 	protected:
 		bool m_worldEntered = false;
-		//GDN_Chunk_MeshInstance* m_meshInstance;
 		enum PosInQuad m_posInQuad;
 		GDN_TheWorld_Viewer* m_viewer;
 		QuadTree* m_quadTree;
@@ -596,23 +606,39 @@ namespace godot
 		int m_lastWorldVertRow;				// 0-based endif row in the World Grid vertices array (Map Manager grid map) of the chunk/mesh (viewer m_worldVertices)
 
 	private:
-		int m_slotPosX;	// express the orizzontal (X) and vertical (Z) position of the chunk in the grid of chunks
+		enum class ChunkType m_type = ChunkType::NotSet;
+		
+		int m_slotPosX;	// express the horizontal (X) and vertical (Z) position of the chunk in the grid of chunks
 		int m_slotPosZ;	// at the specific lod : 0 the first chunk, 1 the following to the max number of chunks on a size for the specific lod
 
 		bool m_active;
 		bool m_visible;
 		bool m_pendingUpdate;
 		bool m_justJoined = false;
+
 		godot::RID m_meshInstanceRID;
 		godot::RID m_meshRID;
 		godot::Ref<godot::Mesh> m_mesh;
+
+		bool m_containsSea = false;
+		godot::RID m_seaMeshInstanceRID;
+		godot::RID m_seaMeshRID;
+		godot::Ref<godot::Mesh> m_seaMesh;
+		godot::Ref<godot::Material> m_seaMat;
 	};
 
-	class ChunkDebug : public Chunk
+	class TerrainChunk : public Chunk
 	{
 	public:
-		ChunkDebug(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, Ref<Material>& mat);
-		virtual ~ChunkDebug();
+		TerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat, godot::Ref<godot::Material>& seaMat);
+		virtual ~TerrainChunk();
+	};
+
+	class DebugTerrainChunk : public TerrainChunk
+	{
+	public:
+		DebugTerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat, godot::Ref<godot::Material>& seaMat);
+		virtual ~DebugTerrainChunk();
 
 		virtual void enterWorld(void);
 		virtual void exitWorld(void);
@@ -651,4 +677,12 @@ namespace godot
 		bool m_debugWirecubeMeshNeedRegen;
 		bool m_debugWiresquareMeshNeedRegen;
 	};
+
+	class SeaChunk : public Chunk
+	{
+	public:
+		SeaChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat, godot::Ref<godot::Material>& seaMat);
+		virtual ~SeaChunk();
+	};
+
 }

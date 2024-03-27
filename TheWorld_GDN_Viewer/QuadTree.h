@@ -1486,6 +1486,13 @@ namespace godot
 		{
 			return status() == QuadrantStatus::initialized;
 		}
+		bool isRefreshingData(void)
+		{
+			if (status() == QuadrantStatus::loadTerrainDataFromCacheNeeded || status() == QuadrantStatus::loadTerrainDataFromCacheInProgress || status() == QuadrantStatus::refreshTerrainDataNeeded || status() == QuadrantStatus::refreshTerrainDataInProgress)
+				return true;
+			else
+				return false;
+		}
 		bool isVisible(void)
 		{
 			if (statusToErase())

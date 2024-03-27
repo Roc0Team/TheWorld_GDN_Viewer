@@ -2394,8 +2394,6 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 				if (numClientQuadrants > 0)
 				{
-					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
-
 					for (size_t idx = 0; idx < numClientQuadrants; idx++)
 					{
 						size_t quadrantPosSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
@@ -2416,11 +2414,16 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						bool quadrantRefreshNeeded = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyQuadrants.c_str() + replyCursor, size);
 						replyCursor += size;
 
-						if (quadrantRefreshNeeded && m_mapQuadTree.contains(pos))
+						if (quadrantRefreshNeeded)
 						{
-							QuadTree* quadTree = m_mapQuadTree[pos].get();
-							if (quadTree->isValid() && quadTree->getQuadrant()->getPos().isInitialized())
-								quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+							std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+
+							if (m_mapQuadTree.contains(pos))
+							{
+								QuadTree* quadTree = m_mapQuadTree[pos].get();
+								if (quadTree->isValid() && quadTree->getQuadrant()->getPos().isInitialized())
+									quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+							}
 						}
 					}
 				}
@@ -3360,7 +3363,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 				globals->setStatus(TheWorldStatus::sessionInitialized);
 		}
 
-		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);		// WARNING
 		std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
 		if (!lock.owns_lock())
 		{
@@ -3623,6 +3626,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 			m_timeElapsedFromLastProcessCameraPosForQuadrants = timeElapsed;
 			processCameraPosForQuadrants = true;
 			processCameraPosForChunks = true;
+			if (m_lastCameraChunk != m_cameraChunk)
+				m_lastCameraChunk = m_cameraChunk;
 		}
 		else
 		{
@@ -6424,6 +6429,8 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 	if (!is_inside_tree())
 		return;
 
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+
 	godot::Camera3D* activeCamera = nullptr;
 	if (IS_EDITOR_HINT())
 	{
@@ -6434,41 +6441,45 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 		activeCamera = WorldCamera()->getActiveCamera();
 	}
 
-	//godot::Transform3D t = getInternalGlobalTransform();
-	
-	std::map<float, QuadTree*> mapByDistancefromCamera;
+	//std::map<float, QuadTree*> mapByDistancefromCamera;
+	//for (auto& item : m_mapQuadTree)
+	//{
+	//	float distanceFromCamera = 0;
+	//	if (activeCamera != nullptr)
+	//	{
+	//		//godot::Vector3 quadrantCenter(item.first.getCenterX(), 0, item.first.getCenterZ());	// DEBUG ONLY
+	//		godot::Transform3D t(godot::Basis(), item.second->getQuadrant()->getCenter());
+	//		godot::Vector3 quadrantCenterGlobal = mapToGlobal(t).origin;
+	//		distanceFromCamera = quadrantCenterGlobal.distance_to(activeCamera->get_global_position());
+	//	}
+
+	//	mapByDistancefromCamera[distanceFromCamera] = item.second.get();
+	//}
+
+
+	//if (mapByDistancefromCamera.size() != m_mapQuadTree.size())																		// DEBUG ONLY
+	//	m_lastCameraAltitudeSetToShader = -1.0f;																					// DEBUG ONLY
+
+	m_lastCameraAltitudeSetToShader = -1.0f;
+	m_lastCameraPosSetToShaderInitialized = false;
+
 	for (auto& item : m_mapQuadTree)
 	{
-		float distanceFromCamera = 0;
-		if (activeCamera != nullptr)
+		//if (item.second->getQuadrant()->getPos().getIndexPosX() == 0 && item.second->getQuadrant()->getPos().getIndexPosZ() == 12)	// DEBUG ONLY
+		//	m_lastCameraAltitudeSetToShader = -1.0f;																				// DEBUG ONLY
+		
+		if (item.second->isValid() || item.second->isRefreshingData())
 		{
-			//godot::Vector3 quadrantCenter(item.first.getCenterX(), 0, item.first.getCenterZ());	// DEBUG ONLY
-			godot::Transform3D t(godot::Basis(), item.second->getQuadrant()->getCenter());
-			godot::Vector3 quadrantCenterGlobal = mapToGlobal(t).origin;
-			distanceFromCamera = quadrantCenterGlobal.distance_to(activeCamera->get_global_position());
-		}
-
-		mapByDistancefromCamera[distanceFromCamera] = item.second.get();
-	}
-
-	for (auto& item : mapByDistancefromCamera)
-	{
-		if (item.second->status() != QuadrantStatus::uninitialized && item.second->status() != QuadrantStatus::toErase)
 			item.second->onGlobalTransformChanged();
 
-		if (!item.second->isValid())
-			continue;
-		
-		m_lastCameraAltitudeSetToShader = -1.0f;
-		m_lastCameraPosSetToShaderInitialized = false;
+			Chunk::TransformChangedChunkAction action;
+			item.second->ForAllChunk(action);
 
-		Chunk::TransformChangedChunkAction action;
-		item.second->ForAllChunk(action);
+			item.second->materialParamsNeedUpdate(true, true);
+			item.second->updateMaterialParams();
 
-		item.second->materialParamsNeedUpdate(true, true);
-		item.second->updateMaterialParams();
-
-		item.second->getQuadrant()->getCollider()->onGlobalTransformChanged();
+			item.second->getQuadrant()->getCollider()->onGlobalTransformChanged();
+		}
 	}
 }
 

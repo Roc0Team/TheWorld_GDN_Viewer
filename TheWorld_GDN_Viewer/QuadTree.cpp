@@ -347,14 +347,14 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 
 void QuadTree::ForAllChunk(Chunk::ChunkAction& chunkAction)
 {
-	if (!isValid())
-		return;
-
-	for (Chunk::MapChunk::iterator it = m_mapChunk.begin(); it != m_mapChunk.end(); it++)
+	if (isValid() || isRefreshingData())
 	{
-		for (Chunk::MapChunkPerLod::iterator it1 = it->second.begin(); it1 != it->second.end(); it1++)
+		for (Chunk::MapChunk::iterator it = m_mapChunk.begin(); it != m_mapChunk.end(); it++)
 		{
-			chunkAction.exec(it1->second);
+			for (Chunk::MapChunkPerLod::iterator it1 = it->second.begin(); it1 != it->second.end(); it1++)
+			{
+				chunkAction.exec(it1->second);
+			}
 		}
 	}
 }

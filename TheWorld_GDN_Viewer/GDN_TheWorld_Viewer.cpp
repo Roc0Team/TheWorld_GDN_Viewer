@@ -6441,6 +6441,7 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 		activeCamera = WorldCamera()->getActiveCamera();
 	}
 
+	// WARNING: distanceFromCamera must be unique to avoid to lose quads for duplicate distance
 	//std::map<float, QuadTree*> mapByDistancefromCamera;
 	//for (auto& item : m_mapQuadTree)
 	//{
@@ -6455,7 +6456,6 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 
 	//	mapByDistancefromCamera[distanceFromCamera] = item.second.get();
 	//}
-
 
 	//if (mapByDistancefromCamera.size() != m_mapQuadTree.size())																		// DEBUG ONLY
 	//	m_lastCameraAltitudeSetToShader = -1.0f;																					// DEBUG ONLY

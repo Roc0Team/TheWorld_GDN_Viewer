@@ -857,6 +857,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			material->set_shader_parameter(SHADER_PARAM_USE_GLOBALMAP, false);			// Disable forced use of globalmap
 			material->set_shader_parameter(SHADER_PARAM_COLORMAP_OPACITY_PER_TEXTURE, godot::Plane(1.0f, 1.0f, 1.0f, 1.0f));	// Notset
 			material->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, true);
+			material->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 
 			planeMaterial = material;
 		}
@@ -1505,8 +1506,8 @@ bool GDN_TheWorld_Viewer::init(void)
 	float _gridStepInWU = Globals()->gridStepInWU();
 	godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
 	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GRID_STEP, _gridStepInWU);
-	//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, globals->getParamShowSea());
-	//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, globals->getParamShowChunks());
+	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, globals->getParamShowSea());
+	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, globals->getParamShowChunks());
 
 	//m_isInEditor = IS_EDITOR_HINT();
 	
@@ -2470,6 +2471,10 @@ void GDN_TheWorld_Viewer::_ready(void)
 	m_ready = true;
 }
 
+//void GDN_TheWorld_Viewer::toggleFullScreen(void)
+//{
+//}
+
 void GDN_TheWorld_Viewer::toggleQuadrantSelected(void)
 {
 	if (trackMouse())
@@ -2586,6 +2591,11 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 		if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_double_click())
 			m_trackedInputEvents.push_back(TrackedInputEvent::MOUSE_DOUBLE_BUTTON_RIGHT);
 	}
+
+	//if (event->is_action_pressed("ui_toggle_fullscreen"))
+	//{
+	//	toggleFullScreen();
+	//}
 
 	if (event->is_action_pressed("ui_select") && m_altPressed)
 	{

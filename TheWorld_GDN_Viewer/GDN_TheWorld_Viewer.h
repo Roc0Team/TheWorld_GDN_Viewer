@@ -493,6 +493,7 @@ namespace godot
 		{
 			return trackMouse();
 		}
+		//void toggleFullScreen(void);
 		void toggleQuadrantSelected(void);
 		godot::Camera3D* getCamera(void);
 		godot::Camera3D* getCameraInEditor(void);

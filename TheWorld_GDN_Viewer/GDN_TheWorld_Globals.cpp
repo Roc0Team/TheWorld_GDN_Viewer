@@ -860,13 +860,13 @@ namespace godot
 	void GDN_TheWorld_Globals::setParamShowSea(bool b)
 	{
 		m_paramShowSea = b;
-		//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
 	}
 
 	void GDN_TheWorld_Globals::setParamShowChunks(bool b)
 	{
 		m_paramShowChunks = b;
-		//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, m_paramShowChunks);
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, m_paramShowChunks);
 	}
 
 	//void GDN_TheWorld_Globals::setParamDepthQuadWithCollisionInfo(int64_t f)

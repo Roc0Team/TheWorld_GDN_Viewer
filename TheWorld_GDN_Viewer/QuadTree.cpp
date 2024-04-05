@@ -236,7 +236,7 @@ void QuadTree::init(float cameraX, float cameraY, float cameraZ, float cameraYaw
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("QuadTree::init ") + __FUNCTION__, "Part 3");
 
-		m_root = make_unique<Quad>(Chunk::ChunkType::Terrain, 0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
+		m_terrainQuadRoot = make_unique<Quad>(Chunk::ChunkType::Terrain, 0, 0, m_viewer->Globals()->lodMaxDepth(), PosInQuad::Root, m_viewer, this);
 
 		if (isVisible())
 			m_viewer->incNumVisibleQuadrantsStreamed();
@@ -278,7 +278,7 @@ QuadTree::~QuadTree()
 	//godot::GDN_TheWorld_Globals::s_elapsed1 += clock.duration().count();
 
 	//clock.tick();
-	m_root.reset();
+	m_terrainQuadRoot.reset();
 	//clock.tock();
 	//godot::GDN_TheWorld_Globals::s_elapsed2 += clock.duration().count();
 
@@ -289,7 +289,7 @@ QuadTree::~QuadTree()
 
 	// Delete all Chunks
 	//clock.tick();
-	for (Chunk::MapChunk::iterator it = m_mapChunk.begin(); it != m_mapChunk.end(); it++)
+	for (Chunk::MapChunk::iterator it = m_mapTerrainChunk.begin(); it != m_mapTerrainChunk.end(); it++)
 	{
 		for (Chunk::MapChunkPerLod::iterator it1 = it->second.begin(); it1 != it->second.end(); it1++)
 		{
@@ -297,7 +297,7 @@ QuadTree::~QuadTree()
 		}
 		it->second.clear();
 	}
-	m_mapChunk.clear();
+	m_mapTerrainChunk.clear();
 	//clock.tock();
 	//godot::GDN_TheWorld_Globals::s_elapsed4 += clock.duration().count();
 
@@ -349,7 +349,7 @@ void QuadTree::ForAllChunk(Chunk::ChunkAction& chunkAction)
 {
 	if (isValid() || isRefreshingData())
 	{
-		for (Chunk::MapChunk::iterator it = m_mapChunk.begin(); it != m_mapChunk.end(); it++)
+		for (Chunk::MapChunk::iterator it = m_mapTerrainChunk.begin(); it != m_mapTerrainChunk.end(); it++)
 		{
 			for (Chunk::MapChunkPerLod::iterator it1 = it->second.begin(); it1 != it->second.end(); it1++)
 			{
@@ -439,7 +439,7 @@ void QuadTree::checkMouseHit()
 	if (getQuadrant()->internalDataLocked())
 		return;
 
-	internalCheckMouseHit(m_root.get());
+	internalCheckMouseHit(m_terrainQuadRoot.get());
 }
 
 void QuadTree::internalCheckMouseHit(Quad* quad)
@@ -476,8 +476,8 @@ void QuadTree::update(Vector3 cameraPosInMap, enum class UpdateStage updateStage
 		return;
 
 	m_numLeaf = 0;
-	internalUpdate(cameraPosInMap, m_root.get(), updateStage, numSplitRequired);
-	assert(!m_root->isLeaf() || m_root->getChunk() != nullptr);
+	internalUpdate(cameraPosInMap, m_terrainQuadRoot.get(), updateStage, numSplitRequired);
+	assert(!m_terrainQuadRoot->isLeaf() || m_terrainQuadRoot->getChunk() != nullptr);
 }
 
 void QuadTree::internalUpdate(godot::Vector3 cameraPosInMap, Quad* quad, enum class UpdateStage updateStage, int& numSplitRequired)
@@ -902,16 +902,16 @@ Chunk* QuadTree::getChunkAt(Chunk::ChunkPos pos, enum class Chunk::DirectionSlot
 
 Chunk* QuadTree::getChunkAt(Chunk::ChunkPos pos)
 {
-	Chunk::MapChunk::iterator it = m_mapChunk.find(pos.getLod());
-	if (it == m_mapChunk.end())
+	Chunk::MapChunk::iterator it = m_mapTerrainChunk.find(pos.getLod());
+	if (it == m_mapTerrainChunk.end())
 		return nullptr;
 	else
 	{
-		Chunk::MapChunkPerLod::iterator it1 = m_mapChunk[pos.getLod()].find(pos);
-		if (it1 == m_mapChunk[pos.getLod()].end())
+		Chunk::MapChunkPerLod::iterator it1 = m_mapTerrainChunk[pos.getLod()].find(pos);
+		if (it1 == m_mapTerrainChunk[pos.getLod()].end())
 			return nullptr;
 		else
-			return m_mapChunk[pos.getLod()][pos];
+			return m_mapTerrainChunk[pos.getLod()][pos];
 	}
 }
 
@@ -920,14 +920,14 @@ void QuadTree::addChunk(Chunk* chunk)
 	if (getChunkAt(chunk->getPos()))
 		return;
 	
-	Chunk::MapChunk::iterator it = m_mapChunk.find(chunk->getLod());
-	if (it == m_mapChunk.end())
+	Chunk::MapChunk::iterator it = m_mapTerrainChunk.find(chunk->getLod());
+	if (it == m_mapTerrainChunk.end())
 	{
 		Chunk::MapChunkPerLod m;
-		m_mapChunk[chunk->getLod()] = m;
+		m_mapTerrainChunk[chunk->getLod()] = m;
 	}
 
-	m_mapChunk[chunk->getLod()][chunk->getPos()] = chunk;
+	m_mapTerrainChunk[chunk->getLod()][chunk->getPos()] = chunk;
 }
 
 void QuadTree::addChunkUpdate(Chunk* chunk)
@@ -935,13 +935,13 @@ void QuadTree::addChunkUpdate(Chunk* chunk)
 	if (chunk->isPendingUpdate())
 		return;
 
-	m_vectChunkUpdate.push_back(chunk);
+	m_vectTerrainChunkUpdate.push_back(chunk);
 	chunk->setPendingUpdate(true);
 }
 
 void QuadTree::clearChunkUpdate(void)
 {
-	m_vectChunkUpdate.clear();
+	m_vectTerrainChunkUpdate.clear();
 }
 
 void QuadTree::setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, bool reload)
@@ -976,7 +976,7 @@ void QuadTree::setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev,
 				}
 			}
 
-			for (Chunk::MapChunk::iterator it = m_mapChunk.begin(); it != m_mapChunk.end(); it++)
+			for (Chunk::MapChunk::iterator it = m_mapTerrainChunk.begin(); it != m_mapTerrainChunk.end(); it++)
 			{
 				for (Chunk::MapChunkPerLod::iterator it1 = it->second.begin(); it1 != it->second.end(); it1++)
 				{
@@ -1316,11 +1316,11 @@ void QuadTree::dump(void)
 		for (int i = globals->lodMaxDepth(); i >= 0; i--)
 		{
 			int numChunksAtLod = 0;
-			Chunk::MapChunk::iterator it = m_mapChunk.find(i);
-			if (it != m_mapChunk.end())
-				numChunksAtLod = int(m_mapChunk[i].size());
+			Chunk::MapChunk::iterator it = m_mapTerrainChunk.find(i);
+			if (it != m_mapTerrainChunk.end())
+				numChunksAtLod = int(m_mapTerrainChunk[i].size());
 			int numChunksActiveAtLod = 0;
-			for (Chunk::MapChunkPerLod::iterator it1 = m_mapChunk[i].begin(); it1 != m_mapChunk[i].end(); it1++)
+			for (Chunk::MapChunkPerLod::iterator it1 = m_mapTerrainChunk[i].begin(); it1 != m_mapTerrainChunk[i].end(); it1++)
 			{
 				if (it1->second->isActive())
 					numChunksActiveAtLod++;
@@ -3255,7 +3255,7 @@ bool Quadrant::internalDataLockedUntilCompleteProcessExecution(void) const
 
 bool Quadrant::quadrantAtMinimumLod(void)
 {
-	Quad* root = m_quadTree->getRoot();
+	Quad* root = m_quadTree->getTerrainQuadRoot();
 	if (root == nullptr)
 		return true;
 

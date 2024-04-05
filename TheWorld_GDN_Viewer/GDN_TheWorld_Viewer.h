@@ -828,12 +828,12 @@ namespace godot
 			else
 				if (m_positionDrawer != nullptr)
 				{
-					if (m_positionLineIdx != -1)
-						m_positionDrawer->updateLine(m_positionLineIdx, godot::Vector3(), godot::Vector3());
-					if (m_positionSphereStartIdx != -1)
-						m_positionDrawer->updateSphere(m_positionSphereStartIdx, godot::Vector3(), 0.0f);
-					if (m_positionSphereEndIdx != -1)
-						m_positionDrawer->updateSphere(m_positionSphereEndIdx, godot::Vector3(), 0.0f);
+					if (m_linePositionIdx != -1)
+						m_positionDrawer->updateLine(m_linePositionIdx, godot::Vector3(), godot::Vector3());
+					if (m_spherePositionStartIdx != -1)
+						m_positionDrawer->updateSphere(m_spherePositionStartIdx, godot::Vector3(), 0.0f);
+					if (m_spherePositionEndIdx != -1)
+						m_positionDrawer->updateSphere(m_spherePositionEndIdx, godot::Vector3(), 0.0f);
 				}
 		}
 		bool trackedInputEvent(TrackedInputEvent event, std::map<enum class TrackedInputEvent, bool>* inputEvents = nullptr)
@@ -970,8 +970,10 @@ namespace godot
 
 		godot::Transform3D globalToMap(godot::Transform3D global) const;
 		godot::Transform3D globalPosToMapTransform(godot::Vector3 global) const;
+		godot::Vector3 globalPosToMapPos(godot::Vector3 global) const;
 		godot::Transform3D mapToGlobal(godot::Transform3D map) const;
 		godot::Transform3D mapPosToGlobalTransform(godot::Vector3 map) const;
+		godot::Vector3 mapPosToGlobalPos(godot::Vector3 map) const;
 
 		void startInitializingStreamOfQuadrants(void);
 		void endInitializingStreamOfQuadrants(void);
@@ -1124,12 +1126,12 @@ namespace godot
 		GDN_TheWorld_Drawer* m_positionDrawer = nullptr;
 		int32_t m_normalLineIdx = -1;
 		int32_t m_normalSphereIdx = -1;
-		int32_t m_positionLabelXIdx = -1;
-		int32_t m_positionLabelYIdx = -1;
-		int32_t m_positionLabelZIdx = -1;
-		int32_t m_positionLineIdx = -1;
-		int32_t m_positionSphereStartIdx = -1;
-		int32_t m_positionSphereEndIdx = -1;
+		int32_t m_labelPositionXIdx = -1;
+		int32_t m_labelPositionYIdx = -1;
+		int32_t m_labelPositionZIdx = -1;
+		int32_t m_linePositionIdx = -1;
+		int32_t m_spherePositionStartIdx = -1;
+		int32_t m_spherePositionEndIdx = -1;
 		bool m_normalVisible = false;
 		GDN_TheWorld_Gizmo3d* m_gizmo = nullptr;
 		bool m_gizmoVisible = false;

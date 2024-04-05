@@ -438,17 +438,19 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 								}
 								else if (item.second->labelPos == Drawing::LabelPos::center)
 								{
-									godot::Vector2 end = m_camera->unproject_position(item.second->end);
-									godot::Vector2 start = m_camera->unproject_position(item.second->start);
+									godot::Vector3 globalStart = m_viewer->mapPosToGlobalPos(item.second->start);
+									godot::Vector3 globalEnd = m_viewer->mapPosToGlobalPos(item.second->end);
+									godot::Vector2 end = m_camera->unproject_position(globalEnd);
+									godot::Vector2 start = m_camera->unproject_position(globalStart);
 									godot::Size2 viewportSize = m_viewer->getViewportSize();
-									bool startBehindCamera = m_camera->is_position_behind(item.second->start);
+									bool startBehindCamera = m_camera->is_position_behind(globalStart);
 
 									if (startBehindCamera)
 									{
-										godot::Vector3 newStart = item.second->start;
+										godot::Vector3 newStart = globalStart;
 										while (startBehindCamera)
 										{
-											newStart = newStart + (item.second->end - newStart) / 10;
+											newStart = newStart + (globalEnd - newStart) / 10;
 											startBehindCamera = m_camera->is_position_behind(newStart);
 										}
 										start = m_camera->unproject_position(newStart);
@@ -486,7 +488,7 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 								else if (item.second->labelPos == Drawing::LabelPos::end)
 								{
 									godot::Vector3 position = item.second->end + (item.second->end - item.second->start).normalized() * item.second->label3dOffset;
-									viewportPos = m_camera->unproject_position(position);
+									viewportPos = m_camera->unproject_position(m_viewer->mapPosToGlobalPos(position));
 								}
 
 								if (item.second->label2d != nullptr)
@@ -502,14 +504,14 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 					drawSphere(item.second->start, item.second->radius, item.second->color);
 				else if (item.second->drawingType == Drawing::DrawingType::label2d)
 				{
-					if (m_camera != nullptr)
+					if (m_camera != nullptr && m_viewer != nullptr)
 					{
 						if (item.second->label2d == nullptr)
 						{
 							item.second->label2d = memnew(godot::Label);
 							add_child(item.second->label2d);
 						}
-						godot::Vector2 viewportPos = m_camera->unproject_position(item.second->start);
+						godot::Vector2 viewportPos = m_camera->unproject_position(m_viewer->mapPosToGlobalPos(item.second->start));
 						viewportPos += item.second->label2dOffset;
 						item.second->label2d->set_position(viewportPos);
 						item.second->label2d->set_text(item.second->labelText.c_str());

@@ -1606,12 +1606,12 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	m_positionDrawer = memnew(GDN_TheWorld_Drawer);
 	this->add_child(m_positionDrawer);
-	m_positionLabelXIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 20), "", GDN_TheWorld_Globals::g_color_black);
-	m_positionLabelZIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 40), "", GDN_TheWorld_Globals::g_color_black);
-	m_positionLabelYIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 60), "", GDN_TheWorld_Globals::g_color_black);
-	m_positionLineIdx = m_positionDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::center, -1.0f, godot::Vector2i(-10, -10), GDN_TheWorld_Globals::g_color_black);
-	m_positionSphereStartIdx = m_positionDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
-	m_positionSphereEndIdx = m_positionDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
+	m_labelPositionXIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 20), "", GDN_TheWorld_Globals::g_color_black);
+	m_labelPositionZIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 40), "", GDN_TheWorld_Globals::g_color_black);
+	m_labelPositionYIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 60), "", GDN_TheWorld_Globals::g_color_black);
+	m_linePositionIdx = m_positionDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::center, -1.0f, godot::Vector2i(-10, -10), GDN_TheWorld_Globals::g_color_black);
+	m_spherePositionStartIdx = m_positionDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
+	m_spherePositionEndIdx = m_positionDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
 
 	m_positionDrawer->set_visible(false);
 
@@ -4148,6 +4148,13 @@ godot::Transform3D GDN_TheWorld_Viewer::globalPosToMapTransform(godot::Vector3 g
 	return viewerT * godot::Transform3D(godot::Basis(), global);
 }
 
+godot::Vector3 GDN_TheWorld_Viewer::globalPosToMapPos(godot::Vector3 global) const
+{
+	godot::Transform3D viewerT = getInternalGlobalTransform().affine_inverse();
+	godot::Transform3D t = viewerT * godot::Transform3D(godot::Basis(), global);
+	return t.origin;
+}
+
 godot::Transform3D GDN_TheWorld_Viewer::mapToGlobal(godot::Transform3D map) const
 {
 	godot::Transform3D viewerT = getInternalGlobalTransform();
@@ -4158,6 +4165,13 @@ godot::Transform3D GDN_TheWorld_Viewer::mapPosToGlobalTransform(godot::Vector3 m
 {
 	godot::Transform3D viewerT = getInternalGlobalTransform();
 	return viewerT * godot::Transform3D(godot::Basis(), map);
+}
+
+godot::Vector3 GDN_TheWorld_Viewer::mapPosToGlobalPos(godot::Vector3 map) const
+{
+	godot::Transform3D viewerT = getInternalGlobalTransform();
+	godot::Transform3D t = viewerT * godot::Transform3D(godot::Basis(), map);
+	return t.origin;
 }
 
 void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera3D* activeCamera)
@@ -4508,20 +4522,20 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::lis
 				bool _positionVisible = false;
 				if (positionVisible())
 				{
-					if (m_positionLabelXIdx != -1 && m_positionLabelYIdx != -1 && m_positionLabelZIdx != -1)
+					if (m_labelPositionXIdx != -1 && m_labelPositionYIdx != -1 && m_labelPositionZIdx != -1)
 					{
 						_positionVisible = true;
-						m_positionDrawer->updateLabel2d(m_positionLabelXIdx, mouseHitInMap, std::string("X=") + std::to_string(mouseHitInMap.x));
-						m_positionDrawer->updateLabel2d(m_positionLabelZIdx, mouseHitInMap, std::string("Z=") + std::to_string(mouseHitInMap.z));
-						m_positionDrawer->updateLabel2d(m_positionLabelYIdx, mouseHitInMap, std::string("H=") + std::to_string(mouseHitInMap.y));
+						m_positionDrawer->updateLabel2d(m_labelPositionXIdx, mouseHitInMap, std::string("X=") + std::to_string(mouseHitInMap.x));
+						m_positionDrawer->updateLabel2d(m_labelPositionZIdx, mouseHitInMap, std::string("Z=") + std::to_string(mouseHitInMap.z));
+						m_positionDrawer->updateLabel2d(m_labelPositionYIdx, mouseHitInMap, std::string("H=") + std::to_string(mouseHitInMap.y));
 					}
 
 					if (trackingDistance())
 					{
 						float distance = (float)mouseHitInMap.distance_to(m_savedPosForTrackingDistance);
-						m_positionDrawer->updateLine(m_positionLineIdx, m_savedPosForTrackingDistance, mouseHitInMap, std::to_string(distance));
-						m_positionDrawer->updateSphere(m_positionSphereStartIdx, m_savedPosForTrackingDistance, 5);
-						m_positionDrawer->updateSphere(m_positionSphereEndIdx, mouseHitInMap, 5);
+						m_positionDrawer->updateLine(m_linePositionIdx, m_savedPosForTrackingDistance, mouseHitInMap, std::to_string(distance));
+						m_positionDrawer->updateSphere(m_spherePositionStartIdx, m_savedPosForTrackingDistance, 5);
+						m_positionDrawer->updateSphere(m_spherePositionEndIdx, mouseHitInMap, 5);
 					}
 				}
 
@@ -4533,7 +4547,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(QuadTree* quadrantHit, std::lis
 				if (gizmoVisible())
 				{
 					m_gizmo->set_visible(true);
-					m_gizmo->set_global_position(mouseHitInMap);
+					m_gizmo->set_global_position(mapPosToGlobalPos(mouseHitInMap));
 				}
 				else
 					m_gizmo->set_visible(false);
@@ -4674,7 +4688,7 @@ void GDN_TheWorld_Viewer::process_updateMeshForUpdatedChunks(void)
 			continue;
 
 		// All chunk that need an update (those are chunk that got split or joined)
-		std::vector<Chunk*> vectChunkUpdate = itQuadTree->second->getChunkUpdate();
+		std::vector<Chunk*> vectChunkUpdate = itQuadTree->second->getTerrainChunkUpdate();
 
 		// Forcing update to all neighbouring chunks to readjust the seams (by populating vectAdditionalUpdateChunk)
 		// chunks affected are neighbouring ones with same lod or less (more definded) ==> neighbouring chunks with greater lod (less defined) are not selected

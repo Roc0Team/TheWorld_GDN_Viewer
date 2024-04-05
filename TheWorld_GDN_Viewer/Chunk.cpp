@@ -748,7 +748,7 @@ void Chunk::getGlobalCoordAABB(godot::AABB& aabb, int firstWorldVertCol, int las
 	int idxLastColLastRowWorldVert = numWorldVerticesPerSize * lastWorldVertRow + lastWorldVertCol;
 
 	godot::AABB emptyAABB;
-	Quad* root = m_quadTree->getRoot();
+	Quad* root = m_quadTree->getTerrainQuadRoot();
 	Quad* quad = getQuad();
 	if (root == quad)
 	{

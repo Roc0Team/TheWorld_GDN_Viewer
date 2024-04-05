@@ -1335,9 +1335,9 @@ namespace godot
 		void addChunk(Chunk* chunk);
 		void addChunkUpdate(Chunk* chunk);
 		void clearChunkUpdate(void);
-		std::vector<Chunk*>& getChunkUpdate(void)
+		std::vector<Chunk*>& getTerrainChunkUpdate(void)
 		{
-			return m_vectChunkUpdate; 
+			return m_vectTerrainChunkUpdate;
 		}
 		void ForAllChunk(Chunk::ChunkAction& chunkAction);
 		void dump(void);
@@ -1366,10 +1366,10 @@ namespace godot
 				return 0;
 
 			int num = 0;
-			//for (int i = 0; i < (int)m_mapChunk.size(); i++)
-			//	num += (int)m_mapChunk[i].size();
+			//for (int i = 0; i < (int)m_mapTerrainChunk.size(); i++)
+			//	num += (int)m_mapTerrainChunk[i].size();
 			Chunk::MapChunk::iterator itMapChunk;
-			for (Chunk::MapChunk::iterator itMapChunk = m_mapChunk.begin(); itMapChunk != m_mapChunk.end(); itMapChunk++)
+			for (Chunk::MapChunk::iterator itMapChunk = m_mapTerrainChunk.begin(); itMapChunk != m_mapTerrainChunk.end(); itMapChunk++)
 				num += (int)itMapChunk->second.size();
 			return num;
 		}
@@ -1384,10 +1384,10 @@ namespace godot
 		//		return 0;
 
 		//	int num = 0;
-		//	//for (int i = 0; i < (int)m_mapChunk.size(); i++)
-		//	//	num += (int)m_mapChunk[i].size();
+		//	//for (int i = 0; i < (int)m_mapTerrainChunk.size(); i++)
+		//	//	num += (int)m_mapTerrainChunk[i].size();
 		//	Chunk::MapChunk::iterator itMapChunk;
-		//	for (Chunk::MapChunk::iterator itMapChunk = m_mapChunk.begin(); itMapChunk != m_mapChunk.end(); itMapChunk++)
+		//	for (Chunk::MapChunk::iterator itMapChunk = m_mapTerrainChunk.begin(); itMapChunk != m_mapTerrainChunk.end(); itMapChunk++)
 		//	{
 		//		mapNumVisibleChunksPerLod[itMapChunk->first] = itMapChunk->second.size();
 		//		num += (int)itMapChunk->second.size();
@@ -1406,7 +1406,7 @@ namespace godot
 
 			int num = 0;
 			Chunk::MapChunk::iterator itMapChunk;
-			for (Chunk::MapChunk::iterator itMapChunk = m_mapChunk.begin(); itMapChunk != m_mapChunk.end(); itMapChunk++)
+			for (Chunk::MapChunk::iterator itMapChunk = m_mapTerrainChunk.begin(); itMapChunk != m_mapTerrainChunk.end(); itMapChunk++)
 			{
 				int numPerLod = 0;
 				for (Chunk::MapChunkPerLod::iterator itMapChunkPerLod = itMapChunk->second.begin(); itMapChunkPerLod != itMapChunk->second.end(); itMapChunkPerLod++)
@@ -1532,9 +1532,9 @@ namespace godot
 			return m_GDN_Quadrant;
 		}
 
-		Chunk::MapChunk& getMapChunk(void)
+		Chunk::MapChunk& getMapTerrainChunk(void)
 		{
-			return m_mapChunk;
+			return m_mapTerrainChunk;
 		}
 
 		void setEditModeQuadrantSelected(bool b)
@@ -1555,9 +1555,9 @@ namespace godot
 		void mouseHitChanged(godot::Vector3 mouseHit, bool hit);
 		void getAdjacentQuadrants(std::list<QuadTree*>& adjacentQuadrantsHit);
 
-		Quad* getRoot(void)
+		Quad* getTerrainQuadRoot(void)
 		{
-			return m_root.get();
+			return m_terrainQuadRoot.get();
 		}
 		bool forceRecalcOptimizationLevel(void) const
 		{
@@ -1612,9 +1612,9 @@ namespace godot
 		bool m_containsSea = false;
 
 		// Terrain Quads/Chunks
-		std::unique_ptr<Quad> m_root;
-		Chunk::MapChunk m_mapChunk;
-		std::vector<Chunk*> m_vectChunkUpdate;
+		std::unique_ptr<Quad> m_terrainQuadRoot;
+		Chunk::MapChunk m_mapTerrainChunk;
+		std::vector<Chunk*> m_vectTerrainChunkUpdate;
 		float m_lastComputedDistanceFromCamera = 0;
 		bool m_forceRecalcOptimizationLevel = false;
 		bool m_colliderNeedReset = false;
@@ -1625,7 +1625,7 @@ namespace godot
 		// Sea
 		std::unique_ptr<Quad> m_seaQuadRoot;
 		Chunk::MapChunk m_seaMapChunk;
-		//std::vector<Chunk*> m_seaVectChunkUpdate;
+		//std::vector<Chunk*> m_vectSeaChunkUpdate;
 
 		// Statistics
 		int m_numSplits;

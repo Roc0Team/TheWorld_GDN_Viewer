@@ -1454,6 +1454,9 @@ void GDN_TheWorld_Edit::controlNeedResize(void)
 
 void GDN_TheWorld_Edit::_input(const Ref<InputEvent>& event)
 {
+	if (!m_initialized)
+		return;
+	
 	const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
 	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
 

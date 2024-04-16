@@ -203,7 +203,8 @@ namespace godot
 		};
 
 		friend class GDN_TheWorld_Edit;
-		friend class Chunk;
+		//friend class Chunk;
+		//friend class TerrainChunk;
 		//friend class QuadTree;
 		//friend class ShaderTerrainData;
 
@@ -586,8 +587,8 @@ namespace godot
 		}
 		void getAllQuadrantPos(std::vector<TheWorld_Utils::QuadrantPos>& allQuandrantPos);
 		QuadTree* getQuadTree(TheWorld_Utils::QuadrantPos pos, bool excludeToErase = true, bool lockQuadrant = false);
-		Chunk* getActiveChunkAt(TheWorld_Utils::QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
-		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter);
+		Chunk* getActiveChunkAt(TheWorld_Utils::QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
+		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
 		bool terrainShiftPermitted(void);
 		godot::Vector3 getMouseHitInMap(void) const
 		{
@@ -978,6 +979,11 @@ namespace godot
 		void startInitializingStreamOfQuadrants(void);
 		void endInitializingStreamOfQuadrants(void);
 
+		void cameraChunk(Chunk* c);
+		Chunk* cameraChunk(void);
+		void mouseHitChunk(Chunk* c);
+		Chunk* mouseHitChunk(void);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -1001,7 +1007,9 @@ namespace godot
 		godot::Node3D* getAnchorForOriginShift(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
 		void process_updateLodInQuads(godot::Vector3& cameraPosInMap);
+		void process_updateLodInQuads(godot::Vector3& cameraPosInMap, enum class QuadType type);
 		void process_updateMeshForUpdatedChunks(void);
+		void process_updateMeshForUpdatedChunks(enum class QuadType type);
 		void process_lookDev(void);
 		void process_materialParam(godot::Vector3& cameraPosInMap, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_neighbourQuadrantData(QuadTree* quadTree);
@@ -1192,7 +1200,7 @@ namespace godot
 		float m_shaderParam_quad_border_line_thickness = 0.005f;
 		float m_shaderParam_mouse_hit_radius = 0.001f;
 		godot::Plane  m_shaderParam_colormapOpacity;
-		bool m_shaderParamChanged;
+		bool m_shaderParamChanged = false;
 		bool m_reloadAllShadersRequired = false;
 		bool m_reloadSelectedQuadrantShaderRequired = false;
 

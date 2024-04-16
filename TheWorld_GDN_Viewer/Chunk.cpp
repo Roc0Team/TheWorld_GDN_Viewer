@@ -16,9 +16,27 @@
 
 using namespace godot;
 
-Chunk::Chunk(enum class ChunkType type, int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat, godot::Ref<godot::Material>& seaMat)
+enum class QuadType Chunk::getQuadType(enum class ChunkType type)
 {
-	m_type = type;
+	switch (type)
+	{
+	case ChunkType::Terrain:
+		return QuadType::Terrain;
+	case ChunkType::Sea:
+		return QuadType::Sea;
+	default:
+		return QuadType::NotSet;
+	}
+}
+
+enum class QuadType Chunk::getOwnQuadType(void)
+{
+	return getQuadType(m_chunkType);
+}
+
+Chunk::Chunk(enum class ChunkType type, int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat /*, godot::Ref<godot::Material>& seaMat*/)
+{
+	m_chunkType = type;
 	m_distanceFromCamera = 0;
 	m_slotPosX = slotPosX;
 	m_slotPosZ = slotPosZ;
@@ -61,10 +79,10 @@ Chunk::Chunk(enum class ChunkType type, int slotPosX, int slotPosZ, int lod, GDN
 
 	initVisual(mat);
 
-	m_seaMat = seaMat;
-	m_seaMeshInstanceRID = RID();
-	m_seaMeshRID = RID();
-	checkAndInitSeaVisual(m_seaMat);
+	//m_seaMat = seaMat;
+	//m_seaMeshInstanceRID = RID();
+	//m_seaMeshRID = RID();
+	//checkAndInitSeaVisual(m_seaMat);
 
 	//globals->debugPrint("Chunk::Chunk - ID: " + String(getPos().getPos().c_str()));
 }
@@ -90,67 +108,55 @@ void Chunk::initVisual(godot::Ref<godot::Material>& mat)
 	enterWorld();
 
 	vs->instance_set_visible(m_meshInstanceRID, isVisible());
-	if (m_containsSea)
-		vs->instance_set_visible(m_seaMeshInstanceRID, isVisible());
+	//if (m_containsSea)
+	//	vs->instance_set_visible(m_seaMeshInstanceRID, isVisible());
 
 	m_globalTransformApplied = getGlobalTransform();
 
 	godot::RenderingServer::get_singleton()->instance_set_transform(m_meshInstanceRID, m_globalTransformApplied);		// World coordinates
-	if (m_containsSea)
-		godot::RenderingServer::get_singleton()->instance_set_transform(m_seaMeshInstanceRID, m_globalTransformApplied);		// World coordinates
+	//if (m_containsSea)
+	//	godot::RenderingServer::get_singleton()->instance_set_transform(m_seaMeshInstanceRID, m_globalTransformApplied);		// World coordinates
 
 	printDebugInfo("initVisual");
 }
 
-void Chunk::checkAndInitSeaVisual(godot::Ref<godot::Material>& mat)
-{
-	m_containsSea = false;	// DEBUG
-	return;
-	if (m_quadTree->getQuadrant()->getTerrainEdit()->extraValues1.seaInfoSet != 0 && m_quadTree->getQuadrant()->getTerrainEdit()->extraValues1.containsSea != 0)
-		m_containsSea = true;
-	else
-		m_containsSea = false;
+//void Chunk::checkAndInitSeaVisual(godot::Ref<godot::Material>& mat)
+//{
+//	m_containsSea = false;	// DEBUG
+//	return;
+//	if (m_quadTree->getQuadrant()->getTerrainEdit()->extraValues1.seaInfoSet != 0 && m_quadTree->getQuadrant()->getTerrainEdit()->extraValues1.containsSea != 0)
+//		m_containsSea = true;
+//	else
+//		m_containsSea = false;
+//
+//	if (m_containsSea && m_seaMeshInstanceRID == RID())
+//		initSeaVisual(mat);
+//}
 
-	if (m_containsSea && m_seaMeshInstanceRID == RID())
-		initSeaVisual(mat);
-}
-
-void Chunk::initSeaVisual(godot::Ref<godot::Material>& mat)
-{
-	if (m_containsSea && m_seaMeshInstanceRID == RID())
-	{
-		godot::RenderingServer* vs = godot::RenderingServer::get_singleton();
-		m_seaMeshInstanceRID = vs->instance_create();
-
-		if (mat != nullptr)
-			vs->instance_geometry_set_material_override(m_seaMeshInstanceRID, mat->get_rid());
-
-		if (m_worldEntered)
-		{
-			godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
-			if (world != nullptr && world.is_valid())
-				vs->instance_set_scenario(m_seaMeshInstanceRID, world->get_scenario());
-		}
-
-		vs->instance_set_visible(m_seaMeshInstanceRID, isVisible());
-
-		vs->instance_set_transform(m_seaMeshInstanceRID, m_globalTransformApplied);		// World coordinates
-
-		printDebugInfo("initSeaVisual");
-	}
-}
-
-void Chunk::checkAndCalcAABB()
-{
-	AABB aabb;
-	if (m_aabb == aabb && m_quadTree->statusInitialized())
-	{
-		getGlobalCoordAABB(m_aabb, m_firstWorldVertCol, m_lastWorldVertCol, m_firstWorldVertRow, m_lastWorldVertRow, m_gridStepInGridInWGVs);
-		m_globalCoordAABB = m_aabb;
-		m_aabb.position.x = 0;	// AABB is relative to the chunk
-		m_aabb.position.z = 0;
-	}
-}
+//void Chunk::initSeaVisual(godot::Ref<godot::Material>& mat)
+//{
+//	if (m_containsSea && m_seaMeshInstanceRID == RID())
+//	{
+//		godot::RenderingServer* vs = godot::RenderingServer::get_singleton();
+//		m_seaMeshInstanceRID = vs->instance_create();
+//
+//		if (mat != nullptr)
+//			vs->instance_geometry_set_material_override(m_seaMeshInstanceRID, mat->get_rid());
+//
+//		if (m_worldEntered)
+//		{
+//			godot::Ref<godot::World3D> world = m_viewer->get_world_3d();
+//			if (world != nullptr && world.is_valid())
+//				vs->instance_set_scenario(m_seaMeshInstanceRID, world->get_scenario());
+//		}
+//
+//		vs->instance_set_visible(m_seaMeshInstanceRID, isVisible());
+//
+//		vs->instance_set_transform(m_seaMeshInstanceRID, m_globalTransformApplied);		// World coordinates
+//
+//		printDebugInfo("initSeaVisual");
+//	}
+//}
 
 void Chunk::printDebugInfo(std::string method)
 {
@@ -225,16 +231,19 @@ void Chunk::deinit(void)
 		m_meshInstanceRID = godot::RID();
 	}
 
-	if (m_seaMeshInstanceRID != godot::RID())
-	{
-		godot::RenderingServer::get_singleton()->free_rid(m_seaMeshInstanceRID);
-		m_seaMeshInstanceRID = godot::RID();
-	}
+	//if (m_seaMeshInstanceRID != godot::RID())
+	//{
+	//	godot::RenderingServer::get_singleton()->free_rid(m_seaMeshInstanceRID);
+	//	m_seaMeshInstanceRID = godot::RID();
+	//}
 
-	if (m_viewer->m_cameraChunk == this)
-		m_viewer->m_cameraChunk = nullptr;
-	if (m_viewer->m_mouseHitChunk == this)
-		m_viewer->m_mouseHitChunk = nullptr;
+	if (m_chunkType == ChunkType::Terrain)
+	{
+		if (m_viewer->cameraChunk() == this)
+			m_viewer->cameraChunk(nullptr);
+		if (m_viewer->mouseHitChunk() == this)
+			m_viewer->mouseHitChunk(nullptr);
+	}
 }
 
 void Chunk::enterWorld(void)
@@ -246,11 +255,11 @@ void Chunk::enterWorld(void)
 		if (world != nullptr && world.is_valid())
 		{
 			godot::RenderingServer::get_singleton()->instance_set_scenario(m_meshInstanceRID, world->get_scenario());
-			if (m_containsSea)
-			{
-				assert(m_seaMeshInstanceRID != godot::RID());
-				godot::RenderingServer::get_singleton()->instance_set_scenario(m_seaMeshInstanceRID, world->get_scenario());
-			}
+			//if (m_containsSea)
+			//{
+			//	assert(m_seaMeshInstanceRID != godot::RID());
+			//	godot::RenderingServer::get_singleton()->instance_set_scenario(m_seaMeshInstanceRID, world->get_scenario());
+			//}
 		}
 
 		m_worldEntered = true;
@@ -263,11 +272,11 @@ void Chunk::exitWorld(void)
 	{
 		assert(m_meshInstanceRID != godot::RID());
 		godot::RenderingServer::get_singleton()->instance_set_scenario(m_meshInstanceRID, godot::RID());
-		if (m_containsSea)
-		{
-			assert(m_seaMeshInstanceRID != godot::RID());
-			godot::RenderingServer::get_singleton()->instance_set_scenario(m_seaMeshInstanceRID, godot::RID());
-		}
+		//if (m_containsSea)
+		//{
+		//	assert(m_seaMeshInstanceRID != godot::RID());
+		//	godot::RenderingServer::get_singleton()->instance_set_scenario(m_seaMeshInstanceRID, godot::RID());
+		//}
 
 		m_worldEntered = false;
 	}
@@ -279,11 +288,11 @@ void Chunk::onGlobalTransformChanged(void)
 	m_globalTransformApplied = getGlobalTransform();
 	// Set the mesh pos in global coord
 	godot::RenderingServer::get_singleton()->instance_set_transform(m_meshInstanceRID, m_globalTransformApplied);		// World coordinates
-	if (m_containsSea)
-	{
-		assert(m_seaMeshInstanceRID != godot::RID());
-		godot::RenderingServer::get_singleton()->instance_set_transform(m_seaMeshInstanceRID, m_globalTransformApplied);		// World coordinates
-	}
+	//if (m_containsSea)
+	//{
+	//	assert(m_seaMeshInstanceRID != godot::RID());
+	//	godot::RenderingServer::get_singleton()->instance_set_transform(m_seaMeshInstanceRID, m_globalTransformApplied);		// World coordinates
+	//}
 
 	printDebugInfo("onGlobalTransformChanged");
 }
@@ -298,11 +307,11 @@ void Chunk::setVisible(bool b)
 
 	assert(m_meshInstanceRID != godot::RID());
 	godot::RenderingServer::get_singleton()->instance_set_visible(m_meshInstanceRID, b);
-	if (m_containsSea)
-	{
-		assert(m_seaMeshInstanceRID != godot::RID());
-		godot::RenderingServer::get_singleton()->instance_set_visible(m_seaMeshInstanceRID, b);
-	}
+	//if (m_containsSea)
+	//{
+	//	assert(m_seaMeshInstanceRID != godot::RID());
+	//	godot::RenderingServer::get_singleton()->instance_set_visible(m_seaMeshInstanceRID, b);
+	//}
 
 	m_visible = b;
 }
@@ -318,16 +327,16 @@ void Chunk::setDebugContentVisible(bool b)
 	m_debugContentVisible = b;
 }
 
-godot::AABB Chunk::getSeaAABB(void)
-{
-	AABB aabb;
-	godot::Vector3 startPosition(m_aabb.position.x, THEWORLD_SEA_LEVEL - 20, m_aabb.position.z);
-	godot::Vector3 endPosition(m_aabb.position.x + m_chunkSizeInWUs, THEWORLD_SEA_LEVEL + 20, m_aabb.position.z + m_chunkSizeInWUs);
-	godot::Vector3 size = endPosition - startPosition;
-	aabb.set_position(startPosition);
-	aabb.set_size(size);
-	return aabb;
-}
+//godot::AABB Chunk::getSeaAABB(void)
+//{
+//	AABB aabb;
+//	godot::Vector3 startPosition(m_aabb.position.x, THEWORLD_SEA_LEVEL - 20, m_aabb.position.z);
+//	godot::Vector3 endPosition(m_aabb.position.x + m_chunkSizeInWUs, THEWORLD_SEA_LEVEL + 20, m_aabb.position.z + m_chunkSizeInWUs);
+//	godot::Vector3 size = endPosition - startPosition;
+//	aabb.set_position(startPosition);
+//	aabb.set_size(size);
+//	return aabb;
+//}
 
 void Chunk::applyAABB(void)
 {
@@ -337,15 +346,15 @@ void Chunk::applyAABB(void)
 	if (m_meshRID != RID())
 		godot::RenderingServer::get_singleton()->instance_set_custom_aabb(m_meshInstanceRID, m_aabb);
 
-	if (m_containsSea)
-	{
-		assert(m_seaMeshInstanceRID != godot::RID());
-		if (m_seaMeshRID != RID())
-		{
-			godot::AABB aabb = getSeaAABB();
-			godot::RenderingServer::get_singleton()->instance_set_custom_aabb(m_seaMeshInstanceRID, aabb);
-		}
-	}
+	//if (m_containsSea)
+	//{
+	//	assert(m_seaMeshInstanceRID != godot::RID());
+	//	if (m_seaMeshRID != RID())
+	//	{
+	//		godot::AABB aabb = getSeaAABB();
+	//		godot::RenderingServer::get_singleton()->instance_set_custom_aabb(m_seaMeshInstanceRID, aabb);
+	//	}
+	//}
 }
 
 void Chunk::setMesh(godot::Ref<godot::Mesh> mesh)
@@ -364,21 +373,21 @@ void Chunk::setMesh(godot::Ref<godot::Mesh> mesh)
 	printDebugInfo("setMesh");
 }
 
-void Chunk::setSeaMesh(godot::Ref<godot::Mesh> mesh)
-{
-	godot::RID meshRID = (mesh != nullptr ? mesh->get_rid() : godot::RID());
-
-	if (meshRID == m_seaMeshRID)
-		return;
-
-	assert(m_seaMeshInstanceRID != godot::RID());
-	godot::RenderingServer::get_singleton()->instance_set_base(m_seaMeshInstanceRID, meshRID);
-
-	m_seaMeshRID = meshRID;
-	m_seaMesh = mesh;
-
-	printDebugInfo("setSeaMesh");
-}
+//void Chunk::setSeaMesh(godot::Ref<godot::Mesh> mesh)
+//{
+//	godot::RID meshRID = (mesh != nullptr ? mesh->get_rid() : godot::RID());
+//
+//	if (meshRID == m_seaMeshRID)
+//		return;
+//
+//	assert(m_seaMeshInstanceRID != godot::RID());
+//	godot::RenderingServer::get_singleton()->instance_set_base(m_seaMeshInstanceRID, meshRID);
+//
+//	m_seaMeshRID = meshRID;
+//	m_seaMesh = mesh;
+//
+//	printDebugInfo("setSeaMesh");
+//}
 
 bool Chunk::isMeshNull(void)
 {
@@ -414,6 +423,44 @@ void Chunk::setMaterial(godot::Ref<godot::Material>& mat)
 	godot::RenderingServer::get_singleton()->instance_geometry_set_material_override(m_meshInstanceRID, materialRid);
 }
 
+void Chunk::setCameraPosInMap(Vector3 cameraPosInMap)
+{
+	if (!isActive())
+	{
+		m_lastCameraPosInMap = Vector3(0, 0, 0);
+		if (m_chunkType == ChunkType::Terrain)
+		{
+			if (m_viewer->cameraChunk() == this)
+				m_viewer->cameraChunk(nullptr);
+		}
+		m_isCameraVerticalOnChunk = false;
+	}
+	else
+	{
+		m_lastCameraPosInMap = cameraPosInMap;
+
+		if (cameraPosInMap.x >= m_originXInWUsGlobal && cameraPosInMap.x < m_originXInWUsGlobal + m_chunkSizeInWUs
+			&& cameraPosInMap.z >= m_originZInWUsGlobal && cameraPosInMap.z < m_originZInWUsGlobal + m_chunkSizeInWUs)
+			m_isCameraVerticalOnChunk = true;
+		else
+		{
+			if (m_chunkType == ChunkType::Terrain)
+			{
+				if (m_viewer->cameraChunk() == this)
+					m_viewer->cameraChunk(nullptr);
+			}
+			m_isCameraVerticalOnChunk = false;
+		}
+	}
+
+	if (m_chunkType == ChunkType::Terrain)
+	{
+		if (m_isCameraVerticalOnChunk)
+			m_viewer->setCameraChunk(this, m_quadTree);
+	}
+}
+
+
 void Chunk::update(bool isVisible)
 {
 	if (!isActive())
@@ -443,7 +490,7 @@ void Chunk::update(bool isVisible)
 		//  
 
 		// check left chunk
-		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XMinusChunk);
+		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XMinusChunk, getOwnQuadType());
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_LEFT;
 
@@ -455,14 +502,14 @@ void Chunk::update(bool isVisible)
 			if (XMinusQuadTree != nullptr && XMinusQuadTree->isValid())
 			{
 				ChunkPos posGreaterChunkOnAdjacentQuadrant(numChunksPerSideAtGreaterLod - 1, posGreaterLodChunkContainingThisOne.getSlotPosZ(), posGreaterLodChunkContainingThisOne.getLod());
-				chunk = XMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
+				chunk = XMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant, getOwnQuadType());
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_LEFT;
 			}
 		}
 
 		// check up chunk
-		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZMinusChunk);
+		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZMinusChunk, getOwnQuadType());
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_BOTTOM;
 
@@ -474,7 +521,7 @@ void Chunk::update(bool isVisible)
 			if (ZMinusQuadTree != nullptr && ZMinusQuadTree->isValid())
 			{
 				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterLodChunkContainingThisOne.getSlotPosX(), numChunksPerSideAtGreaterLod - 1, posGreaterLodChunkContainingThisOne.getLod());
-				chunk = ZMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
+				chunk = ZMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant, getOwnQuadType());
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_BOTTOM;
 			}
@@ -489,7 +536,7 @@ void Chunk::update(bool isVisible)
 		//  
 
 		// check right chunk
-		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XPlusChunk);
+		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XPlusChunk, getOwnQuadType());
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_RIGHT;
 
@@ -501,14 +548,14 @@ void Chunk::update(bool isVisible)
 			if (XPlusQuadTree != nullptr && XPlusQuadTree->isValid())
 			{
 				ChunkPos posGreaterChunkOnAdjacentQuadrant(0, posGreaterLodChunkContainingThisOne.getSlotPosZ(), posGreaterLodChunkContainingThisOne.getLod());
-				chunk = XPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
+				chunk = XPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant, getOwnQuadType());
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_RIGHT;
 			}
 		}
 
 		// check up chunk
-		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZMinusChunk);
+		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZMinusChunk, getOwnQuadType());
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_BOTTOM;
 
@@ -520,7 +567,7 @@ void Chunk::update(bool isVisible)
 			if (ZMinusQuadTree != nullptr && ZMinusQuadTree->isValid())
 			{
 				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterLodChunkContainingThisOne.getSlotPosX(), numChunksPerSideAtGreaterLod - 1, posGreaterLodChunkContainingThisOne.getLod());
-				chunk = ZMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
+				chunk = ZMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant, getOwnQuadType());
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_BOTTOM;
 			}
@@ -535,7 +582,7 @@ void Chunk::update(bool isVisible)
 		//  
 		
 		// check left chunk
-		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XMinusChunk);
+		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XMinusChunk, getOwnQuadType());
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_LEFT;
 
@@ -547,14 +594,14 @@ void Chunk::update(bool isVisible)
 			if (XMinusQuadTree != nullptr && XMinusQuadTree->isValid())
 			{
 				ChunkPos posGreaterChunkOnAdjacentQuadrant(numChunksPerSideAtGreaterLod - 1, posGreaterLodChunkContainingThisOne.getSlotPosZ(), posGreaterLodChunkContainingThisOne.getLod());
-				chunk = XMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
+				chunk = XMinusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant, getOwnQuadType());
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_LEFT;
 			}
 		}
 
 		// check down chunk
-		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZPlusChunk);
+		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZPlusChunk, getOwnQuadType());
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_TOP;
 
@@ -566,7 +613,7 @@ void Chunk::update(bool isVisible)
 			if (ZPlusQuadTree != nullptr && ZPlusQuadTree->isValid())
 			{
 				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterLodChunkContainingThisOne.getSlotPosX(), 0, posGreaterLodChunkContainingThisOne.getLod());
-				chunk = ZPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
+				chunk = ZPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant, getOwnQuadType());
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_TOP;
 			}
@@ -581,7 +628,7 @@ void Chunk::update(bool isVisible)
 		//  
 		
 		// check right chunk
-		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XPlusChunk);
+		Chunk* chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::XPlusChunk, getOwnQuadType());
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_RIGHT;
 
@@ -593,14 +640,14 @@ void Chunk::update(bool isVisible)
 			if (XPlusQuadTree != nullptr && XPlusQuadTree->isValid())
 			{
 				ChunkPos posGreaterChunkOnAdjacentQuadrant(0, posGreaterLodChunkContainingThisOne.getSlotPosZ(), posGreaterLodChunkContainingThisOne.getLod());
-				chunk = XPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
+				chunk = XPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant, getOwnQuadType());
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_RIGHT;
 			}
 		}
 
 		// check down chunk
-		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZPlusChunk);
+		chunk = m_quadTree->getChunkAt(posGreaterLodChunkContainingThisOne, Chunk::DirectionSlot::ZPlusChunk, getOwnQuadType());
 		if (chunk != nullptr && chunk->isActive())
 			seams |= SEAM_TOP;
 
@@ -612,7 +659,7 @@ void Chunk::update(bool isVisible)
 			if (ZPlusQuadTree != nullptr && ZPlusQuadTree->isValid())
 			{
 				ChunkPos posGreaterChunkOnAdjacentQuadrant(posGreaterLodChunkContainingThisOne.getSlotPosX(), 0, posGreaterLodChunkContainingThisOne.getLod());
-				chunk = ZPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant);
+				chunk = ZPlusQuadTree->getChunkAt(posGreaterChunkOnAdjacentQuadrant, getOwnQuadType());
 				if (chunk != nullptr && chunk->isActive())
 					seams |= SEAM_TOP;
 			}
@@ -623,9 +670,9 @@ void Chunk::update(bool isVisible)
 
 	setMesh(m_viewer->getMeshCache()->getMesh(seams, m_lod));
 	
-	checkAndInitSeaVisual(m_seaMat);
-	if (m_containsSea)
-		setSeaMesh(m_viewer->getMeshCache()->getMesh(seams, m_lod));
+	//checkAndInitSeaVisual(m_seaMat);
+	//if (m_containsSea)
+	//	setSeaMesh(m_viewer->getMeshCache()->getMesh(seams, m_lod));
 	
 	applyDebugMesh();
 	applyAABB();
@@ -647,8 +694,8 @@ void Chunk::refresh(bool isVisible)
 	//m_aabb.position.z = 0;
 
 	setMesh(nullptr);
-	setSeaMesh(nullptr);
-	m_quadTree->addChunkUpdate(this);
+	//setSeaMesh(nullptr);
+	m_quadTree->addChunkUpdate(this, getOwnQuadType());
 }
 
 void Chunk::heightsChanged(void)
@@ -665,45 +712,20 @@ void Chunk::setActive(bool b)
 	if (!b)
 	{
 		m_justJoined = false;
-		if (m_viewer->m_cameraChunk == this)
-			m_viewer->m_cameraChunk = nullptr;
-		m_isCameraVerticalOnChunk = false;
-		m_lastCameraPosInMap = Vector3(0, 0, 0);
-	}
-}
-
-void Chunk::setCameraPosInMap(Vector3 cameraPosInMap)
-{
-	if (!isActive())
-	{
-		m_lastCameraPosInMap = Vector3(0, 0, 0);
-		if (m_viewer->m_cameraChunk == this)
-			m_viewer->m_cameraChunk = nullptr;
-		m_isCameraVerticalOnChunk = false;
-	}
-	else
-	{
-		m_lastCameraPosInMap = cameraPosInMap;
-
-		if (cameraPosInMap.x >= m_originXInWUsGlobal && cameraPosInMap.x < m_originXInWUsGlobal + m_chunkSizeInWUs
-			&& cameraPosInMap.z >= m_originZInWUsGlobal && cameraPosInMap.z < m_originZInWUsGlobal + m_chunkSizeInWUs)
-			m_isCameraVerticalOnChunk = true;
-		else
+		if (m_chunkType == ChunkType::Terrain)
 		{
-			if (m_viewer->m_cameraChunk == this)
-				m_viewer->m_cameraChunk = nullptr;
-			m_isCameraVerticalOnChunk = false;
+			if (m_viewer->cameraChunk() == this)
+				m_viewer->cameraChunk(nullptr);
 		}
+		m_isCameraVerticalOnChunk = false;
+		m_lastCameraPosInMap = Vector3(0, 0, 0);
 	}
-
-	if (m_isCameraVerticalOnChunk)
-		m_viewer->setCameraChunk(this, m_quadTree);
 }
 
-void Chunk::getCameraPosInMap(Vector3& lastCameraPosInMap) const
-{
-	lastCameraPosInMap = m_lastCameraPosInMap;
-}
+//void Chunk::getCameraPosInMap(Vector3& lastCameraPosInMap) const
+//{
+//	lastCameraPosInMap = m_lastCameraPosInMap;
+//}
 
 Transform3D Chunk::getGlobalTransform(void)
 {
@@ -737,58 +759,6 @@ void Chunk::applyDebugMesh()
 {
 }
 
-void Chunk::getGlobalCoordAABB(godot::AABB& aabb, int firstWorldVertCol, int lastWorldVertCol, int firstWorldVertRow, int lastWorldVertRow, int step)
-{
-	//TheWorld_Utils::GuardProfiler profiler(std::string("getGlobalCoordAABB 1 ") + __FUNCTION__, "ALL");
-
-	int numWorldVerticesPerSize = m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize();
-	int idxFirstColFirstRowWorldVert = numWorldVerticesPerSize * firstWorldVertRow + firstWorldVertCol;
-	int idxLastColFirstRowWorldVert = numWorldVerticesPerSize * firstWorldVertRow + lastWorldVertCol;
-	int idxFirstColLastRowWorldVert = numWorldVerticesPerSize * lastWorldVertRow + firstWorldVertCol;
-	int idxLastColLastRowWorldVert = numWorldVerticesPerSize * lastWorldVertRow + lastWorldVertCol;
-
-	godot::AABB emptyAABB;
-	Quad* root = m_quadTree->getTerrainQuadRoot();
-	Quad* quad = getQuad();
-	if (root == quad)
-	{
-		aabb = m_quadTree->getQuadrant()->getGlobalAABB();
-		if (aabb != emptyAABB)
-			return;
-	}
-
-	// altitudes
-	float minHeight = 0, maxHeight = 0;
-	bool firstTime = true;
-	for (int idxRow = 0; idxRow < lastWorldVertRow - firstWorldVertRow + 1; idxRow += step)
-	{
-		for (int idxVert = idxFirstColFirstRowWorldVert + idxRow * numWorldVerticesPerSize; idxVert < idxLastColFirstRowWorldVert + idxRow * numWorldVerticesPerSize + 1; idxVert += step)
-		{
-			if (firstTime)
-			{
-				minHeight = maxHeight = m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert);
-				firstTime = false;
-			}
-			else
-			{
-				minHeight = TheWorld_Viewer_Utils::Utils::min2(minHeight, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
-				maxHeight = TheWorld_Viewer_Utils::Utils::max2(maxHeight, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
-			}
-		}
-	}
-
-	godot::Vector3 startPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxFirstColFirstRowWorldVert), minHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxFirstColFirstRowWorldVert));
-	//godot::Vector3 endPosition(m_worldVertices[idxLastColLastRowWorldVert].posX() - m_worldVertices[idxFirstColFirstRowWorldVert].posX(), maxHeigth, m_worldVertices[idxLastColLastRowWorldVert].posZ() - m_worldVertices[idxFirstColFirstRowWorldVert].posZ());
-	godot::Vector3 endPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxLastColLastRowWorldVert), maxHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxLastColLastRowWorldVert));
-
-	godot::Vector3 size = endPosition - startPosition;
-	//size.x += 1;
-	//size.z += 1;
-
-	aabb.set_position(startPosition);
-	aabb.set_size(size);
-}
-
 void Chunk::setDistanceFromCamera(float distanceFromCamera)
 {
 	m_distanceFromCamera = distanceFromCamera;
@@ -801,22 +771,25 @@ float Chunk::getDistanceFromCamera(void) const
 
 void Chunk::checkMouseHit(void)
 {
-	godot::Vector3 mouseHit = m_viewer->getMouseHitInMap();
-	if (checkHit(mouseHit))
+	if (m_chunkType == ChunkType::Terrain)
 	{
-		//m_viewer->setMouseHitQuadTree(m_quadTree);
-		m_viewer->setMouseHitChunk(this);
-	}
+		godot::Vector3 mouseHit = m_viewer->getMouseHitInMap();
+		if (checkHit(mouseHit))
+		{
+			//m_viewer->setMouseHitQuadTree(m_quadTree);
+			m_viewer->setMouseHitChunk(this);
+		}
 
-	//godot::Point2 origOfChunk(getLowerXInWUsGlobal(), getLowerZInWUsGlobal());
-	//godot::Point2 size(getChunkSizeInWUs(), getChunkSizeInWUs());
-	////godot::Rect2 rect(origOfChunk, size);
-	//if (mouseHit.x >= origOfChunk.x && mouseHit.x <= origOfChunk.x + size.x && mouseHit.z >= origOfChunk.y && mouseHit.z <= origOfChunk.y + size.y)
-	////if (rect.has_point(godot::Point2(mouseHit.x, mouseHit.z)))
-	//{
-	//	m_viewer->setMouseHitQuadTree(m_quadTree);
-	//	m_viewer->setMouseHitChunk(this);
-	//}
+		//godot::Point2 origOfChunk(getLowerXInWUsGlobal(), getLowerZInWUsGlobal());
+		//godot::Point2 size(getChunkSizeInWUs(), getChunkSizeInWUs());
+		////godot::Rect2 rect(origOfChunk, size);
+		//if (mouseHit.x >= origOfChunk.x && mouseHit.x <= origOfChunk.x + size.x && mouseHit.z >= origOfChunk.y && mouseHit.z <= origOfChunk.y + size.y)
+		////if (rect.has_point(godot::Point2(mouseHit.x, mouseHit.z)))
+		//{
+		//	m_viewer->setMouseHitQuadTree(m_quadTree);
+		//	m_viewer->setMouseHitChunk(this);
+		//}
+	}
 }
 
 bool Chunk::checkHit(godot::Vector3 hit)
@@ -868,8 +841,8 @@ void Chunk::dump(void)
 	globals->debugPrint(String("t: ") + getGlobalTransformApplied() + String(" - t (debug): ") + getDebugGlobalTransformApplied());
 }
 
-TerrainChunk::TerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat, godot::Ref<godot::Material>& seaMat)
-	: Chunk(Chunk::ChunkType::Terrain, slotPosX, slotPosZ, lod, viewer, quadTree, mat, seaMat)
+TerrainChunk::TerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat /*, godot::Ref<godot::Material>& seaMat*/)
+	: Chunk(Chunk::ChunkType::Terrain, slotPosX, slotPosZ, lod, viewer, quadTree, mat /*, seaMat*/)
 {
 }
 
@@ -877,8 +850,72 @@ TerrainChunk::~TerrainChunk()
 {
 }
 
-DebugTerrainChunk::DebugTerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat, godot::Ref<godot::Material>& seaMat)
-	: TerrainChunk(slotPosX, slotPosZ, lod, viewer, quadTree, mat, seaMat)
+void TerrainChunk::checkAndCalcAABB()
+{
+	AABB aabb;
+	if (m_aabb == aabb && m_quadTree->statusInitialized())
+	{
+		getGlobalCoordAABB(m_aabb, m_firstWorldVertCol, m_lastWorldVertCol, m_firstWorldVertRow, m_lastWorldVertRow, m_gridStepInGridInWGVs);
+		m_globalCoordAABB = m_aabb;
+		m_aabb.position.x = 0;	// AABB is relative to the chunk
+		m_aabb.position.z = 0;
+	}
+}
+
+void TerrainChunk::getGlobalCoordAABB(godot::AABB& aabb, int firstWorldVertCol, int lastWorldVertCol, int firstWorldVertRow, int lastWorldVertRow, int step)
+{
+	//TheWorld_Utils::GuardProfiler profiler(std::string("getGlobalCoordAABB 1 ") + __FUNCTION__, "ALL");
+
+	int numWorldVerticesPerSize = m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize();
+	int idxFirstColFirstRowWorldVert = numWorldVerticesPerSize * firstWorldVertRow + firstWorldVertCol;
+	int idxLastColFirstRowWorldVert = numWorldVerticesPerSize * firstWorldVertRow + lastWorldVertCol;
+	int idxFirstColLastRowWorldVert = numWorldVerticesPerSize * lastWorldVertRow + firstWorldVertCol;
+	int idxLastColLastRowWorldVert = numWorldVerticesPerSize * lastWorldVertRow + lastWorldVertCol;
+
+	godot::AABB emptyAABB;
+	Quad* root = m_quadTree->getQuadRoot(getOwnQuadType());
+	Quad* quad = getQuad();
+	if (root == quad)
+	{
+		aabb = m_quadTree->getQuadrant()->getGlobalAABB();
+		if (aabb != emptyAABB)
+			return;
+	}
+
+	// altitudes
+	float minHeight = 0, maxHeight = 0;
+	bool firstTime = true;
+	for (int idxRow = 0; idxRow < lastWorldVertRow - firstWorldVertRow + 1; idxRow += step)
+	{
+		for (int idxVert = idxFirstColFirstRowWorldVert + idxRow * numWorldVerticesPerSize; idxVert < idxLastColFirstRowWorldVert + idxRow * numWorldVerticesPerSize + 1; idxVert += step)
+		{
+			if (firstTime)
+			{
+				minHeight = maxHeight = m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert);
+				firstTime = false;
+			}
+			else
+			{
+				minHeight = TheWorld_Viewer_Utils::Utils::min2(minHeight, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
+				maxHeight = TheWorld_Viewer_Utils::Utils::max2(maxHeight, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
+			}
+		}
+	}
+
+	godot::Vector3 startPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxFirstColFirstRowWorldVert), minHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxFirstColFirstRowWorldVert));
+	//godot::Vector3 endPosition(m_worldVertices[idxLastColLastRowWorldVert].posX() - m_worldVertices[idxFirstColFirstRowWorldVert].posX(), maxHeigth, m_worldVertices[idxLastColLastRowWorldVert].posZ() - m_worldVertices[idxFirstColFirstRowWorldVert].posZ());
+	godot::Vector3 endPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxLastColLastRowWorldVert), maxHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxLastColLastRowWorldVert));
+
+	godot::Vector3 size = endPosition - startPosition;
+	//size.x += 1;
+	//size.z += 1;
+
+	aabb.set_position(startPosition);
+	aabb.set_size(size);
+}
+
+DebugTerrainChunk::DebugTerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat /*, godot::Ref<godot::Material>& seaMat*/)
+	: TerrainChunk(slotPosX, slotPosZ, lod, viewer, quadTree, mat /*, seaMat*/)
 {
 	m_debugMeshInstanceRID = RID();
 	m_debugMeshRID = RID();
@@ -1354,13 +1391,29 @@ void DebugTerrainChunk::dump(void)
 		+ (m_isCameraVerticalOnChunk ? " - CAMERA" : ""));
 }
 
-SeaChunk::SeaChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat, godot::Ref<godot::Material>& seaMat)
-	: Chunk(Chunk::ChunkType::Sea, slotPosX, slotPosZ, lod, viewer, quadTree, mat, seaMat)
+SeaChunk::SeaChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat /*, godot::Ref<godot::Material>& seaMat*/)
+	: Chunk(Chunk::ChunkType::Sea, slotPosX, slotPosZ, lod, viewer, quadTree, mat /*, seaMat*/)
 {
 }
 
 SeaChunk::~SeaChunk()
 {
+}
+
+void SeaChunk::checkAndCalcAABB()
+{
+	AABB aabb;
+	if (m_aabb == aabb && m_quadTree->statusInitialized())
+	{
+		godot::Vector3 startPosition(m_originXInWUsGlobal, THEWORLD_SEA_LEVEL - 20, m_originZInWUsGlobal);
+		godot::Vector3 endPosition(m_originXInWUsGlobal + m_chunkSizeInWUs, THEWORLD_SEA_LEVEL + 20, m_originZInWUsGlobal + m_chunkSizeInWUs);
+		godot::Vector3 size = endPosition - startPosition;
+		m_aabb.set_position(startPosition);
+		m_aabb.set_size(size);
+		m_globalCoordAABB = m_aabb;
+		m_aabb.position.x = 0;	// AABB is relative to the chunk
+		m_aabb.position.z = 0;
+	}
 }
 
 //void GDN_Chunk_MeshInstance::_register_methods()

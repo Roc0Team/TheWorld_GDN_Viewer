@@ -60,6 +60,7 @@ namespace godot
 	{
 		//	https://gist.github.com/bnolan/01a7d240774f1e02056d6607e5b621da
 
+		size_t numVertices = (size_t)pow(numVerticesPerChuckSide + 1, 2);
 		// Determines the vertices in a flat mesh at the required lod using World Grid vertices: coordinates are expressed in WUs and are realtive to the lower vertex of the chunk
 		PackedVector3Array positions;
 		PackedColorArray colors;
@@ -67,8 +68,8 @@ namespace godot
 		//Color initialVertexColor = GDN_TheWorld_Globals::g_color_pink_amaranth;
 		//strideInWUs = (numVerticesPerChuckSide * strideInWUs) / 4;	// DEBUGRIC
 		//numVerticesPerChuckSide = 4;								// DEBUGRIC
-		positions.resize((int)pow(numVerticesPerChuckSide + 1, 2));
-		colors.resize((int)pow(numVerticesPerChuckSide + 1, 2));
+		positions.resize(numVertices);
+		colors.resize(numVertices);
 		int pos = 0;
 		for (float z = 0; z < numVerticesPerChuckSide + 1; z++)
 			for (float x = 0; x < numVerticesPerChuckSide + 1; x++)
@@ -78,6 +79,10 @@ namespace godot
 				colors.set(pos, initialVertexColor);
 				pos++;
 			}
+
+		PackedFloat32Array tangents;
+		tangents.resize(numVertices * 4);
+		tangents.fill(0.0f);
 		
 		// Preparing array of indices releate to vertex array to form the triangles of the mesh: a tringle every three indices
 		PackedInt32Array indices;
@@ -123,6 +128,7 @@ namespace godot
 		arrays[ArrayMesh::ARRAY_VERTEX] = positions;
 		arrays[ArrayMesh::ARRAY_COLOR] = colors;
 		arrays[ArrayMesh::ARRAY_INDEX] = indices;
+		arrays[ArrayMesh::ARRAY_TANGENT] = tangents;
 
 		//m_viewer->getMainProcessingMutex().lock();
 		Ref<ArrayMesh> mesh = memnew(ArrayMesh);

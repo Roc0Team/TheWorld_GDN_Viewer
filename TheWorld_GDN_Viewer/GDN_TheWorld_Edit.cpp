@@ -2824,13 +2824,13 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	//Chunk::HeightsChangedChunkAction action(m_viewer->is_visible_in_tree());
 	Chunk::HeightsChangedChunkAction action(true);
 	m_viewer->m_refreshRequired = true;
-	quadTreeSel->ForAllChunk(action);
+	quadTreeSel->ForAllChunk(action, QuadType::NotSet);
 
 	// 9. update quadrant flags
 	quadTreeSel->getQuadrant()->setEmpty(false);
 	quadTreeSel->getQuadrant()->setColorsUpdated(true);
 	quadTreeSel->materialParamsNeedReset(true);
-	quadTreeSel->colliderNeedReset(true);
+	quadTreeSel->colliderNeedReset(true, QuadType::NotSet);
 	quadTreeSel->getQuadrant()->northQuadrantData().initialized(false);
 	quadTreeSel->getQuadrant()->southQuadrantData().initialized(false);
 	quadTreeSel->getQuadrant()->westQuadrantData().initialized(false);
@@ -3325,10 +3325,10 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 		//Chunk::HeightsChangedChunkAction action(m_viewer->is_visible_in_tree());
 		Chunk::HeightsChangedChunkAction action(true);
 		m_viewer->m_refreshRequired = true;
-		quadTree->ForAllChunk(action);
+		quadTree->ForAllChunk(action, QuadType::NotSet);
 
 		quadTree->materialParamsNeedReset(true);
-		quadTree->colliderNeedReset(true);
+		quadTree->colliderNeedReset(true, QuadType::NotSet);
 	}
 }
 

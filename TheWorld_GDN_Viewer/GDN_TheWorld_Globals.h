@@ -669,6 +669,11 @@ namespace godot
 			return m_paramShowSea;
 		}
 		void setParamShowSea(bool b);
+		bool getParamShowSeaChanged(void) const
+		{
+			return m_paramShowSeaChanged;
+		}
+		void setParamShowSeaChanged(bool b);
 		bool getParamShowChunks(void) const
 		{
 			return m_paramShowChunks;
@@ -754,6 +759,7 @@ namespace godot
 		int64_t m_paramTextureOptimizationResolutionIncrement = THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT;
 		int64_t m_paramOriginShiftFactor = THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR;
 		bool m_paramShowSea = THEWORLD_DEFAULT_SHOW_SEA;
+		bool m_paramShowSeaChanged = false;
 		bool m_paramShowChunks = THEWORLD_DEFAULT_SHOW_CHUNKS;
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 	};

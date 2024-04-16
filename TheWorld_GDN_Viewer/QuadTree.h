@@ -24,270 +24,14 @@ namespace godot
 	class GDN_TheWorld_Viewer;
 	class GDN_TheWorld_Quadrant;
 	class GDN_TheWorld_MapModder;
-	//class QuadTree;
-	//class TerrainEdit;
 
-	/*
-	class QuadrantPos
+	enum class QuadType
 	{
-	public:
-		enum class DirectionSlot
-		{
-			Center = -1
-
-			//
-			// - o
-			//
-			, XMinus = 0
-			, WestXMinus = 0
-
-			//
-			//   o -
-			//
-			, XPlus = 1
-			, EastXPlus = 1
-
-			//   -
-			//   o
-			//
-			, ZMinus = 2
-			, NorthZMinus = 2
-
-			//
-			//   o
-			//   -
-			, ZPlus = 3
-			, SouthZPlus = 3
-
-			// - 
-			//   o
-			//   
-			, ZMinusXMinus = 4
-			, NorthwestZMinusXMinus = 4
-
-			//     - 
-			//   o
-			//   
-			, ZMinusXPlus = 5
-			, NortheastZMinusXPlus = 5
-
-			//     
-			//   o
-			// -    
-			, ZPlusXMinus = 6
-			, SouthwestZPlusXMinus = 6
-
-			//      
-			//   o
-			//     -
-			, ZPlusXPlus = 7
-			, SoutheastZPlusXPlus = 7
-		};
-
-		QuadrantPos()
-		{
-			reset();
-			//m_lowerXGridVertex = m_lowerZGridVertex = m_gridStepInWU = 0;
-			//m_numVerticesPerSize = m_level = 0;
-			//m_sizeInWU = 0;
-			//m_initialized = false;
-		}
-
-		void reset(void)
-		{
-			m_lowerXGridVertex = m_lowerZGridVertex = m_gridStepInWU = 0;
-			m_numVerticesPerSize = m_level = 0;
-			m_sizeInWU = 0;
-			m_tag.clear();
-			m_name.clear();
-			m_initialized = false;
-		}
-
-		bool empty(void) const
-		{
-			return m_initialized == false;
-		}
-
-		QuadrantPos(const QuadrantPos& quadrantPos)
-		{
-			*this = quadrantPos;
-			//m_lowerXGridVertex = quadrantPos.m_lowerXGridVertex;
-			//m_lowerZGridVertex = quadrantPos.m_lowerZGridVertex;
-			//m_numVerticesPerSize = quadrantPos.m_numVerticesPerSize;
-			//m_level = quadrantPos.m_level;
-			//m_gridStepInWU = quadrantPos.m_gridStepInWU;
-			//m_sizeInWU = quadrantPos.m_sizeInWU;
-			//m_tag = quadrantPos.m_tag;
-			//m_name = quadrantPos.m_name;
-			//m_initialized = true;
-		}
-
-		// x, z pos a point contained in the quadrant in global coord: calculating starting point of the quadrant in global coord
-		QuadrantPos(float x, float z, int level, int numVerticesPerSize, float gridStepInWU)
-		{
-			float gridSizeInWU = (numVerticesPerSize - 1) * gridStepInWU;
-			//float f = x / gridSizeInWU;
-			//f = floor(f);
-			//f = f * gridSizeInWU;
-			m_lowerXGridVertex = floor(x / gridSizeInWU) * gridSizeInWU;
-			m_lowerZGridVertex = floor(z / gridSizeInWU) * gridSizeInWU;
-			m_numVerticesPerSize = numVerticesPerSize;
-			m_level = level;
-			m_gridStepInWU = gridStepInWU;
-			m_sizeInWU = (m_numVerticesPerSize - 1) * m_gridStepInWU;
-			m_initialized = true;
-			resetName();
-		}
-
-		QuadrantPos(int x, int z, int level, int numVerticesPerSize, float gridStepInWU)
-		{
-			float gridSizeInWU = (numVerticesPerSize - 1) * gridStepInWU;
-			m_lowerXGridVertex = x * gridSizeInWU;
-			m_lowerZGridVertex = z * gridSizeInWU;
-			m_numVerticesPerSize = numVerticesPerSize;
-			m_level = level;
-			m_gridStepInWU = gridStepInWU;
-			m_sizeInWU = (m_numVerticesPerSize - 1) * m_gridStepInWU;
-			m_initialized = true;
-			resetName();
-		}
-
-		bool operator<(const QuadrantPos& quadrantPos) const
-		{
-			assert(m_initialized == true);
-			assert(quadrantPos.m_initialized == true);
-			assert(m_level == quadrantPos.m_level);
-			if (m_level < quadrantPos.m_level)
-				return true;
-			if (m_level > quadrantPos.m_level)
-				return false;
-			// m_level == quadrantPos.m_level
-
-			assert(m_sizeInWU == quadrantPos.m_sizeInWU);
-			if (m_sizeInWU < quadrantPos.m_sizeInWU)
-				return true;
-			if (m_sizeInWU > quadrantPos.m_sizeInWU)
-				return false;
-			// m_sizeInWU == quadrantPos.m_sizeInWU
-
-			if (m_lowerZGridVertex < quadrantPos.m_lowerZGridVertex)
-				return true;
-			if (m_lowerZGridVertex > quadrantPos.m_lowerZGridVertex)
-				return false;
-			// m_lowerZGridVertex == quadrantPos.m_lowerZGridVertex
-
-			return m_lowerXGridVertex < quadrantPos.m_lowerXGridVertex;
-		}
-
-		bool operator==(const QuadrantPos& quadrantPos) const
-		{
-			if (m_lowerXGridVertex == quadrantPos.m_lowerXGridVertex
-				&& m_lowerZGridVertex == quadrantPos.m_lowerZGridVertex
-				&& m_numVerticesPerSize == quadrantPos.m_numVerticesPerSize
-				&& m_level == quadrantPos.m_level
-				&& m_gridStepInWU == quadrantPos.m_gridStepInWU)
-				return true;
-			else
-				return false;
-		}
-
-		void operator=(const QuadrantPos& quadrantPos)
-		{
-			m_lowerXGridVertex = quadrantPos.m_lowerXGridVertex;
-			m_lowerZGridVertex = quadrantPos.m_lowerZGridVertex;
-			m_numVerticesPerSize = quadrantPos.m_numVerticesPerSize;
-			m_level = quadrantPos.m_level;
-			m_gridStepInWU = quadrantPos.m_gridStepInWU;
-			m_sizeInWU = quadrantPos.m_sizeInWU;
-			m_tag = quadrantPos.m_tag;
-			m_name = quadrantPos.m_name;
-			//m_initialized = true;
-			m_initialized = quadrantPos.m_initialized;
-			//return *this;
-		}
-
-		std::string getIdStr(void)
-		{
-			return "ST" + to_string(m_gridStepInWU) + "_SZ" + to_string(m_numVerticesPerSize) + "_L" + to_string(m_level) + "_X" + to_string(m_lowerXGridVertex) + "_Z" + to_string(m_lowerZGridVertex);
-		}
-
-		float getLowerXGridVertex() const
-		{
-			return m_lowerXGridVertex; 
-		};
-		float getLowerZGridVertex() const
-		{
-			return m_lowerZGridVertex; 
-		};
-		int getNumVerticesPerSize() const
-		{
-			return m_numVerticesPerSize;
-		};
-		int getLevel() const
-		{
-			return m_level;
-		};
-		float getGridStepInWU()  const
-		{
-			return m_gridStepInWU; 
-		};
-		float getSizeInWU() const
-		{
-			return m_sizeInWU; 
-		};
-		int getIndexPosX(void) const
-		{
-			float gridSizeInWU = (m_numVerticesPerSize - 1) * m_gridStepInWU;
-			return (int)(m_lowerXGridVertex / gridSizeInWU);
-		}
-		int getIndexPosZ(void) const
-		{
-			float gridSizeInWU = (m_numVerticesPerSize - 1) * m_gridStepInWU;
-			return (int)(m_lowerZGridVertex / gridSizeInWU);
-		}
-		_declspec(dllexport) QuadrantPos getQuadrantPos(enum class DirectionSlot dir, int numSlot = 1);
-		void setTag(std::string tag)
-		{
-			m_tag = tag;
-		}
-		std::string getTag(void)
-		{
-			return m_tag;
-		}
-		_declspec(dllexport) size_t distanceInPerimeter(QuadrantPos& q) const;
-		bool isInitialized(void) const
-		{
-			return m_initialized;
-		}
-
-		std::string getName(void)
-		{
-			return m_name;
-		}
-
-	private:
-		void resetName(void)
-		{
-			float gridSizeInWU = (m_numVerticesPerSize - 1) * m_gridStepInWU;
-			//m_name = "Quadrant-" + std::to_string((int)(m_lowerXGridVertex / gridSizeInWU)) + "-" + std::to_string((int)(m_lowerZGridVertex / gridSizeInWU));
-			m_name = "Quadrant " + std::to_string((int)(m_lowerXGridVertex / gridSizeInWU)) + "," + std::to_string((int)(m_lowerZGridVertex / gridSizeInWU));
-		}
-
-	private:
-		// ID
-		float m_lowerXGridVertex;	// starting point in the X axis of the quadrant in global coord
-		float m_lowerZGridVertex;	// starting point in the Z axis of the quadrant in global coord
-		int m_numVerticesPerSize;
-		int m_level;
-		float m_gridStepInWU;
-		// ID
-
-		bool m_initialized;
-
-		float m_sizeInWU;
-		std::string m_tag;
-		std::string m_name;
-	};*/
+		NotSet = -1
+		, Terrain = 0
+		, Sea = 1
+		, NotUsed = 2
+	};
 
 	class Quadrant
 	{
@@ -383,7 +127,7 @@ namespace godot
 			return m_quadrantPos;
 		}
 
-		bool quadrantAtMinimumLod(void);
+		bool quadrantAtMinLod(enum class QuadType type);
 
 		//enum class MeshResolutionLevel getMeshResolutionLevel(void);
 		//enum class TexResolutionLevel getTexResolutionLevel(void);
@@ -991,7 +735,7 @@ namespace godot
 		{
 			m_materialParamsNeedReset = b;
 		}
-		void resetMaterialParams(bool& lastProcessExecutionInterrupted, LookDev lookdev);
+		void resetMaterialParams(enum class QuadType type, bool& lastProcessExecutionInterrupted, LookDev lookdev);
 		bool materialParamsNeedUpdateTransformChanged(void) const
 		{
 			return m_materialParamsNeedUpdateTransformChanged;
@@ -1008,7 +752,7 @@ namespace godot
 			else
 				m_materialParamsNeedUpdateTransformChanged = false;
 		}
-		void updateMaterialParams(LookDev lookdev);
+		void updateMaterialParams(enum class QuadType type, LookDev lookdev);
 		enum class ImageType
 		{
 			heightmap = 0
@@ -1020,8 +764,9 @@ namespace godot
 		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel, size_t resolution);
 		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel, size_t resolution);
 		godot::Ref<godot::Image> resizeImage(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, size_t newResolution, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel);
-		godot::Ref<godot::Material> getRegularMaterial(bool reload = false);
-		void releaseRegularMaterial(void);
+		godot::Ref<godot::Material> getRegularSeaMaterial(bool reload = false);
+		godot::Ref<godot::Material> getRegularTerrainMaterial(bool reload = false);
+		void releaseRegularTerrainMaterial(void);
 		godot::Ref<godot::Material> getLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, bool reload = false);
 		void releaseLookDevMaterial(void);
 		std::map<int, godot::Ref<godot::ShaderMaterial>>& getLookDevChunkLodMaterials(void);
@@ -1061,8 +806,6 @@ namespace godot
 		static godot::Ref<godot::Image> createGloablmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateColormapImage();
 		static godot::Ref<godot::Image> createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution);
-
-		static godot::Ref<godot::ShaderMaterial> getSeaMat(void);
 
 		godot::Ref<godot::Image> getHeightmapImage(void)
 		{
@@ -1152,7 +895,9 @@ namespace godot
 		GDN_TheWorld_Viewer* m_viewer;
 		QuadTree* m_quadTree;
 
-		godot::Ref<godot::ShaderMaterial> m_regularMaterial;
+		godot::Ref<godot::ShaderMaterial> m_regularSeaMaterial;
+
+		godot::Ref<godot::ShaderMaterial> m_regularTerrainMaterial;
 		godot::Ref<godot::ShaderMaterial> m_lookDevMaterial;
 		//static godot::SubViewport* g_lookDevSubviewport;
 		static GDN_TheWorld_ShaderTexture* g_lookDevShaderTexture;
@@ -1200,7 +945,7 @@ namespace godot
 	{
 	public:
 
-		Quad(enum class Chunk::ChunkType chunkType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
+		Quad(enum class QuadType chunkType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 		~Quad();
 
 		int slotPosX() const
@@ -1281,7 +1026,7 @@ namespace godot
 
 
 	private:
-		enum class Chunk::ChunkType m_chunkType = Chunk::ChunkType::NotSet;
+		enum class QuadType m_quadType = QuadType::NotSet;
 		enum PosInQuad m_posInQuad;
 		std::array<std::unique_ptr<Quad>, 4> m_children;
 		Chunk* m_chunk;
@@ -1312,13 +1057,34 @@ namespace godot
 
 	class QuadTree
 	{
+	private:
+		class Quads
+		{
+		public:
+			Quads(void)
+			{
+			}
+			~Quads(void)
+			{
+			}
+
+		public:
+			std::unique_ptr<Quad> m_quadRoot;
+			Chunk::MapChunk m_chunks;
+			std::vector<Chunk*> m_updatedChunks;
+			bool m_colliderNeedReset = false;
+			bool m_hitByMouse = false;
+		};
+
 	public:
 		QuadTree(GDN_TheWorld_Viewer* viewer, TheWorld_Utils::QuadrantPos quadrantId);
 		~QuadTree();
 
+		static std::string quadTypeToString(QuadType type);
 		void onGlobalTransformChanged(void);
 
 		void init(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced);
+		void checkAndInitQuads(void);
 		void refreshTerrainData(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrain);
 		enum class UpdateStage
 		{
@@ -1326,20 +1092,21 @@ namespace godot
 			Stage2 = 2,
 			Stage3 = 3
 		};
-		void checkMouseHit();
+		void checkMouseHitOnTerrain(void);
+		void checkMouseHit(enum class QuadType type);
 		void internalCheckMouseHit(Quad* quad);
-		void update(Vector3 cameraPosInMap, enum class UpdateStage updateStage, int& numSplitRequired);
-		Chunk* getChunkAt(Chunk::ChunkPos pos, enum class Chunk::DirectionSlot dir);
-		Chunk* getChunkAt(Chunk::ChunkPos pos);
+		void update(Vector3 cameraPosInMap, enum class UpdateStage updateStage, int& numSplitRequired, enum class QuadType type);
+		Chunk* getChunkAt(Chunk::ChunkPos pos, enum class Chunk::DirectionSlot dir, enum class QuadType type);
+		Chunk* getChunkAt(Chunk::ChunkPos pos, enum class QuadType type);
 		bool isChunkOnBorderOfQuadrant(Chunk::ChunkPos pos, TheWorld_Utils::QuadrantPos& XMinusQuadrantPos, TheWorld_Utils::QuadrantPos& XPlusQuadrantPos, TheWorld_Utils::QuadrantPos& ZMinusQuadrantPos, TheWorld_Utils::QuadrantPos& ZPlusQuadrantPos);
-		void addChunk(Chunk* chunk);
-		void addChunkUpdate(Chunk* chunk);
-		void clearChunkUpdate(void);
-		std::vector<Chunk*>& getTerrainChunkUpdate(void)
+		void addChunk(Chunk* chunk, enum class QuadType type);
+		void addChunkUpdate(Chunk* chunk, enum class QuadType type);
+		void clearChunkUpdate(enum class QuadType type);
+		std::vector<Chunk*>& getUpdatedChunks(enum class QuadType type)
 		{
-			return m_vectTerrainChunkUpdate;
+			return m_quads[type]->m_updatedChunks;
 		}
-		void ForAllChunk(Chunk::ChunkAction& chunkAction);
+		void ForAllChunk(Chunk::ChunkAction& chunkAction, enum class QuadType type);
 		void dump(void);
 		int getNumSplits(void) 
 		{
@@ -1357,7 +1124,7 @@ namespace godot
 				return 0;
 			return m_numJoins;
 		}
-		int getNumChunks(bool onlyVisible)
+		int getNumChunks(bool onlyVisible, enum class QuadType type)
 		{
 			if (!isValid())
 				return 0;
@@ -1365,36 +1132,35 @@ namespace godot
 			if (onlyVisible && !isVisible())
 				return 0;
 
-			int num = 0;
-			//for (int i = 0; i < (int)m_mapTerrainChunk.size(); i++)
-			//	num += (int)m_mapTerrainChunk[i].size();
-			Chunk::MapChunk::iterator itMapChunk;
-			for (Chunk::MapChunk::iterator itMapChunk = m_mapTerrainChunk.begin(); itMapChunk != m_mapTerrainChunk.end(); itMapChunk++)
-				num += (int)itMapChunk->second.size();
-			return num;
+			switch (type)
+			{
+			case QuadType::NotSet:
+			case QuadType::NotUsed:
+			{
+				int num = 0;
+				for (int i = 0; i < (int)QuadType::NotUsed; i++)
+				{
+					if (containsQuadOfType((enum class QuadType)i))
+					{
+						num += getNumChunks(onlyVisible, (enum class QuadType)i);
+					}
+				}
+				return num;
+			}
+			break;
+			default:
+			{
+				int num = 0;
+				Chunk::MapChunk::iterator itMapChunk;
+				for (Chunk::MapChunk::iterator itMapChunk = m_quads[type]->m_chunks.begin(); itMapChunk != m_quads[type]->m_chunks.end(); itMapChunk++)
+					num += (int)itMapChunk->second.size();
+				return num;
+			}
+			break;
+			}
+			
 		}
-		//int getNumChunks(bool onlyVisible, map<int, size_t>& mapNumVisibleChunksPerLod)
-		//{
-		//	mapNumVisibleChunksPerLod.clear();
-
-		//	if (!isValid())
-		//		return 0;
-
-		//	if (onlyVisible && !isVisible())
-		//		return 0;
-
-		//	int num = 0;
-		//	//for (int i = 0; i < (int)m_mapTerrainChunk.size(); i++)
-		//	//	num += (int)m_mapTerrainChunk[i].size();
-		//	Chunk::MapChunk::iterator itMapChunk;
-		//	for (Chunk::MapChunk::iterator itMapChunk = m_mapTerrainChunk.begin(); itMapChunk != m_mapTerrainChunk.end(); itMapChunk++)
-		//	{
-		//		mapNumVisibleChunksPerLod[itMapChunk->first] = itMapChunk->second.size();
-		//		num += (int)itMapChunk->second.size();
-		//	}
-		//	return num;
-		//}
-		int getNumActiveChunks(map<int, size_t>& mapNumActiveChunksPerLod)
+		int getNumActiveChunks(map<int, size_t>& mapNumActiveChunksPerLod, enum class QuadType type)
 		{
 			mapNumActiveChunksPerLod.clear();
 
@@ -1404,38 +1170,59 @@ namespace godot
 			if (!isVisible())
 				return 0;
 
-			int num = 0;
-			Chunk::MapChunk::iterator itMapChunk;
-			for (Chunk::MapChunk::iterator itMapChunk = m_mapTerrainChunk.begin(); itMapChunk != m_mapTerrainChunk.end(); itMapChunk++)
+			switch (type)
 			{
-				int numPerLod = 0;
-				for (Chunk::MapChunkPerLod::iterator itMapChunkPerLod = itMapChunk->second.begin(); itMapChunkPerLod != itMapChunk->second.end(); itMapChunkPerLod++)
+			case QuadType::NotSet:
+			case QuadType::NotUsed:
+			{
+				int num = 0;
+				for (int i = 0; i < (int)QuadType::NotUsed; i++)
 				{
-					if (itMapChunkPerLod->second->isActive())
+					if (containsQuadOfType((enum class QuadType)i))
 					{
-						num++;
-						numPerLod++;
+						num += getNumActiveChunks(mapNumActiveChunksPerLod, (enum class QuadType)i);
 					}
 				}
-				mapNumActiveChunksPerLod[itMapChunk->first] = numPerLod;
+				return num;
 			}
-			return num;
+			break;
+			default:
+			{
+				int num = 0;
+				Chunk::MapChunk::iterator itMapChunk;
+				for (Chunk::MapChunk::iterator itMapChunk = m_quads[type]->m_chunks.begin(); itMapChunk != m_quads[type]->m_chunks.end(); itMapChunk++)
+				{
+					int numPerLod = 0;
+					for (Chunk::MapChunkPerLod::iterator itMapChunkPerLod = itMapChunk->second.begin(); itMapChunkPerLod != itMapChunk->second.end(); itMapChunkPerLod++)
+					{
+						if (itMapChunkPerLod->second->isActive())
+						{
+							num++;
+							numPerLod++;
+						}
+					}
+					mapNumActiveChunksPerLod[itMapChunk->first] = numPerLod;
+				}
+				return num;
+			}
+			break;
+			}
 		}
 		Quadrant* getQuadrant(void)
 		{
 			return m_worldQuadrant; 
 		}
-		void setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, bool reload = false);
-		void setRegularMaterial(bool reload = false);
-		Ref<Material> getCurrentMaterial(int lod);
-		void reloadCurrentMaterial(void);
-		void setOptimizations(godot::Vector3& cameraPosInMap);
+		Ref<Material> getCurrentMaterial(enum class QuadType type, int lod);
+		void setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, enum class QuadType type, bool reload = false);
+		void setRegularMaterial(enum class QuadType type, bool reload = false);
+		void reloadCurrentMaterial(enum class QuadType type);
+		void setQuadrantOptimizations(godot::Vector3& cameraPosInMap);
 		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, bool force = false);
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
-		bool updateCollider(void);
-		bool colliderNeedReset(void) const;
-		void colliderNeedReset(bool b);
+		bool updateCollider(enum class QuadType type);
+		bool colliderNeedReset(enum class QuadType type);
+		void colliderNeedReset(bool b, enum class QuadType type);
 		bool updateMaterialParams(void);
 		bool materialParamsNeedUpdate(void);
 		void materialParamsNeedUpdate(bool b, bool transformChanged = false);
@@ -1532,9 +1319,9 @@ namespace godot
 			return m_GDN_Quadrant;
 		}
 
-		Chunk::MapChunk& getMapTerrainChunk(void)
+		Chunk::MapChunk& getChunks(enum class QuadType type)
 		{
-			return m_mapTerrainChunk;
+			return m_quads[type]->m_chunks;
 		}
 
 		void setEditModeQuadrantSelected(bool b)
@@ -1552,14 +1339,18 @@ namespace godot
 			return m_lookDev;
 		}
 
-		void mouseHitChanged(godot::Vector3 mouseHit, bool hit);
+		void mouseHitOnTerrainChanged(godot::Vector3 mouseHit, bool hit);
+		void mouseHitChanged(godot::Vector3 mouseHit, bool hit, enum class QuadType type);
 		void getAdjacentQuadrants(std::list<QuadTree*>& adjacentQuadrantsHit);
 
-		Quad* getTerrainQuadRoot(void)
+		Quad* getQuadRoot(enum class QuadType type)
 		{
-			return m_terrainQuadRoot.get();
+			if (containsQuadOfType(type))
+				return m_quads[type]->m_quadRoot.get();
+			else
+				return nullptr;
 		}
-		bool forceRecalcOptimizationLevel(void) const
+		bool forceRecalcOptimizationLevel(void)
 		{
 			return m_forceRecalcOptimizationLevel;
 		}
@@ -1590,13 +1381,26 @@ namespace godot
 			}
 		}
 
-		float getLastComputedDistanceFromCamera(void) const
+		float getLastComputedDistanceFromCamera(void)
 		{
-			return m_lastComputedDistanceFromCamera;
+			return m_lastComputedQuadrantDistanceFromCamera;
+		}
+
+		bool containsQuadOfType(enum class QuadType type)
+		{
+			if (m_quads.contains(type))
+				return true;
+			else
+				return false;
+		}
+
+		bool containsSea()
+		{
+			return containsQuadOfType(QuadType::Sea);
 		}
 
 	private:
-		void internalUpdate(Vector3 cameraPosInMap, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired);
+		void internalUpdate(Vector3 cameraPosInMap, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired, enum class QuadType type);
 
 	private:
 		enum class QuadrantStatus m_status;
@@ -1611,20 +1415,21 @@ namespace godot
 		enum class ShaderTerrainData::LookDev m_lookDev;
 		bool m_containsSea = false;
 
-		// Terrain Quads/Chunks
-		std::unique_ptr<Quad> m_terrainQuadRoot;
-		Chunk::MapChunk m_mapTerrainChunk;
-		std::vector<Chunk*> m_vectTerrainChunkUpdate;
-		float m_lastComputedDistanceFromCamera = 0;
+		std::map<enum class QuadType, std::unique_ptr<Quads>> m_quads;
+
+		float m_lastComputedQuadrantDistanceFromCamera = 0;
 		bool m_forceRecalcOptimizationLevel = false;
-		bool m_colliderNeedReset = false;
-		bool m_hitByMouse = false;
-		//godot::Vector3 m_quadCenterGlobal;
-		//float m_splitDistance = 0;
+		
+		// Terrain Quads/Chunks
+		//std::unique_ptr<Quad> m_terrainQuadRoot;
+		//Chunk::MapChunk m_mapTerrainChunk;
+		//std::vector<Chunk*> m_vectTerrainChunkUpdate;
+		//bool m_colliderNeedReset = false;
+		//bool m_hitByMouse = false;
 
 		// Sea
-		std::unique_ptr<Quad> m_seaQuadRoot;
-		Chunk::MapChunk m_seaMapChunk;
+		//std::unique_ptr<Quad> m_seaQuadRoot;
+		//Chunk::MapChunk m_seaMapChunk;
 		//std::vector<Chunk*> m_vectSeaChunkUpdate;
 
 		// Statistics

@@ -859,8 +859,18 @@ namespace godot
 
 	void GDN_TheWorld_Globals::setParamShowSea(bool b)
 	{
-		m_paramShowSea = b;
-		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
+		if (m_paramShowSea != b)
+		{
+			m_paramShowSea = b;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
+			m_paramShowSeaChanged = true;
+		}
+
+	}
+
+	void GDN_TheWorld_Globals::setParamShowSeaChanged(bool b)
+	{
+		m_paramShowSeaChanged = b;
 	}
 
 	void GDN_TheWorld_Globals::setParamShowChunks(bool b)

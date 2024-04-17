@@ -1162,7 +1162,7 @@ namespace godot
 		}
 		int getNumActiveChunks(map<int, size_t>& mapNumActiveChunksPerLod, enum class QuadType type)
 		{
-			mapNumActiveChunksPerLod.clear();
+			//mapNumActiveChunksPerLod.clear();
 
 			if (!isValid())
 				return 0;
@@ -1201,6 +1201,9 @@ namespace godot
 							numPerLod++;
 						}
 					}
+					if (mapNumActiveChunksPerLod.contains(itMapChunk->first))
+						mapNumActiveChunksPerLod[itMapChunk->first] += numPerLod;
+					else
 					mapNumActiveChunksPerLod[itMapChunk->first] = numPerLod;
 				}
 				return num;

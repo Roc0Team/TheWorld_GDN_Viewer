@@ -543,8 +543,12 @@ namespace godot
 		int getNumJoins(void) const;
 		int getNumChunks(void) const;
 		int getNumActiveChunks(void) const;
+		int getNumTerrainChunks(void) const;
+		int getNumActiveTerrainChunks(void) const;
+		int getNumSeaChunks(void) const;
+		int getNumActiveSeaChunks(void) const;
 		int getProcessDuration(void) const;
-		int getRefreshMapQuadDuration(void) const;
+		//int getRefreshMapQuadDuration(void) const;
 		int getUpdateQuads1Duration(void) const;
 		int getUpdateQuads2Duration(void) const;
 		int getUpdateQuads3Duration(void) const;
@@ -1076,6 +1080,12 @@ namespace godot
 		int m_numChunks = 0;
 		map<int, size_t> m_mapNumActiveChunksPerLod;
 		int m_numActiveChunks;
+		int m_numTerrainChunks = 0;
+		map<int, size_t> m_mapNumActiveTerrainChunksPerLod;
+		int m_numActiveTerrainChunks;
+		int m_numSeaChunks = 0;
+		map<int, size_t> m_mapNumActiveSeaChunksPerLod;
+		int m_numActiveSeaChunks;
 		int m_numProcessNotOwnsLock;
 		int m_numQuadrant;
 		int m_numinitializedQuadrant;

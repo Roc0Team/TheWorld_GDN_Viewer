@@ -3723,7 +3723,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.07 ") + __FUNCTION__, "Update quadrants");
-		bool b = processCameraPosForChunks;
+		//bool b = processCameraPosForChunks;
 		//processCameraPosForChunks = true;
 		if (processCameraPosForChunks)
 		{
@@ -3741,7 +3741,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 				itQuadTree.second->checkMouseHitOnTerrain();
 			}
 		}
-		processCameraPosForChunks = b;
+		//processCameraPosForChunks = b;
 	}
 
 	{
@@ -6686,6 +6686,12 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	int numVisibleChunks = 0;
 	map<int, size_t> mapNumActiveChunksPerLod;
 	int numActiveChunks = 0;
+	int numVisibleTerrainChunks = 0;
+	map<int, size_t> mapNumActiveTerrainChunksPerLod;
+	int numActiveTerrainChunks = 0;
+	int numVisibleSeaChunks = 0;
+	map<int, size_t> mapNumActiveSeaChunksPerLod;
+	int numActiveSeaChunks = 0;
 	int numQuadrant = (int)m_mapQuadTree.size();
 	int numinitializedQuadrant = 0;
 	int numVisibleQuadrant = 0;
@@ -6698,6 +6704,8 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 	int numinitializedVisibleQuadrant = 0;
 	int numQuadrantNeedResetMaterialParams = 0;
 	m_mapNumActiveChunksPerLod.clear();
+	m_mapNumActiveTerrainChunksPerLod.clear();
+	m_mapNumActiveSeaChunksPerLod.clear();
 
 	//for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 	for (auto& itQuadTree : m_mapQuadTree)
@@ -6716,7 +6724,14 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 			numSplits += itQuadTree.second->getNumSplits();
 			numJoins += itQuadTree.second->getNumJoins();
 			numVisibleChunks += itQuadTree.second->getNumChunks(true, QuadType::NotSet);
+			mapNumActiveChunksPerLod.clear();
 			numActiveChunks += itQuadTree.second->getNumActiveChunks(mapNumActiveChunksPerLod, QuadType::NotSet);
+			numVisibleTerrainChunks += itQuadTree.second->getNumChunks(true, QuadType::Terrain);
+			mapNumActiveTerrainChunksPerLod.clear();
+			numActiveTerrainChunks += itQuadTree.second->getNumActiveChunks(mapNumActiveTerrainChunksPerLod, QuadType::Terrain);
+			numVisibleSeaChunks += itQuadTree.second->getNumChunks(true, QuadType::Sea);
+			mapNumActiveSeaChunksPerLod.clear();
+			numActiveSeaChunks += itQuadTree.second->getNumActiveChunks(mapNumActiveSeaChunksPerLod, QuadType::Sea);
 			numinitializedQuadrant++;
 		}
 
@@ -6745,12 +6760,30 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 			else
 				m_mapNumActiveChunksPerLod[item.first] = item.second;
 		}
+		for (auto& item : mapNumActiveTerrainChunksPerLod)
+		{
+			if (m_mapNumActiveTerrainChunksPerLod.contains(item.first))
+				m_mapNumActiveTerrainChunksPerLod[item.first] += item.second;
+			else
+				m_mapNumActiveTerrainChunksPerLod[item.first] = item.second;
+		}
+		for (auto& item : mapNumActiveSeaChunksPerLod)
+		{
+			if (m_mapNumActiveSeaChunksPerLod.contains(item.first))
+				m_mapNumActiveSeaChunksPerLod[item.first] += item.second;
+			else
+				m_mapNumActiveSeaChunksPerLod[item.first] = item.second;
+		}
 	}
 
 	m_numSplits = numSplits;
 	m_numJoins = numJoins;
 	m_numChunks = numVisibleChunks;
 	m_numActiveChunks = numActiveChunks;
+	m_numTerrainChunks = numVisibleTerrainChunks;
+	m_numActiveTerrainChunks = numActiveTerrainChunks;
+	m_numSeaChunks = numVisibleSeaChunks;
+	m_numActiveSeaChunks = numActiveSeaChunks;
 	m_numQuadrant = numQuadrant;
 	m_numinitializedQuadrant = numinitializedQuadrant;
 	m_numVisibleQuadrant = numVisibleQuadrant;
@@ -6779,6 +6812,25 @@ int GDN_TheWorld_Viewer::getNumActiveChunks(void) const
 	return m_numActiveChunks;
 }
 
+int GDN_TheWorld_Viewer::getNumTerrainChunks(void) const
+{
+	return m_numTerrainChunks;
+}
+
+int GDN_TheWorld_Viewer::getNumActiveTerrainChunks(void) const
+{
+	return m_numActiveTerrainChunks;
+}
+
+int GDN_TheWorld_Viewer::getNumSeaChunks(void) const
+{
+	return m_numSeaChunks;
+}
+
+int GDN_TheWorld_Viewer::getNumActiveSeaChunks(void) const
+{
+	return m_numActiveSeaChunks;
+}
 
 int GDN_TheWorld_Viewer::getNumSplits(void) const
 {
@@ -6996,6 +7048,34 @@ void GDN_TheWorld_Viewer::dump()
 				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * Globals()->gridStepInHeightmapWUs(lod));
 
 				Globals()->debugPrint(msg.c_str());
+		}
+		Globals()->debugPrint("Terrain Chunks");
+		for (auto& item : m_mapNumActiveTerrainChunksPerLod)
+		{
+			int lod = item.first;
+			int numChunksPerSide = Globals()->numChunksPerHeightmapSide(lod);
+			int numVerticesPerSide = Globals()->numVerticesPerChuckSide() * numChunksPerSide;
+			std::string msg = "Num chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
+				+ " - Num chunks per quadrant side = " + std::to_string(numChunksPerSide)
+				+ " - Grid step in WUs = " + std::to_string(Globals()->gridStepInHeightmapWUs(lod))
+				+ " - Num vertices per quadrant side = " + std::to_string(numVerticesPerSide)
+				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * Globals()->gridStepInHeightmapWUs(lod));
+
+			Globals()->debugPrint(msg.c_str());
+		}
+		Globals()->debugPrint("Sea Chunks");
+		for (auto& item : m_mapNumActiveSeaChunksPerLod)
+		{
+			int lod = item.first;
+			int numChunksPerSide = Globals()->numChunksPerHeightmapSide(lod);
+			int numVerticesPerSide = Globals()->numVerticesPerChuckSide() * numChunksPerSide;
+			std::string msg = "Num chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
+				+ " - Num chunks per quadrant side = " + std::to_string(numChunksPerSide)
+				+ " - Grid step in WUs = " + std::to_string(Globals()->gridStepInHeightmapWUs(lod))
+				+ " - Num vertices per quadrant side = " + std::to_string(numVerticesPerSide)
+				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * Globals()->gridStepInHeightmapWUs(lod));
+
+			Globals()->debugPrint(msg.c_str());
 		}
 	}
 

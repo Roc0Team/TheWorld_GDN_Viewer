@@ -619,7 +619,7 @@ namespace godot
 			if (factor == 0)
 				return 0;
 			else
-				return heightmapSizeInWUs() / factor;
+				return heightmapSizeInWUs() * factor;
 		}
 		float getParamRefreshQuadrantsFactor(void) const
 		{
@@ -632,7 +632,7 @@ namespace godot
 			if (factor == 0)
 				return 0;
 			else
-				return  (numVerticesPerChuckSide() * gridStepInHeightmapWUs(0)) / factor;
+				return  (numVerticesPerChuckSide() * gridStepInHeightmapWUs(0)) * factor;
 		}
 		float getParamRefreshChunksFactor(void) const
 		{

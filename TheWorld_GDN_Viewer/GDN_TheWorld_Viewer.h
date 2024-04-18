@@ -27,7 +27,7 @@
 //#include <MapManager.h>
 
 #define MAX_DEPTH_ON_PERIMETER	6
-#define MAX_CACHE_ON_PERIMETER	4
+#define MAX_CACHE_ON_PERIMETER	2
 
 namespace godot
 {
@@ -44,7 +44,7 @@ namespace godot
 
 #define STREAMER_SLEEP_TIME			10
 #define STREAMER_SYNC_PERIOD_TIME	1000
-#define FAR_HORIZON_MULTIPLIER	50
+#define FAR_HORIZON_MULTIPLIER		50
 
 #define MIN_MAP_SCALE 0.01F
 #define TIME_INTERVAL_BETWEEN_DUMP 0			// secs, 0 = diasble periodic dump
@@ -503,6 +503,8 @@ namespace godot
 		int getDepthQuadOnPerimeter(void) const;
 		void setCacheQuadOnPerimeter(int cache);
 		int getCacheQuadOnPerimeter(void) const;
+		void setMaxDepthQuadOnPerimeter(int depth);
+		int getMaxDepthQuadOnPerimeter(void) const;
 		void setForceShaderElevation0(bool elevation0);
 		bool getForceShaderElevation0(void) const;
 		String getInfoCamera(void);
@@ -1188,8 +1190,8 @@ namespace godot
 		TheWorld_Utils::QuadrantPos m_computedCameraQuadrantPos;
 		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;
 		godot::Vector3 m_lastOriginShiftCameraPosInMap;
-		bool m_recalcQuadrantsInViewNeeded;
-		bool m_refreshMapQuadTree;
+		bool m_recalcQuadrantsInViewNeeded = false;
+		bool m_refreshMapQuadTree = false;
 		int m_numWorldVerticesPerSize;
 		int m_worldViewerLevel;		// actually world viewer manage one level at the time, otherwise we should have multiple quadtrees
 		size_t m_numVisibleQuadrantOnPerimeter;
@@ -1223,6 +1225,7 @@ namespace godot
 		godot::EditorInterface* m_editorInterface;
 		godot::Control* m_editor3dOverlay;
 		size_t m_depthQuadOnPerimeter;
+		size_t m_maxDepthQuadOnPerimeter;
 		size_t m_cacheQuadOnPerimeter;
 		bool m_forceShaderElevation0 = false;
 

@@ -1195,7 +1195,7 @@ namespace godot
 		int m_numWorldVerticesPerSize;
 		int m_worldViewerLevel;		// actually world viewer manage one level at the time, otherwise we should have multiple quadtrees
 		size_t m_numVisibleQuadrantOnPerimeter;
-		size_t m_numCacheQuadrantOnPerimeter;
+		size_t m_numCacheQuadrantOnPerimeter = 0;
 		// Node cache
 		GDN_TheWorld_Globals* m_globals;
 		GDN_TheWorld_Edit* m_editModeUIControl;

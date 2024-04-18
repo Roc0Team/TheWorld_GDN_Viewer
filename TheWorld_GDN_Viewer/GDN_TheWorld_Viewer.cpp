@@ -1280,7 +1280,6 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_streamerThreadRequiredExit = false;
 	m_streamerThreadRunning = false;
 	m_numVisibleQuadrantOnPerimeter = -1;
-	m_numCacheQuadrantOnPerimeter = 0;
 	m_editorInterface = nullptr;
 	m_editor3dOverlay = nullptr;
 	m_editorCamera = nullptr;
@@ -3106,13 +3105,13 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	if (IS_EDITOR_HINT())
 	{
 		m_numVisibleQuadrantOnPerimeter = getDepthQuadOnPerimeter();
-		m_numCacheQuadrantOnPerimeter = m_numVisibleQuadrantOnPerimeter + getCacheQuadOnPerimeter();
+		m_numCacheQuadrantOnPerimeter = getCacheQuadOnPerimeter();
 
 		//m_numVisibleQuadrantOnPerimeter = 0;	// SUPERDEBUGRIC only camera quadrant
 		//m_numCacheQuadrantOnPerimeter = 0;		// SUPERDEBUGRIC only camera quadrant
 
 		//m_numVisibleQuadrantOnPerimeter = 1;	// SUPERDEBUGRIC only camera quadrant & 1 surrounding
-		//m_numCacheQuadrantOnPerimeter = 1;		// SUPERDEBUGRIC only camera quadrant & 1 surrounding
+		//m_numCacheQuadrantOnPerimeter = 0;		// SUPERDEBUGRIC only camera quadrant & 1 surrounding
 	}
 	
 	//{
@@ -3140,20 +3139,20 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	if (!IS_EDITOR_HINT())
 	{
 		m_numVisibleQuadrantOnPerimeter = getDepthQuadOnPerimeter();
-		m_numCacheQuadrantOnPerimeter = m_numVisibleQuadrantOnPerimeter + getCacheQuadOnPerimeter();
+		m_numCacheQuadrantOnPerimeter = getCacheQuadOnPerimeter();
 
 		//m_numVisibleQuadrantOnPerimeter = 3;
-		//m_numCacheQuadrantOnPerimeter = m_numVisibleQuadrantOnPerimeter + 1;
+		//m_numCacheQuadrantOnPerimeter = 1;
 
 		//m_numVisibleQuadrantOnPerimeter = 0;	// SUPERDEBUGRIC only camera quadrant
 		//m_numCacheQuadrantOnPerimeter = 0;		// SUPERDEBUGRIC only camera quadrant
 
 		//m_numVisibleQuadrantOnPerimeter = 1;	// SUPERDEBUGRIC only camera quadrant & 1 surrounding
-		//m_numCacheQuadrantOnPerimeter = 1;		// SUPERDEBUGRIC only camera quadrant & 1 surrounding
+		//m_numCacheQuadrantOnPerimeter = 0;		// SUPERDEBUGRIC only camera quadrant & 1 surrounding
 	}
 
 	// add horizontal (X axis) quadrants on the left and on the right
-	for (int i = 0; i < m_numCacheQuadrantOnPerimeter; i++)
+	for (int i = 0; i < m_numVisibleQuadrantOnPerimeter + m_numCacheQuadrantOnPerimeter; i++)
 	{
 		TheWorld_Utils::QuadrantPos q = cameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus, 1 + i);
 		q.setTag(cameraQuadrantPos.getTag() + " X+" + std::to_string(1 + i));
@@ -3169,7 +3168,7 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	for (size_t idx = 0; idx < size; idx++)
 	{
 		// ... add vertical (Z axis) quadrants up and down
-		for (size_t i = 0; i < m_numCacheQuadrantOnPerimeter; i++)
+		for (size_t i = 0; i < m_numVisibleQuadrantOnPerimeter + m_numCacheQuadrantOnPerimeter; i++)
 		{
 			//break;	// SUPERDEBUGRIC only X+1 quadrant
 			TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus, 1 + int(i));
@@ -3346,6 +3345,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		m_processCanBeInterrupted = true;
 	else
 		m_processCanBeInterrupted = false;
+	m_processCanBeInterrupted = false;	// DEBUG
 
 	m_lastProcessDuration = 0;
 	m_lastProcessImplDuration = 0;
@@ -4051,7 +4051,7 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 	if (lock.owns_lock())
 	{
 		bool exitForNow = false;
-		for (size_t distance = 0; distance <= m_numCacheQuadrantOnPerimeter; distance++)
+		for (size_t distance = 0; distance <= m_numVisibleQuadrantOnPerimeter + m_numCacheQuadrantOnPerimeter; distance++)
 		{
 			for (MapQuadTree::iterator itQuadTree = m_mapQuadTree.begin(); itQuadTree != m_mapQuadTree.end(); itQuadTree++)
 			{
@@ -5376,6 +5376,7 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 		Quadrant::NeighbourQuadrantData& northQuadrantData = quadrant->northQuadrantData();
 		if (!northQuadrantData.initialized())
 		{
+
 			TheWorld_Utils::QuadrantPos northPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
 			if (m_mapQuadTree.contains(northPos))
 			{
@@ -5440,6 +5441,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
 				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, northQuadrantData.groundTextureLayers());
 				northQuadrantData.shaderUpdated(true);
+				if (quadrant->getPos().getIndexPosX() == 100 && quadrant->getPos().getIndexPosZ() == 100)
+					currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, northQuadrantData.groundTextureLayers());
 			}
 
 			if (southQuadrantData.initialized() && !southQuadrantData.shaderUpdated())

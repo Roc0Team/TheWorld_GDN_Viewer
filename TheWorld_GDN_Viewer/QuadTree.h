@@ -1151,9 +1151,12 @@ namespace godot
 			default:
 			{
 				int num = 0;
-				Chunk::MapChunk::iterator itMapChunk;
-				for (Chunk::MapChunk::iterator itMapChunk = m_quads[type]->m_chunks.begin(); itMapChunk != m_quads[type]->m_chunks.end(); itMapChunk++)
-					num += (int)itMapChunk->second.size();
+				if (containsQuadOfType(type))
+				{
+					Chunk::MapChunk::iterator itMapChunk;
+					for (Chunk::MapChunk::iterator itMapChunk = m_quads[type]->m_chunks.begin(); itMapChunk != m_quads[type]->m_chunks.end(); itMapChunk++)
+						num += (int)itMapChunk->second.size();
+				}
 				return num;
 			}
 			break;
@@ -1189,22 +1192,25 @@ namespace godot
 			default:
 			{
 				int num = 0;
-				Chunk::MapChunk::iterator itMapChunk;
-				for (Chunk::MapChunk::iterator itMapChunk = m_quads[type]->m_chunks.begin(); itMapChunk != m_quads[type]->m_chunks.end(); itMapChunk++)
+				if (containsQuadOfType(type))
 				{
-					int numPerLod = 0;
-					for (Chunk::MapChunkPerLod::iterator itMapChunkPerLod = itMapChunk->second.begin(); itMapChunkPerLod != itMapChunk->second.end(); itMapChunkPerLod++)
+					Chunk::MapChunk::iterator itMapChunk;
+					for (Chunk::MapChunk::iterator itMapChunk = m_quads[type]->m_chunks.begin(); itMapChunk != m_quads[type]->m_chunks.end(); itMapChunk++)
 					{
-						if (itMapChunkPerLod->second->isActive())
+						int numPerLod = 0;
+						for (Chunk::MapChunkPerLod::iterator itMapChunkPerLod = itMapChunk->second.begin(); itMapChunkPerLod != itMapChunk->second.end(); itMapChunkPerLod++)
 						{
-							num++;
-							numPerLod++;
+							if (itMapChunkPerLod->second->isActive())
+							{
+								num++;
+								numPerLod++;
+							}
 						}
+						if (mapNumActiveChunksPerLod.contains(itMapChunk->first))
+							mapNumActiveChunksPerLod[itMapChunk->first] += numPerLod;
+						else
+							mapNumActiveChunksPerLod[itMapChunk->first] = numPerLod;
 					}
-					if (mapNumActiveChunksPerLod.contains(itMapChunk->first))
-						mapNumActiveChunksPerLod[itMapChunk->first] += numPerLod;
-					else
-					mapNumActiveChunksPerLod[itMapChunk->first] = numPerLod;
 				}
 				return num;
 			}

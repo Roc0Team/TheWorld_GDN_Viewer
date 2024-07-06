@@ -1,121 +1,231 @@
-IMPORTANTE ==> Sezione Procedural generation https://hterrain-plugin.readthedocs.io/en/latest/
+* globalmap deve comprendere tutto quello che si vede: mare etc.
+* riconoscimento laghi e adeguamento movimento onde
 
-https://stackoverflow.com/questions/49640250/calculate-normals-from-heightmap?msclkid=c51d7c0ececc11ec92fddcf92fd6c6a6
+* miglior effetto visivo della sabbia
+* Visibilità che sfuma in 2D come mappa: a comando ed oltre una certa altezza
+* Minimap
+* eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
+* ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
 
-Shader ==> Simple4.shader
+Tag 2024/06/20
+* ***OK*** z-fighting: alzando la camera si vede a tratti il terreno sottostante (macchie verdi e bianche). Per lo più risolto aumentando ad alte quote il piano near della camera
+* ***OK*** clipping nelle intersezioni con il terreno muovendo la camera (z-clipping or z-fighting)
+* ***OK*** schiuma delle onde sul contatto con la costa
+* ***OK*** visibilità sotto il livello del mare
+* ***OK*** altezza delle onde in base alla profondità del terreno: bassa se poco profondo fino anche a nessuna altezza
+* ***OK*** miglior risoluzione delle altezze delle onde ma solo a distanza ravvicinata ferme a distanza maggiore dalla camera
+* ***OK*** regolare il movimento delle normali della superficie del mare in base alla distanza dalla camera* ***OK*** memory leak (?) dopo terrain generation (sembra lato client e dovuto ai chunk perchè alzando la camera la memoria diminuisce sembra che rimangano dei chunk di mare attivi quando il terreno generato fa scomparire il mare)
+* ***OK*** Bordo per selezione quadrant anche in shader sea
+* ***OK*** Show Chunks anche in shader sea
+* ***OK*** Fix
 
-const CHANNEL_HEIGHT = 0
-const CHANNEL_NORMAL = 1
-const CHANNEL_SPLAT = 2
-const CHANNEL_COLOR = 3
-const CHANNEL_DETAIL = 4
-const CHANNEL_GLOBAL_ALBEDO = 5
-const CHANNEL_SPLAT_INDEX = 6
-const CHANNEL_SPLAT_WEIGHT = 7
-const CHANNEL_COUNT = 8
+Tag 2024/05/12
+* ***OK*** Splatmap viene rigenerata in fase di visualizzazione del quadrante se le altezze dei quadranti vicini sono modificate dopo la genherazione della splatmap corrente
 
-const _map_types = {
-	CHANNEL_HEIGHT: {
-		name = "height",
-		shader_param_name = "u_terrain_heightmap",
-		texture_flags = Texture.FLAG_FILTER,
-		texture_format = Image.FORMAT_RH,
-		default_fill = null,
-		default_count = 1,
-		can_be_saved_as_png = false,
-		authored = true,
-		srgb = false
-	},
-	CHANNEL_NORMAL: {
-		name = "normal",
-		shader_param_name = "u_terrain_normalmap",
-		texture_flags = Texture.FLAG_FILTER,
-		texture_format = Image.FORMAT_RGB8,
-		default_fill = Color(0.5, 0.5, 1.0),
-		default_count = 1,
-		can_be_saved_as_png = true,
-		authored = false,
-		srgb = false
-	},
-	CHANNEL_SPLAT: {
-		name = "splat",
-		shader_param_name = [
-			"u_terrain_splatmap", # not _0 for compatibility
-			"u_terrain_splatmap_1",
-			"u_terrain_splatmap_2",
-			"u_terrain_splatmap_3"
-		],
-		texture_flags = Texture.FLAG_FILTER,
-		texture_format = Image.FORMAT_RGBA8,
-		default_fill = [Color(1, 0, 0, 0), Color(0, 0, 0, 0)],
-		default_count = 1,
-		can_be_saved_as_png = true,
-		authored = true,
-		srgb = false
-	},
-	CHANNEL_COLOR: {
-		name = "color",
-		shader_param_name = "u_terrain_colormap",
-		texture_flags = Texture.FLAG_FILTER,
-		texture_format = Image.FORMAT_RGBA8,
-		default_fill = Color(1, 1, 1, 1),
-		default_count = 1,
-		can_be_saved_as_png = true,
-		authored = true,
-		srgb = true
-	},
-	CHANNEL_DETAIL: {
-		name = "detail",
-		shader_param_name = "u_terrain_detailmap",
-		texture_flags = Texture.FLAG_FILTER,
-		texture_format = Image.FORMAT_R8,
-		default_fill = Color(0, 0, 0),
-		default_count = 0,
-		can_be_saved_as_png = true,
-		authored = true,
-		srgb = false
-	},
-	CHANNEL_GLOBAL_ALBEDO: {
-		name = "global_albedo",
-		shader_param_name = "u_terrain_globalmap",
-		texture_flags = Texture.FLAG_FILTER | Texture.FLAG_MIPMAPS,
-		texture_format = Image.FORMAT_RGB8,
-		default_fill = null,
-		default_count = 0,
-		can_be_saved_as_png = true,
-		authored = false,
-		srgb = true
-	},
-	CHANNEL_SPLAT_INDEX: {
-		name = "splat_index",
-		shader_param_name = "u_terrain_splat_index_map",
-		texture_flags = 0,
-		texture_format = Image.FORMAT_RGB8,
-		default_fill = Color(0, 0, 0),
-		default_count = 0,
-		can_be_saved_as_png = true,
-		authored = true,
-		srgb = false
-	},
-	CHANNEL_SPLAT_WEIGHT: {
-		name = "splat_weight",
-		shader_param_name = "u_terrain_splat_weight_map",
-		texture_flags = Texture.FLAG_FILTER,
-		texture_format = Image.FORMAT_RG8,
-		default_fill = Color(1, 0, 0),
-		default_count = 0,
-		can_be_saved_as_png = true,
-		authored = true,
-		srgb = false
-	}
-}
+Tag 2024/05/11
+* ***OK*** Procedural Generation: client steps (heightmap, splatmap, globalmap) automatizzati se il client è in edit mode anche per i quadranti non visibili
+* ***OK*** Configurati i layer di terreno (1), player (2) e oggetti (3) e corrispondentemente le collision mask
+* ***OK*** Rendere interrompibile il processo di generazione procedurale del terreno consentendo la ripartenza dall'interruzione
+* ***OK*** Mostrare nel client in edit mode lo sato di avanzamento dei job di generazione procedurale del terreno
 
-hterrain_data.gd
-	_import_heightmap
-	_import_map
+Tag 2024/04/28
+* ***OK*** Rivedere il meccanismo di split (sembra non si scenda mai sotto il lod 2)
+* ***OK*** Aumentare il numero dei quadrant supportati all'aumentare della visibilità (maggiore altitudine? maggior distanza di terreno all'orizzonte?)
+* ***OK*** Priorità nell'inizializzazione dei nuovi quadranti
+* ***OK*** La camera non può scendere sotto il livello del terreno
+* ***OK*** Raggio dalla camera con distanza di contatto (espressa anche in numero di quadranti), inclinazione rispetto al piano orizzontale
+* ***OK*** Disabilitato il collider della heightmap per i quadranti invisibili
 
-	_upload_region
-		dal tipo Image crea la Texture con "texture.create_from_image(image, flags)"
-	_update_material_params
-		invoca in _process se _material_params_need_update = true
-		aggiorna le uniform
+************************************************************************************************
+************************************************************************************************
+************************************************************************************************
+
+* ***OK*** Generazione procedurale dei quadranti (i dati fondamentali su Db le altitudini nella cache del server)
+* ***OK*** Eliminare la quadrettizzazione delle texture: altezze e colori (Blend delle textures dei quadranti confinanti):
+	* un'idea potrebbe essere mixare le texture a parità di tipo (low/high/dirt/rocks) fra quadranti adiacenti (se differenti) usando l'algoritmo noise per creare una varianza:
+		* per fare questo occorre che ogni material (quindi ogni istanza di shader) conosca le 4 texture per ogni lato dei quadranti adiacenti che sommate alle proprie diventano 20 occorre qundi evitare di
+		ripetere n volte le stesse texture nella memoria della GPU. Si potrebbe ottenere lo scopo unendo tutte le ground texture in due Texture2DArray (ALBEDO-BUMP e NORMAL-ROUGHNESS), usando ImageTextureLayered.create_from_images,
+		e impostandolo in due global uniform di tipo sampler2DArray in fase di inizializzazione del Viewer, accedendole quindi dallo shader tramite gli indici (usando un uniform array per tali indici da valorizzare per ogni istanza
+		di shader) : texture(sampler2DArray, vec3(u, v, layer)) https://github.com/godotengine/godot/issues/30298
+
+************************************************************************************************
+************************************************************************************************
+************************************************************************************************
+
+* Migliorare il terrain blending nello shader (YoutTube "Godot terrain blending")
+* Studiare l'illuminazione dello shader:
+*	- perché la globalmap risulta senza illuminazione?
+*	- perché a distanza ravvicinata lo shader mostra un'illuminazine differente?
+* Texture streaming: studiare cosa è
+
+************************************************************************************************
+************************************************************************************************
+************************************************************************************************
+
+*) Laghi / Mare
+*) Cielo
+*) Strade / Piste
+*) Fiumi
+*) Minimap
+*) Bussola
+*) Vegetazione
+*) Edifici
+*) Selezione multipla per la generazione dei terreni in 2D con tilemap (occorre impostare tutti i valuri del TerrainData e da quelli saper costruire il terreno in asincrono. Le height sul server o sul client?)
+
+************************************************************************************************
+************************************************************************************************
+************************************************************************************************
+
+SERVER:
+*) Collision Detection
+*) Path Finding
+
+************************************************************************************************
+************************************************************************************************
+************************************************************************************************
+
+Possibile ottimizzazione nella rappresentazione del terreno:
+
+Livello 1 (si diminuisce il numero dei vertici che deve gestire la scheda grafica)
+
+												Ora				Dopo
+
+	THEWORLD_VIEWER_CHUNK_SIZE_SHIFT			5				3
+	Numero di vertici per chunk					32				8			* le mesh relative ai quadranti più lontani avrebbero 64 (8x8) vertici contro i 1024 (32x32) attuali
+
+	THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT	11				11			* rimane inalterato perché si agisce sul numero dei vertici di un chunk quindi a risoluzioni maggiori occorrono più chunk
+	Numero di vertici per quadrante				2049			2049
+
+	Max Lod Depth								6 (da 0 a 6)	8 (da 0 a 8)
+	Numero di lod								7				9
+
+FATTO Livello 2 (si diminuisce la quantità di memoria necessaria alla la scheda grafica)
+
+												Ora				Dopo
+	* in base alla distanza del quadrante dalla camera si passa allo shader mesh/texture più piccole di 2049x2049 (1024x1024, 512x512, 256x256 e così via) che non presentato una altitudine per ogni vertice ma che compattano
+	  le stesse altitudini per più vertici: se 1024x1024 una nuova altitudine ogni 2 vertici, se 512x512 una nuova altitudine ogni 4 vertici, se 256x256 una nuova altitudine ogni 8 vertici e così via. Lo shader deve
+	  essere modificato in modo da gestire texture di dimensioni differenti alterando il valore di u_grid_step.
+	* il problema è come ridurre tali texture, due approcci:
+		- dinamicamente al momento in cui si passano allo shader (al movimento della camera occorre ricalcolare la distanza e quindi il numero dei vertici e se modificato rigenerare la texture riducendola e passarla allo shader)
+		  QUESTO METODO SEMBRA IL MIGLIORE PERCHE' le performance di godot::Image::resize sono buone
+		- staticamente al momento in cui si salva su disco (su disco tutte le dimensioni ammesse) ricaricandola da disco ad ogni cambiamento di dimensione prima di passarla allo shader
+
+************************************************************************************************
+************************************************************************************************
+************************************************************************************************
+
+*) Correggere il fatto che continuamente ci siano split/join anche a telecamera ferma
+
+************************************************************************************************
+************************************************************************************************
+************************************************************************************************
+
+
+
+
+
+
+
+
+
+
+Studiare (hterrain index.md):  ATTENZIONE: AGGIUNGERE EXTRA HEIGHTS NEI BORDI PER CALCOLARE CORRETTAMENTE LE NORMALI ED EVITARE DI VEDERE LE CUCITURE
+
+### Procedural generation
+
+It is possible to generate the terrain data entirely from script. It may be quite slow if you don't take advantage of GPU techniques (such as using a compute viewport), but it's still useful to copy results to the terrain or editing it like the plugin does in the editor.
+
+Again, we can use the `Image` resource to modify pixels.
+Here is a full GDScript example generating a terrain from noise and 3 textures:
+
+```gdscript
+extends Node
+
+# Import classes
+const HTerrain = preload("res://addons/zylann.hterrain/hterrain.gd")
+const HTerrainData = preload("res://addons/zylann.hterrain/hterrain_data.gd")
+const HTerrainTextureSet = preload("res://addons/zylann.hterrain/hterrain_texture_set.gd")
+
+# You may want to change paths to your own textures
+var grass_texture = load("res://addons/zylann.hterrain_demo/textures/ground/grass_albedo_bump.png")
+var sand_texture = load("res://addons/zylann.hterrain_demo/textures/ground/sand_albedo_bump.png")
+var leaves_texture = load("res://addons/zylann.hterrain_demo/textures/ground/leaves_albedo_bump.png")
+
+
+func _ready():
+    # Create terrain resource and give it a size.
+    # It must be either 513, 1025, 2049 or 4097.
+    var terrain_data = HTerrainData.new()
+    terrain_data.resize(513)
+    
+    var noise = OpenSimplexNoise.new()
+    var noise_multiplier = 50.0
+
+    # Get access to terrain maps
+    var heightmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_HEIGHT)
+    var normalmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_NORMAL)
+    var splatmap: Image = terrain_data.get_image(HTerrainData.CHANNEL_SPLAT)
+    
+    heightmap.lock()
+    normalmap.lock()
+    splatmap.lock()
+    
+    # Generate terrain maps
+    # Note: this is an example with some arbitrary formulas,
+    # you may want to come up with your owns
+    for z in heightmap.get_height():
+        for x in heightmap.get_width():
+            # Generate height
+            var h = noise_multiplier * noise.get_noise_2d(x, z)
+            
+            # Getting normal by generating extra heights directly from noise,
+            # so map borders won't have seams in case you stitch them
+            var h_right = noise_multiplier * noise.get_noise_2d(x + 0.1, z)
+            var h_forward = noise_multiplier * noise.get_noise_2d(x, z + 0.1)
+            var normal = Vector3(h - h_right, 0.1, h_forward - h).normalized()
+            
+            # Generate texture amounts
+            var splat = splatmap.get_pixel(x, z)
+            var slope = 4.0 * normal.dot(Vector3.UP) - 2.0
+            # Sand on the slopes
+            var sand_amount = clamp(1.0 - slope, 0.0, 1.0)
+            # Leaves below sea level
+            var leaves_amount = clamp(0.0 - h, 0.0, 1.0)
+            splat = splat.linear_interpolate(Color(0,1,0,0), sand_amount)
+            splat = splat.linear_interpolate(Color(0,0,1,0), leaves_amount)
+            
+            heightmap.set_pixel(x, z, Color(h, 0, 0))
+            normalmap.set_pixel(x, z, HTerrainData.encode_normal(normal))
+            splatmap.set_pixel(x, z, splat)
+    
+    heightmap.unlock()
+    normalmap.unlock()
+    splatmap.unlock()
+    
+    # Commit modifications so they get uploaded to the graphics card
+    var modified_region = Rect2(Vector2(), heightmap.get_size())
+    terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_HEIGHT)
+    terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_NORMAL)
+    terrain_data.notify_region_change(modified_region, HTerrainData.CHANNEL_SPLAT)
+
+    # Create texture set
+    # NOTE: usually this is not made from script, it can be built with editor tools
+    var texture_set = HTerrainTextureSet.new()
+    texture_set.set_mode(HTerrainTextureSet.MODE_TEXTURES)
+    texture_set.insert_slot(-1)
+    texture_set.set_texture(0, HTerrainTextureSet.TYPE_ALBEDO_BUMP, grass_texture)
+    texture_set.insert_slot(-1)
+    texture_set.set_texture(1, HTerrainTextureSet.TYPE_ALBEDO_BUMP, sand_texture)
+    texture_set.insert_slot(-1)
+    texture_set.set_texture(2, HTerrainTextureSet.TYPE_ALBEDO_BUMP, leaves_texture)
+
+    # Create terrain node
+    var terrain = HTerrain.new()
+    terrain.set_shader_type(HTerrain.SHADER_CLASSIC4_LITE)
+    terrain.set_data(terrain_data)
+    terrain.set_texture_set(texture_set)
+    add_child(terrain)
+    
+    # No need to call this, but you may need to if you edit the terrain later on
+    #terrain.update_collider()
+```

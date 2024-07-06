@@ -8,6 +8,7 @@
 #include <godot_cpp/classes/viewport.hpp>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
+#include <godot_cpp/classes/time.hpp>
 #pragma warning(pop)
 
 #include "assert.h"
@@ -21,13 +22,15 @@
 #include "Viewer_Utils.h"
 #include "Utils.h"
 
-#define THEWORLD_SEA_LEVEL														0
+//#define THEWORLD_SEA_LEVEL														0
 
 #define THEWORLD_VIEWER_CHUNK_SIZE_SHIFT										3	// 4	// 5
 #define THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT								11	/* 11 */	/* 10 */	// exponent of 2
 #define MIN_RESOLUTION_SHIFT_FOR_TEXTURE_OPTIMIZATIONS							5	// exponent of 2
 
 #define THEWORLD_TERRAIN_COLLISION_LAYER										1
+#define THEWORLD_PLAYER_COLLISION_LAYER											2
+#define THEWORLD_OBJECTS_COLLISION_LAYER										3
 
 #define THEWORLD_DEFAULT_STREAM_WORLD											true
 #define THEWORLD_DEFAULT_DEPTH_QUAD_ON_PERIMETER_IN_EDITOR						1
@@ -49,6 +52,7 @@
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				2
 #define THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR									2
 #define THEWORLD_DEFAULT_SHOW_SEA												true
+#define THEWORLD_DEFAULT_SHOW_TERRAIN												true
 #define THEWORLD_DEFAULT_SHOW_CHUNKS											false
 //#define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
@@ -98,7 +102,7 @@ namespace godot
 		void MapManagerSetLogMaxSeverity(plog::Severity sev);
 		void ServerInitializeSession(bool isInEditor, plog::Severity sev);
 		void MapManagerGetQuadrantVertices(bool isInEditor, float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, float lowerXGridVertex, float lowerZGridVertex, int anchorType, int numVerticesPerSize, float gridStepinWU, int level, bool setCamera, float cameraDistanceFromTerrainForced, std::string meshId);
-		void Sync(bool isInEditor, size_t numVerticesPerSize, float gridStepinWU, std::string& quadrants);
+		void Sync(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepinWU, std::string& quadrants);
 		void MapManagerUploadBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepinWU, int level, std::string buffer);
 		void MapManagerDeployLevel(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepinWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll);
 		void MapManagerDeployWorld(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepinWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll);
@@ -117,7 +121,8 @@ namespace godot
 	{
 		GDCLASS(GDN_TheWorld_Globals, Node)
 
-		const float c_splitScale = 1.0F;
+		const float c_splitScale = 2.0F;	// 21/05/2024
+		//const float c_splitScale = 1.0F;
 		//const float c_splitScale = 2.0F;
 		//const float c_splitScale = 1.5F;
 
@@ -166,14 +171,21 @@ namespace godot
 
 		static ChunkDebugMode rotateChunkDebugMode(ChunkDebugMode mode)
 		{
+			//if (mode == GDN_TheWorld_Globals::ChunkDebugMode::NoDebug)
+			//	return GDN_TheWorld_Globals::ChunkDebugMode::WireframeOnAABB;
+			//if (mode == GDN_TheWorld_Globals::ChunkDebugMode::WireframeOnAABB)
+			//	return GDN_TheWorld_Globals::ChunkDebugMode::WireframeSquare;
+			//if (mode == GDN_TheWorld_Globals::ChunkDebugMode::WireframeSquare)
+			//	return GDN_TheWorld_Globals::ChunkDebugMode::NoDebug;
+			//else
+			//	return GDN_TheWorld_Globals::ChunkDebugMode::DoNotSet;
 			if (mode == GDN_TheWorld_Globals::ChunkDebugMode::NoDebug)
 				return GDN_TheWorld_Globals::ChunkDebugMode::WireframeOnAABB;
 			if (mode == GDN_TheWorld_Globals::ChunkDebugMode::WireframeOnAABB)
-				return GDN_TheWorld_Globals::ChunkDebugMode::WireframeSquare;
-			if (mode == GDN_TheWorld_Globals::ChunkDebugMode::WireframeSquare)
 				return GDN_TheWorld_Globals::ChunkDebugMode::NoDebug;
 			else
 				return GDN_TheWorld_Globals::ChunkDebugMode::DoNotSet;
+
 		}
 
 		GDN_TheWorld_Globals();
@@ -206,26 +218,7 @@ namespace godot
 		{
 			return m_status;
 		}
-		void setStatus(enum class TheWorldStatus status)
-		{
-			bool statusChanged = false;
-			if (m_status != status)
-				statusChanged = true;
-
-			if (m_statusChangeClock.counterStarted() && statusChanged)
-			{
-				m_statusChangeClock.tock();
-				infoPrint((std::string("Status changed: ") + statusStr(m_status) + std::string("(") + std::to_string((int)m_status) + std::string(") ==> ") + statusStr(status) + std::string("(") + std::to_string((int)status) + std::string(") (") + std::to_string(m_statusChangeClock.duration().count()) + std::string(" ms)")).c_str());
-			}
-			
-			if (statusChanged)
-			{
-				//emit_signal("tw_status_changed", (int)m_status, (int)status);
-				call_deferred("emit_signal", "tw_status_changed", (int)m_status, (int)status);
-				m_status = status;
-				m_statusChangeClock.tick();
-			}
-		}
+		void setStatus(enum class TheWorldStatus status);
 		int get_status(void) const
 		{
 			return (int)status();
@@ -546,7 +539,7 @@ namespace godot
 		}
 
 		GDN_TheWorld_Viewer* Viewer(bool useCache = true);
-		GDN_TheWorld_Globals_Client* Client(void)
+		GDN_TheWorld_Globals_Client* Client(void) const
 		{ 
 			return m_client; 
 		}
@@ -674,6 +667,16 @@ namespace godot
 			return m_paramShowSeaChanged;
 		}
 		void setParamShowSeaChanged(bool b);
+		bool getParamShowTerrain(void) const
+		{
+			return m_paramShowTerrain;
+		}
+		void setParamShowTerrain(bool b);
+		bool getParamShowTerrainChanged(void) const
+		{
+			return m_paramShowTerrainChanged;
+		}
+		void setParamShowTerrainChanged(bool b);
 		bool getParamShowChunks(void) const
 		{
 			return m_paramShowChunks;
@@ -684,6 +687,11 @@ namespace godot
 		//	return m_paramDepthQuadWithCollisionInfo;
 		//}
 		//void setParamDepthQuadWithCollisionInfo(int64_t f);
+		bool getParamElevationZero(void) const
+		{
+			return m_paramElevationZero;
+		}
+		void setParamElevationZero(bool f);
 
 		void setTextureBlendingSize(float f)
 		{
@@ -701,6 +709,31 @@ namespace godot
 		{
 			return m_splatmapBlendingSize;
 		}
+
+		uint64_t elapsedFromStart(void)
+		{
+			if (m_startTime == 0)
+				m_startTime = godot::Time::get_singleton()->get_ticks_msec();
+
+			return godot::Time::get_singleton()->get_ticks_msec() - m_startTime;
+		}
+
+		double elapsedFromStartInSeconds(void)
+		{
+			return double(elapsedFromStart()) / 1000;
+		}
+
+		double internalTimeInSeconds(double _delta)
+		{
+			m_startInternalTimeInSeconds += _delta;
+			return m_startInternalTimeInSeconds;
+		}
+
+		double shaderParamGlobalTimeApplied(void) const
+		{
+			return m_shaderGlobalTimeApplied;
+		}
+		void shaderParamGlobalTimeApplied(double d);
 
 		// DEBUG
 		//static size_t s_num;
@@ -742,6 +775,10 @@ namespace godot
 		// Node cache
 		GDN_TheWorld_Viewer* m_viewer;
 
+		uint64_t m_startTime = 0;
+		double m_startInternalTimeInSeconds = 0;
+		double m_shaderGlobalTimeApplied = 0;
+
 		// Node parameters
 		bool m_streamWorld = THEWORLD_DEFAULT_STREAM_WORLD;
 		//bool m_paramCacheTerrainImages = THEWORLD_DEFAULT_CACHE_TERRAIN_IMAGES;
@@ -760,7 +797,10 @@ namespace godot
 		int64_t m_paramOriginShiftFactor = THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR;
 		bool m_paramShowSea = THEWORLD_DEFAULT_SHOW_SEA;
 		bool m_paramShowSeaChanged = false;
+		bool m_paramShowTerrain = THEWORLD_DEFAULT_SHOW_TERRAIN;
+		bool m_paramShowTerrainChanged = false;
 		bool m_paramShowChunks = THEWORLD_DEFAULT_SHOW_CHUNKS;
+		bool m_paramElevationZero = false;
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 	};
 }

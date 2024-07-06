@@ -78,7 +78,7 @@ namespace godot
 			{
 				return m_groundTextureLayers;
 			}
-			void groundTextureLayers(godot::Vector4 layers)
+			void init(godot::Vector4 layers)
 			{
 				m_groundTextureLayers = layers;
 				initialized(true);
@@ -141,15 +141,6 @@ namespace godot
 
 		void lockInternalDataUntilCompleteProcessExecution(bool b = true);
 		bool internalDataLockedUntilCompleteProcessExecution(void) const;
-
-		size_t getLastDistanceInPerimeterFromCameraQuadrant(void) const
-		{
-			return m_lastDistanceInPerimeterFromCameraQuadrant;
-		}
-		void setLastDistanceInPerimeterFromCameraQuadrant(size_t value)
-		{
-			m_lastDistanceInPerimeterFromCameraQuadrant = value;
-		}
 
 		void setMeshId(std::string meshId);
 
@@ -224,7 +215,7 @@ namespace godot
 		{
 			if (m_splatmapBuffer.empty() && reloadFromCache)
 			{
-				if (!getTerrainEdit()->extraValues.splatmapNeedRegen)
+				if (!getTerrainEdit()->splatmapNeedRegen)
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getSplatmapBuffer 1 ") + __FUNCTION__, "Splatmap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
@@ -239,7 +230,7 @@ namespace godot
 		{
 			if (m_colormapBuffer.empty() && reloadFromCache)
 			{
-				if (!getTerrainEdit()->extraValues.colormapNeedRegen)
+				if (!getTerrainEdit()->colormapNeedRegen)
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getColormapBuffer 1 ") + __FUNCTION__, "Colormap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
@@ -254,7 +245,7 @@ namespace godot
 		{
 			if (m_globalmapBuffer.empty() && reloadFromCache)
 			{
-				if (!getTerrainEdit()->extraValues.globalmapNeedRegen)
+				if (!getTerrainEdit()->globalmapNeedRegen)
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getGlobalmapBuffer 1 ") + __FUNCTION__, "Globalmap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
@@ -311,7 +302,7 @@ namespace godot
 		void resetSplatmapBuffer(std::string actor)
 		{
 			getSplatmapBuffer(false).clear(actor);
-			getTerrainEdit()->extraValues.splatmapNeedRegen = true;
+			getTerrainEdit()->splatmapNeedRegen = true;
 			setSplatmapUpdated(true);
 			
 			resetGlobalmapBuffer(actor);
@@ -320,14 +311,14 @@ namespace godot
 		void resetColormapBuffer(std::string actor)
 		{
 			getColormapBuffer(false).clear(actor);
-			getTerrainEdit()->extraValues.colormapNeedRegen = true;
+			getTerrainEdit()->colormapNeedRegen = true;
 			setColorsUpdated(true);
 		}
 
 		void resetGlobalmapBuffer(std::string actor)
 		{
 			getGlobalmapBuffer(false).clear(actor);
-			getTerrainEdit()->extraValues.globalmapNeedRegen = true;
+			getTerrainEdit()->globalmapNeedRegen = true;
 			setGlobalmapUpdated(true);
 		}
 
@@ -452,11 +443,20 @@ namespace godot
 		{
 			return m_mapModder;
 		}
+		bool mapModderWorkDone(void) const
+		{
+			return m_mapModderWorkDone;
+		}
+		void mapModderWorkDone(bool b)
+		{
+			m_mapModderWorkDone = b;
+		}
 
 		void getQuadrantBufferForCache(TheWorld_Utils::MemoryBuffer& buffer);
 		void getQuadrantBufferForCache(std::string& buffer);
-		void saveQuadrantToDiskCache(TheWorld_Utils::MemoryBuffer& buffer, bool needUploadToserver = true, bool newMeshId = false);
-		void saveQuadrantToDiskCache(bool newMeshId = false);
+		bool saveQuadrantToDiskCache2(std::string& buffer, bool needUploadToserver = true, bool newMeshId = false, bool lock = false);
+		bool saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, bool needUploadToserver = true, bool newMeshId = false, bool lock = false);
+		bool saveQuadrantToDiskCache2(bool newMeshId = false, bool lock = false);
 
 		void renderGlobalMap(bool b)
 		{
@@ -563,6 +563,7 @@ namespace godot
 		bool m_empty;
 
 		GDN_TheWorld_MapModder* m_mapModder = nullptr;
+		bool m_mapModderWorkDone = false;
 
 		godot::Vector3 m_quadrantCenter;
 
@@ -601,8 +602,6 @@ namespace godot
 		size_t m_optimizationLevel = 0;
 		bool m_optimizationLevelChanged = false;
 
-		size_t m_lastDistanceInPerimeterFromCameraQuadrant = -1;
-
 		bool m_executingProcess = false;
 		bool m_terrainDataJustLoaded = false;
 	};
@@ -636,28 +635,67 @@ namespace godot
 
 #define SHADER_PARAM_INVERSE_TRANSFORM				"u_terrain_inverse_transform"
 #define SHADER_PARAM_NORMAL_BASIS					"u_terrain_normal_basis"
+#define SHADER_PARAM_QUADRANT_SIZE					"u_quadrant_size"
 #define SHADER_PARAM_GRID_STEP						"u_grid_step"
 #define SHADER_PARAM_FORCE_ELEVATION_0				"u_force_height_0"
 #define SHADER_PARAM_USE_GLOBALMAP					"u_use_globalmap"
 #define SHADER_PARAM_OPTIMIZATION_LEVEL				"u_optimization_level"
 
+#define GLOBAL_SHADER_PARAM_TIME					"gu_time"
 #define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
 #define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY		"gu_ground_albedo_bump_array"
 #define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
 #define GLOBAL_SHADER_PARAM_CAM_ALTITUDE			"gu_camera_altitude_from_terrain"
 #define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
-#define GLOBAL_SHADER_PARAM_SHOW_SEA				"gu_show_sea"
+#define GLOBAL_SHADER_PARAM_CAM_ON_SEA				"gu_camera_on_sea"
+#define GLOBAL_SHADER_PARAM_CAM_UNDER_WATER			"gu_camera_under_water"
+//#define GLOBAL_SHADER_PARAM_SHOW_SEA				"gu_show_sea"
+//#define GLOBAL_SHADER_PARAM_SHOW_TERRAIN			"gu_show_terrain"
 #define GLOBAL_SHADER_PARAM_SHOW_CHUNKS				"gu_show_chunks"
 //#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_texture_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_splatmap_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_splatmapBlendingSize to avoid reading it from RenderingServer (slow operation)
+#define GLOBAL_SHADER_PARAM_FORCE_ELEVATION_0		"gu_force_height_0"
 
+#define GLOBAL_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT							"gu_sea_flat_sea_height"
+#define	DEFAULT_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT							THEWORLD_SEA_LEVEL
+#define GLOBAL_SHADER_PARAM_WATER_FOAM									"gu_water_foam"
+#define GLOBAL_SHADER_PARAM_SEA_NOISE_SCALE								"gu_sea_noise_scale"
+#define	DEFAULT_SHADER_PARAM_SEA_NOISE_SCALE								1000.0f
+#define GLOBAL_SHADER_PARAM_SEA_TIME_SCALE								"gu_sea_time_scale"
+#define	DEFAULT_SHADER_PARAM_SEA_TIME_SCALE									0.0005f
+#define GLOBAL_SHADER_PARAM_SEA_ROUGH_FACTOR							"gu_sea_rough_factor"
+#define	DEFAULT_SHADER_PARAM_SEA_ROUGH_FACTOR								10.0f
+#define GLOBAL_SHADER_PARAM_SEA_HEIGHT_SCALE							"gu_sea_height_scale"
+#define	DEFAULT_SHADER_PARAM_SEA_HEIGHT_SCALE								4.0f
+#define GLOBAL_SHADER_PARAM_SEA_END_CAM_ALT_FOR_WAVES					"gu_sea_end_camera_altitude_for_waves"
+#define	DEFAULT_SHADER_PARAM_SEA_END_CAM_ALT_FOR_WAVES						1000.0f
+#define GLOBAL_SHADER_PARAM_SEA_START_CAM_ALT_FOR_WAVES_ATTENUATION		"gu_sea_start_camera_altitude_for_waves_attenuation"
+#define	DEFAULT_SHADER_PARAM_SEA_START_CAM_ALT_FOR_WAVES_ATTENUATION		200.0f
+#define GLOBAL_SHADER_PARAM_SEA_START_TERR_DEPTH_FOR_WAVES_ATTENUATION	"gu_sea_start_terrain_depth_for_waves_attenuation"
+#define	DEFAULT_SHADER_PARAM_SEA_START_TERR_DEPTH_FOR_WAVES_ATTENUATION		50.0f
+#define GLOBAL_SHADER_PARAM_SEA_SCALE_OFFSET_THRESHOLD					"gu_sea_scale_offset_threshold"
+#define	DEFAULT_SHADER_PARAM_SEA_SCALE_OFFSET_THRESHOLD						20.0f
+
+//#define SHADER_PARAM_HIGH_MOUNTAINS_TEX_INDEX			"u_high_mountains_tex_index"
+//#define SHADER_PARAM_HIGH_MOUNTAINS_ALTITUDE_THRESHOLD	"u_high_mountains_alt_threshold"
+//#define SHADER_PARAM_MOUNTAINS_TEX_INDEX				"u_mountains_tex_index"
+//#define SHADER_PARAM_MOUNTAINS_ALTITUDE_THRESHOLD		"u_mountains_alt_threshold"
+//#define SHADER_PARAM_LOW_MOUNTAINS_TEX_INDEX			"u_low_mountains_tex_index"
+//#define SHADER_PARAM_LOW_MOUNTAINS_ALTITUDE_THRESHOLD	"u_low_mountains_alt_threshold"
+//#define SHADER_PARAM_HILLS_TEX_INDEX					"u_hills_tex_index"
+//#define SHADER_PARAM_HILLS_ALTITUDE_THRESHOLD			"u_hills_alt_threshold"
+//#define SHADER_PARAM_PLAINS_TEX_INDEX					"u_plains_tex_index"
+//#define SHADER_PARAM_PLAINS_ALTITUDE_THRESHOLD			"u_plains_alt_threshold"
+//#define SHADER_PARAM_ABYSS_TEX_INDEX					"u_abyss_tex_index"
+//#define SHADER_PARAM_DIRT_TEX_INDEX						"u_dirt_tex_index"
+//#define SHADER_PARAM_ROCKS_TEX_INDEX					"u_rocks_tex_index"
 
 #define SHADER_PARAM_GROUND_LAYERS					"u_ground_layers"	// godot::Plane (vec4) ==> normal_x (vec4 x) = low, normal_y (vec4 y) = high, normal_z (vec4 z) = dirt, d (vec4 w) = rock
 #define SHADER_PARAM_NORTH_GROUND_LAYERS			"u_north_ground_layers"
 #define SHADER_PARAM_SOUTH_GROUND_LAYERS			"u_south_ground_layers"
-#define SHADER_PARAM_EAST_GROUND_LAYERS				"u_east_ground_layers"
 #define SHADER_PARAM_WEST_GROUND_LAYERS				"u_west_ground_layers"
+#define SHADER_PARAM_EAST_GROUND_LAYERS				"u_east_ground_layers"
 
 #define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT						"u_mouse_hit"
@@ -665,6 +703,7 @@ namespace godot
 #define SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS		"u_quad_border_line_thickness"
 
 #define SHADER_PARAM_MOUSE_GRID_ON					"u_grid_on"
+#define SHADER_PARAM_GENERATE_GLOBAL_MAP			"u_generate_global_map"
 
 #define SHADER_PARAM_VERTICES_PER_CHUNK				"u_num_vertices_per_chunk"
 #define SHADER_PARAM_LOOKDEV_LOD					"u_lod"
@@ -744,15 +783,8 @@ namespace godot
 		{
 			return m_materialParamsNeedUpdate;
 		}
-		void materialParamsNeedUpdate(bool b, bool transformChanged = false)
-		{
-			m_materialParamsNeedUpdate = b;
-			if (b)
-				m_materialParamsNeedUpdateTransformChanged = transformChanged;
-			else
-				m_materialParamsNeedUpdateTransformChanged = false;
-		}
-		void updateMaterialParams(enum class QuadType type, LookDev lookdev);
+		void materialParamsNeedUpdate(bool b, bool transformChanged = false);
+		void updateMaterialParams(enum class QuadType type, LookDev lookdev, bool freeMaps = true, bool updateTerrainData = true);
 		enum class ImageType
 		{
 			heightmap = 0
@@ -765,6 +797,7 @@ namespace godot
 		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel, size_t resolution);
 		godot::Ref<godot::Image> resizeImage(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, size_t newResolution, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel);
 		godot::Ref<godot::Material> getRegularSeaMaterial(bool reload = false);
+		godot::Ref<godot::Material> getGlobalmapSeaMaterial(bool reload = false);
 		godot::Ref<godot::Material> getRegularTerrainMaterial(bool reload = false);
 		void releaseRegularTerrainMaterial(void);
 		godot::Ref<godot::Material> getLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, bool reload = false);
@@ -896,6 +929,7 @@ namespace godot
 		QuadTree* m_quadTree;
 
 		godot::Ref<godot::ShaderMaterial> m_regularSeaMaterial;
+		godot::Ref<godot::ShaderMaterial> m_globalmapSeaMaterial;
 
 		godot::Ref<godot::ShaderMaterial> m_regularTerrainMaterial;
 		godot::Ref<godot::ShaderMaterial> m_lookDevMaterial;
@@ -936,7 +970,7 @@ namespace godot
 		//static std::recursive_mutex s_groundTexturesMutex;
 		static std::map<std::string, int32_t> s_groundTextureLayers;
 
-		static godot::Ref<godot::ShaderMaterial> s_seaMat;
+		//static godot::Ref<godot::ShaderMaterial> s_seaMat;
 
 		bool m_sendTextureToShader = false;
 	};
@@ -1074,9 +1108,20 @@ namespace godot
 			std::vector<Chunk*> m_updatedChunks;
 			bool m_colliderNeedReset = false;
 			bool m_hitByMouse = false;
+			bool m_updateForAllChunksForced = false;
 		};
 
 	public:
+		enum class QuadrantPriority
+		{
+			NotSet = -1
+			, High = 0
+			, Mid = 1
+			, Low = 2
+		};
+
+		static std::string statusToString(enum class QuadrantStatus status);
+
 		QuadTree(GDN_TheWorld_Viewer* viewer, TheWorld_Utils::QuadrantPos quadrantId);
 		~QuadTree();
 
@@ -1084,7 +1129,7 @@ namespace godot
 		void onGlobalTransformChanged(void);
 
 		void init(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced);
-		void checkAndInitQuads(void);
+		void checkAndInitSeaQuadrant(void);
 		void refreshTerrainData(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrain);
 		enum class UpdateStage
 		{
@@ -1107,7 +1152,7 @@ namespace godot
 			return m_quads[type]->m_updatedChunks;
 		}
 		void ForAllChunk(Chunk::ChunkAction& chunkAction, enum class QuadType type);
-		void dump(void);
+		void dump(bool minimal);
 		int getNumSplits(void) 
 		{
 			if (!isValid())
@@ -1232,7 +1277,7 @@ namespace godot
 		bool updateCollider(enum class QuadType type);
 		bool colliderNeedReset(enum class QuadType type);
 		void colliderNeedReset(bool b, enum class QuadType type);
-		bool updateMaterialParams(void);
+		bool updateMaterialParams(bool updateTerrainData = true);
 		bool materialParamsNeedUpdate(void);
 		void materialParamsNeedUpdate(bool b, bool transformChanged = false);
 		bool statusInitialized(void)
@@ -1276,8 +1321,12 @@ namespace godot
 		{
 			return m_status;
 		}
+		void checkSeaChunksToDelete(void);
+		bool statusInProgressOnServer(void) const;
 		enum class QuadrantStatus status(void);
 		void setStatus(enum class QuadrantStatus status);
+		void setPrevStatus(void);
+		void refreshSeaInfo(void);
 		bool isValid(void)
 		{
 			return status() == QuadrantStatus::initialized;
@@ -1298,7 +1347,16 @@ namespace godot
 		}
 		void setVisible(bool b)
 		{
-			m_isVisible = b; 
+			if (m_isVisible != b)
+			{
+				m_isVisible = b;
+				Collider* collider = m_worldQuadrant->getCollider();
+				if (collider != nullptr)
+					if (b)
+						collider->enable();
+					else
+						collider->disable();
+			}
 		}
 		void refreshTime(std::timespec& time)
 		{
@@ -1359,18 +1417,18 @@ namespace godot
 			else
 				return nullptr;
 		}
-		bool forceRecalcOptimizationLevel(void)
+		bool forceRecalcOptimizationLevel(void) const
 		{
 			return m_forceRecalcOptimizationLevel;
 		}
 
 		void requestInitDelayed(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced)
 		{
-			my_assert(status() == QuadrantStatus::uninitialized && !m_initDelayed);
-			if (status() != QuadrantStatus::uninitialized || m_initDelayed)
+			my_assert(status() == QuadrantStatus::uninitialized && !m_initDelayedRequested);
+			if (status() != QuadrantStatus::uninitialized || m_initDelayedRequested)
 				throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Quadrant status not compliant: " + std::to_string((int)status())).c_str()));
 
-			m_initDelayed = true;
+			m_initDelayedRequested = true;
 			m_cameraX = cameraX;
 			m_cameraY = cameraY;
 			m_cameraZ = cameraZ;
@@ -1381,21 +1439,26 @@ namespace godot
 			m_cameraDistanceFromTerrainForced = cameraDistanceFromTerrainForced;
 		}
 			
-		void initDelayed(void)
+		bool initDelayedRequested(void) const
 		{
-			if (m_initDelayed)
+			return m_initDelayedRequested;
+		}
+			
+		void initDelayed(bool force = false)
+		{
+			if (m_initDelayedRequested || force)
 			{
 				init(m_cameraX, m_cameraY, m_cameraZ, m_cameraYaw, m_cameraPitch, m_cameraRoll, m_setCamera, m_cameraDistanceFromTerrainForced);
-				m_initDelayed = false;
+				m_initDelayedRequested = false;
 			}
 		}
 
-		float getLastComputedDistanceFromCamera(void)
+		float getLastComputedDistanceFromCamera(void) const
 		{
 			return m_lastComputedQuadrantDistanceFromCamera;
 		}
 
-		bool containsQuadOfType(enum class QuadType type)
+		bool containsQuadOfType(enum class QuadType type) const
 		{
 			if (m_quads.contains(type))
 				return true;
@@ -1403,16 +1466,69 @@ namespace godot
 				return false;
 		}
 
-		bool containsSea()
+		bool containsSeaChunks() const
 		{
 			return containsQuadOfType(QuadType::Sea);
 		}
+
+		enum class QuadrantPriority quadrantPriority(void) const
+		{
+			return m_quadPriority;
+		}
+		void quadrantPriority(enum class QuadrantPriority p)
+		{
+			m_quadPriority = p;
+		}
+		size_t numQuadrantsFromCameraQuadrant(void) const
+		{
+			return m_numQuadrantsFromCameraQuadrant;
+		}
+		void numQuadrantsFromCameraQuadrant(size_t n)
+		{
+			m_numQuadrantsFromCameraQuadrant = (int)n;
+		}
+
+		void autoSaveRequired(bool b)
+		{
+			m_autoSaveRequired = b;
+		}
+		bool autoSaveRequired(void) const
+		{
+			return m_autoSaveRequired;
+		}
+		int canContainSea(void) const
+		{
+			return m_canContainSea;
+		}
+		void canContainSea(int i)
+		{
+			m_canContainSea = i;
+		}
+
+		bool updateForAllChunksForced(enum class QuadType type)
+		{
+			if (containsQuadOfType(type))
+			{
+				return m_quads[type]->m_updateForAllChunksForced;
+			}
+			else
+				return false;
+		}
+		void updateForAllChunksForced(enum class QuadType type, bool b)
+		{
+			if (containsQuadOfType(type))
+			{
+				m_quads[type]->m_updateForAllChunksForced = b;
+			}
+		}
+		void forceUpdateForAllChunks(enum class QuadType type);
 
 	private:
 		void internalUpdate(Vector3 cameraPosInMap, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired, enum class QuadType type);
 
 	private:
 		enum class QuadrantStatus m_status;
+		enum class QuadrantStatus m_prevStatus = QuadrantStatus::uninitialized;
 		TheWorld_Viewer_Utils::MsTimePoint m_lastStatusChange;
 		bool m_isVisible;
 		std::string m_tag;
@@ -1422,13 +1538,15 @@ namespace godot
 		GDN_TheWorld_Quadrant* m_GDN_Quadrant;
 		bool m_editModeQuadrantSelected = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
-		bool m_containsSea = false;
+		int m_canContainSea = QUADRANT_SEA_INFO_SET_NOTSET;
+		QuadrantPriority m_quadPriority = QuadrantPriority::NotSet;
+		int m_numQuadrantsFromCameraQuadrant = -1;
 
 		std::map<enum class QuadType, std::unique_ptr<Quads>> m_quads;
 
 		float m_lastComputedQuadrantDistanceFromCamera = 0;
 		bool m_forceRecalcOptimizationLevel = false;
-		
+
 		// Terrain Quads/Chunks
 		//std::unique_ptr<Quad> m_terrainQuadRoot;
 		//Chunk::MapChunk m_mapTerrainChunk;
@@ -1447,7 +1565,7 @@ namespace godot
 		int m_numLeaf;
 
 		// init delayed
-		bool m_initDelayed = false;
+		bool m_initDelayedRequested = false;
 		float m_cameraX = 0.0f;
 		float m_cameraY = 0.0f;
 		float m_cameraZ = 0.0f;
@@ -1456,5 +1574,7 @@ namespace godot
 		float m_cameraRoll = 0.0f;
 		bool m_setCamera = false;
 		float m_cameraDistanceFromTerrainForced = 0.0f;
+
+		bool m_autoSaveRequired = true;
 	};
 }

@@ -37,7 +37,7 @@ namespace godot
 			{
 				m_viewer->getMainProcessingMutex().lock();
 				float strideInWUs = m_viewer->Globals()->strideInWorldGridWUs(idxLod);
-				m_meshCache[seams][idxLod] = makeFlatChunk(numVerticesPerChuckSide, seams, strideInWUs);
+				m_meshCache[seams][idxLod] = makeNewFlatChunk(numVerticesPerChuckSide, seams, strideInWUs);
 				m_viewer->getMainProcessingMutex().unlock();
 			}
 		}
@@ -56,7 +56,7 @@ namespace godot
 		m_meshCache.clear();
 	}
 
-	Ref<Mesh> MeshCache::makeFlatChunk(int numVerticesPerChuckSide, int seams, float strideInWUs)
+	Ref<Mesh> MeshCache::makeNewFlatChunk(int numVerticesPerChuckSide, int seams, float strideInWUs)
 	{
 		//	https://gist.github.com/bnolan/01a7d240774f1e02056d6607e5b621da
 
@@ -86,8 +86,8 @@ namespace godot
 		
 		// Preparing array of indices releate to vertex array to form the triangles of the mesh: a tringle every three indices
 		PackedInt32Array indices;
-		void makeFlatChunk_makeIndices(PackedInt32Array & indices, int numVerticesPerChuckSide, int seams);
-		makeFlatChunk_makeIndices(indices, numVerticesPerChuckSide, seams);
+		void makeNewFlatChunk_makeIndices(PackedInt32Array & indices, int numVerticesPerChuckSide, int seams);
+		makeNewFlatChunk_makeIndices(indices, numVerticesPerChuckSide, seams);
 
 		// DEBUGRIC
 		/*
@@ -153,7 +153,7 @@ namespace godot
 	}
 }
 
-void makeFlatChunk_makeIndices(godot::PackedInt32Array& indices, int numVerticesPerChuckSide, int seams)
+void makeNewFlatChunk_makeIndices(godot::PackedInt32Array& indices, int numVerticesPerChuckSide, int seams)
 {
 	// only even sizes admitted
 	assert(numVerticesPerChuckSide % 2 == 0);

@@ -20,6 +20,9 @@ namespace godot
 
 		void enterWorld(void);
 		void exitWorld(void);
+		void enable(void);
+		void disable(void);
+		bool colliderEnabled(void) const;
 		bool setData(bool hiResData);
 		void updateTransform(float gridStepInWU);
 		void onGlobalTransformChanged(void);
@@ -56,9 +59,11 @@ namespace godot
 		bool m_initialized;
 		bool m_worldEntered = false;
 		bool m_hasData = false;
+		bool m_colliderEnabled = false;
 		bool m_hasHiResData = false;
 		QuadTree* m_quadTree;
 		RID m_shapeRID;
+		int32_t m_shapeIdx = -1;
 		RID m_bodyRID;
 		Transform3D m_colliderTransform;
 		Transform3D m_cameraGlobalTranform;

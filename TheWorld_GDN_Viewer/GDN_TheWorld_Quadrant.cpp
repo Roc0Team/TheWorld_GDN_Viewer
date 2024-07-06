@@ -8,12 +8,6 @@ namespace godot
 {
 	GDN_TheWorld_Quadrant::GDN_TheWorld_Quadrant()
 	{
-		m_quitting = false;
-		m_quadTree = nullptr;
-		//m_colliderMeshInstance = nullptr;
-		m_initialized = false;
-		m_ready = false;
-
 		_init();
 	}
 	
@@ -22,11 +16,12 @@ namespace godot
 		deinit();
 	}
 
-	void GDN_TheWorld_Quadrant::init(QuadTree* quadTree)
+	void GDN_TheWorld_Quadrant::init(QuadTree* quadTree, GDN_TheWorld_Viewer* viewer)
 	{
 		assert(m_initialized == false);
 
 		m_quadTree = quadTree;
+		m_viewer = viewer;
 		//set_name(m_quadTree->getQuadrant()->getPos().getName().c_str());
 		set_meta("QuadrantPos", m_quadTree->getQuadrant()->getPos().getIdStr().c_str());
 		set_meta("QuadrantName", m_quadTree->getQuadrant()->getPos().getName().c_str());
@@ -43,6 +38,9 @@ namespace godot
 	{
 		if (m_initialized)
 		{
+			m_deinitInProgress = true;
+			while (m_processInProgress)
+				Sleep(0);
 			m_quadTree = nullptr;
 			//if (m_colliderMeshInstance)
 			//{
@@ -117,19 +115,32 @@ namespace godot
 
 	void GDN_TheWorld_Quadrant::_process(double _delta)
 	{
+		if (m_deinitInProgress)
+			return;
+
+		if (!m_viewer->quadTreeMapValid())
+			return;
+		
+		m_processInProgress = true;
+
 		if (m_quadTree != nullptr)
 		{
-			godot::Camera3D* camera = m_quadTree->Viewer()->getCamera();
-			Transform3D cameraTransform = camera->get_global_transform();
-			if (cameraTransform != m_lastCameraTransform)
+			godot::Camera3D* camera = m_viewer->getCamera();
+			if (camera != nullptr)
 			{
-				m_lastCameraTransform = cameraTransform;
-				//Quadrant* q = m_quadTree->getQuadrant();
-				//Collider* coll = q->getCollider();
-				//coll->onCameraTransformChanged();
-				m_quadTree->getQuadrant()->getCollider()->onCameraTransformChanged();
+				Transform3D cameraTransform = camera->get_global_transform();
+				if (cameraTransform != m_lastCameraTransform)
+				{
+					m_lastCameraTransform = cameraTransform;
+					//Quadrant* q = m_quadTree->getQuadrant();
+					//Collider* coll = q->getCollider();
+					//coll->onCameraTransformChanged();
+					m_quadTree->getQuadrant()->getCollider()->onCameraTransformChanged();
+				}
 			}
 		}
+
+		m_processInProgress = false;
 	}
 
 	void GDN_TheWorld_Quadrant::setColliderTransform(Transform3D t)

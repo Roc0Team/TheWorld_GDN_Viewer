@@ -16,6 +16,7 @@
 #include <godot_cpp/classes/immediate_mesh.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/classes/sprite2d.hpp>
+#include <godot_cpp/classes/rendering_server.hpp>
 #pragma warning(pop)
 
 #include <map>
@@ -51,6 +52,22 @@ namespace godot
 #define TIME_INTERVAL_BETWEEN_STATISTICS 1000	// ms, 0 = diasble periodic dump
 #define TIME_INTERVAL_BETWEEN_MOUSE_TRACK 50	// 250	// ms
 #define TIME_INTERVAL_BETWEEN_ELAB_CAMERA -1	// 2000	// ms
+#define TIME_INTERVAL_BETWEEN_RECALC_QUADRANT 1000	// 250	// ms
+#define TIME_INTERVAL_BETWEEN_QUADRANT_INIT_AT_LOW_PRIORITY	 200	// ms
+
+//#define DEFAULT_HIGH_MOUNTAINS_TEX_NAME					"PaintedPlaster017_1k"
+//#define DEFAULT_HIGH_MOUNTAINS_ALTITUDE_THRESHOLD			2000
+//#define DEFAULT_MOUNTAINS_TEX_NAME						"Ground003_2K"
+//#define DEFAULT_MOUNTAINS_ALTITUDE_THRESHOLD				1500
+//#define DEFAULT_LOW_MOUNTAINS_TEX_NAME					"Ground003_2K"
+//#define DEFAULT_LOW_MOUNTAINS_ALTITUDE_THRESHOLD			700
+//#define DEFAULT_HILLS_TEX_NAME							"Ground003_2K"
+//#define DEFAULT_HILLS_ALTITUDE_THRESHOLD					300
+//#define DEFAULT_PLAINS_TEX_NAME							"Ground003_2K"
+//#define DEFAULT_PLAINS_ALTITUDE_THRESHOLD					0
+//#define DEFAULT_ABYSS_TEX_NAME							"sand"
+//#define DEFAULT_DIRT_TEX_NAME							"Ground049C_1K"
+//#define DEFAULT_ROCKS_TEX_NAME							"rocks07"
 
 	class GDN_TheWorld_MapModder : public godot::Node
 	{
@@ -59,6 +76,7 @@ namespace godot
 	public:
 		enum class MapType
 		{
+
 			uninitialized = 0
 			,initializedForNormals = 1
 			,initializedForSplatmap = 2
@@ -96,7 +114,7 @@ namespace godot
 			float minHeigth,
 			float maxHeigth,
 			size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
-		void initForGlobalMap(QuadTree* quadtree, bool signalRequired = false);
+		void initForGlobalMap(QuadTree* quadtree, size_t tileSize = 512, bool signalRequired = false);
 		void deinit(void);
 		void startProcessing(void);
 		bool working(void);
@@ -106,6 +124,22 @@ namespace godot
 		bool startProcessRequired(void) const;
 		void deinitRequired(bool b);
 		bool deinitRequired(void) const;
+		godot::Vector2 eastQuadrantheights(void) const
+		{
+			return m_eastQuadrantheights;
+		}
+		godot::Vector2 westQuadrantheights(void) const
+		{
+			return m_westQuadrantheights;
+		}
+		godot::Vector2 southQuadrantheights(void) const
+		{
+			return m_southQuadrantheights;
+		}
+		godot::Vector2 northQuadrantheights(void) const
+		{
+			return m_northQuadrantheights;
+		}
 		static void incNumWorking()
 		{
 			s_numWorking++;
@@ -156,12 +190,18 @@ namespace godot
 		float m_lowElevationFactor = 0;
 		float m_minHeigth = 0;
 		float m_maxHeigth = 0;
+		godot::Vector2 m_eastQuadrantheights;
+		godot::Vector2 m_westQuadrantheights;
+		godot::Vector2 m_southQuadrantheights;
+		godot::Vector2 m_northQuadrantheights;
 		QuadTree* m_quadTree = nullptr;
 		godot::SubViewport* m_viewport = nullptr;
 		godot::Sprite2D* m_map = nullptr;
-		godot::MeshInstance3D* m_plane = nullptr;
+		godot::MeshInstance3D* m_terrainPlane = nullptr;
+		godot::MeshInstance3D* m_seaPlane = nullptr;
 		godot::Camera3D* m_camera = nullptr;
 		godot::Vector3 m_displacementPlane;
+		float m_cameraAltitude = 0.0f;
 
 		const int16_t c_tileStatusWaiting = 0;
 		const int16_t c_tileStatusProcessing = 1;
@@ -244,6 +284,8 @@ namespace godot
 				, EndOfProcessExecution = 18
 				, process_updateCameraInQuadrants = 19
 				, process_updateOriginShift = 20
+				, process_castRayFromCamera = 21
+				, process_updateGridDimension = 22
 			};
 			ProcessStep(enum class ProcessStepIdx idx, size_t elapsed, int num = 1)
 			{
@@ -302,11 +344,11 @@ namespace godot
 					return "not_set";
 				}
 			}
-			std::string name(void)
+			std::string name(void) const
 			{
 				return idxToString(m_idx);
 			}
-			std::string msg(void)
+			std::string msg(void) const
 			{
 				return name() + (m_num > 1 ? "(" + std::to_string(m_num)  + ")" : "") + " = " + std::to_string(m_elapsed / 1000);
 			}
@@ -350,7 +392,7 @@ namespace godot
 				return m_steps;
 			}
 
-			std::string lastAddedStepName(void)
+			std::string lastAddedStepName(void) const
 			{
 				return ProcessStep::idxToString(m_lastStepIdx);
 			}
@@ -415,7 +457,7 @@ namespace godot
 		{
 			return m_shaderParam_groundUVScale;
 		}
-		bool getShaderParamDepthBlening() const
+		bool getShaderParamDepthBlending() const
 		{
 			return m_shaderParam_depthBlending;
 		}
@@ -487,6 +529,7 @@ namespace godot
 		void setEditMode(bool editMode);
 		bool isEditMode(void) const;
 		void toggleDebugVisibility(void);
+		enum class GDN_TheWorld_Globals::ChunkDebugMode getChunkDebugMode(void) const;
 		void rotateChunkDebugMode(void);
 		void toggleWireframe(void) const;
 		void rotateDrawingMode(void);
@@ -499,12 +542,13 @@ namespace godot
 		godot::Camera3D* getCamera(void);
 		godot::Camera3D* getCameraInEditor(void);
 		void setEditorCamera(godot::Camera3D* editorCamera);
-		void setDepthQuadOnPerimeter(int depth);
-		int getDepthQuadOnPerimeter(void) const;
+		void setMinDepthQuadOnPerimeter(int depth);
+		int getMinDepthQuadOnPerimeter(void) const;
 		void setCacheQuadOnPerimeter(int cache);
 		int getCacheQuadOnPerimeter(void) const;
 		void setMaxDepthQuadOnPerimeter(int depth);
 		int getMaxDepthQuadOnPerimeter(void) const;
+		int maxActualDepthQuadInAllDirections(void) const;
 		void setForceShaderElevation0(bool elevation0);
 		bool getForceShaderElevation0(void) const;
 		String getInfoCamera(void);
@@ -534,13 +578,13 @@ namespace godot
 		}
 		void dump(void);
 		void dumpRecurseIntoChildrenNodes(Array nodes, int level);
-		void setCameraChunk(Chunk* chunk, QuadTree* quadTree);
-		AABB getCameraChunkLocalAABB(void);
-		AABB getCameraChunkLocalDebugAABB(void);
-		Transform3D getCameraChunkGlobalTransformApplied(void);
-		Transform3D getCameraChunkDebugGlobalTransformApplied(void);
-		String getCameraChunkId(void);
-		String getCameraQuadrantName(void);
+		void setCameraTerrainChunk(Chunk* chunk, QuadTree* quadTree);
+		AABB getCameraTerrainChunkLocalAABB(void);
+		AABB getCameraTerrainChunkLocalDebugAABB(void);
+		Transform3D getCameraTerrainChunkGlobalTransformApplied(void);
+		Transform3D getCameraTerrainChunkDebugGlobalTransformApplied(void);
+		String getCameraTerrainChunkId(void);
+		String getCameraTerrainQuadrantName(void);
 		int getNumSplits(void) const;
 		int getNumJoins(void) const;
 		int getNumChunks(void) const;
@@ -559,14 +603,16 @@ namespace godot
 		int getMouseTrackHitDuration(void) const;
 		int getProcessNotOwnsLock(void) const;
 		int getNumQuadrant(void) const;
-		int getNuminitializedQuadrant(void) const;
+		int getNumInitializedQuadrant(void) const;
+		int getNumToEraseQuadrant(void) const;
 		int getNumVisibleQuadrant(void) const;
-		int getNuminitializedVisibleQuadrant(void) const;
+		int getNumInitializedVisibleQuadrant(void) const;
 		int getNumNeedShaderResetQuadrant(void) const;
 		int getNumEmptyQuadrant(void) const;
 		int getNumQuadrantReloadingFromCache(void) const;
 		int getNumFlushedQuadrant(void) const;
 		int getQuadrantNumWithCollider(void) const;
+		int getQuadrantNumWithEnabledCollider(void) const;
 		int getQuadrantNumWithHiResCollider(void) const;
 		int getQuadrantNumWithLowResCollider(void) const;
 		void refreshQuadTreeStatistics(void);
@@ -582,20 +628,28 @@ namespace godot
 		{
 			return m_debugContentVisibility; 
 		}
-		String getDebugDrawMode(void);
+		String getDebugDrawMode(void) const;
 		bool useVisualServer(void) const
 		{
 			return m_useVisualServer; 
 		}
-		void forceRefreshMapQuadTree(void) 
+		void forceRefreshQuadTreeMap(void) 
 		{
-			m_refreshMapQuadTree = true; 
+			m_refreshQuadTreeMap = true; 
 		}
-		void getAllQuadrantPos(std::vector<TheWorld_Utils::QuadrantPos>& allQuandrantPos);
-		QuadTree* getQuadTree(TheWorld_Utils::QuadrantPos pos, bool excludeToErase = true, bool lockQuadrant = false);
+		size_t getExtraQuadsMapSize(void);
+		void getAllQuadrantPos(std::vector<TheWorld_Utils::QuadrantPos>& allQuandrantPos, bool withExtraQuads = false);
+		QuadTree* getQuadTree(TheWorld_Utils::QuadrantPos pos, bool excludeToErase = true, bool lockQuadrant = false, bool extraQuadAllowed = false);
 		Chunk* getActiveChunkAt(TheWorld_Utils::QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
 		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
 		bool terrainShiftPermitted(void);
+		godot::Vector3 getMouseHitGlobal(void) const
+		{
+			if (m_mouseTrackedOnSomething)
+				return m_trackedMouseHitGlobal;
+			else
+				return godot::Vector3();
+		}
 		godot::Vector3 getMouseHitInMap(void) const
 		{
 			if (m_mouseTrackedOnSomething)
@@ -639,9 +693,9 @@ namespace godot
 		}
 		godot::String getMouseChunkHitId(void)
 		{
-			if (m_mouseTrackedOnSomething && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
+			if (m_mouseTrackedOnSomething && m_mouseHitTerrainChunk != nullptr && m_mouseHitTerrainChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
 			{
-				return std::string(m_mouseHitChunk->getQuadTree()->getQuadrant()->getPos().getName() + " " + m_mouseHitChunk->getIdStr()).c_str();
+				return std::string(m_mouseHitTerrainChunk->getQuadTree()->getQuadrant()->getPos().getName() + " " + m_mouseHitTerrainChunk->getIdStr()).c_str();
 				//return m_mouseHitChunk->getIdStr().c_str();
 			}
 			else
@@ -649,18 +703,18 @@ namespace godot
 		}
 		godot::Vector3 getMouseChunkHitPos(void)
 		{
-			if (m_mouseTrackedOnSomething && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
+			if (m_mouseTrackedOnSomething && m_mouseHitTerrainChunk != nullptr && m_mouseHitTerrainChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
 			{
-				return Vector3(m_mouseHitChunk->getLowerXInWUsGlobal(), 0, m_mouseHitChunk->getLowerZInWUsGlobal());
+				return Vector3(m_mouseHitTerrainChunk->getLowerXInWUsGlobal(), 0, m_mouseHitTerrainChunk->getLowerZInWUsGlobal());
 			}
 			else
 				return Vector3();
 		}
 		float getMouseChunkHitSize(void)
 		{
-			if (m_mouseTrackedOnSomething && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
+			if (m_mouseTrackedOnSomething && m_mouseHitTerrainChunk != nullptr && m_mouseHitTerrainChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
 			{
-				return m_mouseHitChunk->getChunkSizeInWUs();
+				return m_mouseHitTerrainChunk->getChunkSizeInWUs();
 			}
 			else
 				return 0.0;
@@ -668,17 +722,17 @@ namespace godot
 
 		float getMouseChunkHitDistFromCam(void)
 		{
-			if (m_mouseTrackedOnSomething && m_mouseHitChunk != nullptr && m_mouseHitChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
+			if (m_mouseTrackedOnSomething && m_mouseHitTerrainChunk != nullptr && m_mouseHitTerrainChunk->isActive() /* && m_mouseHitQuadTree != nullptr*/)
 			{
-				return m_mouseHitChunk->getDistanceFromCamera();
+				return m_mouseHitTerrainChunk->getDistanceFromCamera();
 			}
 			else
 				return 0.0;
 		}
 
-		void setMouseHitChunk(Chunk* chunk)
+		void setMouseHitTerrainChunk(Chunk* chunk)
 		{
-			m_mouseHitChunk = chunk;
+			m_mouseHitTerrainChunk = chunk;
 		}
 		//void setMouseHitQuadTree(QuadTree* quadTree)
 		//{
@@ -688,6 +742,11 @@ namespace godot
 		bool editMode(void) const
 		{
 			return m_editMode;
+		}
+
+		bool canProcessDataUpdate(void) const
+		{
+			return editMode();
 		}
 
 		//void GenerateHeigths(void);
@@ -774,8 +833,8 @@ namespace godot
 		{
 			m_reloadSelectedQuadrantShaderRequired = b;
 		}
-		void trackedMouseHitChanged(QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit, godot::Vector3 normalHit = Vector3Zero);
-		void clearMapQuadTree(void);
+		void trackedMouseHitChanged(godot::Camera3D* activeCamera, QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit, godot::Vector3 normalHit = Vector3Zero);
+		void clearQuadTreeMap(void);
 		bool gizmoVisible(void) const
 		{
 			return m_gizmoVisible;
@@ -822,6 +881,14 @@ namespace godot
 			}
 
 			m_gridOn = b;
+		}
+		bool castRayFromCamera(void) const
+		{
+			return m_castRayFromCamera;
+		}
+		void castRayFromCamera(bool b)
+		{
+			m_castRayFromCamera = b;
 		}
 		bool trackingDistance(void) const
 		{
@@ -985,10 +1052,136 @@ namespace godot
 		void startInitializingStreamOfQuadrants(void);
 		void endInitializingStreamOfQuadrants(void);
 
-		void cameraChunk(Chunk* c);
-		Chunk* cameraChunk(void);
-		void mouseHitChunk(Chunk* c);
-		Chunk* mouseHitChunk(void);
+		void cameraTerrainChunk(Chunk* c);
+		Chunk* cameraTerrainChunk(void);
+		void mouseHitTerrainChunk(Chunk* c);
+		Chunk* mouseHitTerrainChunk(void);
+
+		bool allCollidersReady(void) const
+		{
+			return m_allCollidersReady;
+		}
+		void allCollidersReady(bool b);
+		bool quadTreeMapValid(void) const
+		{
+			return m_quadTreeMapValid;
+		}
+
+		bool finishedResizingGrid(void) const
+		{
+			return m_finishedResizingGrid;
+		}
+		void finishedResizingGrid(bool b)
+		{
+			m_finishedResizingGrid = b;
+		}
+
+		void terrainHeightsChangedEvent(void);
+
+		float shaderParamSeaFlatSeaHeightApplied(void) const
+		{
+			return m_shaderParamSeaFlatSeaHeightApplied;
+		}
+		void shaderParamSeaFlatSeaHeightApplied(float f)
+		{
+			m_shaderParamSeaFlatSeaHeightApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT, m_shaderParamSeaFlatSeaHeightApplied);
+		}
+
+		float shaderParamSeaNoiseScaleApplied(void) const
+		{
+			return m_shaderParamSeaNoiseScaleApplied;
+		}
+		void shaderParamSeaNoiseScaleApplied(float f)
+		{
+			m_shaderParamSeaNoiseScaleApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_NOISE_SCALE, m_shaderParamSeaNoiseScaleApplied);
+		}
+
+		float shaderParamSeaTimeScaleApplied(void) const
+		{
+			return m_shaderParamSeaTimeScaleApplied;
+		}
+		void shaderParamSeaTimeScaleApplied(float f)
+		{
+			m_shaderParamSeaTimeScaleApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_TIME_SCALE, m_shaderParamSeaTimeScaleApplied);
+		}
+
+		float shaderParamSeaHeightScaleApplied(void) const
+		{
+			return m_shaderParamSeaHeightScaleApplied;
+		}
+		void shaderParamSeaHeightScaleApplied(float f)
+		{
+			m_shaderParamSeaHeightScaleApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_HEIGHT_SCALE, m_shaderParamSeaHeightScaleApplied);
+		}
+
+		float shaderParamSeaRoughFactorApplied(void) const
+		{
+			return m_shaderParamSeaRoughFactorApplied;
+		}
+		void shaderParamSeaRoughFactorApplied(float f)
+		{
+			m_shaderParamSeaRoughFactorApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_ROUGH_FACTOR, m_shaderParamSeaRoughFactorApplied);
+		}
+
+		float shaderParamSeaEndCamAltForWavesApplied(void) const
+		{
+			return m_shaderParamSeaEndCamAltForWavesApplied;
+		}
+		void shaderParamSeaEndCamAltForWavesApplied(float f)
+		{
+			m_shaderParamSeaEndCamAltForWavesApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_END_CAM_ALT_FOR_WAVES, m_shaderParamSeaEndCamAltForWavesApplied);
+		}
+
+		float shaderParamSeaStartCamAltForWavesAttenuationApplied(void) const
+		{
+			return m_shaderParamSeaStartCamAltForWavesAttenuationApplied;
+		}
+		void shaderParamSeaStartCamAltForWavesAttenuationApplied(float f)
+		{
+			m_shaderParamSeaStartCamAltForWavesAttenuationApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_START_CAM_ALT_FOR_WAVES_ATTENUATION, m_shaderParamSeaStartCamAltForWavesAttenuationApplied);
+		}
+
+		float shaderParamSeaStartTerrDepthForWavesAttenuationApplied(void) const
+		{
+			return m_shaderParamSeaStartTerrDepthForWavesAttenuationApplied;
+		}
+		void shaderParamSeaStartTerrDepthForWavesAttenuationApplied(float f)
+		{
+			m_shaderParamSeaStartTerrDepthForWavesAttenuationApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_START_TERR_DEPTH_FOR_WAVES_ATTENUATION, m_shaderParamSeaStartTerrDepthForWavesAttenuationApplied);
+		}
+
+		float shaderParamSeaScaleOffsetThresholdApplied(void) const
+		{
+			return m_shaderParamSeaScaleOffsetThresholdApplied;
+		}
+		void shaderParamSeaScaleOffsetThresholdApplied(float f)
+		{
+			m_shaderParamSeaScaleOffsetThresholdApplied = f;
+			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_SCALE_OFFSET_THRESHOLD, m_shaderParamSeaScaleOffsetThresholdApplied);
+		}
+
+		bool shaderParamCameraUnderWaterApplied(void) const
+		{
+			return m_shaderParamCameraUnderWaterApplied;
+		}
+		void shaderParamCameraUnderWaterApplied(bool b)
+		{
+			if (b != m_shaderParamCameraUnderWaterApplied)
+			{
+				m_shaderParamCameraUnderWaterApplied = b;
+				float f = b ? 1.0f : 0.0f;
+				godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_UNDER_WATER, f);
+			}
+		}
+
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -1005,6 +1198,7 @@ namespace godot
 		void streamer(void);
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
+		void process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap, godot::Camera3D* activeCamera);
 		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap);
 		void process_initNewQuads(bool processCameraPosForQuadrants);
 		void process_updateCameraPosInShader(godot::Camera3D* activeCamera);
@@ -1012,6 +1206,7 @@ namespace godot
 		void setAnchorForOriginShift(godot::Node3D* anchorForOriginShift);
 		godot::Node3D* getAnchorForOriginShift(void);
 		void process_trackMouse(godot::Camera3D* activeCamera);
+		void process_castRayFromCamera(godot::Camera3D* activeCamera);
 		void process_updateLodInQuads(godot::Vector3& cameraPosInMap);
 		void process_updateLodInQuads(godot::Vector3& cameraPosInMap, enum class QuadType type);
 		void process_updateMeshForUpdatedChunks(void);
@@ -1025,10 +1220,11 @@ namespace godot
 		void writeStatisticsNewQuadrants(void);
 		TheWorld_Utils::QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isQuadrantSelectedForEdit(void);
-		godot::Camera3D* m_editorCamera;
+		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized);
 
 	private:
 		bool m_initialized;
+		godot::Camera3D* m_editorCamera;
 		godot::Node3D* m_anchorForOriginShift = nullptr;
 		bool m_worldEntered = false;
 		bool m_quitting;
@@ -1058,6 +1254,7 @@ namespace godot
 		size_t m_maxProcessDuration = 0;
 		bool m_processCanBeInterrupted = false;
 		bool m_lastProcessExecutionInterrupted = false;
+		bool m_allCollidersReady = false;
 		ProcessSteps m_processSteps;
 		//std::vector<ProcessStep> m_processSteps;
 		//std::string m_lastProcessedStep;
@@ -1090,15 +1287,17 @@ namespace godot
 		int m_numActiveSeaChunks;
 		int m_numProcessNotOwnsLock;
 		int m_numQuadrant;
-		int m_numinitializedQuadrant;
+		int m_numInitializedQuadrant;
+		int m_numToEraseQuadrant;
 		int m_numVisibleQuadrant;
 		int m_numEmptyQuadrant;
 		int m_numQuadrantReloadingFromCache = 0;
 		int m_numFlushedQuadrant;
 		int m_numQuadrantWithCollider = 0;
+		int m_numQuadrantWithEnabledCollider = 0;
 		int m_numQuadrantWithHiResCollider = 0;
 		int m_numQuadrantWithLowResCollider = 0;
-		int m_numinitializedVisibleQuadrant;
+		int m_numInitializedVisibleQuadrant;
 		int m_numQuadrantNeedResetMaterialParam = 0;
 		
 		TimerMs m_streamingTime;
@@ -1127,7 +1326,9 @@ namespace godot
 
 		bool m_trackMouse = false;
 		bool m_editMode = false;
-		int64_t m_timeElapsedFromLastMouseTrack;
+		int64_t m_timeElapsedFromLastQuadrandtInit = 0;
+		int64_t m_timeElapsedFromLastRecalc = 0;
+		int64_t m_timeElapsedFromLastMouseTrack = 0;
 		godot::Vector3 m_trackedMouseHitGlobal;
 		godot::Vector3 m_trackedMouseHitInMap;
 		godot::Vector3 m_previousTrackedMouseHitInMap;
@@ -1141,23 +1342,62 @@ namespace godot
 		QuadTree* m_quadrantHit = nullptr;
 		std::list<QuadTree*> m_adjacentQuadrantsHit;
 		TheWorld_Utils::QuadrantPos m_quadrantSelPos;
-		Chunk* m_mouseHitChunk;
+		Chunk* m_mouseHitTerrainChunk = nullptr;
 		GDN_TheWorld_Drawer* m_normalDrawer = nullptr;
 		GDN_TheWorld_Drawer* m_positionDrawer = nullptr;
+		GDN_TheWorld_Drawer* m_rayFromCameraDrawer = nullptr;
+		class DebugRayToUpdateGridDimensionDrawer
+		{
+		public:
+			enum class Side
+			{
+				NotSet = -1
+				, North = 0
+				, South = 1
+				, West = 2
+				, East = 3
+			};
+		public:
+			DebugRayToUpdateGridDimensionDrawer(GDN_TheWorld_Viewer* _viewer, godot::Camera3D* _camera, enum class Side _side, float _angle, godot::Vector3 _rayStart, godot::Vector3 _rayEnd, bool _hit, godot::Vector3 _hitPosition, bool _maxDistanceFromCameraForSide = false);
+			~DebugRayToUpdateGridDimensionDrawer(void);
+			void setup(godot::Vector3 _rayStart, godot::Vector3 _rayEnd, bool _hit, godot::Vector3 _hitPosition, bool _maxDistanceFromCameraForSide = false);
+			static std::string sideToString(enum class Side side);
+		public:
+			GDN_TheWorld_Viewer* viewer = nullptr;
+			godot::Camera3D* camera = nullptr;
+			enum class Side side = Side::NotSet;
+			float angle = 0;
+			godot::Vector3 rayStart;
+			godot::Vector3 rayEnd;
+			bool hit = false;
+			godot::Vector3 hitPosition;
+			GDN_TheWorld_Drawer* m_rayDrawer = nullptr;
+			//int32_t rayIdx = -1;
+			int32_t sphere = -1;
+			int32_t label = -1;
+			bool maxDistanceFromCameraForSide = false;
+		};
+		std::map<enum class DebugRayToUpdateGridDimensionDrawer::Side, std::map<float, std::unique_ptr<DebugRayToUpdateGridDimensionDrawer>>> m_debugRayToUpdateGridDimension;
 		int32_t m_normalLineIdx = -1;
 		int32_t m_normalSphereIdx = -1;
 		int32_t m_labelPositionXIdx = -1;
 		int32_t m_labelPositionYIdx = -1;
 		int32_t m_labelPositionZIdx = -1;
+		int32_t m_labelPositionDistIdx = -1;
+		int32_t m_labelPositionDirIdx = -1;
 		int32_t m_linePositionIdx = -1;
 		int32_t m_spherePositionStartIdx = -1;
 		int32_t m_spherePositionEndIdx = -1;
+		int32_t m_lineRayFromCameraIdx = -1;
+		int32_t m_sphereRayFromCameraStartIdx = -1;
+		int32_t m_sphereRayFromCameraEndIdx = -1;
 		bool m_normalVisible = false;
 		GDN_TheWorld_Gizmo3d* m_gizmo = nullptr;
 		bool m_gizmoVisible = false;
 		bool m_positionVisible = false;
 		bool m_trackingDistance = false;
 		bool m_gridOn = false;
+		bool m_castRayFromCamera = false;
 		godot::Vector3 m_savedPosForTrackingDistance;
 
 		bool m_debugContentVisibility;
@@ -1180,21 +1420,33 @@ namespace godot
 
 		// Viewer (Camera)
 		GDN_TheWorld_Camera* m_worldCamera = nullptr;
-		Chunk* m_cameraChunk = nullptr;
+		Chunk* m_cameraTerrainChunk = nullptr;
+		bool m_cameraVerticalOnSea = false;
 		//QuadTree* m_cameraQuadTree;
 		
 		// World Data
-		MapQuadTree m_mapQuadTree;	// Actually only 1 level is managed (to manage more levels we shold have a map for each level)
+		bool m_quadTreeMapValid = false;
+		MapQuadTree m_quadTreeMap;
+		MapQuadTree m_extraQuadsMap;
 		std::recursive_mutex m_mtxQuadTreeAndMainProcessing;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
 		TheWorld_Utils::QuadrantPos m_computedCameraQuadrantPos;
 		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;
 		godot::Vector3 m_lastOriginShiftCameraPosInMap;
 		bool m_recalcQuadrantsInViewNeeded = false;
-		bool m_refreshMapQuadTree = false;
+		bool m_finishedResizingGrid = true;
+		bool m_refreshQuadTreeMap = false;
 		int m_numWorldVerticesPerSize;
 		int m_worldViewerLevel;		// actually world viewer manage one level at the time, otherwise we should have multiple quadtrees
-		size_t m_numVisibleQuadrantOnPerimeter;
+		int m_minVisibleQuadrantOnPerimeter = -1;
+		int m_numVisibleQuadrantOnPerimeterOnNorthSide = -1;
+		int m_numVisibleQuadrantOnPerimeterOnNorthSideApplied = -1;
+		int m_numVisibleQuadrantOnPerimeterOnSouthSide = -1;
+		int m_numVisibleQuadrantOnPerimeterOnSouthSideApplied = -1;
+		int m_numVisibleQuadrantOnPerimeterOnWestSide = -1;
+		int m_numVisibleQuadrantOnPerimeterOnWestSideApplied = -1;
+		int m_numVisibleQuadrantOnPerimeterOnEastSide = -1;
+		int m_numVisibleQuadrantOnPerimeterOnEastSideApplied = -1;
 		size_t m_numCacheQuadrantOnPerimeter = 0;
 		// Node cache
 		GDN_TheWorld_Globals* m_globals;
@@ -1224,13 +1476,13 @@ namespace godot
 		// Editor stuff
 		godot::EditorInterface* m_editorInterface;
 		godot::Control* m_editor3dOverlay;
-		size_t m_depthQuadOnPerimeter;
-		size_t m_maxDepthQuadOnPerimeter;
-		size_t m_cacheQuadOnPerimeter;
+		int m_minDepthQuadOnPerimeter = -1;
+		int m_maxDepthQuadOnPerimeter = -1;
+		int m_cacheQuadOnPerimeter = -1;
 		bool m_forceShaderElevation0 = false;
 
 		godot::Vector3 m_lastProcessedCameraPosForQuadrants;
-		Chunk* m_lastCameraChunk = nullptr;
+		Chunk* m_lastCameraTerrainChunk = nullptr;
 		int64_t m_timeElapsedFromLastProcessCameraPosForQuadrants = 0;
 		godot::Vector3 m_lastProcessedCameraPosForChunks;
 
@@ -1241,6 +1493,17 @@ namespace godot
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
 
 		bool m_quadrantSyncRunning = false;
+
+		float m_shaderParamSeaFlatSeaHeightApplied = 0;
+		float m_shaderParamSeaNoiseScaleApplied = 0;
+		float m_shaderParamSeaTimeScaleApplied = 0;
+		float m_shaderParamSeaHeightScaleApplied = 0;
+		float m_shaderParamSeaRoughFactorApplied = 0;
+		float m_shaderParamSeaEndCamAltForWavesApplied = 0;
+		float m_shaderParamSeaStartCamAltForWavesAttenuationApplied = 0;
+		float m_shaderParamSeaStartTerrDepthForWavesAttenuationApplied = 0;
+		float m_shaderParamSeaScaleOffsetThresholdApplied = 0;
+		bool m_shaderParamCameraUnderWaterApplied = false;
 
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;

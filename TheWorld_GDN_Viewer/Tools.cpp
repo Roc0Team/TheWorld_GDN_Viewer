@@ -292,23 +292,23 @@ GDN_TheWorld_Drawer::Drawing::Drawing()
 
 GDN_TheWorld_Drawer::Drawing::~Drawing()
 {
-	if (label3d != nullptr)
-	{
-		Node* parent = label3d->get_parent();
-		if (parent != nullptr)
-			parent->remove_child(label3d);
-		label3d->queue_free();
-		label3d = nullptr;
-	}
+	//if (label3d != nullptr)
+	//{
+	//	Node* parent = label3d->get_parent();
+	//	if (parent != nullptr)
+	//		parent->remove_child(label3d);
+	//	label3d->queue_free();
+	//	label3d = nullptr;
+	//}
 
-	if (label2d != nullptr)
-	{
-		Node* parent = label2d->get_parent();
-		if (parent != nullptr)
-			parent->remove_child(label2d);
-		label2d->queue_free();
-		label2d = nullptr;
-	}
+	//if (label2d != nullptr)
+	//{
+	//	Node* parent = label2d->get_parent();
+	//	if (parent != nullptr)
+	//		parent->remove_child(label2d);
+	//	label2d->queue_free();
+	//	label2d = nullptr;
+	//}
 }
 
 GDN_TheWorld_Drawer::GDN_TheWorld_Drawer()
@@ -357,9 +357,17 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 			m_mesh->clear_surfaces();
 			for (auto& item : m_drawings)
 			{
-				if (item.second->drawingType == Drawing::DrawingType::line && item.second->start != item.second->end)
+				godot::Vector3 start = item.second->start;
+				godot::Vector3 end = item.second->end;
+
+				if (item.second->drawingType == Drawing::DrawingType::line && start != end)
 				{
-					drawLine(item.second->start, item.second->end, item.second->color);
+					if (start == godot::Vector3() && m_camera != nullptr)
+						start = m_viewer->globalPosToMapPos(m_camera->get_global_position());
+					if (end == godot::Vector3() && m_camera != nullptr)
+						end = m_viewer->globalPosToMapPos(m_camera->get_global_position());
+
+					drawLine(start, end, item.second->color);
 					if (item.second->labelPos == Drawing::LabelPos::not_set)
 					{
 						if (item.second->label3d != nullptr)
@@ -406,7 +414,7 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 							}
 							else if (item.second->labelPos == Drawing::LabelPos::end)
 							{
-								item.second->label3d->set_position(item.second->end + (item.second->end - item.second->start).normalized() * item.second->label3dOffset);
+								item.second->label3d->set_position(end + (end - start).normalized() * item.second->label3dOffset);
 							}
 
 							if (m_camera != nullptr)
@@ -421,74 +429,94 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 						{
 							if (m_camera != nullptr && m_viewer != nullptr)
 							{
-								if (item.second->label2d == nullptr)
-								{
-									item.second->label2d = memnew(godot::Label);
-									add_child(item.second->label2d);
-								}
-
-								item.second->label2d->set_text(item.second->labelText.c_str());
-								item.second->label2d->add_theme_color_override("font_color", item.second->color);
-
 								//godot::Vector3 position;
 								godot::Vector2 viewportPos;
+								bool label_visible = false;
 								if (item.second->labelPos == Drawing::LabelPos::start)
 								{
 									// TODO
+									label_visible = false;
 								}
 								else if (item.second->labelPos == Drawing::LabelPos::center)
 								{
-									godot::Vector3 globalStart = m_viewer->mapPosToGlobalPos(item.second->start);
-									godot::Vector3 globalEnd = m_viewer->mapPosToGlobalPos(item.second->end);
-									godot::Vector2 end = m_camera->unproject_position(globalEnd);
-									godot::Vector2 start = m_camera->unproject_position(globalStart);
+									godot::Vector3 globalStart = m_viewer->mapPosToGlobalPos(start);
+									godot::Vector3 globalEnd = m_viewer->mapPosToGlobalPos(end);
+									godot::Vector2 endOnViewport = m_camera->unproject_position(globalEnd);
+									godot::Vector2 startOnViewport = m_camera->unproject_position(globalStart);
 									godot::Size2 viewportSize = m_viewer->getViewportSize();
 									bool startBehindCamera = m_camera->is_position_behind(globalStart);
+									bool endBehindCamera = m_camera->is_position_behind(globalEnd);
 
-									if (startBehindCamera)
+									if (startBehindCamera && endBehindCamera)
+										label_visible = false;
+									else
 									{
-										godot::Vector3 newStart = globalStart;
-										while (startBehindCamera)
-										{
-											newStart = newStart + (globalEnd - newStart) / 10;
-											startBehindCamera = m_camera->is_position_behind(newStart);
-										}
-										start = m_camera->unproject_position(newStart);
-									}
+										label_visible = true;
 
-									viewportPos = start + (end - start) / 2;
-										
-									if (viewportPos.x < 0 || viewportPos.x > viewportSize.x || viewportPos.y < 0 || viewportPos.y > viewportSize.y)
-									{
-										// pos outside viewport
+										if (startBehindCamera)
+										{
+											godot::Vector3 newStart = globalStart;
+											while (startBehindCamera)
+											{
+												newStart = newStart + (globalEnd - newStart) / 10;
+												startBehindCamera = m_camera->is_position_behind(newStart);
+											}
+											startOnViewport = m_camera->unproject_position(newStart);
+										}
 
-										if (end.x >= 0 && end.x <= viewportSize.x && end.y >= 0 && end.y <= viewportSize.y)
+										viewportPos = startOnViewport + (endOnViewport - startOnViewport) / 2;
+
+										if (viewportPos.x < 0 || viewportPos.x > viewportSize.x || viewportPos.y < 0 || viewportPos.y > viewportSize.y)
 										{
-											// end inside viewport: we need to approach end until label will be inside viewport
-											while (viewportPos.x < 0 || viewportPos.x > viewportSize.x || viewportPos.y < 0 || viewportPos.y > viewportSize.y)
-												viewportPos = viewportPos + (end - viewportPos) / 2;
-										}
-										else if (start.x >= 0 && start.x <= viewportSize.x && start.y >= 0 && start.y <= viewportSize.y)
-										{
-											// start inside viewport: we need to approach start until label will be inside viewport
-											while (viewportPos.x < 0 || viewportPos.x > viewportSize.x || viewportPos.y < 0 || viewportPos.y > viewportSize.y)
-												viewportPos = viewportPos + (start - viewportPos) / 2;
-										}
-										else
-										{
-											// label not visible
-											Node* parent = item.second->label2d->get_parent();
-											if (parent != nullptr)
-												parent->remove_child(item.second->label2d);
-											item.second->label2d->queue_free();
-											item.second->label2d = nullptr;
+											// pos outside viewport
+
+											if (endOnViewport.x >= 0 && endOnViewport.x <= viewportSize.x && endOnViewport.y >= 0 && endOnViewport.y <= viewportSize.y)
+											{
+												// end inside viewport: we need to approach end until label will be inside viewport
+												while (viewportPos.x < 0 || viewportPos.x > viewportSize.x || viewportPos.y < 0 || viewportPos.y > viewportSize.y)
+													viewportPos = viewportPos + (endOnViewport - viewportPos) / 2;
+											}
+											else if (startOnViewport.x >= 0 && startOnViewport.x <= viewportSize.x && startOnViewport.y >= 0 && startOnViewport.y <= viewportSize.y)
+											{
+												// start inside viewport: we need to approach start until label will be inside viewport
+												while (viewportPos.x < 0 || viewportPos.x > viewportSize.x || viewportPos.y < 0 || viewportPos.y > viewportSize.y)
+													viewportPos = viewportPos + (startOnViewport - viewportPos) / 2;
+											}
+											else
+											{
+												// label not visible
+												label_visible = false;
+											}
 										}
 									}
 								}
 								else if (item.second->labelPos == Drawing::LabelPos::end)
 								{
-									godot::Vector3 position = item.second->end + (item.second->end - item.second->start).normalized() * item.second->label3dOffset;
+									godot::Vector3 position = end + (end - start).normalized() * item.second->label3dOffset;
 									viewportPos = m_camera->unproject_position(m_viewer->mapPosToGlobalPos(position));
+									label_visible = true;
+								}
+
+								if (label_visible)
+								{
+									if (item.second->label2d == nullptr)
+									{
+										item.second->label2d = memnew(godot::Label);
+										add_child(item.second->label2d);
+									}
+									item.second->label2d->set_text(item.second->labelText.c_str());
+									item.second->label2d->add_theme_color_override("font_color", item.second->color);
+								}
+								else
+								{
+									if (item.second->label2d != nullptr)
+									{
+										Node* parent = item.second->label2d->get_parent();
+										if (parent != nullptr)
+											parent->remove_child(item.second->label2d);
+										item.second->label2d->queue_free();
+										item.second->label2d = nullptr;
+									}
 								}
 
 								if (item.second->label2d != nullptr)
@@ -501,21 +529,41 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 					}
 				}
 				else if (item.second->drawingType == Drawing::DrawingType::sphere && item.second->radius != 0.0f)
-					drawSphere(item.second->start, item.second->radius, item.second->color);
+					drawSphere(start, item.second->radius, item.second->color);
 				else if (item.second->drawingType == Drawing::DrawingType::label2d)
 				{
 					if (m_camera != nullptr && m_viewer != nullptr)
 					{
-						if (item.second->label2d == nullptr)
+						godot::Vector3 pos = m_viewer->mapPosToGlobalPos(start);
+
+						bool label_visible = true;
+						if (m_camera->is_position_behind(pos))
+							label_visible = false;
+						
+						if (label_visible)
 						{
-							item.second->label2d = memnew(godot::Label);
-							add_child(item.second->label2d);
+							if (item.second->label2d == nullptr)
+							{
+								item.second->label2d = memnew(godot::Label);
+								add_child(item.second->label2d);
+							}
+							godot::Vector2 viewportPos = m_camera->unproject_position(pos);
+							viewportPos += item.second->label2dOffset;
+							item.second->label2d->set_position(viewportPos);
+							item.second->label2d->set_text(item.second->labelText.c_str());
+							item.second->label2d->add_theme_color_override("font_color", item.second->color);
 						}
-						godot::Vector2 viewportPos = m_camera->unproject_position(m_viewer->mapPosToGlobalPos(item.second->start));
-						viewportPos += item.second->label2dOffset;
-						item.second->label2d->set_position(viewportPos);
-						item.second->label2d->set_text(item.second->labelText.c_str());
-						item.second->label2d->add_theme_color_override("font_color", item.second->color);
+						else
+						{
+							if (item.second->label2d != nullptr)
+							{
+								Node* parent = item.second->label2d->get_parent();
+								if (parent != nullptr)
+									parent->remove_child(item.second->label2d);
+								item.second->label2d->queue_free();
+								item.second->label2d = nullptr;
+							}
+						}
 					}
 				}
 			}

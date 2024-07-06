@@ -66,7 +66,9 @@ namespace godot
 		data["max_height"] = 1;		// ???
 		ps->shape_set_data(m_shapeRID, data);
 
+		m_shapeIdx = ps->body_get_shape_count(m_bodyRID);
 		ps->body_add_shape(m_bodyRID, m_shapeRID);
+		m_colliderEnabled = true;
 
 		// This makes collision hits report the provided object as `collider`
 		ps->body_attach_object_instance_id(m_bodyRID, attachedNode->get_instance_id());
@@ -90,7 +92,10 @@ namespace godot
 			if (m_bodyRID != RID())
 				ps->free_rid(m_bodyRID);
 			if (m_shapeRID != RID())
+			{
 				ps->free_rid(m_shapeRID);
+				m_shapeIdx = -1;
+			}
 
 			m_hasData = false;
 			m_hasHiResData = false;
@@ -135,6 +140,29 @@ namespace godot
 		m_worldEntered = false;
 	}
 
+	void Collider::enable(void)
+	{
+		if (m_initialized)
+		{
+			godot::PhysicsServer3D::get_singleton()->body_set_shape_disabled(m_bodyRID, m_shapeIdx, false);
+			m_colliderEnabled = true;
+		}
+	}
+
+	void Collider::disable(void)
+	{
+		if (m_initialized)
+		{
+			godot::PhysicsServer3D::get_singleton()->body_set_shape_disabled(m_bodyRID, m_shapeIdx, true);
+			m_colliderEnabled = false;
+		}
+	}
+
+	bool Collider::colliderEnabled(void) const
+	{
+		return m_colliderEnabled;
+	}
+
 	bool Collider::setData(bool hiResData)
 	{
 		bool updated = false;
@@ -152,13 +180,21 @@ namespace godot
 		Quadrant* quadrant = m_quadTree->getQuadrant();
 
 		int numVerticesPerSize = 0;
+
 #ifdef REAL_T_IS_DOUBLE
 		PackedFloat64Array* heightsForCollider = nullptr;
 		PackedFloat64Array resizedHeightsForCollider;
+		PackedFloat64Array heightsZeroForCollider;
+		size_t elementSize = sizeof(double);
+		double zero;
 #else
 		PackedFloat32Array* heightsForCollider = nullptr;
 		PackedFloat32Array resizedHeightsForCollider;
+		PackedFloat32Array heightsZeroForCollider;
+		size_t elementSize = sizeof(float);
+		float zero = 0;
 #endif // REAL_T_IS_DOUBLE
+		
 		float gridStepInWU = 0.0f;
 		gridStepInWU = quadrant->getPos().getGridStepInWU();
 
@@ -224,7 +260,27 @@ namespace godot
 		Dictionary data;
 		data["width"] = numVerticesPerSize;			// data["map_width"];	
 		data["depth"] = numVerticesPerSize;			// data["map_depth"];
-		data["heights"] = *heightsForCollider;		// data["map_data"];
+		if (globals->getParamElevationZero())
+		{
+			static TheWorld_Utils::MemoryBuffer zeroHeigths;
+			m_quadTree->Viewer()->getMainProcessingMutex().lock();
+			if (zeroHeigths.size() == 0)
+			{
+				size_t maxNumVerticesPerSize = quadrant->getPos().getNumVerticesPerSize();
+				size_t bufferNeeded = maxNumVerticesPerSize * maxNumVerticesPerSize * elementSize;
+				zeroHeigths.reserve(bufferNeeded);
+				for (int i = 0; i < maxNumVerticesPerSize * maxNumVerticesPerSize; i++)
+					zeroHeigths.append((BYTE*)&zero, sizeof(zero));
+				//zeroHeigths.adjustSize(bufferNeeded);
+			}
+			m_quadTree->Viewer()->getMainProcessingMutex().unlock();
+
+			heightsZeroForCollider.resize(areaSize);
+			memcpy((char*)heightsZeroForCollider.ptrw(), zeroHeigths.ptr(), areaSize * elementSize);
+			data["heights"] = heightsZeroForCollider;		// data["map_data"];
+		}
+		else
+			data["heights"] = *heightsForCollider;		// data["map_data"];
 		Vector3 startPoint = quadrant->getGlobalCoordAABB().position;
 		Vector3 endPoint = startPoint + quadrant->getGlobalCoordAABB().size;
 		data["min_height"] = startPoint.y;			// ???
@@ -238,12 +294,18 @@ namespace godot
 		}
 
 		heightsForCollider->resize(0);
+		heightsZeroForCollider.resize(0);
 
 		{
 			updateTransform(gridStepInWU);
 		}
 
 		m_hasData = true;
+
+		if (m_quadTree->isVisible())
+			enable();
+		else
+			disable();
 
 		return updated;
 	}

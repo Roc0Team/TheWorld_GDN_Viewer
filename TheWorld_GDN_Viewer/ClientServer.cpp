@@ -437,7 +437,7 @@ namespace TheWorld_ClientServer
 		long long elapsedFromStartOfClientMethod;
 		if (reply->expiredTimeToLive(&elapsedFromStartOfClientMethod))
 		{
-			reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, (std::string(__FUNCTION__) + std::string("Time To Live (") + std::to_string(reply->m_timeToLive) + std::string(") Expired: ") + std::to_string(elapsedFromStartOfClientMethod)).c_str());
+			reply->replyError(THEWORLD_CLIENTSERVER_RC_TIMETOLIVE_EXPIRED, (std::string(__FUNCTION__) + std::string("Time To Live (") + std::to_string(reply->m_timeToLive) + std::string(") Expired: ") + std::to_string(elapsedFromStartOfClientMethod)).c_str());
 			return true;
 		}
 		else
@@ -714,13 +714,24 @@ namespace TheWorld_ClientServer
 					return;
 				}
 				std::string clientQuadrants((*_clientQuadrants).begin(), (*_clientQuadrants).end());
-				size_t l1 = clientQuadrants.size();
+				//size_t l1 = clientQuadrants.size();	// DEBUG
 				
-				std::string replyQuadrants;
-				m_threadContextPool->getCurrentContext()->getMapManager()->sync(*isInEditor, *numVerticesPerSize, *gridStepinWU, &clientQuadrants, replyQuadrants);
+				bool* inGameEditMode = std::get_if<bool>(&reply->m_inputParams[4]);
+				if (inGameEditMode == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Fifth param must be a bool");
+					return;
+				}
 
-				std::vector<unsigned char> _replyQuadrants(replyQuadrants.begin(), replyQuadrants.end());
-				reply->replyParam(_replyQuadrants);
+				std::string replyClientQuadrants, replyProceGenStatus, replyExtraQuadrants;
+				m_threadContextPool->getCurrentContext()->getMapManager()->sync(*isInEditor, *inGameEditMode, *numVerticesPerSize, *gridStepinWU, &clientQuadrants, replyClientQuadrants, replyProceGenStatus, replyExtraQuadrants);
+
+				std::vector<unsigned char> _replyClientQuadrants(replyClientQuadrants.begin(), replyClientQuadrants.end());
+				reply->replyParam(_replyClientQuadrants);
+				std::vector<unsigned char> _replyProceGenStatus(replyProceGenStatus.begin(), replyProceGenStatus.end());
+				reply->replyParam(_replyProceGenStatus);
+				std::vector<unsigned char> _replyExtraQuadrants(replyExtraQuadrants.begin(), replyExtraQuadrants.end());
+				reply->replyParam(_replyExtraQuadrants);
 
 				reply->replyComplete();
 			}

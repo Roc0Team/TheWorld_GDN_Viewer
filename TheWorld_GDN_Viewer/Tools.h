@@ -162,8 +162,9 @@ namespace godot
 			m_viewer = viewer;
  		}
 
-	private:
 		void removeDrawing(int32_t idx);
+
+	private:
 		void clearDrawings();
 		void drawLine(godot::Vector3 start, godot::Vector3 end, godot::Color c = godot::Color(0.0f, 0.0f, 0.0f, 1.0f));
 		void drawSphere(godot::Vector3 center, float radius, godot::Color c = godot::Color(0.0f, 0.0f, 0.0f, 1.0f));

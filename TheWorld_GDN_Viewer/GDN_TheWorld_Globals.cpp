@@ -6,6 +6,7 @@
 #include <godot_cpp/classes/window.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
+#include <godot_cpp/classes/time.hpp>
 #pragma warning(pop)
 
 static bool g_plogInitialized = false;
@@ -186,7 +187,7 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::Sync(bool isInEditor, size_t numVerticesPerSize, float gridStepinWU, std::string& quadrants)
+	void GDN_TheWorld_Globals_Client::Sync(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepinWU, std::string& quadrants)
 	{
 		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
@@ -198,6 +199,7 @@ namespace godot
 		size_t l2 = _quadrants.size();
 		//inputParams.push_back(quadrants);
 		inputParams.push_back(_quadrants);
+		inputParams.push_back(inGameEditMode);
 		std::string ref;
 		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
@@ -294,6 +296,8 @@ namespace godot
 
 	GDN_TheWorld_Globals::GDN_TheWorld_Globals()
 	{
+		m_startTime = godot::Time::get_singleton()->get_ticks_msec();
+		
 		m_quitting = false;
 		m_initialized = false;
 		m_ready = false;
@@ -406,8 +410,12 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_origin_shift_factor"), &GDN_TheWorld_Globals::getParamOriginShiftFactor);
 		ClassDB::bind_method(D_METHOD("set_viewparam_show_sea", "p_value"), &GDN_TheWorld_Globals::setParamShowSea);
 		ClassDB::bind_method(D_METHOD("get_viewparam_show_sea"), &GDN_TheWorld_Globals::getParamShowSea);
+		ClassDB::bind_method(D_METHOD("set_viewparam_show_terrain", "p_value"), &GDN_TheWorld_Globals::setParamShowTerrain);
+		ClassDB::bind_method(D_METHOD("get_viewparam_show_terrain"), &GDN_TheWorld_Globals::getParamShowTerrain);
 		ClassDB::bind_method(D_METHOD("set_viewparam_show_chunks", "p_value"), &GDN_TheWorld_Globals::setParamShowChunks);
 		ClassDB::bind_method(D_METHOD("get_viewparam_show_chunks"), &GDN_TheWorld_Globals::getParamShowChunks);
+		ClassDB::bind_method(D_METHOD("set_viewparam_elevation_zero", "p_value"), &GDN_TheWorld_Globals::setParamElevationZero);
+		ClassDB::bind_method(D_METHOD("get_viewparam_elevation_zero"), &GDN_TheWorld_Globals::getParamElevationZero);
 
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "Performance", "perfparam_");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_stream_world"), "set_perfparam_stream_world", "get_perfparam_stream_world");
@@ -432,10 +440,38 @@ namespace godot
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_origin_shift_factor"), "set_perfparam_origin_shift_factor", "get_perfparam_origin_shift_factor");
 
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "View", "viewparam_");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_terrain"), "set_viewparam_show_terrain", "get_viewparam_show_terrain");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_sea"), "set_viewparam_show_sea", "get_viewparam_show_sea");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_chunks"), "set_viewparam_show_chunks", "get_viewparam_show_chunks");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_elevation_zero"), "set_viewparam_elevation_zero", "get_viewparam_elevation_zero");
 
 		ADD_SIGNAL(MethodInfo("tw_status_changed", PropertyInfo(Variant::INT, "old_value"), PropertyInfo(Variant::INT, "new_value")));
+	}
+
+	void GDN_TheWorld_Globals::setStatus(enum class TheWorldStatus status)
+	{
+		bool statusChanged = false;
+		if (m_status != status)
+			statusChanged = true;
+
+		if (m_statusChangeClock.counterStarted() && statusChanged)
+		{
+			m_statusChangeClock.tock();
+			infoPrint((std::string("Status changed: ") + statusStr(m_status) + std::string("(") + std::to_string((int)m_status) + std::string(") ==> ") + statusStr(status) + std::string("(") + std::to_string((int)status) + std::string(") (") + std::to_string(m_statusChangeClock.duration().count()) + std::string(" ms)")).c_str());
+		}
+
+		if (statusChanged)
+		{
+			//emit_signal("tw_status_changed", (int)m_status, (int)status);
+			call_deferred("emit_signal", "tw_status_changed", (int)m_status, (int)status);
+			m_status = status;
+			m_statusChangeClock.tick();
+
+			if (m_status == TheWorldStatus::worldDeployed)
+			{
+				m_viewer->finishedResizingGrid(false);
+			}
+		}
 	}
 
 	void GDN_TheWorld_Globals::replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply)
@@ -710,10 +746,19 @@ namespace godot
 		}
 	}
 
+	void GDN_TheWorld_Globals::shaderParamGlobalTimeApplied(double d)
+	{
+		m_shaderGlobalTimeApplied = d;
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_TIME, m_shaderGlobalTimeApplied);
+	}
+
 	void GDN_TheWorld_Globals::_process(double _delta)
 	{
 		// To activate _process method add this Node to a Godot Scene
 		//debugPrint("GDN_TheWorld_Globals::_process");
+
+		//shaderParamGlobalTimeApplied(elapsedFromStartInSeconds());
+		shaderParamGlobalTimeApplied(internalTimeInSeconds(_delta));
 	}
 
 	GDN_TheWorld_Viewer* GDN_TheWorld_Globals::Viewer(bool useCache)
@@ -862,21 +907,45 @@ namespace godot
 		if (m_paramShowSea != b)
 		{
 			m_paramShowSea = b;
-			godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
+			//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
 			m_paramShowSeaChanged = true;
 		}
 
 	}
-
+	
 	void GDN_TheWorld_Globals::setParamShowSeaChanged(bool b)
 	{
 		m_paramShowSeaChanged = b;
+	}
+
+	void GDN_TheWorld_Globals::setParamShowTerrain(bool b)
+	{
+		if (m_paramShowTerrain != b)
+		{
+			m_paramShowTerrain = b;
+			//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_TERRAIN, m_paramShowSea);
+			m_paramShowTerrainChanged = true;
+		}
+
+	}
+
+	void GDN_TheWorld_Globals::setParamShowTerrainChanged(bool b)
+	{
+		m_paramShowTerrainChanged = b;
 	}
 
 	void GDN_TheWorld_Globals::setParamShowChunks(bool b)
 	{
 		m_paramShowChunks = b;
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, m_paramShowChunks);
+	}
+
+	void GDN_TheWorld_Globals::setParamElevationZero(bool b)
+	{
+		m_paramElevationZero = b;
+		int paramElevationZero = b ? 1 : 0;
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_FORCE_ELEVATION_0, paramElevationZero);
+		Viewer()->terrainHeightsChangedEvent();
 	}
 
 	//void GDN_TheWorld_Globals::setParamDepthQuadWithCollisionInfo(int64_t f)

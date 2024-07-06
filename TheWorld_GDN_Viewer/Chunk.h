@@ -179,7 +179,9 @@ namespace godot
 		public:
 			ChunkAction() {}
 			virtual ~ChunkAction() {}
-			virtual void exec(Chunk* chunk) = 0;
+			virtual void preExec(QuadTree* quadTree) {};
+			virtual void exec(Chunk* chunk) {};
+			virtual void postExec(QuadTree* quadTree) {};
 		private:
 		};
 
@@ -193,6 +195,7 @@ namespace godot
 			virtual ~SwitchDebugModeAction() {}
 			virtual void exec(Chunk* chunk)
 			{
+				ChunkAction::exec(chunk);
 				if (m_mode != GDN_TheWorld_Globals::ChunkDebugMode::DoNotSet && chunk->isQuadTreeVisible())
 				{
 					chunk->setDebugMode(m_mode);
@@ -215,6 +218,7 @@ namespace godot
 			virtual ~SetMaterialChunkAction() {}
 			virtual void exec(Chunk* chunk)
 			{
+				ChunkAction::exec(chunk);
 				chunk->setMaterial(m_material);
 			}
 		private:
@@ -228,6 +232,7 @@ namespace godot
 			virtual ~EnterWorldChunkAction() {}
 			virtual void exec(Chunk* chunk)
 			{
+				ChunkAction::exec(chunk);
 				chunk->enterWorld();
 			}
 		private:
@@ -240,6 +245,7 @@ namespace godot
 			virtual ~ExitWorldChunkAction() {}
 			virtual void exec(Chunk* chunk)
 			{
+				ChunkAction::exec(chunk);
 				chunk->exitWorld();
 			}
 		private:
@@ -248,17 +254,30 @@ namespace godot
 		class VisibilityChangedChunkAction : public ChunkAction
 		{
 		public:
-			VisibilityChangedChunkAction(bool isVisibleInTree)
+			VisibilityChangedChunkAction(bool isVisibleInTree, GDN_TheWorld_Globals* globals)
 			{
 				m_isVisibleInTree = isVisibleInTree; 
+				m_globals = globals;
 			}
 			virtual ~VisibilityChangedChunkAction() {}
 			virtual void exec(Chunk* chunk)
 			{
-				chunk->setVisible(m_isVisibleInTree);
+				ChunkAction::exec(chunk);
+
+				bool isVisibleInTree = m_isVisibleInTree;
+				if (chunk->chunkType() == ChunkType::Sea && isVisibleInTree)
+				{
+					isVisibleInTree = m_globals->getParamShowSea();
+				}
+				if (chunk->chunkType() == ChunkType::Terrain && isVisibleInTree)
+				{
+					isVisibleInTree = m_globals->getParamShowTerrain();
+				}
+				chunk->setVisible(isVisibleInTree);
 			}
 		private:
-			bool m_isVisibleInTree;
+			bool m_isVisibleInTree = false;
+			GDN_TheWorld_Globals* m_globals = nullptr;
 		};
 
 		class DebugVisibilityChangedChunkAction : public ChunkAction
@@ -271,6 +290,7 @@ namespace godot
 			virtual ~DebugVisibilityChangedChunkAction() {}
 			virtual void exec(Chunk* chunk)
 			{
+				ChunkAction::exec(chunk);
 				chunk->setDebugContentVisible(m_isVisible);
 			}
 		private:
@@ -284,6 +304,7 @@ namespace godot
 			virtual ~TransformChangedChunkAction() {}
 			virtual void exec(Chunk* chunk)
 			{
+				ChunkAction::exec(chunk);
 				chunk->onGlobalTransformChanged();
 			}
 		private:
@@ -296,6 +317,7 @@ namespace godot
 			virtual ~DumpChunkAction() {}
 			virtual void exec(Chunk* chunk)
 			{
+				ChunkAction::exec(chunk);
 				chunk->dump();
 			}
 		private:
@@ -311,30 +333,35 @@ namespace godot
 			virtual ~RefreshChunkAction() {}
 			virtual void exec(Chunk* chunk)
 			{
+				ChunkAction::exec(chunk);
 				chunk->refresh(m_isVisible);
 			}
 		private:
 			bool m_isVisible;
 		};
 
-		class HeightsChangedChunkAction : public ChunkAction
+		class SeaInfoChangedChunkAction : public ChunkAction
 		{
 		public:
-			HeightsChangedChunkAction(bool isVisible)
-			{
-				m_isVisible = isVisible;
-			}
-			virtual ~HeightsChangedChunkAction() {}
-			virtual void exec(Chunk* chunk)
-			{
-				chunk->heightsChanged();
-				//if (!m_isVisible)
-				//	chunk->refresh(m_isVisible);
-				//else
-				//	chunk->refresh(m_isVisible);
-			}
+			SeaInfoChangedChunkAction() {}
+			virtual ~SeaInfoChangedChunkAction() {}
+			virtual void preExec(QuadTree* quadTree);
+			virtual void postExec(QuadTree* quadTree);
+			virtual void exec(Chunk* chunk);
+
 		private:
-			bool m_isVisible;
+		};
+
+		class TerrainHeightsChangedChunkAction : public ChunkAction
+		{
+		public:
+			TerrainHeightsChangedChunkAction() {}
+			virtual ~TerrainHeightsChangedChunkAction() {}
+			virtual void preExec(QuadTree* quadTree);
+			virtual void postExec(QuadTree* quadTree);
+			virtual void exec(Chunk* chunk);
+
+		private:
 		};
 
 		class ChunkPos
@@ -417,7 +444,7 @@ namespace godot
 		virtual ~Chunk();
 		
 		static enum class QuadType getQuadType(enum class ChunkType type);
-		enum class QuadType getOwnQuadType(void);
+		enum class QuadType getOwnQuadType(void) const;
 		void initVisual(godot::Ref<godot::Material>& mat);
 		//void initSeaVisual(godot::Ref<godot::Material>& seaMat);
 		void deinit(void);
@@ -431,6 +458,7 @@ namespace godot
 		virtual void setDebugContentVisible(bool b);
 		virtual void applyAABB(void);
 		virtual void checkAndCalcAABB() = 0;
+		virtual bool containsSea() = 0;
 		//virtual void checkAndInitSeaVisual(godot::Ref<godot::Material>& seaMat);
 		virtual void dump(void);
 		virtual void setCameraPosInMap(Vector3 cameraPosInMap);
@@ -442,7 +470,8 @@ namespace godot
 		virtual bool isMeshNull(void);
 		virtual bool isDebugMeshNull(void);
 		virtual void refresh(bool isVisible);
-		virtual void heightsChanged(void);
+		virtual void terrainHeightsChanged(void);
+		virtual void seaInfoChanged(void);
 		virtual void setMaterial(Ref<Material>& mat);
 		virtual void update(bool isVisible);
 		virtual void setActive(bool b);
@@ -566,6 +595,11 @@ namespace godot
 			return m_quad;
 		}
 		//godot::AABB getSeaAABB(void);
+		enum class ChunkType chunkType(void) const
+		{
+			return m_chunkType;
+		}
+		void getGlobalCoordTerrainAABB(AABB& aabb, int firstWorldVertCol, int lastWorldVertCol, int firstWorldVertRow, int lastWorldVertRow, int step);
 
 	private:
 		void setMesh(Ref<Mesh> mesh);
@@ -620,12 +654,6 @@ namespace godot
 		godot::RID m_meshInstanceRID;
 		godot::RID m_meshRID;
 		godot::Ref<godot::Mesh> m_mesh;
-
-		//bool m_containsSea = false;
-		//godot::RID m_seaMeshInstanceRID;
-		//godot::RID m_seaMeshRID;
-		//godot::Ref<godot::Mesh> m_seaMesh;
-		//godot::Ref<godot::Material> m_seaMat;
 	};
 
 	class TerrainChunk : public Chunk
@@ -633,12 +661,16 @@ namespace godot
 	public:
 		TerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat /*, godot::Ref<godot::Material>& seaMat*/);
 		virtual ~TerrainChunk();
+		
+		virtual void terrainHeightsChanged(void);
+		virtual void seaInfoChanged(void);
+		virtual bool containsSea();
 
 	protected:
 		virtual void checkAndCalcAABB();
 
-	private:
-		void getGlobalCoordAABB(AABB& aabb, int firstWorldVertCol, int lastWorldVertCol, int firstWorldVertRow, int lastWorldVertRow, int step);
+	protected:
+		int m_containsSea = QUADRANT_SEA_INFO_SET_NOTSET;
 	};
 
 	class DebugTerrainChunk : public TerrainChunk
@@ -664,14 +696,16 @@ namespace godot
 		virtual AABB getDebugMeshAABB(void) { return m_debugMeshAABB; };
 		virtual bool isDebugMeshNull(void);
 		virtual void refresh(bool isVisible);
-		virtual void heightsChanged(void);
+		virtual void terrainHeightsChanged(void);
+		virtual void seaInfoChanged(void);
 		virtual void update(bool isVisible);
 		virtual void setActive(bool b);
 
 	private:
-		void setDebugMesh(Ref<Mesh> mesh);
-		Ref<ArrayMesh> createWireCubeMesh(Color c = Color(1, 1, 1));
-		Ref<ArrayMesh> createWireSquareMesh(Color c = Color(1, 1, 1));
+		void setDebugMesh(Ref<Mesh> mesh, enum class GDN_TheWorld_Globals::ChunkDebugMode debugModeApplied);
+		godot::Ref<godot::Mesh> createWireCubeMesh(Color c = Color(1, 1, 1));
+		godot::Ref<godot::ArrayMesh> createWireSquareMesh(Color c = Color(1, 1, 1));
+		//godot::Ref<godot::Mesh> createDebugBoxMesh(Color c);
 
 	private:
 		MeshInstance3D* m_debugMeshInstance;
@@ -679,6 +713,7 @@ namespace godot
 		RID m_debugMeshInstanceRID;
 		RID m_debugMeshRID;
 		Ref<Mesh> m_debugMesh;
+		enum class GDN_TheWorld_Globals::ChunkDebugMode m_debugModeApplied = GDN_TheWorld_Globals::ChunkDebugMode::NoDebug;
 		AABB m_debugMeshAABB;
 		Transform3D m_debugGlobaTransformApplied;
 		bool m_debugWirecubeMeshNeedRegen;
@@ -691,8 +726,15 @@ namespace godot
 		SeaChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat /*, godot::Ref<godot::Material>& seaMat*/);
 		virtual ~SeaChunk();
 
-	private:
+		virtual void terrainHeightsChanged(void);
+		virtual void seaInfoChanged(void);
+		virtual bool containsSea(void);
+
+	protected:
 		virtual void checkAndCalcAABB();
+
+	protected:
+		int m_containsSea = QUADRANT_SEA_INFO_SET_NOTSET;
 	};
 
 }

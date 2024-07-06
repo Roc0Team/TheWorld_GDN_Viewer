@@ -5,12 +5,15 @@
 #include <godot_cpp/classes/input_event.hpp>
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/ref.hpp>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/noise_texture2d.hpp>
 #pragma warning (pop)
 
 #include "Utils.h"
 
 #define GD_ACTIVE_CAMERA_GROUP	"TheWorldViewerActiveCamera"
 #define GD_CUSTOM_CAMERAS_GROUP	"TheWorldViewerCustomCameras"
+#define INVALID_CAMERA_ALTITUDE	-999999999.9f
 
 namespace godot {
 
@@ -35,6 +38,7 @@ namespace godot {
 		virtual void _input(const godot::Ref<godot::InputEvent>& event) override;
 		
 		bool initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll);
+		void set_cameraFar(void);
 		godot::Transform3D getCameraMapTransform(void);
 		void setCameraMapTransform(godot::Transform3D map);
 		//bool initPlayerCamera(void);
@@ -43,6 +47,7 @@ namespace godot {
 		bool updateCamera(double _delta);
 		bool updateFreeLookCamera(double _delta);
 		bool updatePlayerCamera(double _delta);
+		void updateCameraUnderWater(void);
 		void activateCamera(void);
 		void deactivateCamera(void);
 		GDN_TheWorld_Camera* getActiveCamera(void);
@@ -137,20 +142,29 @@ namespace godot {
 			m_trackingOffset = v;
 		}
 
-		void updateAltitude(void);
+		void updateAltitudeFromTerrain(bool force);
 
-		float cameraAltitude(void) const
+		float cameraAltitudeFromTerrain(void) const
 		{
-			return m_lastCameraAltitudeComputed;
+			return m_lastCameraAltitudeFromTerrain;
 		}
 		void forceRecalcCameraAltitude(void)
 		{
-			m_lastCameraAltitudeComputed = -1.0f;
+			m_forceRecalcCameraAltitude = true;
+		}
+		void forceRecalcCameraFar(void)
+		{
+			m_forceRecalcCameraFar = true;
 		}
 
 		void setCameraGlobalTransform(godot::Transform3D t)
 		{
 			set_global_transform(t);
+		}
+
+		bool cameraUnderWater(void) const
+		{
+			return m_cameraUnderWater;
 		}
 
 	private:
@@ -170,9 +184,12 @@ namespace godot {
 		float m_trackingLerpSpeed = 10.0f;
 		godot::Vector3 m_trackingOffset = godot::Vector3(0.0f, 7.0f, 5.0f);
 		
-		godot::Vector3 m_savedCameraPos = godot::Vector3(0.0f, 0.0f, 0.0f);
-		float m_lastCameraAltitudeComputed = -1.0f;
-		godot::Vector3 m_lastComputedCameraVerticalOnTerrain = godot::Vector3(0.0f, 0.0f, 0.0f);
+		godot::Vector3 m_savedCameraPosAfterSetFar = godot::Vector3(0.0f, 0.0f, 0.0f);
+		bool m_forceRecalcCameraFar = false;
+		godot::Vector3 m_savedCameraPosAfterCalcAltitude = godot::Vector3(0.0f, 0.0f, 0.0f);
+		float m_lastCameraAltitudeFromTerrain = INVALID_CAMERA_ALTITUDE;
+		bool m_forceRecalcCameraAltitude = false;
+		//godot::Vector3 m_lastComputedCameraVerticalOnTerrain = godot::Vector3(0.0f, 0.0f, 0.0f);
 
 		float m_angleFromNorthDeg;	// angle expressed in degrees of the projection of the camera on XZ plane: 0 ==> camera points to north, 90 camera points to east, 180 camera points to south, 270 camera points to west
 
@@ -232,6 +249,10 @@ namespace godot {
 		int m_pitchLimit;
 		// Camera Rotation
 		
+		godot::Ref<godot::Image> m_seaWaveMapImage;
+		godot::Ref<godot::NoiseTexture2D> m_seaWaveMapTexture;
+		bool m_cameraUnderWater = false;
+
 		// Node cache
 		GDN_TheWorld_Globals* m_globals;
 	};

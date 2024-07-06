@@ -91,9 +91,6 @@ namespace godot
 				m_mainTerrainScrollContainer = nullptr;
 				m_noiseVBoxContainer = nullptr;
 				m_noiseButton = nullptr;
-				m_infoVBoxContainer = nullptr;
-				m_infoButton = nullptr;
-				m_infoLabel = nullptr;
 				m_terrEditVBoxContainer = nullptr;
 				m_terrEditButton = nullptr;
 				m_seed = nullptr;
@@ -169,13 +166,29 @@ namespace godot
 			godot::OptionButton* m_terrTypeOptionButton;
 			godot::OptionButton* m_lookDevOptionButton;
 
-			godot::Button* m_infoButton;
-			godot::Control* m_infoVBoxContainer;
+			godot::Button* m_serverInfoButton = nullptr;
+			godot::Control* m_serverInfoVBoxContainer = nullptr;
+			godot::Label* m_procgenHeader = nullptr;
+			godot::Label* m_procgenStatus = nullptr;
+			godot::Label* m_procgenClient = nullptr;
+			godot::Label* m_procgenLevel = nullptr;
+			godot::Label* m_procgenHeightsProgress = nullptr;
+			godot::Label* m_procgenBlendProgress = nullptr;
+			godot::Label* m_procgenClientElabProgress = nullptr;
+			TimerMs m_procgenClock;
+
+			godot::Button* m_terrainInfoButton = nullptr;
+			godot::Control* m_terrainInfoVBoxContainer = nullptr;
 			godot::CheckBox* m_showGizmo = nullptr;
 			godot::CheckBox* m_showNormal = nullptr;
 			godot::CheckBox* m_showPosition = nullptr;
 			godot::CheckBox* m_gridON = nullptr;
-			godot::Label* m_infoLabel;
+			godot::CheckBox* m_castRay = nullptr;
+			godot::Label* m_mouseHitInfoLabel = nullptr;
+			godot::Label* m_hitQuadInfoLabel = nullptr;
+			godot::Label* m_selQuadInfoLabel = nullptr;
+			godot::CheckBox* m_selQuadSeaCheckBox = nullptr;
+			bool m_pressedViaCode = false;
 
 			godot::Button* m_noiseButton;
 			godot::Control* m_noiseVBoxContainer;
@@ -234,6 +247,7 @@ namespace godot
 			bool m_onGoing;
 			std::string m_minHeightStr;
 			std::string m_maxHeightStr;
+			//std::string m_canContainSeaStr;
 			std::string m_counterStr;
 			std::string m_note1Str;
 			std::string m_mouseHitStr;
@@ -245,6 +259,11 @@ namespace godot
 			std::unique_ptr<SelTexturePanel> m_selTexturePanel;
 
 			bool m_mouseInsideEditPanel;
+
+			std::map<size_t, std::map<int, TheWorld_Utils::MapManagerProceduralGenerationStatus>> m_serverProceGenStatusMap;
+			bool m_serverProceGenStatusMapChanged = false;
+
+			enum class TheWorld_Utils::TerrainEdit::TerrainType m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 		};
 
 		enum class Margin {
@@ -390,9 +409,10 @@ namespace godot
 		void setPostGenerateElevation(float postGenerateElevation);
 		float postGenerateElevation(void);
 		void setMinHeight(float minHeight);
-		float minHeight(void);
+		//float minHeight(void);
 		void setMaxHeight(float maxHeight);
-		float maxHeight(void);
+		//float maxHeight(void);
+		//void setCanContainSea(bool canContainSea);
 		void setElapsed(size_t elapsed, bool onGoing);
 		size_t elapsed(void);
 		void setCounter(size_t curr, size_t all);
@@ -496,6 +516,9 @@ namespace godot
 		{
 			return m_blendingInProgress;
 		}
+
+		void setServerProcGenStatus(TheWorld_Utils::MapManagerProceduralGenerationStatus& s);
+		void resetServerProcGenStatus(void);
 
 	private:
 		bool m_initialized;

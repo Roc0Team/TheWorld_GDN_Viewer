@@ -499,7 +499,7 @@ namespace TheWorld_Viewer_Utils
 		//	return buffer;
 		//}
 
-		void serialize(BYTE* stream, size_t& size)
+		void serialize(BYTE* stream, size_t& size) const
 		{
 			// optimize method
 			//serializeToByteStream<GridVertex>(*this, stream, size);
@@ -516,7 +516,7 @@ namespace TheWorld_Viewer_Utils
 			size += sz;
 		}
 
-		std::string toString()
+		std::string toString() const
 		{
 			return "Level=" + std::to_string(level) + "-X=" + std::to_string(x) + "-Z=" + std::to_string(z) + "-Altitude=" + std::to_string(y);
 		}

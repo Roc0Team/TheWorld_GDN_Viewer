@@ -45,7 +45,7 @@ namespace godot
 		GDN_TheWorld_Quadrant(void);
 		~GDN_TheWorld_Quadrant(void);
 		
-		void init(QuadTree* quadTree);
+		void init(QuadTree* quadTree, GDN_TheWorld_Viewer* viewer);
 		void deinit(void);
 		void setColliderTransform(Transform3D t);
 		Transform3D getColliderTransform(void);
@@ -66,12 +66,15 @@ namespace godot
 		//void createDebugColliderMeshInstance(void);
 
 	private:
-		bool m_quitting;
-		bool m_ready;
-		QuadTree* m_quadTree;
-		//GDN_Collider_MeshInstance* m_colliderMeshInstance;
+		bool m_quitting = false;
+		bool m_ready = false;
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
+		QuadTree* m_quadTree = nullptr;
+		bool m_processInProgress = false;
+		bool m_deinitInProgress = false;
+		//GDN_Collider_MeshInstance* m_colliderMeshInstance = nullptr;
 		Transform3D m_lastCameraTransform;
-		bool m_initialized;
+		bool m_initialized = false;
 	};
 }
 

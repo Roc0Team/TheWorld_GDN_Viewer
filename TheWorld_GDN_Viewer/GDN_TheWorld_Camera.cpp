@@ -5,6 +5,7 @@
 
 #pragma warning (push, 0)
 //#include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/classes/scene_tree.hpp>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/input.hpp>
 #include <godot_cpp/classes/input_event_mouse_motion.hpp>
@@ -15,11 +16,19 @@
 #include <godot_cpp/classes/world3d.hpp>
 #include <godot_cpp/classes/physics_direct_space_state3d.hpp>
 #include <godot_cpp/classes/physics_ray_query_parameters3d.hpp>
+#include <godot_cpp/classes/quad_mesh.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
 #pragma warning (pop)
 
 #include <math.h> 
 
 using namespace godot;
+
+#define DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE	5.0f
+#define DISTANCE_THRESHOLD_TO_UPDATE_CAMERA_FAR	50.0f
+#define MAX_ALTITUDE_DETECTED					5000.0f
+
+#define	POST_PROCESSING_UNDER_WATER_NODE	"PostProcessingUnderWater"
 
 void GDN_TheWorld_Camera::_bind_methods()
 {
@@ -39,7 +48,7 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_camera_tracking_speed"), &GDN_TheWorld_Camera::getCameraTrackingSpeed);
 	ClassDB::bind_method(D_METHOD("set_camera_tracking_offset", "p_value"), &GDN_TheWorld_Camera::setCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_tracking_offset"), &GDN_TheWorld_Camera::getCameraTrackingOffeset);
-	ClassDB::bind_method(D_METHOD("get_camera_altitude_from_terrain"), &GDN_TheWorld_Camera::cameraAltitude);
+	ClassDB::bind_method(D_METHOD("get_camera_altitude_from_terrain"), &GDN_TheWorld_Camera::cameraAltitudeFromTerrain);
 	ClassDB::bind_method(D_METHOD("set_camera_global_transform"), &GDN_TheWorld_Camera::setCameraGlobalTransform);
 	ClassDB::bind_method(D_METHOD("set_camera_map_transform", "p_transform"), &GDN_TheWorld_Camera::setCameraMapTransform);
 	ClassDB::bind_method(D_METHOD("get_camera_map_transform"), &GDN_TheWorld_Camera::getCameraMapTransform);
@@ -135,6 +144,54 @@ void GDN_TheWorld_Camera::_ready()
 	m_ready = true;
 
 	add_to_group(GD_CUSTOM_CAMERAS_GROUP);
+
+	// Load Sea Wave Map
+	{
+		String texName = "res://addons/twviewer/shaders/tex_sea_wave.tres";
+		m_seaWaveMapTexture = godot::ResourceLoader::get_singleton()->load(texName);
+	}
+
+	// Under water post processing effect
+	{
+		bool found = false;
+		godot::TypedArray<godot::Node> children = get_children();
+		while (children.size()) {
+			godot::MeshInstance3D* child = Object::cast_to<godot::MeshInstance3D>(children.pop_back());
+			if (child == nullptr) {
+				continue;
+			}
+			if (child->get_name() == godot::String(POST_PROCESSING_UNDER_WATER_NODE))
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			String shaderPath = "res://addons/twviewer/shaders/CameraUnderWater.gdshader";
+			godot::Ref<godot::Shader> shader = godot::ResourceLoader::get_singleton()->load(shaderPath);
+
+			godot::ShaderMaterial* mat = memnew(godot::ShaderMaterial);
+			mat->set_shader(shader);
+			mat->set_render_priority(-1);
+
+			godot::QuadMesh* quadMesh = memnew(godot::QuadMesh);
+			quadMesh->set_size(godot::Vector2(2, 2));
+			quadMesh->set_orientation(godot::PlaneMesh::Orientation::FACE_Z);
+			quadMesh->set_flip_faces(true);
+			quadMesh->set_material(mat);
+
+			godot::MeshInstance3D* postProcessingUnderWaterNode = memnew(godot::MeshInstance3D);
+			postProcessingUnderWaterNode->set_name(POST_PROCESSING_UNDER_WATER_NODE);
+			add_child(postProcessingUnderWaterNode);
+			postProcessingUnderWaterNode->set_visible(true);
+			postProcessingUnderWaterNode->set_position(godot::Vector3(0, 0, -11.381f));
+			postProcessingUnderWaterNode->set_rotation_degrees(godot::Vector3(12.5f, -56.4f, -18.1f));
+			postProcessingUnderWaterNode->set_extra_cull_margin(20000);
+			postProcessingUnderWaterNode->set_mesh(quadMesh);
+		}
+	}
 }
 
 void GDN_TheWorld_Camera::_notification(int p_what)
@@ -167,22 +224,22 @@ void GDN_TheWorld_Camera::_notification(int p_what)
 
 void GDN_TheWorld_Camera::_process(double _delta)
 {
-	GDN_TheWorld_Globals* globals = Globals();
-	if (globals == nullptr)
-		return;
+	//GDN_TheWorld_Globals* globals = Globals();
+	//if (globals == nullptr)
+	//	return;
 
-	if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
-		return;
+	//if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
+	//	return;
 
-	if (!isActiveCamera())
-	{
-		return;
-	}
+	//if (!isActiveCamera())
+	//{
+	//	return;
+	//}
 
-	if (!is_current())
-	{
-		return;
-	}
+	//if (!is_current())
+	//{
+	//	return;
+	//}
 }
 
 godot::Transform3D GDN_TheWorld_Camera::getCameraMapTransform(void)
@@ -237,21 +294,21 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 	if (IS_EDITOR_HINT())
 	{
 		calcYawPitchRoll();
-		updateAltitude();
+		updateAltitudeFromTerrain(false);
 		return;
 	}
 
 	if (!isActiveCamera())
 	{
 		calcYawPitchRoll();
-		updateAltitude();
+		updateAltitudeFromTerrain(false);
 		return;
 	}
 
 	if (!is_current())
 	{
 		calcYawPitchRoll();
-		updateAltitude();
+		updateAltitudeFromTerrain(false);
 		return;
 	}
 
@@ -510,6 +567,7 @@ void GDN_TheWorld_Camera::activateCamera(void)
 		}
 
 		make_current();
+		//godot::Camera3D* cam = get_viewport()->get_camera_3d();
 		set_process_input(true);
 		set_process(true);
 		set_physics_process(true);
@@ -586,6 +644,40 @@ GDN_TheWorld_Camera* GDN_TheWorld_Camera::getActiveCamera(void)
 //	return true;
 //}
 
+void GDN_TheWorld_Camera::set_cameraFar(void)
+{
+	float quadrantSize = Globals()->heightmapSizeInWUs();
+	float thresholdUpdateCameraFar = DISTANCE_THRESHOLD_TO_UPDATE_CAMERA_FAR;
+	godot::Vector3 cameraGlobalPosition = get_global_position();
+	if (m_forceRecalcCameraFar or cameraGlobalPosition.distance_to(m_savedCameraPosAfterSetFar) > thresholdUpdateCameraFar)
+	{
+		float _far = quadrantSize * (Globals()->Viewer()->maxActualDepthQuadInAllDirections() + 1) * 1.5f;	// zfar at 0 altitude
+		_far = sqrtf(powf(_far, 2.0) + powf(cameraGlobalPosition.y, 2.0));
+		Camera3D::set_far(_far);
+
+#define MIN_CAMERA_NEAR	0.5f
+#define MAX_CAMERA_NEAR	100.0f
+		// at great distance from sea we need to increment near plane in camera frustum to prevent z-figthing
+		float _near = MIN_CAMERA_NEAR;
+		if (m_lastCameraAltitudeFromTerrain == INVALID_CAMERA_ALTITUDE or m_lastCameraAltitudeFromTerrain > 10000.0f)
+			_near = MAX_CAMERA_NEAR;
+		else if (m_lastCameraAltitudeFromTerrain > 1000.0f and m_lastCameraAltitudeFromTerrain <= 10000.0f)
+		{
+			_near = lerp(MIN_CAMERA_NEAR, MAX_CAMERA_NEAR, m_lastCameraAltitudeFromTerrain / 10000.0f);
+		}
+		Camera3D::set_near(_near);
+
+		PLOG_DEBUG << "Camera znear=" << _near;
+		PLOG_DEBUG << "Camera zfar=" << _far;
+
+		m_forceRecalcCameraFar = false;
+		m_savedCameraPosAfterSetFar = cameraGlobalPosition;
+	}
+
+	//Camera3D::set_far(30000.0);
+	//Camera3D::set_far(20000.0);
+	//Camera3D::set_far(10000.0);
+}
 
 bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll)
 {
@@ -611,9 +703,7 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 	//float size = Camera::get_size();
 	//Vector2 offset = Camera::get_frustum_offset();
 
-	Camera3D::set_far(30000.0);
-	//Camera3D::set_far(20000.0);
-	//Camera3D::set_far(10000.0);
+	set_cameraFar();
 
 	// TODORIC mah
 	//Camera::set_frustum(size / 2, offset, z_near, z_far * 100);
@@ -629,10 +719,85 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 
 bool GDN_TheWorld_Camera::updateCamera(double _delta)
 {
+	bool ret;
+
 	if (trackingPlayer())
-		return updatePlayerCamera(_delta);
+		ret = updatePlayerCamera(_delta);
 	else
-		return updateFreeLookCamera(_delta);
+		ret = updateFreeLookCamera(_delta);
+
+	updateCameraUnderWater();
+
+	return ret;
+}
+
+void GDN_TheWorld_Camera::updateCameraUnderWater(void)
+{
+	if (m_seaWaveMapTexture != nullptr)
+	{
+		if (m_seaWaveMapImage == nullptr)
+			m_seaWaveMapImage = m_seaWaveMapTexture->get_image();
+		if (m_seaWaveMapImage != nullptr)
+		{
+			// WARNING: Noise texture must be SEAMLESS and Normalized
+
+			GDN_TheWorld_Globals* globals = Globals();
+			GDN_TheWorld_Viewer* viewer = globals->Viewer();
+			
+			godot::Vector3 pos = get_global_position();
+			float shaderParamSeaFlatSeaHeightApplied = viewer->shaderParamSeaFlatSeaHeightApplied();
+			if (pos.y > shaderParamSeaFlatSeaHeightApplied - THEWORLD_SEA_MAX_WAVE_HEIGHT and pos.y < shaderParamSeaFlatSeaHeightApplied + THEWORLD_SEA_MAX_WAVE_HEIGHT)
+			{
+				// sea height in range 0.0 / 1.0 from noise texture moving uv with vertex global position and time 
+				float uv_factor = float(globals->shaderParamGlobalTimeApplied() * viewer->shaderParamSeaTimeScaleApplied() * viewer->shaderParamSeaRoughFactorApplied());
+				godot::Vector2 uv = godot::Vector2((pos.x / viewer->shaderParamSeaNoiseScaleApplied()) + uv_factor, (pos.z / viewer->shaderParamSeaNoiseScaleApplied()) + uv_factor);
+				// force UV in 0.0/1.0 range
+				godot::Vector2 uv_fractional_part = uv - godot::Vector2(float(int(uv.x)), float(int(uv.y)));
+				if (uv_fractional_part.x < 0)
+					uv_fractional_part.x += 1.0;
+				if (uv_fractional_part.y < 0)
+					uv_fractional_part.y += 1.0;
+				//int32_t w = m_seaWaveMapImage->get_width();
+				//int32_t h = m_seaWaveMapImage->get_height();
+				godot::Vector2i pixelCoord(int(m_seaWaveMapImage->get_width() * uv_fractional_part.x), int(m_seaWaveMapImage->get_height() * uv_fractional_part.y));
+				godot::Color c = m_seaWaveMapImage->get_pixel(pixelCoord.x, pixelCoord.y);
+				float seaHeight = c.r;
+
+				float scaleFactor = viewer->shaderParamSeaHeightScaleApplied() * viewer->shaderParamSeaRoughFactorApplied();
+
+				// Attenuation of waves height when camera is between start_camera_altitude_for_waves_attenuation (max waves height) and end_camera_altitude_for_waves (null waves height)
+				float shaderParamSeaStartCamAltForWavesAttenuationApplied = viewer->shaderParamSeaStartCamAltForWavesAttenuationApplied();
+				if (pos.y > shaderParamSeaFlatSeaHeightApplied + shaderParamSeaStartCamAltForWavesAttenuationApplied)
+					scaleFactor = scaleFactor - (scaleFactor * (pos.y - shaderParamSeaStartCamAltForWavesAttenuationApplied) / (viewer->shaderParamSeaEndCamAltForWavesApplied() - shaderParamSeaStartCamAltForWavesAttenuationApplied));
+
+				if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE)
+				{
+					float terrainHeigth = pos.y - m_lastCameraAltitudeFromTerrain;
+					float shaderParamSeaStartTerrDepthForWavesAttenuationApplied = viewer->shaderParamSeaStartTerrDepthForWavesAttenuationApplied();
+					// Attenuation of height waves at lower depth (near the coast)
+					if (terrainHeigth > shaderParamSeaFlatSeaHeightApplied - shaderParamSeaStartTerrDepthForWavesAttenuationApplied)
+						scaleFactor *= -TheWorld_Viewer_Utils::Utils::clamp<float>(terrainHeigth, -shaderParamSeaStartTerrDepthForWavesAttenuationApplied, 0) / shaderParamSeaStartTerrDepthForWavesAttenuationApplied;
+
+					float shaderParamSeaScaleOffsetThresholdApplied = viewer->shaderParamSeaScaleOffsetThresholdApplied();
+					if (terrainHeigth >= shaderParamSeaFlatSeaHeightApplied - shaderParamSeaScaleOffsetThresholdApplied) {
+						float scale_offset = TheWorld_Viewer_Utils::Utils::clamp<float>(shaderParamSeaScaleOffsetThresholdApplied + terrainHeigth, 0, shaderParamSeaScaleOffsetThresholdApplied);
+						scaleFactor += scale_offset;
+					}
+				}
+
+				seaHeight = shaderParamSeaFlatSeaHeightApplied + (seaHeight * scaleFactor) - (scaleFactor / 3);
+
+				if (seaHeight > pos.y)
+					m_cameraUnderWater = true;
+				else
+					m_cameraUnderWater = false;
+			}
+			else
+				m_cameraUnderWater = false;
+
+			viewer->shaderParamCameraUnderWaterApplied(m_cameraUnderWater);
+		}
+	}
 }
 
 bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
@@ -716,7 +881,7 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 		}
 	}
 
-	updateAltitude();
+	updateAltitudeFromTerrain(false);
 
 	return true;
 }
@@ -726,11 +891,15 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 {
 	if (!m_updateCameraRequired)
 	{
-		updateAltitude();
+		updateAltitudeFromTerrain(false);
 		return true;
 	}
 
 	m_updateCameraRequired = false;
+
+	//updateAltitude(true);
+	godot::Vector3 savedCameraPos = get_global_position();
+	float savedLastCameraAltitudeComputed = m_lastCameraAltitudeFromTerrain;
 
 	if (m_mouseRelativePosToRotate != Vector2(0, 0))
 	{
@@ -890,23 +1059,51 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		m_numMoveStepUp = 0;
 	}
 
-	updateAltitude();
+	updateAltitudeFromTerrain(true);
+
+	if (m_lastCameraAltitudeFromTerrain == INVALID_CAMERA_ALTITUDE)
+	{
+		if (savedLastCameraAltitudeComputed != INVALID_CAMERA_ALTITUDE)
+		{
+			if (savedLastCameraAltitudeComputed < MAX_ALTITUDE_DETECTED - (MAX_ALTITUDE_DETECTED * 0.1f))	// Far above terrain we leave camera move else we force camera still
+			{
+				set_global_position(savedCameraPos);
+				m_lastCameraAltitudeFromTerrain = savedLastCameraAltitudeComputed;
+			}
+		}
+	}
+	else
+	{
+#define MIN_ALTITUDE_ALLOWED_FOR_CAMERA	3.0f
+		godot::Vector3 postMoveCameraPos = get_global_position();
+		if (postMoveCameraPos.y < savedCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_ALTITUDE_ALLOWED_FOR_CAMERA))
+		{
+			set_global_position(godot::Vector3(postMoveCameraPos.x, savedCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_ALTITUDE_ALLOWED_FOR_CAMERA), postMoveCameraPos.z));
+			m_lastCameraAltitudeFromTerrain = MIN_ALTITUDE_ALLOWED_FOR_CAMERA;
+		}
+	}
 
 	return true;
 }
 
-void GDN_TheWorld_Camera::updateAltitude(void)
+void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 {
-#define DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE	5.0f
-#define MAX_ALTITUDE_DETECTED					5000.0f
-
 	if (Globals()->status() != TheWorldStatus::worldDeployed)
 		return;
 	
+	if (force)
+		m_forceRecalcCameraAltitude = true;
+	
 	godot::Vector3 cameraGlobalPosition = get_global_position();
 	
-	if (m_lastCameraAltitudeComputed == -1 || cameraGlobalPosition.distance_to(m_savedCameraPos) > DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE)
+	float thresholdToUpdateAltitude = DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE;
+	//if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE && m_lastCameraAltitudeFromTerrain <= thresholdToUpdateAltitude)
+	//	thresholdToUpdateAltitude = 1.0f;
+
+	if (m_lastCameraAltitudeFromTerrain == INVALID_CAMERA_ALTITUDE || m_forceRecalcCameraAltitude || cameraGlobalPosition.distance_to(m_savedCameraPosAfterCalcAltitude) > thresholdToUpdateAltitude)
 	{
+		m_forceRecalcCameraAltitude = false;
+
 		godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
 		godot::Dictionary rayArray;
 		godot::Vector3 rayOrigin = cameraGlobalPosition;
@@ -915,16 +1112,29 @@ void GDN_TheWorld_Camera::updateAltitude(void)
 		rayArray = spaceState->intersect_ray(query);
 		if (rayArray.has("position"))
 		{
-			m_lastComputedCameraVerticalOnTerrain = rayArray["position"];
-			m_lastCameraAltitudeComputed = (float)abs(cameraGlobalPosition.y - m_lastComputedCameraVerticalOnTerrain.y);
+			godot::Vector3 lastComputedCameraVerticalOnTerrain = rayArray["position"];
+			m_lastCameraAltitudeFromTerrain = (float)abs(cameraGlobalPosition.y - lastComputedCameraVerticalOnTerrain.y);
 		}
 		else
 		{
-			m_lastCameraAltitudeComputed = -1;
+			godot::Dictionary rayArray;
+			rayOrigin = cameraGlobalPosition;
+			rayEnd = rayOrigin + godot::Vector3(0.0f, MAX_ALTITUDE_DETECTED, 0.0f);
+			godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
+			rayArray = spaceState->intersect_ray(query);
+			if (rayArray.has("position"))
+			{
+				godot::Vector3 lastComputedCameraVerticalOnTerrain = rayArray["position"];
+				m_lastCameraAltitudeFromTerrain = (float)(cameraGlobalPosition.y - lastComputedCameraVerticalOnTerrain.y);
+			}
+			else
+				m_lastCameraAltitudeFromTerrain = INVALID_CAMERA_ALTITUDE;
 		}
 
-		m_savedCameraPos = cameraGlobalPosition;
+		m_savedCameraPosAfterCalcAltitude = cameraGlobalPosition;
 	}
+
+	set_cameraFar();
 }
 
 GDN_TheWorld_Globals* GDN_TheWorld_Camera::Globals(bool useCache)
@@ -1013,17 +1223,17 @@ godot::Ref<godot::ArrayMesh> GDN_TheWorld_Camera::DrawViewFrustum(Color c)
 	indices.append(6); indices.append(2);
 
 	godot::Array arrays;
-	arrays.resize(ArrayMesh::ARRAY_MAX);
-	arrays[ArrayMesh::ARRAY_VERTEX] = positions;
-	arrays[ArrayMesh::ARRAY_COLOR] = colors;
-	arrays[ArrayMesh::ARRAY_INDEX] = indices;
+	arrays.resize(godot::ArrayMesh::ARRAY_MAX);
+	arrays[godot::ArrayMesh::ARRAY_VERTEX] = positions;
+	arrays[godot::ArrayMesh::ARRAY_COLOR] = colors;
+	arrays[godot::ArrayMesh::ARRAY_INDEX] = indices;
 
 	if (viewer != nullptr)
 		viewer->getMainProcessingMutex().lock();
-	Ref<ArrayMesh> mesh = memnew(ArrayMesh);
+	godot::Ref <godot::ArrayMesh> mesh = memnew(godot::ArrayMesh);
 	if (viewer != nullptr)
 		viewer->getMainProcessingMutex().unlock();
-	mesh->add_surface_from_arrays(Mesh::PRIMITIVE_LINES, arrays);
+	mesh->add_surface_from_arrays(godot::Mesh::PRIMITIVE_LINES, arrays);
 
 	return mesh;
 }

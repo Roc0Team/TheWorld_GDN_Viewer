@@ -323,7 +323,11 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_styleBoxHighlightedFrame->set_border_width(godot::Side::SIDE_LEFT, border_size);
 	}
 
-	m_viewer->add_child(this);
+	godot::Node* parent = m_viewer->get_parent();
+	if (parent != nullptr)
+		parent->add_child(this);
+	else
+		m_viewer->add_child(this);
 	set_name(THEWORLD_EDIT_MODE_UI_CONTROL_NAME);
 
 	m_mapModder = memnew(GDN_TheWorld_MapModder);
@@ -827,6 +831,13 @@ void GDN_TheWorld_Edit::deinit(void)
 		m_tp.Stop();
 		m_innerData.reset();
 		m_initialized = false;
+
+		parent = get_parent();
+		if (parent != nullptr)
+		{
+			parent->call_deferred("remove_child", this);
+			queue_free();
+		}
 	}
 }
 

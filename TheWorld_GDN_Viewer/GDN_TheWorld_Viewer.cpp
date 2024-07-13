@@ -1001,6 +1001,10 @@ void GDN_TheWorld_MapModder::deinit(void)
 		m_seaPlane = nullptr;
 		m_camera = nullptr;
 
+		godot::Node* parent = get_parent();
+		if (parent != nullptr)
+			parent->remove_child(this);
+		
 		deinitRequired(false);
 		startProcessRequired(false);
 
@@ -1594,6 +1598,91 @@ void GDN_TheWorld_Viewer::setShaderParam(godot::String name, godot::Variant valu
 //	return m_lookDevMaterial;
 //}
 
+#define SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER		5
+#define SATELLITE_VIEW_CONTROL_SIZE						512
+#define SATELLITE_CAMERA_ALTITUDE						20000
+
+#define BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER	5
+#define BACKMIRROR_VIEW_CONTROL_SIZE_X					400
+#define BACKMIRROR_VIEW_CONTROL_SIZE_Y					200
+
+void GDN_TheWorld_Viewer::createHud(void)
+{
+	m_hudControls = memnew(godot::Control);
+	add_child(m_hudControls);
+	m_hudControls->set_name("HudControls");
+	m_hudControls->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
+
+	godot::Node* controlsParent = m_hudControls;
+	
+	m_satelliteSubViewportContainer = memnew(godot::SubViewportContainer);
+	controlsParent->add_child(m_satelliteSubViewportContainer);
+	m_satelliteSubViewportContainer->set_name("SatelliteSubViewportContainer");
+	m_satelliteSubViewportContainer->set_visible(false);
+
+	m_satelliteSubViewport = memnew(godot::SubViewport);
+	m_satelliteSubViewportContainer->add_child(m_satelliteSubViewport);
+	m_satelliteSubViewport->set_name("SatelliteView");
+
+	m_satelliteCamera = memnew(godot::Camera3D);
+	m_satelliteSubViewport->add_child(m_satelliteCamera);
+	m_satelliteCamera->set_name("SatelliteCamera");
+	m_satelliteCamera->set_near(1);
+	m_satelliteCamera->set_far(SATELLITE_CAMERA_ALTITUDE * 1.5);
+
+	m_backMirrorSubViewportContainer = memnew(godot::SubViewportContainer);
+	controlsParent->add_child(m_backMirrorSubViewportContainer);
+	m_backMirrorSubViewportContainer->set_name("BackMirrorSubViewportContainer");
+	m_backMirrorSubViewportContainer->set_visible(false);
+
+	m_backMirrorSubViewport = memnew(godot::SubViewport);
+	m_backMirrorSubViewportContainer->add_child(m_backMirrorSubViewport);
+	m_backMirrorSubViewport->set_name("BackMirrorView");
+
+	m_backMirrorCamera = memnew(godot::Camera3D);
+	m_backMirrorSubViewport->add_child(m_backMirrorCamera);
+	m_backMirrorCamera->set_name("BackMirrorCamera");
+
+	setPosHud();
+}
+
+void GDN_TheWorld_Viewer::setPosHud(void)
+{
+	if (m_hudControls != nullptr)
+	{
+		godot::Vector2i windowSize = get_tree()->get_root()->get_size();
+		m_hudControls->set_size(windowSize);
+	}
+	
+	m_satelliteSubViewportContainer->set_size(godot::Vector2(SATELLITE_VIEW_CONTROL_SIZE, SATELLITE_VIEW_CONTROL_SIZE));
+	m_satelliteSubViewportContainer->set_scale(godot::Vector2(1, 1));
+	m_satelliteSubViewport->set_size(godot::Vector2i(SATELLITE_VIEW_CONTROL_SIZE, SATELLITE_VIEW_CONTROL_SIZE));
+
+	//m_satelliteSubViewportContainer->set_anchors_preset(godot::Control::LayoutPreset::PRESET_BOTTOM_RIGHT);
+	m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_LEFT, 1.0);
+	m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_LEFT, -(SATELLITE_VIEW_CONTROL_SIZE + SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+	m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_RIGHT, 1.0);
+	m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_RIGHT, -(SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+	m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_TOP, 1.0);
+	m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_TOP, -(SATELLITE_VIEW_CONTROL_SIZE + SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+	m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_BOTTOM, 1.0);
+	m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_BOTTOM, -(SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+
+	m_backMirrorSubViewportContainer->set_size(godot::Vector2(BACKMIRROR_VIEW_CONTROL_SIZE_X, BACKMIRROR_VIEW_CONTROL_SIZE_Y));
+	m_backMirrorSubViewportContainer->set_scale(godot::Vector2(1, 1));
+	m_backMirrorSubViewport->set_size(godot::Vector2i(BACKMIRROR_VIEW_CONTROL_SIZE_X, BACKMIRROR_VIEW_CONTROL_SIZE_Y));
+
+	//m_satelliteSubViewportContainer->set_anchors_preset(godot::Control::LayoutPreset::PRESET_BOTTOM_RIGHT);
+	m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+	m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_LEFT, BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+	m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_RIGHT, 0.0);
+	m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_RIGHT, BACKMIRROR_VIEW_CONTROL_SIZE_X + BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+	m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
+	m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_TOP, BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+	m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_BOTTOM, 0.0);
+	m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_BOTTOM, BACKMIRROR_VIEW_CONTROL_SIZE_Y + BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+}
+
 bool GDN_TheWorld_Viewer::init(void)
 {
 	PLOG_INFO << "TheWorld Viewer Initializing...";
@@ -1755,6 +1844,8 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	m_tpClientWorker.Start("ClientWorker", 3, this);
 
+	createHud();
+	
 	m_initialized = true;
 	m_initRequired = false;
 	PLOG_INFO << "TheWorld Viewer Initialized!";
@@ -2926,6 +3017,22 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 	{
 		m_refreshRequired = true;
 	}
+
+	if (event->is_action_pressed("ui_toggle_satellite_view"))
+	{
+		if (m_satelliteSubViewportContainer != nullptr)
+		{
+			m_satelliteSubViewportContainer->set_visible(!m_satelliteSubViewportContainer->is_visible());
+		}
+	}
+
+	if (event->is_action_pressed("ui_toggle_back_mirror"))
+	{
+		if (m_backMirrorSubViewportContainer != nullptr)
+		{
+			m_backMirrorSubViewportContainer->set_visible(!m_backMirrorSubViewportContainer->is_visible());
+		}
+	}
 }
 
 void GDN_TheWorld_Viewer::toggleTrackMouse(void)
@@ -3199,6 +3306,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 		//	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 		//	if (editModeUIControl != nullptr && editModeUIControl->initialized())
 		//		editModeUIControl->controlNeedResize();
+		//	setPosHud();
 		//}
 		//break;
 	}
@@ -3209,6 +3317,8 @@ void GDN_TheWorld_Viewer::viewportSizeChanged(void)
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 	if (editModeUIControl != nullptr && editModeUIControl->initialized())
 		editModeUIControl->controlNeedResize();
+
+	setPosHud();
 }
 
 String GDN_TheWorld_Viewer::getDebugDrawMode(void) const
@@ -4258,6 +4368,16 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 		process_materialParam(cameraPosInMap, processCameraPosForQuadrants, processCameraPosForChunks);
 		if (m_lastProcessExecutionInterrupted)
 			return;
+	}
+
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.15 ") + __FUNCTION__, "Update HUD");
+		process_updateHud(activeCamera);
+		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateHud))
+		{
+			m_lastProcessExecutionInterrupted = true;
+			return;
+		}
 	}
 
 	size_t elapsed = addProcessStep(ProcessStep::ProcessStepIdx::EndOfProcessExecution);
@@ -5342,6 +5462,56 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera3D* activeCamer
 			editModeUIControl->setQuadrantHit(nullptr);
 		}
 
+	}
+}
+
+void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeCamera)
+{
+	if (m_backMirrorSubViewportContainer != nullptr and m_backMirrorCamera != nullptr)
+	{
+		if (m_backMirrorSubViewportContainer->is_visible())
+		{
+			m_backMirrorCamera->set_global_transform(activeCamera->get_global_transform());
+			m_backMirrorCamera->set_near(activeCamera->get_near());
+			m_backMirrorCamera->set_far(activeCamera->get_far());
+			GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+			if (cam != nullptr)
+			{
+				if (cam->trackingPlayer())
+				{
+					m_backMirrorCamera->rotate_y(TheWorld_Utils::kPi);
+				}
+				else
+				{
+					godot::Vector3 activeCameraDirection = -activeCamera->get_global_transform().basis.rows[godot::Vector3::Axis::AXIS_Z];
+					m_backMirrorCamera->look_at(m_backMirrorCamera->get_position() - activeCameraDirection);
+				}
+			}
+		}
+	}
+
+	if (m_satelliteSubViewportContainer != nullptr and m_satelliteCamera != nullptr)
+	{
+		if (m_satelliteSubViewportContainer->is_visible())
+		{
+			godot::Transform3D t = m_satelliteCamera->get_global_transform();
+			godot::Basis b;
+			t.origin = (activeCamera->get_global_position() * godot::Vector3(1, 0, 1)) + godot::Vector3(0, SATELLITE_CAMERA_ALTITUDE, 0);
+																											//t.basis = b.rotated(godot::Vector3(1, 0, 0), -TheWorld_Utils::kPi2);			// fixed pointing on north direction
+																											//t.basis = b;
+																											//t.basis.rotate(godot::Vector3(1, 0, 0), -TheWorld_Utils::kPi2);
+			// camera pointing vertically on terrain upper border on north direction
+			t.basis.rows[godot::Vector3::Axis::AXIS_X] = godot::Vector3(1, 0, 0);
+			t.basis.rows[godot::Vector3::Axis::AXIS_Y] = godot::Vector3(0, 0, 1);
+			t.basis.rows[godot::Vector3::Axis::AXIS_Z] = godot::Vector3(0, -1, 0);
+			// moving around as the cam rotate
+			//GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+			//if (cam != nullptr)
+			//	t.basis = t.basis.rotated(godot::Vector3(0, 1, 0), (real_t)TheWorld_Utils::deg_to_rad(-cam->getAngleFromNorthDeg()));	// pointing on same direction on plane XZ as activeCamera
+			m_satelliteCamera->set_global_transform(t);
+
+			m_satelliteCamera->set_fov(52);
+		}
 	}
 }
 

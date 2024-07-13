@@ -28,7 +28,8 @@ using namespace godot;
 #define DISTANCE_THRESHOLD_TO_UPDATE_CAMERA_FAR	50.0f
 #define MAX_ALTITUDE_DETECTED					5000.0f
 
-#define	POST_PROCESSING_UNDER_WATER_NODE	"PostProcessingUnderWater"
+#define	POST_PROCESSING_UNDER_WATER_NODE			"PostProcessingUnderWater"
+#define	POST_PROCESSING_UNDER_WATER_OVERRIDE_NODE	"PostProcessingUnderWaterOverride"
 
 void GDN_TheWorld_Camera::_bind_methods()
 {
@@ -153,21 +154,19 @@ void GDN_TheWorld_Camera::_ready()
 
 	// Under water post processing effect
 	{
-		bool found = false;
 		godot::TypedArray<godot::Node> children = get_children();
-		while (children.size()) {
+		while (children.size())
+		{
 			godot::MeshInstance3D* child = Object::cast_to<godot::MeshInstance3D>(children.pop_back());
-			if (child == nullptr) {
+			if (child == nullptr)
 				continue;
-			}
 			if (child->get_name() == godot::String(POST_PROCESSING_UNDER_WATER_NODE))
-			{
-				found = true;
-				break;
-			}
+				m_postProcessingUnderWaterNode = child;
+			if (child->get_name() == godot::String(POST_PROCESSING_UNDER_WATER_OVERRIDE_NODE))
+				m_postProcessingUnderWaterOverrideNode = child;
 		}
 
-		if (!found)
+		if (m_postProcessingUnderWaterNode == nullptr)
 		{
 			String shaderPath = "res://addons/twviewer/shaders/CameraUnderWater.gdshader";
 			godot::Ref<godot::Shader> shader = godot::ResourceLoader::get_singleton()->load(shaderPath);
@@ -182,15 +181,20 @@ void GDN_TheWorld_Camera::_ready()
 			quadMesh->set_flip_faces(true);
 			quadMesh->set_material(mat);
 
-			godot::MeshInstance3D* postProcessingUnderWaterNode = memnew(godot::MeshInstance3D);
-			postProcessingUnderWaterNode->set_name(POST_PROCESSING_UNDER_WATER_NODE);
-			add_child(postProcessingUnderWaterNode);
-			postProcessingUnderWaterNode->set_visible(true);
-			postProcessingUnderWaterNode->set_position(godot::Vector3(0, 0, -11.381f));
-			postProcessingUnderWaterNode->set_rotation_degrees(godot::Vector3(12.5f, -56.4f, -18.1f));
-			postProcessingUnderWaterNode->set_extra_cull_margin(20000);
-			postProcessingUnderWaterNode->set_mesh(quadMesh);
+			m_postProcessingUnderWaterNode = memnew(godot::MeshInstance3D);
+			m_postProcessingUnderWaterNode->set_name(POST_PROCESSING_UNDER_WATER_NODE);
+			add_child(m_postProcessingUnderWaterNode);
+			m_postProcessingUnderWaterNode->set_visible(true);
+			m_postProcessingUnderWaterNode->set_position(godot::Vector3(0, 0, -11.381f));
+			m_postProcessingUnderWaterNode->set_rotation_degrees(godot::Vector3(12.5f, -56.4f, -18.1f));
+			m_postProcessingUnderWaterNode->set_extra_cull_margin(20000);
+			m_postProcessingUnderWaterNode->set_mesh(quadMesh);
 		}
+
+		if (m_postProcessingUnderWaterOverrideNode == nullptr or !m_postProcessingUnderWaterOverrideNode->is_visible())
+			m_postProcessingUnderWaterNode->set_visible(true);
+		else
+			m_postProcessingUnderWaterNode->set_visible(false);
 	}
 }
 
@@ -240,6 +244,8 @@ void GDN_TheWorld_Camera::_process(double _delta)
 	//{
 	//	return;
 	//}
+
+	//updateCameraUnderWater();
 }
 
 godot::Transform3D GDN_TheWorld_Camera::getCameraMapTransform(void)
@@ -733,6 +739,14 @@ bool GDN_TheWorld_Camera::updateCamera(double _delta)
 
 void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 {
+	if (m_postProcessingUnderWaterNode != nullptr)
+	{
+		if (m_postProcessingUnderWaterOverrideNode == nullptr or !m_postProcessingUnderWaterOverrideNode->is_visible())
+			m_postProcessingUnderWaterNode->set_visible(true);
+		else
+			m_postProcessingUnderWaterNode->set_visible(false);
+	}
+
 	if (m_seaWaveMapTexture != nullptr)
 	{
 		if (m_seaWaveMapImage == nullptr)
@@ -793,7 +807,12 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 					m_cameraUnderWater = false;
 			}
 			else
-				m_cameraUnderWater = false;
+			{
+				if (pos.y > shaderParamSeaFlatSeaHeightApplied + THEWORLD_SEA_MAX_WAVE_HEIGHT)
+					m_cameraUnderWater = false;
+				else
+					m_cameraUnderWater = true;
+			}
 
 			viewer->shaderParamCameraUnderWaterApplied(m_cameraUnderWater);
 		}

@@ -17,6 +17,9 @@
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/classes/sprite2d.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
+#include <godot_cpp/classes/sub_viewport.hpp>
+#include <godot_cpp/classes/sub_viewport_container.hpp>
+#include <godot_cpp/classes/camera3d.hpp>
 #pragma warning(pop)
 
 #include <map>
@@ -286,6 +289,7 @@ namespace godot
 				, process_updateOriginShift = 20
 				, process_castRayFromCamera = 21
 				, process_updateGridDimension = 22
+				, process_updateHud = 23
 			};
 			ProcessStep(enum class ProcessStepIdx idx, size_t elapsed, int num = 1)
 			{
@@ -422,6 +426,9 @@ namespace godot
 			return m_quitting;
 		}
 		
+		virtual void createHud(void);
+		virtual void setPosHud(void);
+
 		virtual void threadInit(void) {}
 		virtual void threadDeinit(void) {}
 
@@ -1202,6 +1209,7 @@ namespace godot
 		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap);
 		void process_initNewQuads(bool processCameraPosForQuadrants);
 		void process_updateCameraPosInShader(godot::Camera3D* activeCamera);
+		void process_updateHud(godot::Camera3D* activeCamera);
 		void process_updateOriginShift(godot::Camera3D* activeCamera);
 		void setAnchorForOriginShift(godot::Node3D* anchorForOriginShift);
 		godot::Node3D* getAnchorForOriginShift(void);
@@ -1504,6 +1512,14 @@ namespace godot
 		float m_shaderParamSeaStartTerrDepthForWavesAttenuationApplied = 0;
 		float m_shaderParamSeaScaleOffsetThresholdApplied = 0;
 		bool m_shaderParamCameraUnderWaterApplied = false;
+
+		godot::Control* m_hudControls = nullptr;
+		godot::SubViewportContainer* m_satelliteSubViewportContainer = nullptr;
+		godot::SubViewport* m_satelliteSubViewport = nullptr;
+		godot::Camera3D* m_satelliteCamera = nullptr;
+		godot::SubViewportContainer* m_backMirrorSubViewportContainer = nullptr;
+		godot::SubViewport* m_backMirrorSubViewport = nullptr;
+		godot::Camera3D* m_backMirrorCamera = nullptr;
 
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;

@@ -244,8 +244,6 @@ void GDN_TheWorld_Camera::_process(double _delta)
 	//{
 	//	return;
 	//}
-
-	//updateCameraUnderWater();
 }
 
 godot::Transform3D GDN_TheWorld_Camera::getCameraMapTransform(void)
@@ -732,7 +730,7 @@ bool GDN_TheWorld_Camera::updateCamera(double _delta)
 	else
 		ret = updateFreeLookCamera(_delta);
 
-	updateCameraUnderWater();
+	//updateCameraUnderWater();
 
 	return ret;
 }

@@ -28,6 +28,7 @@
 #include <godot_cpp/classes/input_event_key.hpp>
 #include <godot_cpp/classes/config_file.hpp>
 #include <godot_cpp/classes/performance.hpp>
+#include <godot_cpp/classes/label.hpp>
 #include "warning_pop.h"
 //#pragma warning(pop)
 
@@ -1620,6 +1621,25 @@ void GDN_TheWorld_Viewer::createHud(void)
 	m_satelliteSubViewportContainer->set_name("SatelliteSubViewportContainer");
 	m_satelliteSubViewportContainer->set_visible(false);
 
+	{
+		m_northLabel = memnew(godot::Label);
+		m_satelliteSubViewportContainer->add_child(m_northLabel);
+		m_northLabel->set_text("N");
+		m_northLabel->set_modulate(GDN_TheWorld_Globals::g_color_red);
+		m_southLabel = memnew(godot::Label);
+		m_satelliteSubViewportContainer->add_child(m_southLabel);
+		m_southLabel->set_text("S");
+		m_southLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
+		m_eastLabel = memnew(godot::Label);
+		m_satelliteSubViewportContainer->add_child(m_eastLabel);
+		m_eastLabel->set_text("E");
+		m_eastLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
+		m_westLabel = memnew(godot::Label);
+		m_satelliteSubViewportContainer->add_child(m_westLabel);
+		m_westLabel->set_text("W");
+		m_westLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
+	}
+
 	m_satelliteSubViewport = memnew(godot::SubViewport);
 	m_satelliteSubViewportContainer->add_child(m_satelliteSubViewport);
 	m_satelliteSubViewport->set_name("SatelliteView");
@@ -1667,6 +1687,26 @@ void GDN_TheWorld_Viewer::setPosHud(void)
 	m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_TOP, -(SATELLITE_VIEW_CONTROL_SIZE + SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
 	m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_BOTTOM, 1.0);
 	m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_BOTTOM, -(SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+
+	m_northLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+	m_northLabel->set_offset(SIDE_LEFT, SATELLITE_VIEW_CONTROL_SIZE / 2);
+	m_northLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
+	m_northLabel->set_offset(SIDE_TOP, 0);
+	
+	m_southLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+	m_southLabel->set_offset(SIDE_LEFT, SATELLITE_VIEW_CONTROL_SIZE / 2);
+	m_southLabel->set_anchor(godot::Side::SIDE_TOP, 1.0);
+	m_southLabel->set_offset(SIDE_TOP, -20);
+
+	m_westLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+	m_westLabel->set_offset(SIDE_LEFT, 0.0);
+	m_westLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
+	m_westLabel->set_offset(SIDE_TOP, SATELLITE_VIEW_CONTROL_SIZE / 2);
+
+	m_eastLabel->set_anchor(godot::Side::SIDE_LEFT, 1.0);
+	m_eastLabel->set_offset(SIDE_LEFT, -20);
+	m_eastLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
+	m_eastLabel->set_offset(SIDE_TOP, SATELLITE_VIEW_CONTROL_SIZE / 2);
 
 	m_backMirrorSubViewportContainer->set_size(godot::Vector2(BACKMIRROR_VIEW_CONTROL_SIZE_X, BACKMIRROR_VIEW_CONTROL_SIZE_Y));
 	m_backMirrorSubViewportContainer->set_scale(godot::Vector2(1, 1));
@@ -3975,7 +4015,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		{
 			activeCamera = WorldCamera()->getActiveCamera();
 		}
-		if (!activeCamera)
+		if (activeCamera == nullptr)
 			return;
 
 		if (m_gizmo != nullptr)
@@ -5510,7 +5550,16 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeCamera)
 			//	t.basis = t.basis.rotated(godot::Vector3(0, 1, 0), (real_t)TheWorld_Utils::deg_to_rad(-cam->getAngleFromNorthDeg()));	// pointing on same direction on plane XZ as activeCamera
 			m_satelliteCamera->set_global_transform(t);
 
-			m_satelliteCamera->set_fov(52);
+			int lowerNumVisibleQuadrantOnEachSide = m_numVisibleQuadrantOnPerimeterOnNorthSide;
+			if (m_numVisibleQuadrantOnPerimeterOnSouthSide < lowerNumVisibleQuadrantOnEachSide)
+				lowerNumVisibleQuadrantOnEachSide = m_numVisibleQuadrantOnPerimeterOnSouthSide;
+			if (m_numVisibleQuadrantOnPerimeterOnEastSide < lowerNumVisibleQuadrantOnEachSide)
+				lowerNumVisibleQuadrantOnEachSide = m_numVisibleQuadrantOnPerimeterOnEastSide;
+			if (m_numVisibleQuadrantOnPerimeterOnWestSide < lowerNumVisibleQuadrantOnEachSide)
+				lowerNumVisibleQuadrantOnEachSide = m_numVisibleQuadrantOnPerimeterOnWestSide;
+			
+			double fov = 40.5 + (lowerNumVisibleQuadrantOnEachSide * 5.75);
+			m_satelliteCamera->set_fov(fov);
 		}
 	}
 }

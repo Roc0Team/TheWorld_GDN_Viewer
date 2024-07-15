@@ -1,6 +1,7 @@
 //#include "pch.h"
 #include "GDN_TheWorld_Globals.h"
 #include "GDN_TheWorld_Viewer.h"
+#include "GDN_TheWorld_Camera.h"
 
 #pragma warning(push, 0)
 #include <godot_cpp/classes/window.hpp>
@@ -757,8 +758,22 @@ namespace godot
 		// To activate _process method add this Node to a Godot Scene
 		//debugPrint("GDN_TheWorld_Globals::_process");
 
-		//shaderParamGlobalTimeApplied(elapsedFromStartInSeconds());
-		shaderParamGlobalTimeApplied(internalTimeInSeconds(_delta));
+		// Global parameters depending on Shader Global Time
+		{
+			shaderParamGlobalTimeApplied(internalTimeInSeconds(_delta));
+
+			GDN_TheWorld_Viewer* viewer = Viewer();
+			if (viewer != nullptr and viewer->initialized())
+			{
+				godot::Camera3D* activeCamera = viewer->getCamera();
+				if (activeCamera != nullptr)
+				{
+					GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+					if (cam != nullptr)
+						cam->updateCameraUnderWater();
+				}
+			}
+		}
 	}
 
 	GDN_TheWorld_Viewer* GDN_TheWorld_Globals::Viewer(bool useCache)

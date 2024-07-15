@@ -1189,6 +1189,10 @@ namespace godot
 			}
 		}
 
+		bool initialized(void) const
+		{
+			return m_initialized;
+		}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -1515,6 +1519,10 @@ namespace godot
 
 		godot::Control* m_hudControls = nullptr;
 		godot::SubViewportContainer* m_satelliteSubViewportContainer = nullptr;
+		godot::Label* m_northLabel = nullptr;
+		godot::Label* m_southLabel = nullptr;
+		godot::Label* m_eastLabel = nullptr;
+		godot::Label* m_westLabel = nullptr;
 		godot::SubViewport* m_satelliteSubViewport = nullptr;
 		godot::Camera3D* m_satelliteCamera = nullptr;
 		godot::SubViewportContainer* m_backMirrorSubViewportContainer = nullptr;

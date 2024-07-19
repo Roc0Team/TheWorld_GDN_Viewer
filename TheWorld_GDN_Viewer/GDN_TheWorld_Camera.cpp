@@ -153,6 +153,7 @@ void GDN_TheWorld_Camera::_ready()
 	}
 
 	// Under water post processing effect
+	if (not IS_EDITOR_HINT())
 	{
 		godot::TypedArray<godot::Node> children = get_children();
 		while (children.size())
@@ -168,7 +169,9 @@ void GDN_TheWorld_Camera::_ready()
 
 		if (m_postProcessingUnderWaterNode == nullptr)
 		{
-			String shaderPath = "res://addons/twviewer/shaders/CameraUnderWater.gdshader";
+			String shaderPath;
+																															//shaderPath  = "res://addons/twviewer/shaders/CameraUnderWater.gdshader";
+			shaderPath = "res://addons/twviewer/shaders/CameraUnderWaterNew.gdshader";
 			godot::Ref<godot::Shader> shader = godot::ResourceLoader::get_singleton()->load(shaderPath);
 
 			godot::ShaderMaterial* mat = memnew(godot::ShaderMaterial);
@@ -176,25 +179,35 @@ void GDN_TheWorld_Camera::_ready()
 			//mat->set_render_priority(0);
 
 			godot::QuadMesh* quadMesh = memnew(godot::QuadMesh);
-			quadMesh->set_size(godot::Vector2(2, 2));
+			quadMesh->set_size(godot::Vector2(3, 2));
+																															//quadMesh->set_size(godot::Vector2(2, 2));
 			quadMesh->set_orientation(godot::PlaneMesh::Orientation::FACE_Z);
-			quadMesh->set_flip_faces(true);
+			quadMesh->set_flip_faces(false);
+																															//quadMesh->set_flip_faces(true);
 			quadMesh->set_material(mat);
 
 			m_postProcessingUnderWaterNode = memnew(godot::MeshInstance3D);
 			m_postProcessingUnderWaterNode->set_name(POST_PROCESSING_UNDER_WATER_NODE);
 			add_child(m_postProcessingUnderWaterNode);
 			m_postProcessingUnderWaterNode->set_visible(true);
-			m_postProcessingUnderWaterNode->set_position(godot::Vector3(0, 0, -11.381f));
-			m_postProcessingUnderWaterNode->set_rotation_degrees(godot::Vector3(12.5f, -56.4f, -18.1f));
-			m_postProcessingUnderWaterNode->set_extra_cull_margin(20000);
+			m_postProcessingUnderWaterNode->set_position(godot::Vector3(0, 0, -1));
+																															//m_postProcessingUnderWaterNode->set_position(godot::Vector3(0, 0, -11.381f));
+			m_postProcessingUnderWaterNode->set_rotation_degrees(godot::Vector3(0, 0, 0));
+																															//m_postProcessingUnderWaterNode->set_rotation_degrees(godot::Vector3(12.5f, -56.4f, -18.1f));
+																															//m_postProcessingUnderWaterNode->set_extra_cull_margin(20000);
 			m_postProcessingUnderWaterNode->set_mesh(quadMesh);
 		}
 
 		if (m_postProcessingUnderWaterOverrideNode == nullptr or !m_postProcessingUnderWaterOverrideNode->is_visible())
-			m_postProcessingUnderWaterNode->set_visible(true);
+		{
+			if (m_postProcessingUnderWaterNode != nullptr)
+				m_postProcessingUnderWaterNode->set_visible(true);
+		}
 		else
-			m_postProcessingUnderWaterNode->set_visible(false);
+		{
+			if (m_postProcessingUnderWaterNode != nullptr)
+				m_postProcessingUnderWaterNode->set_visible(false);
+		}
 	}
 }
 
@@ -707,7 +720,8 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 	//float size = Camera::get_size();
 	//Vector2 offset = Camera::get_frustum_offset();
 
-	set_cameraFar();
+	//set_cameraFar();
+	Camera3D::set_far(30000.0);
 
 	// TODORIC mah
 	//Camera::set_frustum(size / 2, offset, z_near, z_far * 100);
@@ -1108,6 +1122,7 @@ void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 	if (Globals()->status() != TheWorldStatus::worldDeployed)
 		return;
 	
+	//return;
 	if (force)
 		m_forceRecalcCameraAltitude = true;
 	
@@ -1152,6 +1167,7 @@ void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 	}
 
 	set_cameraFar();
+	//Camera3D::set_far(30000.0);
 }
 
 GDN_TheWorld_Globals* GDN_TheWorld_Camera::Globals(bool useCache)

@@ -1896,7 +1896,6 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularSeaMaterial(bool reload
 		else
 			shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
-		////mat->set_render_priority(1);
 		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
@@ -1925,7 +1924,6 @@ godot::Ref<godot::Material> ShaderTerrainData::getGlobalmapSeaMaterial(bool relo
 		else
 			shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
-		////mat->set_render_priority(1);
 		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));

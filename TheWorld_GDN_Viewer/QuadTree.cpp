@@ -1896,8 +1896,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularSeaMaterial(bool reload
 		else
 			shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
-		//mat->set_render_priority(1);
-		mat->set_render_priority(0);
+		////mat->set_render_priority(1);
+		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
@@ -1925,8 +1925,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getGlobalmapSeaMaterial(bool relo
 		else
 			shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
-		//mat->set_render_priority(1);
-		mat->set_render_priority(0);
+		////mat->set_render_priority(1);
+		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
@@ -1962,7 +1962,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 		else
 			shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
-		mat->set_render_priority(0);
+		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, m_viewer->Globals()->gridStepInWU());
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());

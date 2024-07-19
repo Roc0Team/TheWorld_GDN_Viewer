@@ -173,7 +173,7 @@ void GDN_TheWorld_Camera::_ready()
 
 			godot::ShaderMaterial* mat = memnew(godot::ShaderMaterial);
 			mat->set_shader(shader);
-			mat->set_render_priority(-1);
+			//mat->set_render_priority(0);
 
 			godot::QuadMesh* quadMesh = memnew(godot::QuadMesh);
 			quadMesh->set_size(godot::Vector2(2, 2));

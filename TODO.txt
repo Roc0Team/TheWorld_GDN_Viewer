@@ -1,5 +1,6 @@
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde
+* nella vista satellitare non si deve vedere l'effetto underwater
 * ***OK*** inglobato in viewer back mirror e attivata vista satellitare
 * ***OK*** aggiunta CompassBar
 * ***OK*** fix parziale visibilità sotto il livello del mare che tenga conto delle onde (al momento l'effetto non è del tutto soddisfacente)

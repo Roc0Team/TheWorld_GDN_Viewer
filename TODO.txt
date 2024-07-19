@@ -1,15 +1,18 @@
+* risolvere crash in uscita dell'editor
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde
-* nella vista satellitare non si deve vedere l'effetto underwater
-* ***OK*** inglobato in viewer back mirror e attivata vista satellitare
-* ***OK*** aggiunta CompassBar
-* ***OK*** fix parziale visibilità sotto il livello del mare che tenga conto delle onde (al momento l'effetto non è del tutto soddisfacente)
 
 * miglior effetto visivo della sabbia
 * Visibilità che sfuma in 2D come mappa: a comando ed oltre una certa altezza
 * Minimap
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
+
+Tag 2024/07/19
+* ***OK*** nella vista satellitare non si deve vedere l'effetto underwater
+* ***OK*** inglobato in viewer back mirror e attivata vista satellitare
+* ***OK*** aggiunta CompassBar
+* ***OK*** fix parziale visibilità sotto il livello del mare che tenga conto delle onde (al momento l'effetto non è del tutto soddisfacente)
 
 Tag 2024/06/20
 * ***OK*** z-fighting: alzando la camera si vede a tratti il terreno sottostante (macchie verdi e bianche). Per lo più risolto aumentando ad alte quote il piano near della camera

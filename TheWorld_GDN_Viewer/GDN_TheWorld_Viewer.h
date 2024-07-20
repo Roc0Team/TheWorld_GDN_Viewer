@@ -20,6 +20,7 @@
 #include <godot_cpp/classes/sub_viewport.hpp>
 #include <godot_cpp/classes/sub_viewport_container.hpp>
 #include <godot_cpp/classes/camera3d.hpp>
+#include <godot_cpp/classes/h_box_container.hpp>
 #pragma warning(pop)
 
 #include <map>
@@ -1194,6 +1195,8 @@ namespace godot
 			return m_initialized;
 		}
 
+		void setHudMessage(std::string hudMessage, int64_t savedTimeToFadeMessage);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -1518,6 +1521,11 @@ namespace godot
 		bool m_shaderParamCameraUnderWaterApplied = false;
 
 		godot::Control* m_hudControls = nullptr;
+		godot::HBoxContainer* hudMessageContainer = nullptr;
+		godot::Label* m_hudMessageLabel = nullptr;
+		int64_t m_savedTimeToFadeMessage = 0;
+		std::string m_hudMessage;
+		godot::Label* m_hudStreamingLabel = nullptr;
 		godot::SubViewportContainer* m_satelliteSubViewportContainer = nullptr;
 		godot::Label* m_northLabel = nullptr;
 		godot::Label* m_southLabel = nullptr;

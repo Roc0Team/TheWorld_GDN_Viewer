@@ -773,7 +773,7 @@ namespace godot
 		float m_splatmapBlendingSize = 0.0f;
 		
 		// Node cache
-		GDN_TheWorld_Viewer* m_viewer;
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
 
 		uint64_t m_startTime = 0;
 		double m_startInternalTimeInSeconds = 0;

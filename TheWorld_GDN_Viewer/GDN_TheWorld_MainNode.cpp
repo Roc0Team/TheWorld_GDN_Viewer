@@ -311,6 +311,8 @@ GDN_TheWorld_Globals* GDN_TheWorld_MainNode::Globals(bool useCache)
 {
 	if (m_globals == NULL || !useCache)
 	{
+		if (not is_inside_tree())
+			return NULL;
 		SceneTree* scene = get_tree();
 		if (!scene)
 			return NULL;
@@ -327,6 +329,8 @@ GDN_TheWorld_Viewer* GDN_TheWorld_MainNode::Viewer(bool useCache)
 {
 	if (m_viewer == NULL || !useCache)
 	{
+		if (not is_inside_tree())
+			return NULL;
 		SceneTree* scene = get_tree();
 		if (!scene)
 			return NULL;

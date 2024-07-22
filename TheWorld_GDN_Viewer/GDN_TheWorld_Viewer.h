@@ -21,6 +21,7 @@
 #include <godot_cpp/classes/sub_viewport_container.hpp>
 #include <godot_cpp/classes/camera3d.hpp>
 #include <godot_cpp/classes/h_box_container.hpp>
+#include <godot_cpp/classes/container.hpp>
 #pragma warning(pop)
 
 #include <map>
@@ -72,6 +73,27 @@ namespace godot
 //#define DEFAULT_ABYSS_TEX_NAME							"sand"
 //#define DEFAULT_DIRT_TEX_NAME							"Ground049C_1K"
 //#define DEFAULT_ROCKS_TEX_NAME							"rocks07"
+
+	class GDN_TheWorld_HudControls : public godot::Container
+	{
+		GDCLASS(GDN_TheWorld_HudControls, Container)
+
+	protected:
+		static void _bind_methods() {};
+		void _notification(int p_what) {};
+
+	public:
+		GDN_TheWorld_HudControls() {}
+		~GDN_TheWorld_HudControls() {}
+
+		//
+		// Godot Standard Functions
+		//
+		virtual void _ready(void) override {};
+		virtual void _process(double _delta) override {};
+		virtual void _input(const Ref<InputEvent>& event) override;
+		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+	};
 
 	class GDN_TheWorld_MapModder : public godot::Node
 	{
@@ -526,10 +548,7 @@ namespace godot
 		{
 			m_editorInterface = (godot::EditorInterface*)editorInterface;
 		}
-		void setEditor3dOverlay(godot::Object* editor3dOverlay)
-		{
-			m_editor3dOverlay = (godot::Control*)editor3dOverlay;
-		}
+		void setEditor3dOverlay(godot::Object* editor3dOverlay);
 		bool trackMouse(void) const;
 		void trackMouse(bool b);
 		void toggleTrackMouse(void);
@@ -1521,7 +1540,8 @@ namespace godot
 		float m_shaderParamSeaScaleOffsetThresholdApplied = 0;
 		bool m_shaderParamCameraUnderWaterApplied = false;
 
-		godot::Control* m_hudControls = nullptr;
+		//godot::Control* m_hudControls = nullptr;
+		godot::GDN_TheWorld_HudControls* m_hudControls = nullptr;
 		godot::HBoxContainer* m_hudMessageContainer = nullptr;
 		godot::Label* m_hudMessageLabel = nullptr;
 		uint64_t m_fadingTime = 0;

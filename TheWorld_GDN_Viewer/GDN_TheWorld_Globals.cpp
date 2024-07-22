@@ -809,6 +809,8 @@ namespace godot
 	{
 		if (m_viewer == NULL || !useCache)
 		{
+			if (not is_inside_tree())
+				return NULL;
 			SceneTree* scene = get_tree();
 			if (!scene)
 				return NULL;

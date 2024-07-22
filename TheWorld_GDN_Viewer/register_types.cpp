@@ -40,6 +40,7 @@ void initialize_tw_main_module(ModuleInitializationLevel p_level)
     ClassDB::register_class<godot::GDN_TheWorld_MapModder>();
     ClassDB::register_class<godot::GDN_TheWorld_Drawer>();
     ClassDB::register_class<godot::GDN_TheWorld_Gizmo3d>();
+    ClassDB::register_class<godot::GDN_TheWorld_HudControls>();
 }
 
 void uninitialize_tw_main_module(ModuleInitializationLevel p_level)

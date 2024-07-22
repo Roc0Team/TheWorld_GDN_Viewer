@@ -48,6 +48,29 @@ using namespace godot;
 
 namespace fs = std::filesystem;
 
+void GDN_TheWorld_HudControls::_input(const Ref<InputEvent>& event)
+{
+	const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+
+	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+	//{
+	//	int a = 0;
+	//}
+}
+
+void GDN_TheWorld_HudControls::_unhandled_input(const Ref<InputEvent>& event)
+{
+	const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+
+	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+	//{
+	//	int a = 0;
+	//}
+}
+
+
 int32_t GDN_TheWorld_MapModder::s_numWorking = 0;
 std::recursive_mutex GDN_TheWorld_MapModder::s_mtxInternal;
 
@@ -1608,9 +1631,29 @@ void GDN_TheWorld_Viewer::setShaderParam(godot::String name, godot::Variant valu
 #define BACKMIRROR_VIEW_CONTROL_SIZE_X					400
 #define BACKMIRROR_VIEW_CONTROL_SIZE_Y					200
 
+void GDN_TheWorld_Viewer::setEditor3dOverlay(godot::Object* editor3dOverlay)
+{
+	m_editor3dOverlay = (godot::Control*)editor3dOverlay;
+	if (isInEditor() and m_hudControls != nullptr)		// Editor not processing input correctly
+	{
+		godot::Node* parent = m_hudControls->get_parent();
+		if (parent != nullptr and parent != m_editor3dOverlay)
+		{
+			parent->remove_child(m_hudControls);
+			m_editor3dOverlay->add_child(m_hudControls);
+			m_hudControls->set_process_input(false);
+		}
+		setPosHud();
+	}
+}
+
 void GDN_TheWorld_Viewer::createHud(void)
 {
-	m_hudControls = memnew(godot::Control);
+	//m_hudControls = memnew(godot::Control);
+	m_hudControls = memnew(GDN_TheWorld_HudControls);
+	//if (isInEditor() and m_editor3dOverlay != nullptr)
+	//	m_editor3dOverlay->add_child(m_hudControls);
+	//else
 	add_child(m_hudControls);
 	m_hudControls->set_name("HudControls");
 	m_hudControls->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
@@ -1701,11 +1744,13 @@ void GDN_TheWorld_Viewer::setPosHud(void)
 {
 	if (m_hudControls != nullptr)
 	{
-		godot::Vector2i windowSize = get_tree()->get_root()->get_size();
+		//godot::Vector2i windowSize = get_tree()->get_root()->get_size();
+		godot::Size2 windowSize  = getViewportSize();
 		m_hudControls->set_size(windowSize);
 	}
 	
 	// Message Box
+	if (m_hudMessageContainer != nullptr)
 	{
 		m_hudMessageContainer->set_anchor(godot::Side::SIDE_LEFT, 0.3);
 		m_hudMessageContainer->set_offset(SIDE_LEFT, 0);
@@ -1714,6 +1759,7 @@ void GDN_TheWorld_Viewer::setPosHud(void)
 	}
 
 	// Streaming Info Box
+	if (m_hudStreamingInfoContainer != nullptr)
 	{
 		m_hudStreamingInfoContainer->set_anchor(godot::Side::SIDE_LEFT, 0.65);
 		m_hudStreamingInfoContainer->set_offset(SIDE_LEFT, 0);
@@ -1723,56 +1769,79 @@ void GDN_TheWorld_Viewer::setPosHud(void)
 
 	// Satellite view
 	{
-		m_satelliteSubViewportContainer->set_size(godot::Vector2(SATELLITE_VIEW_CONTROL_SIZE, SATELLITE_VIEW_CONTROL_SIZE));
-		m_satelliteSubViewportContainer->set_scale(godot::Vector2(1, 1));
-		m_satelliteSubViewport->set_size(godot::Vector2i(SATELLITE_VIEW_CONTROL_SIZE, SATELLITE_VIEW_CONTROL_SIZE));
+		if (m_satelliteSubViewportContainer != nullptr)
+		{
+			m_satelliteSubViewportContainer->set_size(godot::Vector2(SATELLITE_VIEW_CONTROL_SIZE, SATELLITE_VIEW_CONTROL_SIZE));
+			m_satelliteSubViewportContainer->set_scale(godot::Vector2(1, 1));
 
-		//m_satelliteSubViewportContainer->set_anchors_preset(godot::Control::LayoutPreset::PRESET_BOTTOM_RIGHT);
-		m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_LEFT, 1.0);
-		m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_LEFT, -(SATELLITE_VIEW_CONTROL_SIZE + SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
-		m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_RIGHT, 1.0);
-		m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_RIGHT, -(SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
-		m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_TOP, 1.0);
-		m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_TOP, -(SATELLITE_VIEW_CONTROL_SIZE + SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
-		m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_BOTTOM, 1.0);
-		m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_BOTTOM, -(SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+			//m_satelliteSubViewportContainer->set_anchors_preset(godot::Control::LayoutPreset::PRESET_BOTTOM_RIGHT);
+			m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_LEFT, 1.0);
+			m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_LEFT, -(SATELLITE_VIEW_CONTROL_SIZE + SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+			m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_RIGHT, 1.0);
+			m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_RIGHT, -(SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+			m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_TOP, 1.0);
+			m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_TOP, -(SATELLITE_VIEW_CONTROL_SIZE + SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+			m_satelliteSubViewportContainer->set_anchor(godot::Side::SIDE_BOTTOM, 1.0);
+			m_satelliteSubViewportContainer->set_offset(godot::Side::SIDE_BOTTOM, -(SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER));
+		}
 
-		m_northLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
-		m_northLabel->set_offset(SIDE_LEFT, SATELLITE_VIEW_CONTROL_SIZE / 2);
-		m_northLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
-		m_northLabel->set_offset(SIDE_TOP, 0);
+		if (m_satelliteSubViewport != nullptr)
+			m_satelliteSubViewport->set_size(godot::Vector2i(SATELLITE_VIEW_CONTROL_SIZE, SATELLITE_VIEW_CONTROL_SIZE));
 
-		m_southLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
-		m_southLabel->set_offset(SIDE_LEFT, SATELLITE_VIEW_CONTROL_SIZE / 2);
-		m_southLabel->set_anchor(godot::Side::SIDE_TOP, 1.0);
-		m_southLabel->set_offset(SIDE_TOP, -20);
+		if (m_northLabel != nullptr)
+		{
+			m_northLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+			m_northLabel->set_offset(SIDE_LEFT, SATELLITE_VIEW_CONTROL_SIZE / 2);
+			m_northLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
+			m_northLabel->set_offset(SIDE_TOP, 0);
+		}
 
-		m_westLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
-		m_westLabel->set_offset(SIDE_LEFT, 0.0);
-		m_westLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
-		m_westLabel->set_offset(SIDE_TOP, SATELLITE_VIEW_CONTROL_SIZE / 2);
+		if (m_southLabel != nullptr)
+		{
+			m_southLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+			m_southLabel->set_offset(SIDE_LEFT, SATELLITE_VIEW_CONTROL_SIZE / 2);
+			m_southLabel->set_anchor(godot::Side::SIDE_TOP, 1.0);
+			m_southLabel->set_offset(SIDE_TOP, -20);
+		}
 
-		m_eastLabel->set_anchor(godot::Side::SIDE_LEFT, 1.0);
-		m_eastLabel->set_offset(SIDE_LEFT, -20);
-		m_eastLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
-		m_eastLabel->set_offset(SIDE_TOP, SATELLITE_VIEW_CONTROL_SIZE / 2);
+		if (m_westLabel != nullptr)
+		{
+			m_westLabel->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+			m_westLabel->set_offset(SIDE_LEFT, 0.0);
+			m_westLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
+			m_westLabel->set_offset(SIDE_TOP, SATELLITE_VIEW_CONTROL_SIZE / 2);
+		}
+
+		if (m_eastLabel != nullptr)
+		{
+			m_eastLabel->set_anchor(godot::Side::SIDE_LEFT, 1.0);
+			m_eastLabel->set_offset(SIDE_LEFT, -20);
+			m_eastLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
+			m_eastLabel->set_offset(SIDE_TOP, SATELLITE_VIEW_CONTROL_SIZE / 2);
+		}
 	}
 
 	// Back Mirror View
 	{
-		m_backMirrorSubViewportContainer->set_size(godot::Vector2(BACKMIRROR_VIEW_CONTROL_SIZE_X, BACKMIRROR_VIEW_CONTROL_SIZE_Y));
-		m_backMirrorSubViewportContainer->set_scale(godot::Vector2(1, 1));
-		m_backMirrorSubViewport->set_size(godot::Vector2i(BACKMIRROR_VIEW_CONTROL_SIZE_X, BACKMIRROR_VIEW_CONTROL_SIZE_Y));
+		if (m_eastLabel != nullptr)
+		{
+			m_backMirrorSubViewportContainer->set_size(godot::Vector2(BACKMIRROR_VIEW_CONTROL_SIZE_X, BACKMIRROR_VIEW_CONTROL_SIZE_Y));
+			m_backMirrorSubViewportContainer->set_scale(godot::Vector2(1, 1));
 
-		//m_satelliteSubViewportContainer->set_anchors_preset(godot::Control::LayoutPreset::PRESET_BOTTOM_RIGHT);
-		m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_LEFT, 0.0);
-		m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_LEFT, BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
-		m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_RIGHT, 0.0);
-		m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_RIGHT, BACKMIRROR_VIEW_CONTROL_SIZE_X + BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
-		m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
-		m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_TOP, BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
-		m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_BOTTOM, 0.0);
-		m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_BOTTOM, BACKMIRROR_VIEW_CONTROL_SIZE_Y + BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+			//m_satelliteSubViewportContainer->set_anchors_preset(godot::Control::LayoutPreset::PRESET_BOTTOM_RIGHT);
+			m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+			m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_LEFT, BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+			m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_RIGHT, 0.0);
+			m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_RIGHT, BACKMIRROR_VIEW_CONTROL_SIZE_X + BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+			m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
+			m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_TOP, BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+			m_backMirrorSubViewportContainer->set_anchor(godot::Side::SIDE_BOTTOM, 0.0);
+			m_backMirrorSubViewportContainer->set_offset(godot::Side::SIDE_BOTTOM, BACKMIRROR_VIEW_CONTROL_SIZE_Y + BACKMIRROR_VIEW_CONTROL_DISTANCE_FROM_BORDER);
+		}
+
+		if (m_backMirrorSubViewport != nullptr)
+			m_backMirrorSubViewport->set_size(godot::Vector2i(BACKMIRROR_VIEW_CONTROL_SIZE_X, BACKMIRROR_VIEW_CONTROL_SIZE_Y));
+
 	}
 }
 
@@ -7761,6 +7830,8 @@ godot::GDN_TheWorld_Edit* GDN_TheWorld_Viewer::EditModeUIControl(bool useCache)
 {
 	if (m_editModeUIControl == nullptr || !useCache)
 	{
+		if (not is_inside_tree())
+			return NULL;
 		SceneTree* scene = get_tree();
 		if (!scene)
 			return NULL;
@@ -7777,6 +7848,8 @@ GDN_TheWorld_Globals* GDN_TheWorld_Viewer::Globals(bool useCache)
 {
 	if (m_globals == NULL || !useCache)
 	{
+		if (not is_inside_tree())
+			return NULL;
 		SceneTree* scene = get_tree();
 		if (!scene)
 			return NULL;
@@ -7793,6 +7866,8 @@ GDN_TheWorld_Camera* GDN_TheWorld_Viewer::CameraNode(bool useCache)
 {
 	if (m_worldCamera == NULL || !useCache)
 	{
+		if (not is_inside_tree())
+			return NULL;
 		SceneTree* scene = get_tree();
 		if (!scene)
 			return NULL;

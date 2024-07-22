@@ -624,6 +624,8 @@ void GDN_TheWorld_Camera::notifyActiveCameraFlag(bool active)
 
 GDN_TheWorld_Camera* GDN_TheWorld_Camera::getActiveCamera(void)
 {
+	if (not is_inside_tree())
+		return NULL;
 	SceneTree* scene = get_tree();
 	if (scene == NULL)
 		return NULL;
@@ -1174,6 +1176,8 @@ GDN_TheWorld_Globals* GDN_TheWorld_Camera::Globals(bool useCache)
 {
 	if (m_globals == NULL || !useCache)
 	{
+		if (not is_inside_tree())
+			return NULL;
 		SceneTree* scene = get_tree();
 		if (!scene)
 			return NULL;

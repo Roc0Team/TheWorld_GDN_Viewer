@@ -1,4 +1,3 @@
-* risolvere crash in uscita dell'editor
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde
 
@@ -7,6 +6,9 @@
 * Minimap
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
+
+Tag 2024/07/22
+* ***OK*** risolvere crash in uscita dell'editor (aggiornato Godot a 4.3 Beta 3 e godot-cpp ad ultimo commit)
 
 Tag 2024/07/19
 * ***OK*** nella vista satellitare non si deve vedere l'effetto underwater

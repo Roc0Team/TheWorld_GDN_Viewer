@@ -472,33 +472,33 @@ namespace godot
 				if (m_viewer != nullptr)
 				{
 					m_viewer->finishedResizingGrid(false);
-					m_viewer->setHudMessage("World Deployed", TIME()->get_ticks_msec());
+					m_viewer->hudMessage("World Deployed", 3000);
 				}
 			}
 			else if (m_status == TheWorldStatus::worldDeployInProgress)
 			{
 				if (m_viewer != nullptr)
-					m_viewer->setHudMessage("Deploying World ...", 0);
+					m_viewer->hudMessage("Deploying World ...", 0);
 			}
 			else if (m_status == TheWorldStatus::error)
 			{
 				if (m_viewer != nullptr)
-					m_viewer->setHudMessage("ERROR!!!", 0);
+					m_viewer->hudMessage("ERROR!!!", 0);
 			}
 			else if (m_status == TheWorldStatus::uninitialized)
 			{
 				if (m_viewer != nullptr)
-					m_viewer->setHudMessage("Uninitialized", 0);
+					m_viewer->hudMessage("Uninitialized", 0);
 			}
 			else if (m_status < TheWorldStatus::worldDeployInProgress)
 			{
 				if (m_viewer != nullptr)
-					m_viewer->setHudMessage("Opening session ...", 0);
+					m_viewer->hudMessage("Opening session ...", 0);
 			}
 			else if (m_status == TheWorldStatus::worldUnDeployInProgress)
 			{
 				if (m_viewer != nullptr)
-					m_viewer->setHudMessage("Undeploy World in progress ...", 0);
+					m_viewer->hudMessage("Undeploy World in progress ...", 0);
 			}
 
 		}

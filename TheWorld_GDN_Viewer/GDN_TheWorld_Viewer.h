@@ -1195,7 +1195,8 @@ namespace godot
 			return m_initialized;
 		}
 
-		void setHudMessage(std::string hudMessage, int64_t savedTimeToFadeMessage);
+		void setHudMessage(godot::String hudMessage, int savedTimeToFadeMessage);
+		void hudMessage(std::string hudMessage, int64_t savedTimeToFadeMessage);
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -1521,11 +1522,13 @@ namespace godot
 		bool m_shaderParamCameraUnderWaterApplied = false;
 
 		godot::Control* m_hudControls = nullptr;
-		godot::HBoxContainer* hudMessageContainer = nullptr;
+		godot::HBoxContainer* m_hudMessageContainer = nullptr;
 		godot::Label* m_hudMessageLabel = nullptr;
-		int64_t m_savedTimeToFadeMessage = 0;
+		uint64_t m_fadingTime = 0;
+		uint64_t m_savedTimeToFadeMessage = 0;
 		std::string m_hudMessage;
-		godot::Label* m_hudStreamingLabel = nullptr;
+		godot::HBoxContainer* m_hudStreamingInfoContainer = nullptr;
+		godot::Label* m_hudStreamingInfoLabel = nullptr;
 		godot::SubViewportContainer* m_satelliteSubViewportContainer = nullptr;
 		godot::Label* m_northLabel = nullptr;
 		godot::Label* m_southLabel = nullptr;

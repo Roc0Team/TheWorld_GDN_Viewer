@@ -1309,6 +1309,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("load_quadrant_data", "pos_x", "pos_z", "level"), &GDN_TheWorld_Viewer::loadQuadrantData);
 	ClassDB::bind_method(D_METHOD("load_quadrant_data_index", "index_pos_x", "index_pos_z", "level"), &GDN_TheWorld_Viewer::loadQuadrantDataIndex);
 	ClassDB::bind_method(D_METHOD("clear_quadrant_data"), &GDN_TheWorld_Viewer::clearQuadrantData);
+	ClassDB::bind_method(D_METHOD("set_hud_message", "message", "fading_time"), &GDN_TheWorld_Viewer::setHudMessage);
 	ClassDB::bind_method(D_METHOD("get_quadrant_pos"), &GDN_TheWorld_Viewer::getQuadrantPos);
 	ClassDB::bind_method(D_METHOD("get_quadrant_pos_index"), &GDN_TheWorld_Viewer::getQuadrantPosIndex);
 	ClassDB::bind_method(D_METHOD("get_quadrant_heightmap_image"), &GDN_TheWorld_Viewer::getQuadrantHeightmapImage);
@@ -1618,19 +1619,26 @@ void GDN_TheWorld_Viewer::createHud(void)
 	
 	// Message Box
 	{
-		hudMessageContainer = memnew(godot::HBoxContainer);
-		controlsParent->add_child(hudMessageContainer);
-		hudMessageContainer->set_name("HudMessageContainer");
+		m_hudMessageContainer = memnew(godot::HBoxContainer);
+		controlsParent->add_child(m_hudMessageContainer);
+		m_hudMessageContainer->set_name("HudMessageContainer");
 
 		m_hudMessageLabel = memnew(godot::Label);
-		hudMessageContainer->add_child(m_hudMessageLabel);
+		m_hudMessageContainer->add_child(m_hudMessageLabel);
 		m_hudMessageLabel->set_name("HudMessage");
 		m_hudMessageLabel->add_theme_color_override("font_color", Color(251.0f / 255.0f, 206.0f / 255.0f, 177.0f / 255.0f));
+	}
 
-		m_hudStreamingLabel = memnew(godot::Label);
-		hudMessageContainer->add_child(m_hudStreamingLabel);
-		m_hudStreamingLabel->set_name("HudMessage");
-		m_hudStreamingLabel->add_theme_color_override("font_color", Color(251.0f / 255.0f, 206.0f / 255.0f, 177.0f / 255.0f));
+	// Streaming Info Box
+	{
+		m_hudStreamingInfoContainer = memnew(godot::HBoxContainer);
+		controlsParent->add_child(m_hudStreamingInfoContainer);
+		m_hudStreamingInfoContainer->set_name("HudStreamingInfoContainer");
+
+		m_hudStreamingInfoLabel = memnew(godot::Label);
+		m_hudStreamingInfoContainer->add_child(m_hudStreamingInfoLabel);
+		m_hudStreamingInfoLabel->set_name("HudStreamingInfo");
+		m_hudStreamingInfoLabel->add_theme_color_override("font_color", Color(251.0f / 255.0f, 206.0f / 255.0f, 177.0f / 255.0f));
 	}
 	
 	// Satellite view
@@ -1699,10 +1707,18 @@ void GDN_TheWorld_Viewer::setPosHud(void)
 	
 	// Message Box
 	{
-		hudMessageContainer->set_anchor(godot::Side::SIDE_LEFT, 0.6);
-		hudMessageContainer->set_offset(SIDE_LEFT, 0);
-		hudMessageContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
-		hudMessageContainer->set_offset(SIDE_TOP, 0);
+		m_hudMessageContainer->set_anchor(godot::Side::SIDE_LEFT, 0.3);
+		m_hudMessageContainer->set_offset(SIDE_LEFT, 0);
+		m_hudMessageContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
+		m_hudMessageContainer->set_offset(SIDE_TOP, 0);
+	}
+
+	// Streaming Info Box
+	{
+		m_hudStreamingInfoContainer->set_anchor(godot::Side::SIDE_LEFT, 0.65);
+		m_hudStreamingInfoContainer->set_offset(SIDE_LEFT, 0);
+		m_hudStreamingInfoContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
+		m_hudStreamingInfoContainer->set_offset(SIDE_TOP, 0);
 	}
 
 	// Satellite view
@@ -5542,10 +5558,18 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera3D* activeCamer
 	}
 }
 
-void GDN_TheWorld_Viewer::setHudMessage(std::string hudMessage, int64_t savedTimeToFadeMessage)
+void GDN_TheWorld_Viewer::setHudMessage(godot::String _hudMessage, int _fadingTime)
+{
+	hudMessage(_hudMessage.utf8().get_data(), _fadingTime);
+}
+
+void GDN_TheWorld_Viewer::hudMessage(std::string hudMessage, int64_t fadingTime)
 {
 	m_hudMessage = hudMessage;
-	m_savedTimeToFadeMessage = savedTimeToFadeMessage;
+	m_fadingTime = fadingTime;
+	m_savedTimeToFadeMessage = 0;
+	if (m_fadingTime > 0)
+		m_savedTimeToFadeMessage = TIME()->get_ticks_msec();
 }
 
 void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeCamera)
@@ -5558,7 +5582,7 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeCamera)
 
 		if (m_savedTimeToFadeMessage > 0)
 		{
-			if (TIME()->get_ticks_msec() - m_savedTimeToFadeMessage > 3000)
+			if (TIME()->get_ticks_msec() - m_savedTimeToFadeMessage > m_fadingTime)
 			{
 				m_hudMessage = "";
 				m_savedTimeToFadeMessage = 0;
@@ -5568,14 +5592,19 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeCamera)
 		m_hudMessageLabel->set_text(m_hudMessage.c_str());
 	}
 
-	if (m_hudStreamingLabel != nullptr)
+	if (m_hudStreamingInfoLabel != nullptr)
 	{
 		std::string hudStreaming;
-		if (getNumInitializedQuadrant() == getNumQuadrant())
+		int numInitializedQuadrant = getNumInitializedQuadrant();
+		int numQuadrant = getNumQuadrant();
+		if (numInitializedQuadrant == numQuadrant)
 			hudStreaming = "";
 		else
-			hudStreaming = "Streaming World";
-		m_hudStreamingLabel->set_text(hudStreaming.c_str());
+		{
+			int progress = numInitializedQuadrant * 100 / numQuadrant;
+			hudStreaming = "Streaming World " + std::to_string(progress) + "%";
+		}
+		m_hudStreamingInfoLabel->set_text(hudStreaming.c_str());
 	}
 	
 	if (m_backMirrorSubViewportContainer != nullptr and m_backMirrorCamera != nullptr)

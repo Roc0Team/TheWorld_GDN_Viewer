@@ -350,7 +350,7 @@ QuadTree::~QuadTree()
 		if (parent)
 		{
 			//parent->remove_child(m_GDN_Quadrant);
-			parent->call_deferred("remove_child", m_GDN_Quadrant);
+			parent->call_deferred("remove_child", m_GDN_Quadrant);	// Mah
 		}
 		m_GDN_Quadrant->queue_free();
 		m_GDN_Quadrant = nullptr;
@@ -3828,7 +3828,7 @@ Quadrant::~Quadrant()
 	{
 		Node* parent = m_mapModder->get_parent();
 		if (parent != nullptr)
-			parent->call_deferred("remove_child", m_mapModder);
+			parent->call_deferred("remove_child", m_mapModder);		// Mah
 			//parent->remove_child(m_mapModder);
 		m_mapModder->queue_free();
 		m_mapModder = nullptr;

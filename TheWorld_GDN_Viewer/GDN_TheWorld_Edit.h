@@ -27,9 +27,9 @@ namespace godot
 {
 	//class GDN_TheWorld_Viewer;
 
-	class GDN_TheWorld_Edit : public godot::MarginContainer, public TheWorld_Utils::ThreadInitDeinit, public TheWorld_ClientServer::ClientCallback
+	class GDN_TheWorld_Edit : public godot::Container, public TheWorld_Utils::ThreadInitDeinit, public TheWorld_ClientServer::ClientCallback
 	{
-		GDCLASS(GDN_TheWorld_Edit, MarginContainer)
+		GDCLASS(GDN_TheWorld_Edit, Container)
 
 	public:
 

@@ -22,6 +22,7 @@
 #include <godot_cpp/classes/camera3d.hpp>
 #include <godot_cpp/classes/h_box_container.hpp>
 #include <godot_cpp/classes/container.hpp>
+#include <godot_cpp/classes/panel_container.hpp>
 #pragma warning(pop)
 
 #include <map>
@@ -74,12 +75,89 @@ namespace godot
 //#define DEFAULT_DIRT_TEX_NAME							"Ground049C_1K"
 //#define DEFAULT_ROCKS_TEX_NAME							"rocks07"
 
+	class GDN_TheWorld_MapViewer;
+
+	class GDN_TheWorld_Map : public godot::Container
+	{
+		GDCLASS(GDN_TheWorld_Map, Container)
+
+	protected:
+		static void _bind_methods(void);
+		void _notification(int p_what);
+
+	public:
+		GDN_TheWorld_Map(void);
+		~GDN_TheWorld_Map(void);
+
+		//
+		// Godot Standard Functions
+		//
+		virtual void _ready(void) override;
+		virtual void _process(double _delta) override;
+		virtual void _input(const Ref<InputEvent>& event) override;
+		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	public:
+		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
+		{
+			m_mapViewer = mapViewer;
+		}
+
+	private:
+		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
+		godot::PanelContainer* m_panel = nullptr;
+	};
+
+	class GDN_TheWorld_MapViewer : public godot::Node2D
+	{
+		GDCLASS(GDN_TheWorld_MapViewer, Node2D)
+
+	protected:
+		static void _bind_methods(void);
+		void _notification(int p_what);
+
+	public:
+		GDN_TheWorld_MapViewer(void);
+		~GDN_TheWorld_MapViewer(void);
+
+		//
+		// Godot Standard Functions
+		//
+		virtual void _ready(void) override;
+		virtual void _process(double _delta) override;
+		virtual void _input(const Ref<InputEvent>& event) override;
+		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	public:
+		void setViewer(GDN_TheWorld_Viewer* viewer)
+		{
+			m_viewer = viewer;
+		}
+		GDN_TheWorld_Viewer* getViewer(void)
+		{
+			return m_viewer;
+		}
+
+		GDN_TheWorld_Map* getMap(void)
+		{
+			return m_map;
+		}
+		void setMap(GDN_TheWorld_Map* map)
+		{
+			m_map = map;
+		}
+
+	private:
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
+		GDN_TheWorld_Map* m_map = nullptr;
+	};
+
 	class GDN_TheWorld_HudControls : public godot::Container
 	{
 		GDCLASS(GDN_TheWorld_HudControls, Container)
 
 	protected:
-		static void _bind_methods() {};
+		static void _bind_methods(void) {};
 		void _notification(int p_what) {};
 
 	public:
@@ -449,8 +527,11 @@ namespace godot
 			return m_quitting;
 		}
 		
+		virtual void createMapViewer(void);
+		virtual void setPosMapViewer(godot::Size2& windowSize);
+
 		virtual void createHud(void);
-		virtual void setPosHud(void);
+		virtual void setPosHud(godot::Size2& windowSize);
 
 		virtual void threadInit(void) {}
 		virtual void threadDeinit(void) {}
@@ -582,6 +663,7 @@ namespace godot
 		int getCameraProjectionMode(void);
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 		GDN_TheWorld_Camera* CameraNode(bool useCache = true);
+		GDN_TheWorld_MapViewer* MapViewer(bool useCache = true);
 		godot::GDN_TheWorld_Edit* EditModeUIControl(bool useCache = true);
 		godot::Control* getOrCreateEditModeUIControl(void);
 		void createEditModeUI(void);
@@ -1216,6 +1298,14 @@ namespace godot
 
 		void setHudMessage(godot::String hudMessage, int savedTimeToFadeMessage);
 		void hudMessage(std::string hudMessage, int64_t savedTimeToFadeMessage);
+		GDN_TheWorld_Map* getMap(void)
+		{
+			GDN_TheWorld_Map* map = nullptr;
+			GDN_TheWorld_MapViewer* mapViewer = MapViewer();
+			if (mapViewer != nullptr)
+				map = mapViewer->getMap();
+			return map;
+		}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -1541,7 +1631,7 @@ namespace godot
 		bool m_shaderParamCameraUnderWaterApplied = false;
 
 		//godot::Control* m_hudControls = nullptr;
-		godot::GDN_TheWorld_HudControls* m_hudControls = nullptr;
+		GDN_TheWorld_HudControls* m_hudControls = nullptr;
 		godot::HBoxContainer* m_hudMessageContainer = nullptr;
 		godot::Label* m_hudMessageLabel = nullptr;
 		uint64_t m_fadingTime = 0;
@@ -1559,6 +1649,9 @@ namespace godot
 		godot::SubViewportContainer* m_backMirrorSubViewportContainer = nullptr;
 		godot::SubViewport* m_backMirrorSubViewport = nullptr;
 		godot::Camera3D* m_backMirrorCamera = nullptr;
+
+		
+		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;

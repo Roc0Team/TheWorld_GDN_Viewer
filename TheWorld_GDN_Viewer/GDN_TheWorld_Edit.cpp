@@ -91,7 +91,7 @@ GDN_TheWorld_Edit::GDN_TheWorld_Edit()
 	m_elapsedCompleted = 0;
 	m_lastElapsed = 0;
 	m_UIAcceptingFocus = false;
-	m_requiredUIAcceptFocus = false;
+	m_requiredUIAcceptFocus = true;		// TOTO
 	m_lastMessageChanged = false;
 
 	_init();
@@ -329,6 +329,14 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	else
 		m_viewer->add_child(this);
 	set_name(THEWORLD_EDIT_MODE_UI_CONTROL_NAME);
+
+	//godot::CheckBox* test1 = memnew(godot::CheckBox);
+	//parent->add_child(test1);
+	//test1->set_text("TEXT");
+
+	//godot::Button* test2 = memnew(godot::Button);
+	//parent->add_child(test2);
+	//test2->set_text("TEXT");
 
 	m_mapModder = memnew(GDN_TheWorld_MapModder);
 	m_mapModder->custom_ready(m_viewer, this, false);
@@ -769,7 +777,8 @@ T* GDN_TheWorld_Edit::createControl(godot::Node* parent, std::string name, godot
 	parent->add_child(control);
 	godot::Error e = control->connect("mouse_entered", Callable(this, "mouse_entered_edit_panel"));
 	e = control->connect("mouse_exited", Callable(this, "mouse_exited_edit_panel"));
-	
+	control->set_focus_mode(godot::Control::FocusMode::FOCUS_ALL);		// TOTO
+
 	if (name.length() > 0)
 		control->set_name(name.c_str());
 
@@ -835,9 +844,10 @@ void GDN_TheWorld_Edit::deinit(void)
 		parent = get_parent();
 		if (parent != nullptr)
 		{
-			parent->call_deferred("remove_child", this);
-			queue_free();
+			//parent->call_deferred("remove_child", this);		// Mah
+			parent->remove_child(this);
 		}
+		queue_free();
 	}
 }
 
@@ -1521,6 +1531,7 @@ void GDN_TheWorld_Edit::_init(void)
 	//godot::UtilityFunctions::print("GDN_TheWorld_Edit::Init");
 
 	set_name(THEWORLD_EDIT_MODE_UI_CONTROL_NAME);
+	set_focus_mode(godot::Control::FocusMode::FOCUS_ALL);		// TOTO
 }
 
 void GDN_TheWorld_Edit::_ready(void)
@@ -1900,7 +1911,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			if (parent != nullptr)
 			{
 				//parent->remove_child(m_innerData->m_selTexturePanel->m_wnd);
-				parent->call_deferred("remove_child", m_innerData->m_selTexturePanel->m_wnd);
+				parent->call_deferred("remove_child", m_innerData->m_selTexturePanel->m_wnd);		// Mah
 			}
 			m_innerData->m_selTexturePanel->m_wnd->queue_free();
 			m_innerData->m_selTexturePanel->m_wnd = nullptr;

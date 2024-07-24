@@ -283,12 +283,12 @@ void GDN_TheWorld_MainNode::deinit(void)
 			PLOG_INFO << "TheWorld Main Node Deinitialized!";
 
 			globals->deinit();
-			Node* parent = globals->get_parent();
-			if (parent)
-			{
-				//parent->call_deferred("remove_child", globals);		// TESTING
-				//parent->remove_child(globals);
-			}
+			//Node* parent = globals->get_parent();
+			//if (parent)
+			//{
+			//	parent->call_deferred("remove_child", globals);		// TESTING
+			//	parent->remove_child(globals);
+			//}
 			//globals->set_owner(nullptr);								// TESTING
 			//globals->queue_free();									// TESTING
 		}
@@ -297,12 +297,12 @@ void GDN_TheWorld_MainNode::deinit(void)
 
 		Globals()->debugPrint("GDN_TheWorld_MainNode::deinit DONE!");
 
-		Node* parent = get_parent();
-		if (parent)
-		{
-			//parent->call_deferred("remove_child", this);				// TESTING
-			//parent->remove_child(this);
-		}
+		//Node* parent = get_parent();
+		//if (parent)
+		//{
+		//	parent->call_deferred("remove_child", this);				// TESTING
+		//	parent->remove_child(this);
+		//}
 		//set_owner(nullptr);											// TESTING
 	}
 }

@@ -48,10 +48,125 @@ using namespace godot;
 
 namespace fs = std::filesystem;
 
+void GDN_TheWorld_Map::_bind_methods(void)
+{
+}
+
+GDN_TheWorld_Map::GDN_TheWorld_Map(void)
+{
+	m_panel = memnew(godot::PanelContainer);
+	add_child(m_panel);
+}
+
+GDN_TheWorld_Map::~GDN_TheWorld_Map(void)
+{
+}
+
+void GDN_TheWorld_Map::_notification(int p_what)
+{
+	switch (p_what)
+	{
+	case NOTIFICATION_ENTER_TREE:
+	{
+	}
+	break;
+	case NOTIFICATION_WM_CLOSE_REQUEST:
+	{
+	}
+	break;
+	case NOTIFICATION_PREDELETE:
+	{
+	}
+	break;
+	case NOTIFICATION_RESIZED:
+	{
+		godot::Vector2 newSize = get_size();
+		m_panel->set_size(newSize);
+	}
+	break;
+	}
+}
+
+void GDN_TheWorld_Map::_input(const Ref<InputEvent>& event)
+{
+	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+
+	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+	//{
+	//	int a = 0;
+	//}
+}
+
+void GDN_TheWorld_Map::_unhandled_input(const Ref<InputEvent>& event)
+{
+	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+
+	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+	//{
+	//	int a = 0;
+	//}
+}
+
+void GDN_TheWorld_Map::_ready(void)
+{
+}
+
+void GDN_TheWorld_Map::_process(double _delta)
+{
+}
+
+void GDN_TheWorld_MapViewer::_bind_methods(void)
+{
+}
+
+GDN_TheWorld_MapViewer::GDN_TheWorld_MapViewer(void)
+{
+}
+
+GDN_TheWorld_MapViewer::~GDN_TheWorld_MapViewer(void)
+{
+}
+
+void GDN_TheWorld_MapViewer::_notification(int p_what)
+{
+}
+
+void GDN_TheWorld_MapViewer::_input(const Ref<InputEvent>& event)
+{
+	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+
+	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+	//{
+	//	int a = 0;
+	//}
+}
+
+void GDN_TheWorld_MapViewer::_unhandled_input(const Ref<InputEvent>& event)
+{
+	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+
+	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+	//{
+	//	int a = 0;
+	//}
+}
+
+void GDN_TheWorld_MapViewer::_ready(void)
+{
+}
+
+void GDN_TheWorld_MapViewer::_process(double _delta)
+{
+}
+
 void GDN_TheWorld_HudControls::_input(const Ref<InputEvent>& event)
 {
-	const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
-	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
 
 	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
 	//{
@@ -61,15 +176,14 @@ void GDN_TheWorld_HudControls::_input(const Ref<InputEvent>& event)
 
 void GDN_TheWorld_HudControls::_unhandled_input(const Ref<InputEvent>& event)
 {
-	const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
-	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
 
 	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
 	//{
 	//	int a = 0;
 	//}
 }
-
 
 int32_t GDN_TheWorld_MapModder::s_numWorking = 0;
 std::recursive_mutex GDN_TheWorld_MapModder::s_mtxInternal;
@@ -1634,26 +1748,115 @@ void GDN_TheWorld_Viewer::setShaderParam(godot::String name, godot::Variant valu
 void GDN_TheWorld_Viewer::setEditor3dOverlay(godot::Object* editor3dOverlay)
 {
 	m_editor3dOverlay = (godot::Control*)editor3dOverlay;
-	if (isInEditor() and m_hudControls != nullptr)		// Editor not processing input correctly
+	if (isInEditor() and m_editor3dOverlay != nullptr)
 	{
-		godot::Node* parent = m_hudControls->get_parent();
-		if (parent != nullptr and parent != m_editor3dOverlay)
+		int64_t editor3dOverlayId = m_editor3dOverlay->get_instance_id();
+
+		if (m_hudControls != nullptr)
 		{
-			parent->remove_child(m_hudControls);
-			m_editor3dOverlay->add_child(m_hudControls);
-			m_hudControls->set_process_input(false);
+			godot::Node* parent = m_hudControls->get_parent();
+			if (parent != nullptr)
+			{
+				int64_t parentId = parent->get_instance_id();
+				if (parentId != editor3dOverlayId)
+				{
+					parent->remove_child(m_hudControls);
+					m_editor3dOverlay->add_child(m_hudControls);
+					godot::Size2 windowSize = getViewportSize();
+					setPosHud(windowSize);
+				}
+			}
 		}
-		setPosHud();
+
+		GDN_TheWorld_MapViewer* mapViewer = MapViewer(false);
+		if (mapViewer != nullptr)
+		{
+			GDN_TheWorld_Map* map = mapViewer->getMap();
+			if (map != nullptr)
+			{
+				godot::Node* parent = map->get_parent();
+				if (parent != nullptr)
+				{
+					int64_t parentId = parent->get_instance_id();
+					if (parentId != editor3dOverlayId)
+					{
+						parent->remove_child(map);
+						m_editor3dOverlay->add_child(map);
+						godot::Size2 windowSize = getViewportSize();
+						setPosMapViewer(windowSize);
+					}
+				}
+			}
+		}
+	}
+}
+
+void GDN_TheWorld_Viewer::createMapViewer(void)
+{
+	return;		// TOTO
+	
+	GDN_TheWorld_MapViewer* mapViewer = MapViewer(false);
+	if (mapViewer == nullptr)
+		mapViewer = memnew(GDN_TheWorld_MapViewer);
+	mapViewer->set_name(THEWORLD_MAP_VIEWER_NODE_NAME);
+	//mapViewer->set_visible(false);
+	mapViewer->setViewer(this);
+
+	SceneTree* scene = get_tree();
+	Node* sceneRoot = nullptr;
+	if (IS_EDITOR_HINT())
+		sceneRoot = scene->get_edited_scene_root();
+	else
+		sceneRoot = scene->get_root();
+
+	int64_t worldMainNodeId = getWorldNode()->get_instance_id();
+
+	Node* parent = mapViewer->get_parent();
+	if (parent != nullptr)
+	{
+		int64_t parentId = parent->get_instance_id();
+		if (parentId != worldMainNodeId)
+		{
+			parent->remove_child(mapViewer);
+			//getWorldNode()->call_deferred("add_child", camera);
+			getWorldNode()->add_child(mapViewer);
+		}
+	}
+	else
+	{
+		getWorldNode()->add_child(mapViewer);
+	}
+
+	mapViewer->call_deferred("set_owner", sceneRoot);
+
+	GDN_TheWorld_Map* map = memnew(GDN_TheWorld_Map);
+	mapViewer->add_child(map);
+	map->set_name("Map");
+	map->set_visible(false);
+	//map->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
+	map->setMapViewer(mapViewer);
+	mapViewer->setMap(map);
+}
+
+void GDN_TheWorld_Viewer::setPosMapViewer(godot::Size2& windowSize)
+{
+	GDN_TheWorld_MapViewer* mapViewer = MapViewer(false);
+
+	if (mapViewer != nullptr)
+	{
+		GDN_TheWorld_Map* map = mapViewer->getMap();
+		if (map != nullptr)
+		{
+			map->set_size(windowSize);
+		}
 	}
 }
 
 void GDN_TheWorld_Viewer::createHud(void)
 {
-	//m_hudControls = memnew(godot::Control);
+	return;		// TOTO
+
 	m_hudControls = memnew(GDN_TheWorld_HudControls);
-	//if (isInEditor() and m_editor3dOverlay != nullptr)
-	//	m_editor3dOverlay->add_child(m_hudControls);
-	//else
 	add_child(m_hudControls);
 	m_hudControls->set_name("HudControls");
 	m_hudControls->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
@@ -1736,16 +1939,14 @@ void GDN_TheWorld_Viewer::createHud(void)
 		m_backMirrorSubViewport->add_child(m_backMirrorCamera);
 		m_backMirrorCamera->set_name("HudBackMirrorCamera");
 	}
-
-	setPosHud();
 }
 
-void GDN_TheWorld_Viewer::setPosHud(void)
+void GDN_TheWorld_Viewer::setPosHud(godot::Size2& windowSize)
 {
 	if (m_hudControls != nullptr)
 	{
 		//godot::Vector2i windowSize = get_tree()->get_root()->get_size();
-		godot::Size2 windowSize  = getViewportSize();
+		//godot::Size2 windowSize  = getViewportSize();
 		m_hudControls->set_size(windowSize);
 	}
 	
@@ -1855,40 +2056,29 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	globals->addElementToInitialize();
 	
-	float _gridStepInWU = Globals()->gridStepInWU();
-	godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
-	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GRID_STEP, _gridStepInWU);
-	//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, globals->getParamShowSea());
-	//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_TERRAIN, globals->getParamShowTerrain());
-	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, globals->getParamShowChunks());
-	
-	godot::String waterFoamImageName("res://addons/twviewer/shaders/water_foam.png");
-	godot::Ref<godot::Texture2D> waterFoamTex = ResourceLoader::get_singleton()->load(waterFoamImageName);
-	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_WATER_FOAM, waterFoamTex);
-	
-	shaderParamSeaFlatSeaHeightApplied(DEFAULT_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT);
-	shaderParamSeaNoiseScaleApplied(DEFAULT_SHADER_PARAM_SEA_NOISE_SCALE);
-	shaderParamSeaTimeScaleApplied(DEFAULT_SHADER_PARAM_SEA_TIME_SCALE);
-	shaderParamSeaHeightScaleApplied(DEFAULT_SHADER_PARAM_SEA_HEIGHT_SCALE);
-	shaderParamSeaRoughFactorApplied(DEFAULT_SHADER_PARAM_SEA_ROUGH_FACTOR);
-	shaderParamSeaEndCamAltForWavesApplied(DEFAULT_SHADER_PARAM_SEA_END_CAM_ALT_FOR_WAVES);
-	shaderParamSeaStartCamAltForWavesAttenuationApplied(DEFAULT_SHADER_PARAM_SEA_START_CAM_ALT_FOR_WAVES_ATTENUATION);
-	shaderParamSeaStartTerrDepthForWavesAttenuationApplied(DEFAULT_SHADER_PARAM_SEA_START_TERR_DEPTH_FOR_WAVES_ATTENUATION);
-	shaderParamSeaScaleOffsetThresholdApplied(DEFAULT_SHADER_PARAM_SEA_SCALE_OFFSET_THRESHOLD);
-
-	//m_isInEditor = IS_EDITOR_HINT();
-	
-	// From _notification ENTER_WORLD
-	printKeyboardMapping();
-
-	string s = "Use Visual Server: "; s += (m_useVisualServer ? "True" : "False");
-	if (globals != nullptr)
+	// Shader Global Params
 	{
-		globals->infoPrint(s.c_str());
-		globals->debugPrint("Enter world");
-	}
+		float _gridStepInWU = Globals()->gridStepInWU();
+		godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
+		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GRID_STEP, _gridStepInWU);
+		//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, globals->getParamShowSea());
+		//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_TERRAIN, globals->getParamShowTerrain());
+		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, globals->getParamShowChunks());
 
-	{
+		godot::String waterFoamImageName("res://addons/twviewer/shaders/water_foam.png");
+		godot::Ref<godot::Texture2D> waterFoamTex = ResourceLoader::get_singleton()->load(waterFoamImageName);
+		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_WATER_FOAM, waterFoamTex);
+
+		shaderParamSeaFlatSeaHeightApplied(DEFAULT_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT);
+		shaderParamSeaNoiseScaleApplied(DEFAULT_SHADER_PARAM_SEA_NOISE_SCALE);
+		shaderParamSeaTimeScaleApplied(DEFAULT_SHADER_PARAM_SEA_TIME_SCALE);
+		shaderParamSeaHeightScaleApplied(DEFAULT_SHADER_PARAM_SEA_HEIGHT_SCALE);
+		shaderParamSeaRoughFactorApplied(DEFAULT_SHADER_PARAM_SEA_ROUGH_FACTOR);
+		shaderParamSeaEndCamAltForWavesApplied(DEFAULT_SHADER_PARAM_SEA_END_CAM_ALT_FOR_WAVES);
+		shaderParamSeaStartCamAltForWavesAttenuationApplied(DEFAULT_SHADER_PARAM_SEA_START_CAM_ALT_FOR_WAVES_ATTENUATION);
+		shaderParamSeaStartTerrDepthForWavesAttenuationApplied(DEFAULT_SHADER_PARAM_SEA_START_TERR_DEPTH_FOR_WAVES_ATTENUATION);
+		shaderParamSeaScaleOffsetThresholdApplied(DEFAULT_SHADER_PARAM_SEA_SCALE_OFFSET_THRESHOLD);
+
 		if (IS_EDITOR_HINT())
 		{
 			if (m_minDepthQuadOnPerimeter == -1)
@@ -1915,89 +2105,108 @@ bool GDN_TheWorld_Viewer::init(void)
 		m_shaderParam_colormapOpacity.set_normal(godot::Vector3(1.0f, 1.0f, 1.0f));
 		m_shaderParam_colormapOpacity.d = 1.0f;
 
-		set_notify_transform(true);
-
-		{
-			GDN_TheWorld_Camera* camera = CameraNode(false);
-			if (camera == nullptr)
-				camera = memnew(GDN_TheWorld_Camera);
-			camera->set_name(THEWORLD_CAMERA_NODE_NAME);
-			assignWorldCamera(camera);
-
-			SceneTree* scene = get_tree();
-			Node* sceneRoot = nullptr;
-			if (IS_EDITOR_HINT())
-				sceneRoot = scene->get_edited_scene_root();
-			else
-				sceneRoot = scene->get_root();
-
-			int64_t worldMainNodeId = getWorldNode()->get_instance_id();
-
-			Node* parent = camera->get_parent();
-			if (parent != nullptr)
-			{
-				int64_t parentId = parent->get_instance_id();
-				if (parentId != worldMainNodeId)
-				{
-					parent->remove_child(camera);
-					//getWorldNode()->call_deferred("add_child", camera);
-					getWorldNode()->add_child(camera);
-				}
-			}
-			else
-			{
-				//getWorldNode()->call_deferred("add_child", camera);	// with deferred we risk that we call get_tree in Globals() (activateCamera) before camera is added to the scene 
-				getWorldNode()->add_child(camera);
-			}
-
-			camera->call_deferred("set_owner", sceneRoot);
-
-			godot::Control* control = getOrCreateEditModeUIControl();
-		}
+		ShaderTerrainData::ShaderTerrainData::getGroundTextures(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()), this);
+		std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
+		globals->addElementToInitialize((int)groundTextures.size());
 	}
 
-	m_meshCache = make_unique<MeshCache>(this);
-	m_meshCache->initCache(Globals()->numVerticesPerChuckSide(), Globals()->numLods());
+	// From _notification ENTER_WORLD
+	printKeyboardMapping();
 
-	m_streamerThreadRequiredExit = false;
-	m_streamerThreadRunning = true;
-	m_streamerThread = std::thread(&GDN_TheWorld_Viewer::streamer, this);
+	string s = "Use Visual Server: "; s += (m_useVisualServer ? "True" : "False");
+	if (globals != nullptr)
+	{
+		globals->infoPrint(s.c_str());
+		globals->debugPrint("Enter world");
+	}
 
-	ShaderTerrainData::ShaderTerrainData::getGroundTextures(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()), this);
+	set_notify_transform(true);
 
-	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
-	globals->addElementToInitialize((int)groundTextures.size());
+	// Set World Camera
+	{
+		GDN_TheWorld_Camera* camera = CameraNode(false);
+		if (camera == nullptr)
+			camera = memnew(GDN_TheWorld_Camera);
+		camera->set_name(THEWORLD_CAMERA_NODE_NAME);
+		assignWorldCamera(camera);
+
+		SceneTree* scene = get_tree();
+		Node* sceneRoot = nullptr;
+		if (IS_EDITOR_HINT())
+			sceneRoot = scene->get_edited_scene_root();
+		else
+			sceneRoot = scene->get_root();
+
+		int64_t worldMainNodeId = getWorldNode()->get_instance_id();
+
+		Node* parent = camera->get_parent();
+		if (parent != nullptr)
+		{
+			int64_t parentId = parent->get_instance_id();
+			if (parentId != worldMainNodeId)
+			{
+				parent->remove_child(camera);
+				//getWorldNode()->call_deferred("add_child", camera);
+				getWorldNode()->add_child(camera);
+			}
+		}
+		else
+		{
+			//getWorldNode()->call_deferred("add_child", camera);	// with deferred we risk that we call get_tree in Globals() (activateCamera) before camera is added to the scene 
+			getWorldNode()->add_child(camera);
+		}
+
+		camera->call_deferred("set_owner", sceneRoot);
+	}
+
+	// Set Mesh cache
+	{
+		m_meshCache = make_unique<MeshCache>(this);
+		m_meshCache->initCache(Globals()->numVerticesPerChuckSide(), Globals()->numLods());
+	}
+
+	// Set Streamer Thread
+	{
+		m_streamerThreadRequiredExit = false;
+		m_streamerThreadRunning = true;
+		m_streamerThread = std::thread(&GDN_TheWorld_Viewer::streamer, this);
+	}
 	
-	m_normalDrawer = memnew(GDN_TheWorld_Drawer);
-	this->add_child(m_normalDrawer);
-	const float radius = 1;
-	m_normalLineIdx = m_normalDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::end, 15.0f, godot::Vector2i(-10, -25), GDN_TheWorld_Globals::g_color_black);
-	m_normalSphereIdx = m_normalDrawer->addSphere(godot::Vector3(), radius, GDN_TheWorld_Globals::g_color_cyan);
-	m_normalDrawer->set_visible(false);
+	// Set Editor Elements
+	{
+		godot::Control* control = getOrCreateEditModeUIControl();
 
-	m_positionDrawer = memnew(GDN_TheWorld_Drawer);
-	this->add_child(m_positionDrawer);
-	m_labelPositionXIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 20), "", GDN_TheWorld_Globals::g_color_black);
-	m_labelPositionZIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 40), "", GDN_TheWorld_Globals::g_color_black);
-	m_labelPositionYIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 60), "", GDN_TheWorld_Globals::g_color_black);
-	m_labelPositionDistIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 80), "", GDN_TheWorld_Globals::g_color_black);
-	m_labelPositionDirIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 100), "", GDN_TheWorld_Globals::g_color_black);
-	m_linePositionIdx = m_positionDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::center, -1.0f, godot::Vector2i(-10, -10), GDN_TheWorld_Globals::g_color_black);
-	m_spherePositionStartIdx = m_positionDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
-	m_spherePositionEndIdx = m_positionDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
-	m_positionDrawer->set_visible(false);
+		m_normalDrawer = memnew(GDN_TheWorld_Drawer);
+		this->add_child(m_normalDrawer);
+		const float radius = 1;
+		m_normalLineIdx = m_normalDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::end, 15.0f, godot::Vector2i(-10, -25), GDN_TheWorld_Globals::g_color_black);
+		m_normalSphereIdx = m_normalDrawer->addSphere(godot::Vector3(), radius, GDN_TheWorld_Globals::g_color_cyan);
+		m_normalDrawer->set_visible(false);
 
-	m_rayFromCameraDrawer = memnew(GDN_TheWorld_Drawer);
-	this->add_child(m_rayFromCameraDrawer);
-	m_lineRayFromCameraIdx = m_rayFromCameraDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::center, -1.0f, godot::Vector2i(-10, -10), GDN_TheWorld_Globals::g_color_black);
-	m_sphereRayFromCameraStartIdx = m_rayFromCameraDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
-	m_sphereRayFromCameraEndIdx = m_rayFromCameraDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
-	m_rayFromCameraDrawer->set_visible(false);
+		m_positionDrawer = memnew(GDN_TheWorld_Drawer);
+		this->add_child(m_positionDrawer);
+		m_labelPositionXIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 20), "", GDN_TheWorld_Globals::g_color_black);
+		m_labelPositionZIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 40), "", GDN_TheWorld_Globals::g_color_black);
+		m_labelPositionYIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 60), "", GDN_TheWorld_Globals::g_color_black);
+		m_labelPositionDistIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 80), "", GDN_TheWorld_Globals::g_color_black);
+		m_labelPositionDirIdx = m_positionDrawer->addLabel2d(godot::Vector3(), godot::Vector2i(-10, 100), "", GDN_TheWorld_Globals::g_color_black);
+		m_linePositionIdx = m_positionDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::center, -1.0f, godot::Vector2i(-10, -10), GDN_TheWorld_Globals::g_color_black);
+		m_spherePositionStartIdx = m_positionDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
+		m_spherePositionEndIdx = m_positionDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
+		m_positionDrawer->set_visible(false);
 
-	m_gizmo = memnew(GDN_TheWorld_Gizmo3d);
-	this->add_child(m_gizmo);
-	m_gizmo->set_visible(false);
-	m_gizmo->set_viewer(this);
+		m_rayFromCameraDrawer = memnew(GDN_TheWorld_Drawer);
+		this->add_child(m_rayFromCameraDrawer);
+		m_lineRayFromCameraIdx = m_rayFromCameraDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::center, -1.0f, godot::Vector2i(-10, -10), GDN_TheWorld_Globals::g_color_black);
+		m_sphereRayFromCameraStartIdx = m_rayFromCameraDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
+		m_sphereRayFromCameraEndIdx = m_rayFromCameraDrawer->addSphere(godot::Vector3(), 5, GDN_TheWorld_Globals::g_color_cyan);
+		m_rayFromCameraDrawer->set_visible(false);
+
+		m_gizmo = memnew(GDN_TheWorld_Gizmo3d);
+		this->add_child(m_gizmo);
+		m_gizmo->set_visible(false);
+		m_gizmo->set_viewer(this);
+	}
 
 	globals->addNumElementInitialized();
 
@@ -2006,7 +2215,19 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	m_tpClientWorker.Start("ClientWorker", 3, this);
 
-	createHud();
+	godot::Size2 windowSize = getViewportSize();
+	
+	// Set HUD
+	{
+		createHud();
+		setPosHud(windowSize);
+	}
+	
+	// Set MapViewer
+	{
+		createMapViewer();
+		setPosMapViewer(windowSize);
+	}
 	
 	m_initialized = true;
 	m_initRequired = false;
@@ -2157,14 +2378,14 @@ void GDN_TheWorld_Viewer::deinit(void)
 
 		destroyModeUIControl();
 
-		GDN_TheWorld_Camera* camera = CameraNode(true);
-		if (camera != nullptr)
-		{
-			//Node* parent = camera->get_parent();
-			//if (parent != nullptr)									// TESTING
-			//	parent->call_deferred("remove_child", camera);			// TESTING
-			//camera->queue_free();										// TESTING
-		}
+		//GDN_TheWorld_Camera* camera = CameraNode(true);
+		//if (camera != nullptr)
+		//{
+		//	Node* parent = camera->get_parent();
+		//	if (parent != nullptr)									// TESTING
+		//		parent->call_deferred("remove_child", camera);			// TESTING
+		//	camera->queue_free();										// TESTING
+		//}
 		
 		ShaderTerrainData::releaseGlobals();
 
@@ -3195,6 +3416,15 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 			m_backMirrorSubViewportContainer->set_visible(!m_backMirrorSubViewportContainer->is_visible());
 		}
 	}
+
+	if (event->is_action_pressed("ui_toggle_map"))
+	{
+		GDN_TheWorld_Map* map = getMap();
+		if (map != nullptr)
+		{
+			map->set_visible(!map->is_visible());
+		}
+	}
 }
 
 void GDN_TheWorld_Viewer::toggleTrackMouse(void)
@@ -3480,7 +3710,11 @@ void GDN_TheWorld_Viewer::viewportSizeChanged(void)
 	if (editModeUIControl != nullptr && editModeUIControl->initialized())
 		editModeUIControl->controlNeedResize();
 
-	setPosHud();
+	godot::Size2 windowSize = getViewportSize();
+
+	setPosHud(windowSize);
+
+	setPosMapViewer(windowSize);
 }
 
 String GDN_TheWorld_Viewer::getDebugDrawMode(void) const
@@ -7880,6 +8114,24 @@ GDN_TheWorld_Camera* GDN_TheWorld_Viewer::CameraNode(bool useCache)
 	return m_worldCamera;
 }
 
+GDN_TheWorld_MapViewer* GDN_TheWorld_Viewer::MapViewer(bool useCache)
+{
+	if (m_mapViewer == nullptr || !useCache)
+	{
+		if (not is_inside_tree())
+			return nullptr;
+		SceneTree* scene = get_tree();
+		if (!scene)
+			return nullptr;
+		Viewport* root = scene->get_root();
+		if (!root)
+			return nullptr;
+		m_mapViewer = Object::cast_to<GDN_TheWorld_MapViewer>(root->find_child(THEWORLD_MAP_VIEWER_NODE_NAME, true, false));
+	}
+
+	return m_mapViewer;
+}
+
 bool GDN_TheWorld_Viewer::terrainShiftPermitted(void)
 {
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
@@ -8086,10 +8338,12 @@ void GDN_TheWorld_Viewer::destroyModeUIControl(void)
 	{
 		editModeUIControl->deinit();
 
-		Node* parent = editModeUIControl->get_parent();
-		if (parent != nullptr)
-			parent->call_deferred("remove_child", editModeUIControl);
-		editModeUIControl->queue_free();
+		//Node* parent = editModeUIControl->get_parent();		// Useless it is freed in deinit
+		//if (parent != nullptr)
+		//	//parent->call_deferred("remove_child", editModeUIControl);	// Mah
+		//	parent->remove_child(editModeUIControl);
+		//editModeUIControl->queue_free();
+		
 		m_editModeUIControl = nullptr;
 	}
 }
@@ -9149,7 +9403,7 @@ GDN_TheWorld_Viewer::DebugRayToUpdateGridDimensionDrawer::~DebugRayToUpdateGridD
 	{
 		Node* parent = m_rayDrawer->get_parent();
 		if (parent != nullptr)
-			parent->call_deferred("remove_child", m_rayDrawer);
+			parent->call_deferred("remove_child", m_rayDrawer);	// Mah
 		m_rayDrawer->queue_free();
 		m_rayDrawer = nullptr;
 	}

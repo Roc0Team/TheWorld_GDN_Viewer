@@ -72,7 +72,7 @@ namespace godot
 //#define DEFAULT_PLAINS_TEX_NAME							"Ground003_2K"
 //#define DEFAULT_PLAINS_ALTITUDE_THRESHOLD					0
 //#define DEFAULT_ABYSS_TEX_NAME							"sand"
-//#define DEFAULT_DIRT_TEX_NAME							"Ground049C_1K"
+//#define DEFAULT_DIRT_TEX_NAME								"Ground049C_1K"
 //#define DEFAULT_ROCKS_TEX_NAME							"rocks07"
 
 	class GDN_TheWorld_MapViewer;

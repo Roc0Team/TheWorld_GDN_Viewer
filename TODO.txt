@@ -7,6 +7,10 @@
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
 
+Tag 2024/07/25
+* ***OK*** aggiunto gofot.natvis (strutture custom in debug) e configurato nel progetto TheWorld_GDN_Viewer
+* ***OK*** fix in UI
+
 Tag 2024/07/22
 * ***OK*** risolvere crash in uscita dell'editor (aggiornato Godot a 4.3 Beta 3 e godot-cpp ad ultimo commit)
 

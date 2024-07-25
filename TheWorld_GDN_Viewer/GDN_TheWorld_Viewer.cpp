@@ -1793,8 +1793,6 @@ void GDN_TheWorld_Viewer::setEditor3dOverlay(godot::Object* editor3dOverlay)
 
 void GDN_TheWorld_Viewer::createMapViewer(void)
 {
-	return;		// TOTO
-	
 	GDN_TheWorld_MapViewer* mapViewer = MapViewer(false);
 	if (mapViewer == nullptr)
 		mapViewer = memnew(GDN_TheWorld_MapViewer);
@@ -1854,12 +1852,10 @@ void GDN_TheWorld_Viewer::setPosMapViewer(godot::Size2& windowSize)
 
 void GDN_TheWorld_Viewer::createHud(void)
 {
-	return;		// TOTO
-
 	m_hudControls = memnew(GDN_TheWorld_HudControls);
 	add_child(m_hudControls);
 	m_hudControls->set_name("HudControls");
-	m_hudControls->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
+	//m_hudControls->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
 
 	godot::Node* controlsParent = m_hudControls;
 	

@@ -91,7 +91,7 @@ GDN_TheWorld_Edit::GDN_TheWorld_Edit()
 	m_elapsedCompleted = 0;
 	m_lastElapsed = 0;
 	m_UIAcceptingFocus = false;
-	m_requiredUIAcceptFocus = true;		// TOTO
+	m_requiredUIAcceptFocus = false;
 	m_lastMessageChanged = false;
 
 	_init();
@@ -777,7 +777,6 @@ T* GDN_TheWorld_Edit::createControl(godot::Node* parent, std::string name, godot
 	parent->add_child(control);
 	godot::Error e = control->connect("mouse_entered", Callable(this, "mouse_entered_edit_panel"));
 	e = control->connect("mouse_exited", Callable(this, "mouse_exited_edit_panel"));
-	control->set_focus_mode(godot::Control::FocusMode::FOCUS_ALL);		// TOTO
 
 	if (name.length() > 0)
 		control->set_name(name.c_str());
@@ -1531,7 +1530,6 @@ void GDN_TheWorld_Edit::_init(void)
 	//godot::UtilityFunctions::print("GDN_TheWorld_Edit::Init");
 
 	set_name(THEWORLD_EDIT_MODE_UI_CONTROL_NAME);
-	set_focus_mode(godot::Control::FocusMode::FOCUS_ALL);		// TOTO
 }
 
 void GDN_TheWorld_Edit::_ready(void)

@@ -490,15 +490,30 @@ namespace godot
 				if (m_viewer != nullptr)
 					m_viewer->hudMessage("Uninitialized", 0);
 			}
-			else if (m_status < TheWorldStatus::worldDeployInProgress)
+			else if (m_status == TheWorldStatus::initialized)
 			{
 				if (m_viewer != nullptr)
-					m_viewer->hudMessage("Opening session ...", 0);
+					m_viewer->hudMessage("Initialized", 0);
+			}
+			else if (m_status == TheWorldStatus::connectedToServer)
+			{
+				if (m_viewer != nullptr)
+					m_viewer->hudMessage("Connected ...", 0);
+			}
+			else if (m_status == TheWorldStatus::sessionInitialized)
+			{
+				if (m_viewer != nullptr)
+					m_viewer->hudMessage("Session initialized ...", 0);
 			}
 			else if (m_status == TheWorldStatus::worldUnDeployInProgress)
 			{
 				if (m_viewer != nullptr)
 					m_viewer->hudMessage("Undeploy World in progress ...", 0);
+			}
+			else
+			{
+				if (m_viewer != nullptr)
+					m_viewer->hudMessage("", 0);
 			}
 
 		}

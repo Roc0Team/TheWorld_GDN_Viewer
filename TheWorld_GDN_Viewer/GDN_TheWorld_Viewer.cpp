@@ -2977,6 +2977,11 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			else
 				Globals()->setStatus(TheWorldStatus::uninitialized);
 
+			hudMessage("", 0);
+			if (m_hudStreamingInfoLabel != nullptr)
+			{
+				m_hudStreamingInfoLabel->set_text("");
+			}
 		}
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC)
 		{

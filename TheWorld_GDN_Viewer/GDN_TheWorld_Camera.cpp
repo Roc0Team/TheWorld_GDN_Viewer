@@ -31,6 +31,71 @@ using namespace godot;
 #define	POST_PROCESSING_UNDER_WATER_NODE			"PostProcessingUnderWater"
 #define	POST_PROCESSING_UNDER_WATER_OVERRIDE_NODE	"PostProcessingUnderWaterOverride"
 
+void GDN_TheWorld_MapCamera::_bind_methods(void)
+{
+}
+
+GDN_TheWorld_MapCamera::GDN_TheWorld_MapCamera(void)
+{
+}
+
+GDN_TheWorld_MapCamera::~GDN_TheWorld_MapCamera(void)
+{
+}
+
+void GDN_TheWorld_MapCamera::_notification(int p_what)
+{
+	switch (p_what)
+	{
+	case NOTIFICATION_ENTER_TREE:
+	{
+	}
+	break;
+	case NOTIFICATION_EXIT_TREE:
+	{
+	}
+	break;
+	case NOTIFICATION_WM_CLOSE_REQUEST:
+	{
+	}
+	break;
+	case NOTIFICATION_PREDELETE:
+	{
+	}
+	break;
+	}
+}
+
+void GDN_TheWorld_MapCamera::_input(const Ref<InputEvent>& event)
+{
+	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+
+	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+	//{
+	//	int a = 0;
+	//}
+}
+
+void GDN_TheWorld_MapCamera::_unhandled_input(const Ref<InputEvent>& event)
+{
+	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+
+	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+	//{
+	//	int a = 0;
+	//}
+}
+
+void GDN_TheWorld_MapCamera::_ready(void)
+{
+}
+
+void GDN_TheWorld_MapCamera::_process(double _delta)
+{
+}
+
 void GDN_TheWorld_Camera::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("is_active_camera"), &GDN_TheWorld_Camera::isActiveCamera);

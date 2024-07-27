@@ -4851,6 +4851,13 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 				godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevel, cachedTextureResolution);
 			}
 		}
+
+		std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
+		size_t optimizationLevel = 4;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
+		size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
+		m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevel, cachedTextureResolution);
+		//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".map.png";
+		//m_mapImage->save_png(outFileName.c_str());
 	}
 
 	if (m_colormapBuffer.size() > 0)

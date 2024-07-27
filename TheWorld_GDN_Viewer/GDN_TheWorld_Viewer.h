@@ -76,6 +76,7 @@ namespace godot
 //#define DEFAULT_ROCKS_TEX_NAME							"rocks07"
 
 	class GDN_TheWorld_MapViewer;
+	class GDN_TheWorld_MapCamera;
 
 	class GDN_TheWorld_Map : public godot::Container
 	{
@@ -664,6 +665,7 @@ namespace godot
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 		GDN_TheWorld_Camera* CameraNode(bool useCache = true);
 		GDN_TheWorld_MapViewer* MapViewer(bool useCache = true);
+		GDN_TheWorld_MapCamera* MapCamera(bool useCache = true);
 		godot::GDN_TheWorld_Edit* EditModeUIControl(bool useCache = true);
 		godot::Control* getOrCreateEditModeUIControl(void);
 		void createEditModeUI(void);
@@ -1652,6 +1654,7 @@ namespace godot
 
 		
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
+		GDN_TheWorld_MapCamera* m_mapCamera = nullptr;
 
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;

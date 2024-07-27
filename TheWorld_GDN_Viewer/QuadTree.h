@@ -581,6 +581,7 @@ namespace godot
 #else
 		godot::PackedFloat32Array m_heightsForCollider;
 #endif // REAL_T_IS_DOUBLE
+		godot::Ref<godot::Image> m_mapImage;
 		// Terrain Values
 
 		NeighbourQuadrantData m_northQuadrantData;

@@ -1116,6 +1116,7 @@ void GDN_TheWorld_MapModder::deinit(void)
 		set_process(false);
 
 		m_outImageValid = false;
+		m_outImage.unref();		// TO VERIFY
 
 		// clear
 		m_tiles.clear();
@@ -1291,8 +1292,9 @@ void GDN_TheWorld_MapModder::_process(double _delta)
 
 		if (m_outImage == nullptr || !m_outImageValid)
 		{
-			godot::Ref<godot::Image> im = godot::Image::create((int32_t)m_imageSize, (int32_t)m_imageSize, false, viewportImageFormat);
-			m_outImage = im;
+			//godot::Ref<godot::Image> im = godot::Image::create((int32_t)m_imageSize, (int32_t)m_imageSize, false, viewportImageFormat);
+			//m_outImage = im;
+			m_outImage = godot::Image::create((int32_t)m_imageSize, (int32_t)m_imageSize, false, viewportImageFormat);
 			m_outImageValid = true;
 		}
 
@@ -1793,13 +1795,6 @@ void GDN_TheWorld_Viewer::setEditor3dOverlay(godot::Object* editor3dOverlay)
 
 void GDN_TheWorld_Viewer::createMapViewer(void)
 {
-	GDN_TheWorld_MapViewer* mapViewer = MapViewer(false);
-	if (mapViewer == nullptr)
-		mapViewer = memnew(GDN_TheWorld_MapViewer);
-	mapViewer->set_name(THEWORLD_MAP_VIEWER_NODE_NAME);
-	//mapViewer->set_visible(false);
-	mapViewer->setViewer(this);
-
 	SceneTree* scene = get_tree();
 	Node* sceneRoot = nullptr;
 	if (IS_EDITOR_HINT())
@@ -1809,31 +1804,71 @@ void GDN_TheWorld_Viewer::createMapViewer(void)
 
 	int64_t worldMainNodeId = getWorldNode()->get_instance_id();
 
-	Node* parent = mapViewer->get_parent();
-	if (parent != nullptr)
 	{
-		int64_t parentId = parent->get_instance_id();
-		if (parentId != worldMainNodeId)
+		GDN_TheWorld_MapViewer* mapViewer = MapViewer(false);
+		if (mapViewer == nullptr)
+			mapViewer = memnew(GDN_TheWorld_MapViewer);
+		mapViewer->set_name(THEWORLD_MAP_VIEWER_NODE_NAME);
+		//mapViewer->set_visible(false);
+		mapViewer->setViewer(this);
+
+		Node* parent = mapViewer->get_parent();
+		if (parent != nullptr)
 		{
-			parent->remove_child(mapViewer);
-			//getWorldNode()->call_deferred("add_child", camera);
+			int64_t parentId = parent->get_instance_id();
+			if (parentId != worldMainNodeId)
+			{
+				parent->remove_child(mapViewer);
+				getWorldNode()->add_child(mapViewer);
+			}
+		}
+		else
+		{
 			getWorldNode()->add_child(mapViewer);
 		}
+
+		mapViewer->call_deferred("set_owner", sceneRoot);
 	}
-	else
+
 	{
-		getWorldNode()->add_child(mapViewer);
+		GDN_TheWorld_MapViewer* mapViewer = MapViewer(false);
+		
+		GDN_TheWorld_Map* map = memnew(GDN_TheWorld_Map);
+		mapViewer->add_child(map);
+		map->set_name("Map");
+		map->set_visible(false);
+		//map->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
+		map->setMapViewer(mapViewer);
+		mapViewer->setMap(map);
 	}
 
-	mapViewer->call_deferred("set_owner", sceneRoot);
+	{
+		GDN_TheWorld_MapViewer* mapViewer = MapViewer(false);
 
-	GDN_TheWorld_Map* map = memnew(GDN_TheWorld_Map);
-	mapViewer->add_child(map);
-	map->set_name("Map");
-	map->set_visible(false);
-	//map->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
-	map->setMapViewer(mapViewer);
-	mapViewer->setMap(map);
+		GDN_TheWorld_MapCamera* mapCamera = MapCamera(false);
+		if (mapCamera == nullptr)
+			mapCamera = memnew(GDN_TheWorld_MapCamera);
+		mapCamera->set_name(THEWORLD_MAP_CAMERA_NODE_NAME);
+		mapCamera->setMapViewer(mapViewer);
+		mapCamera->set_enabled(false);
+
+		Node* parent = mapCamera->get_parent();
+		if (parent != nullptr)
+		{
+			int64_t parentId = parent->get_instance_id();
+			if (parentId != worldMainNodeId)
+			{
+				parent->remove_child(mapCamera);
+				getWorldNode()->add_child(mapCamera);
+			}
+		}
+		else
+		{
+			getWorldNode()->add_child(mapCamera);
+		}
+
+		mapCamera->call_deferred("set_owner", sceneRoot);
+	}
 }
 
 void GDN_TheWorld_Viewer::setPosMapViewer(godot::Size2& windowSize)
@@ -8131,6 +8166,25 @@ GDN_TheWorld_MapViewer* GDN_TheWorld_Viewer::MapViewer(bool useCache)
 	}
 
 	return m_mapViewer;
+}
+
+GDN_TheWorld_MapCamera* GDN_TheWorld_Viewer::MapCamera(bool useCache)
+{
+	if (m_mapCamera == nullptr || !useCache)
+	{
+		if (not is_inside_tree())
+			return nullptr;
+		SceneTree* scene = get_tree();
+		if (!scene)
+			return nullptr;
+		Viewport* root = scene->get_root();
+		if (!root)
+			return nullptr;
+		godot::Node* n = root->find_child(THEWORLD_MAP_CAMERA_NODE_NAME, true, false);
+		m_mapCamera = Object::cast_to<GDN_TheWorld_MapCamera>(root->find_child(THEWORLD_MAP_CAMERA_NODE_NAME, true, false));
+	}
+
+	return m_mapCamera;
 }
 
 bool GDN_TheWorld_Viewer::terrainShiftPermitted(void)

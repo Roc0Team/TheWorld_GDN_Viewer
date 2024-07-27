@@ -8,6 +8,7 @@
 #include <godot_cpp/classes/image.hpp>
 #include <godot_cpp/classes/noise_texture2d.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
+#include <godot_cpp/classes/camera2d.hpp>
 #pragma warning (pop)
 
 #include "Utils.h"
@@ -19,6 +20,37 @@
 namespace godot {
 
 	class GDN_TheWorld_Globals;
+	class GDN_TheWorld_MapViewer;
+
+	class GDN_TheWorld_MapCamera : public godot::Camera2D
+	{
+		GDCLASS(GDN_TheWorld_MapCamera, Camera2D)
+
+	protected:
+		static void _bind_methods(void);
+		void _notification(int p_what);
+
+	public:
+		GDN_TheWorld_MapCamera(void);
+		~GDN_TheWorld_MapCamera(void);
+
+		//
+		// Godot Standard Functions
+		//
+		virtual void _ready(void) override;
+		virtual void _process(double _delta) override;
+		virtual void _input(const Ref<InputEvent>& event) override;
+		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	public:
+		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
+		{
+			m_mapViewer = mapViewer;
+		}
+
+	private:
+		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
+	};
 
 	class GDN_TheWorld_Camera : public Camera3D
 	{

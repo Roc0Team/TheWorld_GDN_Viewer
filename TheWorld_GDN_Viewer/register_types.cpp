@@ -42,6 +42,8 @@ void initialize_tw_main_module(ModuleInitializationLevel p_level)
     ClassDB::register_class<godot::GDN_TheWorld_Gizmo3d>();
     ClassDB::register_class<godot::GDN_TheWorld_HudControls>();
     ClassDB::register_class<godot::GDN_TheWorld_MapViewer>();
+    ClassDB::register_class<godot::GDN_TheWorld_MapViewportContainer>();
+    ClassDB::register_class<godot::GDN_TheWorld_MapViewport>();
     ClassDB::register_class<godot::GDN_TheWorld_Map>();
     ClassDB::register_class<godot::GDN_TheWorld_MapCamera>();
 }

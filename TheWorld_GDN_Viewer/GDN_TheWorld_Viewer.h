@@ -75,39 +75,10 @@ namespace godot
 //#define DEFAULT_DIRT_TEX_NAME								"Ground049C_1K"
 //#define DEFAULT_ROCKS_TEX_NAME							"rocks07"
 
-	class GDN_TheWorld_MapViewer;
+	class GDN_TheWorld_MapViewportContainer;
+	class GDN_TheWorld_MapViewport;
+	class GDN_TheWorld_Map;
 	class GDN_TheWorld_MapCamera;
-
-	class GDN_TheWorld_Map : public godot::Container
-	{
-		GDCLASS(GDN_TheWorld_Map, Container)
-
-	protected:
-		static void _bind_methods(void);
-		void _notification(int p_what);
-
-	public:
-		GDN_TheWorld_Map(void);
-		~GDN_TheWorld_Map(void);
-
-		//
-		// Godot Standard Functions
-		//
-		virtual void _ready(void) override;
-		virtual void _process(double _delta) override;
-		virtual void _input(const Ref<InputEvent>& event) override;
-		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
-
-	public:
-		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
-		{
-			m_mapViewer = mapViewer;
-		}
-
-	private:
-		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
-		godot::PanelContainer* m_panel = nullptr;
-	};
 
 	class GDN_TheWorld_MapViewer : public godot::Node2D
 	{
@@ -139,18 +110,148 @@ namespace godot
 			return m_viewer;
 		}
 
+		void setMapViewportContainer(GDN_TheWorld_MapViewportContainer* mapViewportContainer)
+		{
+			m_mapViewportContainer = mapViewportContainer;
+		}
+		GDN_TheWorld_MapViewportContainer* getMapViewportContainer(void)
+		{
+			return m_mapViewportContainer;
+		}
+
+		void setMap(GDN_TheWorld_Map* map)
+		{
+			m_map = map;
+		}
 		GDN_TheWorld_Map* getMap(void)
 		{
 			return m_map;
+		}
+
+	private:
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
+		GDN_TheWorld_MapViewportContainer* m_mapViewportContainer = nullptr;
+		GDN_TheWorld_Map* m_map = nullptr;
+	};
+
+	class GDN_TheWorld_MapViewportContainer : public godot::SubViewportContainer
+	{
+		GDCLASS(GDN_TheWorld_MapViewportContainer, SubViewportContainer)
+
+	protected:
+		static void _bind_methods(void);
+		void _notification(int p_what);
+
+	public:
+		GDN_TheWorld_MapViewportContainer(void);
+		~GDN_TheWorld_MapViewportContainer(void);
+
+		//
+		// Godot Standard Functions
+		//
+		virtual void _ready(void) override;
+		virtual void _process(double _delta) override;
+		virtual void _input(const Ref<InputEvent>& event) override;
+		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	public:
+		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
+		{
+			m_mapViewer = mapViewer;
+		}
+		GDN_TheWorld_MapViewer* getMapViewer(void)
+		{
+			return m_mapViewer;
+		}
+		void setMapViewport(GDN_TheWorld_MapViewport* mapViewport)
+		{
+			m_mapViewport = mapViewport;
+		}
+		GDN_TheWorld_MapViewport* getMapViewport(void)
+		{
+			return m_mapViewport;
+		}
+
+	private:
+		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
+		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
+	};
+
+	class GDN_TheWorld_MapViewport : public godot::SubViewport
+	{
+		GDCLASS(GDN_TheWorld_MapViewport, SubViewport)
+
+	protected:
+		static void _bind_methods(void);
+		void _notification(int p_what);
+
+	public:
+		GDN_TheWorld_MapViewport(void);
+		~GDN_TheWorld_MapViewport(void);
+
+		//
+		// Godot Standard Functions
+		//
+		virtual void _ready(void) override;
+		virtual void _process(double _delta) override;
+		virtual void _input(const Ref<InputEvent>& event) override;
+		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	public:
+		void setMapViewportContainer(GDN_TheWorld_MapViewportContainer* mapViewportContainer)
+		{
+			m_mapViewportContainer = mapViewportContainer;
+		}
+		GDN_TheWorld_MapViewportContainer* getMapViewportContainer(void)
+		{
+			return m_mapViewportContainer;
 		}
 		void setMap(GDN_TheWorld_Map* map)
 		{
 			m_map = map;
 		}
+		GDN_TheWorld_Map* getMap(void)
+		{
+			return m_map;
+		}
 
 	private:
-		GDN_TheWorld_Viewer* m_viewer = nullptr;
-		GDN_TheWorld_Map* m_map = nullptr;
+		GDN_TheWorld_MapViewportContainer* m_mapViewportContainer = nullptr;
+		godot::GDN_TheWorld_Map* m_map = nullptr;
+	};
+
+	class GDN_TheWorld_Map : public godot::PanelContainer
+	{
+		GDCLASS(GDN_TheWorld_Map, PanelContainer)
+
+	protected:
+		static void _bind_methods(void);
+		void _notification(int p_what);
+
+	public:
+		GDN_TheWorld_Map(void);
+		~GDN_TheWorld_Map(void);
+
+		//
+		// Godot Standard Functions
+		//
+		virtual void _ready(void) override;
+		virtual void _process(double _delta) override;
+		virtual void _input(const Ref<InputEvent>& event) override;
+		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	public:
+		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
+		{
+			m_mapViewer = mapViewer;
+		}
+		GDN_TheWorld_MapViewer* getMapViewer(void)
+		{
+			return m_mapViewer;
+		}
+
+	private:
+		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -300,7 +401,7 @@ namespace godot
 		godot::Vector2 m_southQuadrantheights;
 		godot::Vector2 m_northQuadrantheights;
 		QuadTree* m_quadTree = nullptr;
-		godot::SubViewport* m_viewport = nullptr;
+		godot::SubViewport* m_mapModderViewport = nullptr;
 		godot::Sprite2D* m_map = nullptr;
 		godot::MeshInstance3D* m_terrainPlane = nullptr;
 		godot::MeshInstance3D* m_seaPlane = nullptr;
@@ -665,6 +766,9 @@ namespace godot
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 		GDN_TheWorld_Camera* CameraNode(bool useCache = true);
 		GDN_TheWorld_MapViewer* MapViewer(bool useCache = true);
+		GDN_TheWorld_MapViewportContainer* MapViewportContainer(bool useCache = true);
+		GDN_TheWorld_MapViewport* MapViewport(bool useCache = true);
+		GDN_TheWorld_Map* Map(bool useCache = true);
 		GDN_TheWorld_MapCamera* MapCamera(bool useCache = true);
 		godot::GDN_TheWorld_Edit* EditModeUIControl(bool useCache = true);
 		godot::Control* getOrCreateEditModeUIControl(void);
@@ -1300,14 +1404,15 @@ namespace godot
 
 		void setHudMessage(godot::String hudMessage, int savedTimeToFadeMessage);
 		void hudMessage(std::string hudMessage, int64_t savedTimeToFadeMessage);
-		GDN_TheWorld_Map* getMap(void)
-		{
-			GDN_TheWorld_Map* map = nullptr;
-			GDN_TheWorld_MapViewer* mapViewer = MapViewer();
-			if (mapViewer != nullptr)
-				map = mapViewer->getMap();
-			return map;
-		}
+		//GDN_TheWorld_Map* getMap(void)
+		//{
+		//	//GDN_TheWorld_Map* map = nullptr;
+		//	//GDN_TheWorld_MapViewer* mapViewer = MapViewer();
+		//	//if (mapViewer != nullptr)
+		//	//	map = mapViewer->getMap();
+		//	//return map;
+		//	return Map();
+		//}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -1654,6 +1759,9 @@ namespace godot
 
 		
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
+		GDN_TheWorld_MapViewportContainer* m_mapViewportContainer = nullptr;
+		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
+		GDN_TheWorld_Map* m_map = nullptr;
 		GDN_TheWorld_MapCamera* m_mapCamera = nullptr;
 
 		// Loaded quadrant images (mostly for testing)

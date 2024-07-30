@@ -74,6 +74,7 @@ namespace godot {
 		void set_cameraFar(void);
 		godot::Transform3D getCameraMapTransform(void);
 		void setCameraMapTransform(godot::Transform3D map);
+		void setCameraMapPos(godot::Vector3 mapPos);
 		//bool initPlayerCamera(void);
 		//bool initOtherEntityCamera(void);
 		void calcYawPitchRoll(void);

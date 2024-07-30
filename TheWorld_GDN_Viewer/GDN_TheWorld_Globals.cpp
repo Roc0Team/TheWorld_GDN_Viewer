@@ -809,7 +809,7 @@ namespace godot
 			GDN_TheWorld_Viewer* viewer = Viewer();
 			if (viewer != nullptr and viewer->initialized())
 			{
-				godot::Camera3D* activeCamera = viewer->getCamera();
+				godot::Camera3D* activeCamera = viewer->getWorldCamera();
 				if (activeCamera != nullptr)
 				{
 					GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
@@ -832,7 +832,7 @@ namespace godot
 			Viewport* root = scene->get_root();
 			if (!root)
 				return NULL;
-			m_viewer = Object::cast_to<GDN_TheWorld_Viewer>(root->find_child(THEWORLD_VIEWER_NODE_NAME, true, false));
+			m_viewer = Object::cast_to<GDN_TheWorld_Viewer>(root->find_child(THEWORLD_WORLD_VIEWER_NODE_NAME, true, false));
 		}
 
 		return m_viewer;

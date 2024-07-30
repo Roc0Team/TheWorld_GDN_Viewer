@@ -125,7 +125,7 @@ namespace godot
 
 		if (m_quadTree != nullptr)
 		{
-			godot::Camera3D* camera = m_viewer->getCamera();
+			godot::Camera3D* camera = m_viewer->getWorldCamera();
 			if (camera != nullptr)
 			{
 				Transform3D cameraTransform = camera->get_global_transform();

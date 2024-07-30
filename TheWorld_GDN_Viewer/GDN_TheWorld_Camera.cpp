@@ -355,6 +355,12 @@ void GDN_TheWorld_Camera::setCameraMapTransform(godot::Transform3D map)
 	set_global_transform(newCameraT);
 }
 
+void GDN_TheWorld_Camera::setCameraMapPos(godot::Vector3 mapPos)
+{
+	godot::Transform3D mapTransform(get_global_transform().basis, mapPos);
+	setCameraMapTransform(mapTransform);
+}
+
 void GDN_TheWorld_Camera::_physics_process(double _delta)
 {
 	//TheWorld_Utils::GuardProfiler profiler(std::string("_physics_process 1 ") + __FUNCTION__, "ALL");

@@ -46,6 +46,8 @@ void initialize_tw_main_module(ModuleInitializationLevel p_level)
     ClassDB::register_class<godot::GDN_TheWorld_MapViewport>();
     ClassDB::register_class<godot::GDN_TheWorld_Map>();
     ClassDB::register_class<godot::GDN_TheWorld_MapCamera>();
+    //ClassDB::register_class<godot::GDN_TheWorld_WorldViewportContainer>();
+    //ClassDB::register_class<godot::GDN_TheWorld_WorldViewport>();
 }
 
 void uninitialize_tw_main_module(ModuleInitializationLevel p_level)

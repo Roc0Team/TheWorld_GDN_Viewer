@@ -48,6 +48,137 @@ using namespace godot;
 
 namespace fs = std::filesystem;
 
+//void GDN_TheWorld_WorldViewport::_bind_methods(void)
+//{
+//}
+//
+//GDN_TheWorld_WorldViewport::GDN_TheWorld_WorldViewport(void)
+//{
+//}
+//
+//GDN_TheWorld_WorldViewport::~GDN_TheWorld_WorldViewport(void)
+//{
+//}
+//
+//void GDN_TheWorld_WorldViewport::_notification(int p_what)
+//{
+//	switch (p_what)
+//	{
+//	case NOTIFICATION_ENTER_TREE:
+//	{
+//	}
+//	break;
+//	case NOTIFICATION_WM_CLOSE_REQUEST:
+//	{
+//	}
+//	break;
+//	case NOTIFICATION_PREDELETE:
+//	{
+//	}
+//	break;
+//	}
+//}
+//
+//void GDN_TheWorld_WorldViewport::_input(const Ref<InputEvent>& event)
+//{
+//	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+//	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+//
+//	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+//	//{
+//	//	int a = 0;
+//	//}
+//}
+//
+//void GDN_TheWorld_WorldViewport::_unhandled_input(const Ref<InputEvent>& event)
+//{
+//	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+//	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+//
+//	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+//	//{
+//	//	int a = 0;
+//	//}
+//}
+//
+//void GDN_TheWorld_WorldViewport::_ready(void)
+//{
+//}
+//
+//void GDN_TheWorld_WorldViewport::_process(double _delta)
+//{
+//}
+//
+//void GDN_TheWorld_WorldViewportContainer::_bind_methods(void)
+//{
+//}
+//
+//GDN_TheWorld_WorldViewportContainer::GDN_TheWorld_WorldViewportContainer(void)
+//{
+//}
+//
+//GDN_TheWorld_WorldViewportContainer::~GDN_TheWorld_WorldViewportContainer(void)
+//{
+//}
+//
+//void GDN_TheWorld_WorldViewportContainer::_notification(int p_what)
+//{
+//	switch (p_what)
+//	{
+//	case NOTIFICATION_ENTER_TREE:
+//	{
+//	}
+//	break;
+//	case NOTIFICATION_WM_CLOSE_REQUEST:
+//	{
+//	}
+//	break;
+//	case NOTIFICATION_PREDELETE:
+//	{
+//	}
+//	break;
+//	case NOTIFICATION_RESIZED:
+//	{
+//		godot::Vector2 newSize = get_size();
+//
+//		GDN_TheWorld_WorldViewport* worldViewport = getWorldViewport();
+//		if (worldViewport != nullptr)
+//			worldViewport->set_size(newSize);
+//	}
+//	break;
+//	}
+//}
+//
+//void GDN_TheWorld_WorldViewportContainer::_input(const Ref<InputEvent>& event)
+//{
+//	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+//	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+//
+//	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+//	//{
+//	//	int a = 0;
+//	//}
+//}
+//
+//void GDN_TheWorld_WorldViewportContainer::_unhandled_input(const Ref<InputEvent>& event)
+//{
+//	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+//	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+//
+//	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
+//	//{
+//	//	int a = 0;
+//	//}
+//}
+//
+//void GDN_TheWorld_WorldViewportContainer::_ready(void)
+//{
+//}
+//
+//void GDN_TheWorld_WorldViewportContainer::_process(double _delta)
+//{
+//}
+
 void GDN_TheWorld_Map::_bind_methods(void)
 {
 }
@@ -1505,7 +1636,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_editor_interface"), &GDN_TheWorld_Viewer::setEditorInterface);
 	ClassDB::bind_method(D_METHOD("set_editor_3d_overlay"), &GDN_TheWorld_Viewer::setEditor3dOverlay);
 	ClassDB::bind_method(D_METHOD("set_editor_camera"), &GDN_TheWorld_Viewer::setEditorCamera);
-	ClassDB::bind_method(D_METHOD("get_camera"), &GDN_TheWorld_Viewer::getCamera);
+	ClassDB::bind_method(D_METHOD("get_world_camera"), &GDN_TheWorld_Viewer::getWorldCamera);
 	ClassDB::bind_method(D_METHOD("get_info_camera"), &GDN_TheWorld_Viewer::getInfoCamera);
 	ClassDB::bind_method(D_METHOD("get_camera_projection_mode"), &GDN_TheWorld_Viewer::getCameraProjectionMode);
 	ClassDB::bind_method(D_METHOD("get_or_create_edit_mode_ui_control"), &GDN_TheWorld_Viewer::getOrCreateEditModeUIControl);
@@ -1529,7 +1660,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_force_shader_elevation_0"), &GDN_TheWorld_Viewer::getForceShaderElevation0);
 	ClassDB::bind_method(D_METHOD("deploy_world"), &GDN_TheWorld_Viewer::deployWorld);
 	ClassDB::bind_method(D_METHOD("undeploy_world"), &GDN_TheWorld_Viewer::undeployWorld);
-	ClassDB::bind_method(D_METHOD("initial_world_viewer_pos_set"), &GDN_TheWorld_Viewer::initialWordlViewerPosSet);
+	ClassDB::bind_method(D_METHOD("initial_world_viewer_pos_set"), &GDN_TheWorld_Viewer::initialWorldViewerPosSet);
 	ClassDB::bind_method(D_METHOD("dump_required"), &GDN_TheWorld_Viewer::setDumpRequired);
 	ClassDB::bind_method(D_METHOD("get_camera_chunk_local_aabb"), &GDN_TheWorld_Viewer::getCameraTerrainChunkLocalAABB);
 	ClassDB::bind_method(D_METHOD("get_camera_chunk_local_debug_aabb"), &GDN_TheWorld_Viewer::getCameraTerrainChunkLocalDebugAABB);
@@ -1625,12 +1756,12 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_stopDeploy = false;
 	m_useVisualServer = true;
 	m_firstProcess = true;
-	m_initialWordlViewerPosSet = false;
+	m_initialWorldViewerPosSet = false;
 	m_dumpRequired = false;
 	lastTrackedChunk = nullptr;
 	m_refreshRequired = false;
 	m_worldViewerLevel = 0;
-	m_worldCamera = nullptr;
+	m_customWorldCamera = nullptr;
 	//m_cameraQuadTree = nullptr;
 	m_globals = nullptr;
 	m_editModeUIControl = nullptr;
@@ -1890,16 +2021,17 @@ void GDN_TheWorld_Viewer::setEditor3dOverlay(godot::Object* editor3dOverlay)
 	{
 		int64_t editor3dOverlayId = m_editor3dOverlay->get_instance_id();
 
-		if (m_hudControls != nullptr)
+		GDN_TheWorld_HudControls* hudControls = HudControls();
+		if (hudControls != nullptr)
 		{
-			godot::Node* parent = m_hudControls->get_parent();
+			godot::Node* parent = hudControls->get_parent();
 			if (parent != nullptr)
 			{
 				int64_t parentId = parent->get_instance_id();
 				if (parentId != editor3dOverlayId)
 				{
-					parent->remove_child(m_hudControls);
-					m_editor3dOverlay->add_child(m_hudControls);
+					parent->remove_child(hudControls);
+					m_editor3dOverlay->add_child(hudControls);
 					godot::Size2 windowSize = getViewportSize();
 					setPosHud(windowSize);
 				}
@@ -1927,6 +2059,15 @@ void GDN_TheWorld_Viewer::setEditor3dOverlay(godot::Object* editor3dOverlay)
 			}
 		}
 	}
+}
+
+void GDN_TheWorld_Viewer::setPosWorldViewer(godot::Size2& windowSize)
+{
+	//GDN_TheWorld_WorldViewportContainer* worldViewportContainer = WorldViewportContainer();
+	//if (worldViewportContainer != nullptr)
+	//{
+	//	worldViewportContainer->set_size(windowSize);
+	//}
 }
 
 void GDN_TheWorld_Viewer::createMapViewer(void)
@@ -2159,22 +2300,58 @@ void GDN_TheWorld_Viewer::setPosMapViewer(godot::Size2& windowSize)
 	{
 		mapViewportContainer->set_size(windowSize);
 	}
-
-	//GDN_TheWorld_MapViewport* mapViewport = MapViewport();
-	//if (mapViewport != nullptr)
-	//{
-	//	mapViewport->set_size(windowSize);
-	//}
 }
 
 void GDN_TheWorld_Viewer::createHud(void)
 {
-	m_hudControls = memnew(GDN_TheWorld_HudControls);
-	add_child(m_hudControls);
-	m_hudControls->set_name("HudControls");
-	//m_hudControls->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
+	// Hud Controls
+	{
+		SceneTree* scene = get_tree();
+		Node* sceneRoot = nullptr;
+		if (IS_EDITOR_HINT())
+			sceneRoot = scene->get_edited_scene_root();
+		else
+			sceneRoot = scene->get_root();
+		int64_t sceneRootId = sceneRoot->get_instance_id();
 
-	godot::Node* controlsParent = m_hudControls;
+		GDN_TheWorld_HudControls* hudControls = HudControls(false);
+		if (hudControls == nullptr)
+		{
+			hudControls = memnew(GDN_TheWorld_HudControls);
+			m_hudControls = hudControls;	// we force not to use cache so we don't have to add this control to the scene
+		}
+		hudControls->set_name(THEWORLD_HUD_CONTROLS_NODE_NAME);
+		Node* parent = hudControls->get_parent();
+		if (parent != nullptr)
+		{
+			int64_t currentNodeId = get_instance_id();
+
+			int64_t parentId = parent->get_instance_id();
+			if (parentId != currentNodeId)
+			{
+				parent->remove_child(hudControls);
+				add_child(hudControls);
+			}
+		}
+		else
+		{
+			add_child(hudControls);
+		}
+
+		//{
+		//	godot::Node* owner = hudControls->get_owner();
+		//	if (owner != nullptr)
+		//	{
+		//		int64_t ownerId = owner->get_instance_id();
+		//		if (ownerId != sceneRootId)
+		//			hudControls->set_owner(sceneRoot);
+		//	}
+		//	else
+		//		hudControls->set_owner(sceneRoot);
+		//}
+	}
+
+	godot::Node* controlsParent = HudControls();
 	
 	// Message Box
 	{
@@ -2256,11 +2433,12 @@ void GDN_TheWorld_Viewer::createHud(void)
 
 void GDN_TheWorld_Viewer::setPosHud(godot::Size2& windowSize)
 {
-	if (m_hudControls != nullptr)
+	GDN_TheWorld_HudControls* hudControls = HudControls();
+	if (hudControls != nullptr)
 	{
 		//godot::Vector2i windowSize = get_tree()->get_root()->get_size();
 		//godot::Size2 windowSize  = getViewportSize();
-		m_hudControls->set_size(windowSize);
+		hudControls->set_size(windowSize);
 	}
 	
 	// Message Box
@@ -2437,11 +2615,11 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	// Set World Camera
 	{
-		GDN_TheWorld_Camera* camera = CameraNode(false);
+		GDN_TheWorld_Camera* camera = CustomWorldCamera(false);
 		if (camera == nullptr)
 			camera = memnew(GDN_TheWorld_Camera);
 		camera->set_name(THEWORLD_CAMERA_NODE_NAME);
-		assignWorldCamera(camera);
+		setCachedCustomWorldCamera(camera);
 
 		SceneTree* scene = get_tree();
 		Node* sceneRoot = nullptr;
@@ -2451,25 +2629,28 @@ bool GDN_TheWorld_Viewer::init(void)
 			sceneRoot = scene->get_root();
 
 		int64_t worldMainNodeId = getWorldNode()->get_instance_id();
+		//int64_t worldViewportId = WorldViewport()->get_instance_id();
 
 		Node* parent = camera->get_parent();
 		if (parent != nullptr)
 		{
 			int64_t parentId = parent->get_instance_id();
 			if (parentId != worldMainNodeId)
+			//if (parentId != worldViewportId)
 			{
 				parent->remove_child(camera);
-				//getWorldNode()->call_deferred("add_child", camera);
 				getWorldNode()->add_child(camera);
+				//WorldViewport()->add_child(camera);
 			}
 		}
 		else
 		{
-			//getWorldNode()->call_deferred("add_child", camera);	// with deferred we risk that we call get_tree in Globals() (activateCamera) before camera is added to the scene 
 			getWorldNode()->add_child(camera);
+			//WorldViewport()->add_child(camera);
 		}
 
-		camera->call_deferred("set_owner", sceneRoot);
+		camera->set_owner(sceneRoot);
+		//camera->call_deferred("set_owner", sceneRoot);
 	}
 
 	// Set Mesh cache
@@ -2642,7 +2823,7 @@ void GDN_TheWorld_Viewer::deinit(void)
 		//	m_mapModder = nullptr;
 		//}
 		
-		//if (m_initialWordlViewerPosSet)
+		//if (m_initialWorldViewerPosSet)
 		//{
 		// useless as at this point m_quadTreeMap is empty because it has been cleared during undeploy reply from server
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
@@ -2989,9 +3170,9 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 								//set_transform(t);
 
 								//WorldCamera()->initCameraInWorld(cameraPos, lookAt, cameraYaw, cameraPitch, cameraRoll);
-								WorldCamera()->call_deferred("init_camera_in_world", cameraPos, lookAt, cameraYaw, cameraPitch, cameraRoll);
+								getCachedCustomWorldCamera()->call_deferred("init_camera_in_world", cameraPos, lookAt, cameraYaw, cameraPitch, cameraRoll);
 
-								m_initialWordlViewerPosSet = true;
+								m_initialWorldViewerPosSet = true;
 							}
 
 							if (quadTree->statusRefreshTerrainDataInProgress())
@@ -3519,7 +3700,7 @@ void GDN_TheWorld_Viewer::_init(void)
 	if (VISUAL_SERVER_WIREFRAME_MODE)
 		godot::RenderingServer::get_singleton()->set_debug_generate_wireframes(true);
 
-	set_name(THEWORLD_VIEWER_NODE_NAME);
+	set_name(THEWORLD_WORLD_VIEWER_NODE_NAME);
 }
 
 void GDN_TheWorld_Viewer::_ready(void)
@@ -3529,6 +3710,66 @@ void GDN_TheWorld_Viewer::_ready(void)
 		globals->debugPrint("GDN_TheWorld_Viewer::_ready");
 
 	m_ready = true;
+}
+
+bool GDN_TheWorld_Viewer::setWorldCameraMapPos(float mapPosX, float mapPosZ, float altitudeFromTerrain)
+{
+	bool ret = false;
+	GDN_TheWorld_Globals* globals = Globals();
+
+	if (Globals()->status() == TheWorldStatus::worldDeployed)
+	{
+		// get quadrant containing requested pos
+		TheWorld_Utils::QuadrantPos quadrantPos(mapPosX, mapPosZ, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), globals->gridStepInWU());
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		if (m_quadTreeMap.contains(quadrantPos))
+		{
+			QuadTree* quadTree = m_quadTreeMap[quadrantPos].get();
+			if (quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::Terrain))
+			{
+#define MAX_ALTITUDE_DETECTED		20000
+
+				float cameraAltitude = -999999999.9f;
+				godot::Vector3 globalPosGroundZero = mapPosToGlobalPos(godot::Vector3(mapPosX, 0, mapPosZ));
+				godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
+				godot::Dictionary rayArray;
+				godot::Vector3 rayOrigin = globalPosGroundZero;
+				godot::Vector3 rayEnd = rayOrigin + godot::Vector3(0.0f, MAX_ALTITUDE_DETECTED, 0.0f);
+				godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
+				rayArray = spaceState->intersect_ray(query);
+				if (rayArray.has("position"))
+				{
+					godot::Vector3 terrainCollision = rayArray["position"];
+					cameraAltitude = terrainCollision.y + altitudeFromTerrain;
+				}
+				else
+				{
+					godot::Dictionary rayArray;
+					rayEnd = rayOrigin + godot::Vector3(0.0f, -MAX_ALTITUDE_DETECTED, 0.0f);
+					godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
+					rayArray = spaceState->intersect_ray(query);
+					if (rayArray.has("position"))
+					{
+						godot::Vector3 terrainCollision = rayArray["position"];
+						cameraAltitude = terrainCollision.y + altitudeFromTerrain;
+					}
+					else
+						cameraAltitude = MAX_ALTITUDE_DETECTED;
+				}
+
+				godot::Camera3D* activeCamera = getWorldCamera();
+				activeCamera->set_global_position(godot::Vector3(globalPosGroundZero.x, cameraAltitude, globalPosGroundZero.z));
+				//GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+				//if (cam != nullptr)
+				//{
+				//	godot::Vector3 worldCameraMapPos(mapPosX, cameraAltitude, mapPosZ);
+				//	cam->setCameraMapPos(worldCameraMapPos);
+				//}
+			}
+		}
+	}
+
+	return ret;
 }
 
 //void GDN_TheWorld_Viewer::toggleFullScreen(void)
@@ -3942,7 +4183,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 			//	globals->infoPrint(s.c_str());
 			//	globals->debugPrint("Enter world");
 			//}
-			////if (m_initialWordlViewerPosSet)
+			////if (m_initialWorldViewerPosSet)
 			////{
 			//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 			//for (MapQuadTree::iterator itQuadTree = m_quadTreeMap.begin(); itQuadTree != m_quadTreeMap.end(); itQuadTree++)
@@ -3963,7 +4204,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 			//GDN_TheWorld_Globals* globals = Globals();
 			//if (globals != nullptr)
 			//	globals->debugPrint("Exit world");
-			////if (m_initialWordlViewerPosSet)
+			////if (m_initialWorldViewerPosSet)
 			////{
 			//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 			//for (MapQuadTree::iterator itQuadTree = m_quadTreeMap.begin(); itQuadTree != m_quadTreeMap.end(); itQuadTree++)
@@ -3987,7 +4228,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 			GDN_TheWorld_Globals* globals = Globals();
 			if (globals != nullptr)
 				globals->debugPrint("Visibility changed");
-			//if (m_initialWordlViewerPosSet)
+			//if (m_initialWorldViewerPosSet)
 			//{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 			for (MapQuadTree::iterator itQuadTree = m_quadTreeMap.begin(); itQuadTree != m_quadTreeMap.end(); itQuadTree++)
@@ -4027,6 +4268,8 @@ void GDN_TheWorld_Viewer::viewportSizeChanged(void)
 		editModeUIControl->controlNeedResize();
 
 	godot::Size2 windowSize = getViewportSize();
+
+	setPosWorldViewer(windowSize);
 
 	setPosHud(windowSize);
 
@@ -4184,7 +4427,7 @@ bool GDN_TheWorld_Viewer::getForceShaderElevation0(void) const
 
 String GDN_TheWorld_Viewer::getInfoCamera(void)
 {
-	godot::Camera3D* camera = getCamera();
+	godot::Camera3D* camera = getWorldCamera();
 
 	if (camera == nullptr)
 		return "";
@@ -4207,7 +4450,7 @@ String GDN_TheWorld_Viewer::getInfoCamera(void)
 
 int GDN_TheWorld_Viewer::getCameraProjectionMode(void)
 {
-	godot::Camera3D* camera = getCamera();
+	godot::Camera3D* camera = getWorldCamera();
 
 	if (camera == nullptr)
 		return -1;
@@ -4663,7 +4906,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
 			return;
 
-		if (!WorldCamera() || !m_initialWordlViewerPosSet)
+		if (!getCachedCustomWorldCamera() || !m_initialWorldViewerPosSet)
 		{
 			for (auto& item : m_quadTreeMap)
 			{
@@ -4678,15 +4921,16 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			return;
 		}
 
-		godot::Camera3D* activeCamera = nullptr;
-		if (IS_EDITOR_HINT())
-		{
-			activeCamera = getCamera();
-		}
-		else
-		{
-			activeCamera = WorldCamera()->getActiveCamera();
-		}
+		//godot::Camera3D* activeCamera = nullptr;
+		//if (IS_EDITOR_HINT())
+		//{
+		//	activeCamera = getWorldCamera();
+		//}
+		//else
+		//{
+		//	activeCamera = getCachedCustomWorldCamera()->getActiveCamera();
+		//}
+		godot::Camera3D* activeCamera = getWorldCamera();
 		if (activeCamera == nullptr)
 			return;
 
@@ -5027,7 +5271,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 		if (m_updateTerrainVisibilityRequired)
 		{
-			if (m_initialWordlViewerPosSet)
+			if (m_initialWorldViewerPosSet)
 			{
 				for (MapQuadTree::iterator itQuadTree = m_quadTreeMap.begin(); itQuadTree != m_quadTreeMap.end(); itQuadTree++)
 				{
@@ -5047,7 +5291,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera3D* activeCam
 
 		if (m_updateDebugModeRequired)
 		{
-			if (m_initialWordlViewerPosSet)
+			if (m_initialWorldViewerPosSet)
 			{
 				for (MapQuadTree::iterator itQuadTree = m_quadTreeMap.begin(); itQuadTree != m_quadTreeMap.end(); itQuadTree++)
 				{
@@ -5818,7 +6062,7 @@ void GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 
 		if (m_recalcQuadrantsInViewNeeded)
 		{
-			GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+			GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
 			if (cam != nullptr)
 				cam->forceRecalcCameraFar();
 		}
@@ -6008,14 +6252,14 @@ bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQu
 
 void GDN_TheWorld_Viewer::allCollidersReady(bool b)
 {
-	if (b)
-	{
-		bool b1 = b;
-	}
-	else
-	{
-		bool b1 = b;
-	}
+	//if (b)
+	//{
+	//	bool b1 = b;
+	//}
+	//else
+	//{
+	//	bool b1 = b;
+	//}
 	if (b && !m_allCollidersReady)
 	{
 		PLOG_DEBUG << "All colliders are now ready!";
@@ -6233,7 +6477,7 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeCamera)
 			m_backMirrorCamera->set_global_transform(activeCamera->get_global_transform());
 			m_backMirrorCamera->set_near(activeCamera->get_near());
 			m_backMirrorCamera->set_far(activeCamera->get_far());
-			GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+			GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
 			if (cam != nullptr)
 			{
 				if (cam->trackingPlayer())
@@ -6242,8 +6486,10 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeCamera)
 				}
 				else
 				{
+					//godot::Vector3 activeCameraDirection = -activeCamera->get_global_transform().basis.rows[godot::Vector3::Axis::AXIS_Z];
+					//m_backMirrorCamera->look_at(m_backMirrorCamera->get_position() - activeCameraDirection);
 					godot::Vector3 activeCameraDirection = -activeCamera->get_global_transform().basis.rows[godot::Vector3::Axis::AXIS_Z];
-					m_backMirrorCamera->look_at(m_backMirrorCamera->get_position() - activeCameraDirection);
+					m_backMirrorCamera->look_at(m_backMirrorCamera->get_position() + activeCameraDirection);
 				}
 			}
 		}
@@ -6264,7 +6510,7 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeCamera)
 			t.basis.rows[godot::Vector3::Axis::AXIS_Y] = godot::Vector3(0, 0, 1);
 			t.basis.rows[godot::Vector3::Axis::AXIS_Z] = godot::Vector3(0, -1, 0);
 			// moving around as the cam rotate
-			//GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+			//GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
 			//if (cam != nullptr)
 			//	t.basis = t.basis.rotated(godot::Vector3(0, 1, 0), (real_t)TheWorld_Utils::deg_to_rad(-cam->getAngleFromNorthDeg()));	// pointing on same direction on plane XZ as activeCamera
 			m_satelliteCamera->set_global_transform(t);
@@ -6292,7 +6538,7 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 	if (globals->status() != TheWorldStatus::worldDeployed)
 		return;
 
-	GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+	GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
 	if (cam != nullptr)
 	{
 		float camAltitude = cam->cameraAltitudeFromTerrain();
@@ -7332,7 +7578,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosInMap, 
 
 	GDN_TheWorld_Globals* globals = Globals();
 
-	if (getCamera() == nullptr)
+	if (getWorldCamera() == nullptr)
 		return;
 	
 	if (ReloadSelectedQuadrantShaderRequired())
@@ -8388,7 +8634,7 @@ godot::GDN_TheWorld_Edit* GDN_TheWorld_Viewer::EditModeUIControl(bool useCache)
 		Viewport* root = scene->get_root();
 		if (!root)
 			return NULL;
-		m_editModeUIControl = Object::cast_to<GDN_TheWorld_Edit>(root->find_child(THEWORLD_EDIT_MODE_UI_CONTROL_NAME, true, false));
+		m_editModeUIControl = godot::Object::cast_to<GDN_TheWorld_Edit>(root->find_child(THEWORLD_EDIT_MODE_UI_CONTROL_NAME, true, false));
 	}
 
 	return m_editModeUIControl;
@@ -8406,15 +8652,51 @@ GDN_TheWorld_Globals* GDN_TheWorld_Viewer::Globals(bool useCache)
 		Viewport* root = scene->get_root();
 		if (!root)
 			return NULL;
-		m_globals = Object::cast_to<GDN_TheWorld_Globals>(root->find_child(THEWORLD_GLOBALS_NODE_NAME, true, false));
+		m_globals = godot::Object::cast_to<GDN_TheWorld_Globals>(root->find_child(THEWORLD_GLOBALS_NODE_NAME, true, false));
 	}
 
 	return m_globals;
 }
 
-GDN_TheWorld_Camera* GDN_TheWorld_Viewer::CameraNode(bool useCache)
+//GDN_TheWorld_WorldViewportContainer* GDN_TheWorld_Viewer::WorldViewportContainer(bool useCache)
+//{
+//	if (m_worldViewportContainer == nullptr || !useCache)
+//	{
+//		if (not is_inside_tree())
+//			return nullptr;
+//		SceneTree* scene = get_tree();
+//		if (!scene)
+//			return nullptr;
+//		Viewport* root = scene->get_root();
+//		if (!root)
+//			return nullptr;
+//		m_worldViewportContainer = godot::Object::cast_to<GDN_TheWorld_WorldViewportContainer>(root->find_child(THEWORLD_WORLD_VIEWPORT_CONTAINER_NODE_NAME, true, false));
+//	}
+//
+//	return m_worldViewportContainer;
+//}
+
+//GDN_TheWorld_WorldViewport* GDN_TheWorld_Viewer::WorldViewport(bool useCache)
+//{
+//	if (m_worldViewport == nullptr || !useCache)
+//	{
+//		if (not is_inside_tree())
+//			return nullptr;
+//		SceneTree* scene = get_tree();
+//		if (!scene)
+//			return nullptr;
+//		Viewport* root = scene->get_root();
+//		if (!root)
+//			return nullptr;
+//		m_worldViewport = godot::Object::cast_to<GDN_TheWorld_WorldViewport>(root->find_child(THEWORLD_WORLD_VIEWPORT_NODE_NAME, true, false));
+//	}
+//
+//	return m_worldViewport;
+//}
+
+GDN_TheWorld_Camera* GDN_TheWorld_Viewer::CustomWorldCamera(bool useCache)
 {
-	if (m_worldCamera == NULL || !useCache)
+	if (m_customWorldCamera == NULL || !useCache)
 	{
 		if (not is_inside_tree())
 			return NULL;
@@ -8424,10 +8706,28 @@ GDN_TheWorld_Camera* GDN_TheWorld_Viewer::CameraNode(bool useCache)
 		Viewport* root = scene->get_root();
 		if (!root)
 			return NULL;
-		m_worldCamera = Object::cast_to<GDN_TheWorld_Camera>(root->find_child(THEWORLD_CAMERA_NODE_NAME, true, false));
+		m_customWorldCamera = godot::Object::cast_to<GDN_TheWorld_Camera>(root->find_child(THEWORLD_CAMERA_NODE_NAME, true, false));
 	}
 
-	return m_worldCamera;
+	return m_customWorldCamera;
+}
+
+GDN_TheWorld_HudControls* GDN_TheWorld_Viewer::HudControls(bool useCache)
+{
+	if (m_hudControls == nullptr || !useCache)
+	{
+		if (not is_inside_tree())
+			return nullptr;
+		SceneTree* scene = get_tree();
+		if (!scene)
+			return nullptr;
+		Viewport* root = scene->get_root();
+		if (!root)
+			return nullptr;
+		m_hudControls = godot::Object::cast_to<GDN_TheWorld_HudControls>(root->find_child(THEWORLD_HUD_CONTROLS_NODE_NAME, true, false));
+	}
+
+	return m_hudControls;
 }
 
 GDN_TheWorld_MapViewer* GDN_TheWorld_Viewer::MapViewer(bool useCache)
@@ -8442,7 +8742,7 @@ GDN_TheWorld_MapViewer* GDN_TheWorld_Viewer::MapViewer(bool useCache)
 		Viewport* root = scene->get_root();
 		if (!root)
 			return nullptr;
-		m_mapViewer = Object::cast_to<GDN_TheWorld_MapViewer>(root->find_child(THEWORLD_MAP_VIEWER_NODE_NAME, true, false));
+		m_mapViewer = godot::Object::cast_to<GDN_TheWorld_MapViewer>(root->find_child(THEWORLD_MAP_VIEWER_NODE_NAME, true, false));
 	}
 
 	return m_mapViewer;
@@ -8460,7 +8760,7 @@ GDN_TheWorld_MapViewportContainer* GDN_TheWorld_Viewer::MapViewportContainer(boo
 		Viewport* root = scene->get_root();
 		if (!root)
 			return nullptr;
-		m_mapViewportContainer = Object::cast_to<GDN_TheWorld_MapViewportContainer>(root->find_child(THEWORLD_MAP_VIEWPORT_CONTAINER_NODE_NAME, true, false));
+		m_mapViewportContainer = godot::Object::cast_to<GDN_TheWorld_MapViewportContainer>(root->find_child(THEWORLD_MAP_VIEWPORT_CONTAINER_NODE_NAME, true, false));
 	}
 
 	return m_mapViewportContainer;
@@ -8478,7 +8778,7 @@ GDN_TheWorld_MapViewport* GDN_TheWorld_Viewer::MapViewport(bool useCache)
 		Viewport* root = scene->get_root();
 		if (!root)
 			return nullptr;
-		m_mapViewport = Object::cast_to<GDN_TheWorld_MapViewport>(root->find_child(THEWORLD_MAP_VIEWPORT_NODE_NAME, true, false));
+		m_mapViewport = godot::Object::cast_to<GDN_TheWorld_MapViewport>(root->find_child(THEWORLD_MAP_VIEWPORT_NODE_NAME, true, false));
 	}
 
 	return m_mapViewport;
@@ -8496,7 +8796,7 @@ GDN_TheWorld_Map* GDN_TheWorld_Viewer::Map(bool useCache)
 		Viewport* root = scene->get_root();
 		if (!root)
 			return nullptr;
-		m_map = Object::cast_to<GDN_TheWorld_Map>(root->find_child(THEWORLD_MAP_NODE_NAME, true, false));
+		m_map = godot::Object::cast_to<GDN_TheWorld_Map>(root->find_child(THEWORLD_MAP_NODE_NAME, true, false));
 	}
 
 	return m_map;
@@ -8515,7 +8815,7 @@ GDN_TheWorld_MapCamera* GDN_TheWorld_Viewer::MapCamera(bool useCache)
 		if (!root)
 			return nullptr;
 		godot::Node* n = root->find_child(THEWORLD_MAP_CAMERA_NODE_NAME, true, false);
-		m_mapCamera = Object::cast_to<GDN_TheWorld_MapCamera>(root->find_child(THEWORLD_MAP_CAMERA_NODE_NAME, true, false));
+		m_mapCamera = godot::Object::cast_to<GDN_TheWorld_MapCamera>(root->find_child(THEWORLD_MAP_CAMERA_NODE_NAME, true, false));
 	}
 
 	return m_mapCamera;
@@ -8543,7 +8843,7 @@ bool GDN_TheWorld_Viewer::terrainShiftPermitted(void)
 	return m_numInitializedQuadrant >= m_numQuadrant;
 }
 
-godot::Camera3D* GDN_TheWorld_Viewer::getCamera(void)
+godot::Camera3D* GDN_TheWorld_Viewer::getWorldCamera(void)
 {
 	if (IS_EDITOR_HINT())
 		return getCameraInEditor();
@@ -8639,9 +8939,9 @@ void GDN_TheWorld_Viewer::deployWorld(float cameraX, float cameraY, float camera
 
 	assert(status >= TheWorldStatus::sessionInitialized);
 	if (status < TheWorldStatus::sessionInitialized)
-		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Incorrect Status for resetInitialWordlViewerPos").c_str()));
+		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Incorrect Status for resetInitialWorldViewerPos").c_str()));
 
-	m_initialWordlViewerPosSet = false;
+	m_initialWorldViewerPosSet = false;
 	
 	m_worldViewerLevel = level;
 
@@ -8791,15 +9091,16 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 
-	godot::Camera3D* activeCamera = nullptr;
-	if (IS_EDITOR_HINT())
-	{
-		activeCamera = getCamera();
-	}
-	else
-	{
-		activeCamera = WorldCamera()->getActiveCamera();
-	}
+	//godot::Camera3D* activeCamera = nullptr;
+	//if (IS_EDITOR_HINT())
+	//{
+	//	activeCamera = getWorldCamera();
+	//}
+	//else
+	//{
+	//	activeCamera = getCachedCustomWorldCamera()->getActiveCamera();
+	//}
+	godot::Camera3D* activeCamera = getWorldCamera();
 
 	// WARNING: distanceFromCamera must be unique to avoid to lose quads for duplicate distance
 	//std::map<float, QuadTree*> mapByDistancefromCamera;

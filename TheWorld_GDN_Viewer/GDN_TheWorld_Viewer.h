@@ -75,10 +75,89 @@ namespace godot
 //#define DEFAULT_DIRT_TEX_NAME								"Ground049C_1K"
 //#define DEFAULT_ROCKS_TEX_NAME							"rocks07"
 
+	//class GDN_TheWorld_WorldViewport;
+
 	class GDN_TheWorld_MapViewportContainer;
 	class GDN_TheWorld_MapViewport;
 	class GDN_TheWorld_Map;
 	class GDN_TheWorld_MapCamera;
+
+	//class GDN_TheWorld_WorldViewportContainer : public godot::SubViewportContainer
+	//{
+	//	GDCLASS(GDN_TheWorld_WorldViewportContainer, SubViewportContainer)
+
+	//protected:
+	//	static void _bind_methods(void);
+	//	void _notification(int p_what);
+
+	//public:
+	//	GDN_TheWorld_WorldViewportContainer(void);
+	//	~GDN_TheWorld_WorldViewportContainer(void);
+
+	//	//
+	//	// Godot Standard Functions
+	//	//
+	//	virtual void _ready(void) override;
+	//	virtual void _process(double _delta) override;
+	//	virtual void _input(const Ref<InputEvent>& event) override;
+	//	virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	//public:
+	//	void setViewer(GDN_TheWorld_Viewer* viewer)
+	//	{
+	//		m_viewer = viewer;
+	//	}
+	//	GDN_TheWorld_Viewer* getViewer(void)
+	//	{
+	//		return m_viewer;
+	//	}
+	//	void setWorldViewport(GDN_TheWorld_WorldViewport* worldViewport)
+	//	{
+	//		m_worldViewport = worldViewport;
+	//	}
+	//	GDN_TheWorld_WorldViewport* getWorldViewport(void)
+	//	{
+	//		return m_worldViewport;
+	//	}
+
+	//private:
+	//	GDN_TheWorld_Viewer* m_viewer = nullptr;
+	//	GDN_TheWorld_WorldViewport* m_worldViewport = nullptr;
+	//};
+
+	//class GDN_TheWorld_WorldViewport : public godot::SubViewport
+	//{
+	//	GDCLASS(GDN_TheWorld_WorldViewport, SubViewport)
+
+	//protected:
+	//	static void _bind_methods(void);
+	//	void _notification(int p_what);
+
+	//public:
+	//	GDN_TheWorld_WorldViewport(void);
+	//	~GDN_TheWorld_WorldViewport(void);
+
+	//	//
+	//	// Godot Standard Functions
+	//	//
+	//	virtual void _ready(void) override;
+	//	virtual void _process(double _delta) override;
+	//	virtual void _input(const Ref<InputEvent>& event) override;
+	//	virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	//public:
+	//	void setWorldViewportContainer(GDN_TheWorld_WorldViewportContainer* worldViewportContainer)
+	//	{
+	//		m_worldViewportContainer = worldViewportContainer;
+	//	}
+	//	GDN_TheWorld_WorldViewportContainer* getWorldViewportContainer(void)
+	//	{
+	//		return m_worldViewportContainer;
+	//	}
+
+	//private:
+	//	GDN_TheWorld_WorldViewportContainer* m_worldViewportContainer = nullptr;
+	//};
 
 	class GDN_TheWorld_MapViewer : public godot::Node2D
 	{
@@ -629,6 +708,8 @@ namespace godot
 			return m_quitting;
 		}
 		
+		virtual void setPosWorldViewer(godot::Size2& windowSize);
+
 		virtual void createMapViewer(void);
 		virtual void setPosMapViewer(godot::Size2& windowSize);
 
@@ -749,7 +830,7 @@ namespace godot
 		}
 		//void toggleFullScreen(void);
 		void toggleQuadrantSelected(void);
-		godot::Camera3D* getCamera(void);
+		godot::Camera3D* getWorldCamera(void);
 		godot::Camera3D* getCameraInEditor(void);
 		void setEditorCamera(godot::Camera3D* editorCamera);
 		void setMinDepthQuadOnPerimeter(int depth);
@@ -764,7 +845,10 @@ namespace godot
 		String getInfoCamera(void);
 		int getCameraProjectionMode(void);
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
-		GDN_TheWorld_Camera* CameraNode(bool useCache = true);
+		//GDN_TheWorld_WorldViewportContainer* WorldViewportContainer(bool useCache = true);
+		//GDN_TheWorld_WorldViewport* WorldViewport(bool useCache = true);
+		GDN_TheWorld_Camera* CustomWorldCamera(bool useCache = true);
+		GDN_TheWorld_HudControls* HudControls(bool useCache = true);
 		GDN_TheWorld_MapViewer* MapViewer(bool useCache = true);
 		GDN_TheWorld_MapViewportContainer* MapViewportContainer(bool useCache = true);
 		GDN_TheWorld_MapViewport* MapViewport(bool useCache = true);
@@ -776,9 +860,9 @@ namespace godot
 		void deployWorld(float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll, int level, int chunkSizeShift, int heightmapResolutionShift);
 		void undeployWorld(void);
 		void destroyModeUIControl(void);
-		bool initialWordlViewerPosSet(void) const
+		bool initialWorldViewerPosSet(void) const
 		{
-			return m_initialWordlViewerPosSet;
+			return m_initialWorldViewerPosSet;
 		}
 		void recalcQuadrantsInView(void);
 		Node3D* getWorldNode(void) const;
@@ -876,7 +960,7 @@ namespace godot
 		{
 			if (m_mouseTrackedOnSomething)
 			{
-				godot::Camera3D* camera = getCamera();
+				godot::Camera3D* camera = getWorldCamera();
 				return (float)camera->get_global_transform().origin.distance_to(m_trackedMouseHitGlobal);
 			}
 			else
@@ -1417,13 +1501,13 @@ namespace godot
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
-		GDN_TheWorld_Camera* WorldCamera(bool useCache = true)
+		GDN_TheWorld_Camera* getCachedCustomWorldCamera(bool useCache = true)
 		{ 
-			return m_worldCamera;
+			return m_customWorldCamera;
 		};
-		void assignWorldCamera(GDN_TheWorld_Camera* camera)
+		void setCachedCustomWorldCamera(GDN_TheWorld_Camera* camera)
 		{
-			m_worldCamera = camera;
+			m_customWorldCamera = camera;
 		};
 		void printKeyboardMapping(void);
 		void streamer(void);
@@ -1453,6 +1537,7 @@ namespace godot
 		TheWorld_Utils::QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isQuadrantSelectedForEdit(void);
 		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized);
+		bool setWorldCameraMapPos(float posX, float posZ, float altitudeFromTerrain);
 
 	private:
 		bool m_initialized;
@@ -1471,7 +1556,7 @@ namespace godot
 		bool m_shiftPressed;
 		bool m_firstProcess;
 		int64_t m_timeElapsedFromLastDump;
-		bool m_initialWordlViewerPosSet;
+		bool m_initialWorldViewerPosSet;
 		bool m_dumpRequired;
 		Chunk* lastTrackedChunk;
 		//Vector3 m_mapScaleVector;
@@ -1651,7 +1736,7 @@ namespace godot
 		std::unique_ptr<MeshCache> m_meshCache;
 
 		// Viewer (Camera)
-		GDN_TheWorld_Camera* m_worldCamera = nullptr;
+		GDN_TheWorld_Camera* m_customWorldCamera = nullptr;
 		Chunk* m_cameraTerrainChunk = nullptr;
 		bool m_cameraVerticalOnSea = false;
 		//QuadTree* m_cameraQuadTree;
@@ -1737,7 +1822,6 @@ namespace godot
 		float m_shaderParamSeaScaleOffsetThresholdApplied = 0;
 		bool m_shaderParamCameraUnderWaterApplied = false;
 
-		//godot::Control* m_hudControls = nullptr;
 		GDN_TheWorld_HudControls* m_hudControls = nullptr;
 		godot::HBoxContainer* m_hudMessageContainer = nullptr;
 		godot::Label* m_hudMessageLabel = nullptr;
@@ -1757,7 +1841,9 @@ namespace godot
 		godot::SubViewport* m_backMirrorSubViewport = nullptr;
 		godot::Camera3D* m_backMirrorCamera = nullptr;
 
-		
+		//GDN_TheWorld_WorldViewportContainer* m_worldViewportContainer = nullptr;
+		//GDN_TheWorld_WorldViewport* m_worldViewport = nullptr;
+
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_MapViewportContainer* m_mapViewportContainer = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;

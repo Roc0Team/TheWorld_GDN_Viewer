@@ -114,7 +114,7 @@ void GDN_TheWorld_MainNode::_process(double _delta)
 	//	if (viewer)
 	//	{
 	//		pWorldMainNode->add_child(viewer);
-	//		viewer->set_name(THEWORLD_VIEWER_NODE_NAME);
+	//		viewer->set_name(THEWORLD_WORLD_VIEWER_NODE_NAME);
 	//		Transform gt = pWorldMainNode->get_global_transform();
 	//		viewer->set_global_transform(gt);
 	//		//viewer->init();
@@ -169,6 +169,8 @@ bool GDN_TheWorld_MainNode::init(Node3D* pWorldMainNode, bool isInEditor)
 		globals = memnew(GDN_TheWorld_Globals);
 	if (globals)
 	{
+		globals->set_name(THEWORLD_GLOBALS_NODE_NAME);
+
 		Node* parent = globals->get_parent();
 		if (parent != nullptr)
 		{
@@ -181,9 +183,9 @@ bool GDN_TheWorld_MainNode::init(Node3D* pWorldMainNode, bool isInEditor)
 		}
 		else
 			pWorldMainNode->add_child(globals);
-		globals->set_name(THEWORLD_GLOBALS_NODE_NAME);
-		globals->init(isInEditor);
 		globals->set_owner(sceneRoot);
+
+		globals->init(isInEditor);
 	}
 	else
 		return false;
@@ -195,6 +197,10 @@ bool GDN_TheWorld_MainNode::init(Node3D* pWorldMainNode, bool isInEditor)
 		viewer = memnew(GDN_TheWorld_Viewer);
 	if (viewer)
 	{
+		viewer->set_name(THEWORLD_WORLD_VIEWER_NODE_NAME);
+		Transform3D gt = pWorldMainNode->get_global_transform();
+		viewer->set_global_transform(gt);
+
 		Node* parent = viewer->get_parent();
 		if (parent != nullptr)
 		{
@@ -207,13 +213,63 @@ bool GDN_TheWorld_MainNode::init(Node3D* pWorldMainNode, bool isInEditor)
 		}
 		else
 			pWorldMainNode->add_child(viewer);
-		viewer->set_name(THEWORLD_VIEWER_NODE_NAME);
-		Transform3D gt = pWorldMainNode->get_global_transform();
-		viewer->set_global_transform(gt);
 		viewer->set_owner(sceneRoot);
 	}
 	else
 		return false;
+
+	//GDN_TheWorld_WorldViewportContainer* worldViewportContainer = viewer->WorldViewportContainer(false);
+	//if (worldViewportContainer == nullptr)
+	//	worldViewportContainer = memnew(GDN_TheWorld_WorldViewportContainer);
+	//if (worldViewportContainer)
+	//{
+	//	worldViewportContainer->set_name(THEWORLD_WORLD_VIEWPORT_CONTAINER_NODE_NAME);
+	//	worldViewportContainer->setViewer(viewer);
+
+	//	Node* parent = worldViewportContainer->get_parent();
+	//	if (parent != nullptr)
+	//	{
+	//		int64_t viewerId = viewer->get_instance_id();
+	//		int64_t parentId = parent->get_instance_id();
+	//		if (parentId != viewerId)
+	//		{
+	//			parent->remove_child(worldViewportContainer);
+	//			viewer->add_child(worldViewportContainer);
+	//		}
+	//	}
+	//	else
+	//		viewer->add_child(worldViewportContainer);
+	//	worldViewportContainer->set_owner(sceneRoot);
+	//}
+	//else
+	//	return false;
+
+	//GDN_TheWorld_WorldViewport* worldViewport = viewer->WorldViewport(false);
+	//if (worldViewport == nullptr)
+	//	worldViewport = memnew(GDN_TheWorld_WorldViewport);
+	//if (worldViewport)
+	//{
+	//	worldViewport->set_name(THEWORLD_WORLD_VIEWPORT_NODE_NAME);
+	//	worldViewport->setWorldViewportContainer(worldViewportContainer);
+	//	worldViewportContainer->setWorldViewport(worldViewport);
+
+	//	Node* parent = worldViewport->get_parent();
+	//	if (parent != nullptr)
+	//	{
+	//		int64_t worldViewportContainerId = worldViewportContainer->get_instance_id();
+	//		int64_t parentId = parent->get_instance_id();
+	//		if (parentId != worldViewportContainerId)
+	//		{
+	//			parent->remove_child(worldViewport);
+	//			worldViewportContainer->add_child(worldViewport);
+	//		}
+	//	}
+	//	else
+	//		worldViewportContainer->add_child(worldViewport);
+	//	worldViewport->set_owner(sceneRoot);
+	//}
+	//else
+	//	return false;
 
 	viewer = globals->Viewer(false);
 	viewer = Viewer(false);
@@ -337,7 +393,7 @@ GDN_TheWorld_Viewer* GDN_TheWorld_MainNode::Viewer(bool useCache)
 		Viewport* root = scene->get_root();
 		if (!root)
 			return NULL;
-		m_viewer = Object::cast_to<GDN_TheWorld_Viewer>(root->find_child(THEWORLD_VIEWER_NODE_NAME, true, false));
+		m_viewer = Object::cast_to<GDN_TheWorld_Viewer>(root->find_child(THEWORLD_WORLD_VIEWER_NODE_NAME, true, false));
 	}
 
 	return m_viewer;

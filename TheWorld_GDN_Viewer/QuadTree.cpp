@@ -1649,6 +1649,7 @@ Transform3D QuadTree::getInternalGlobalTransform(void)
 
 void QuadTree::dump(bool minimal)
 {
+	return;
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
 
 	if (!minimal)

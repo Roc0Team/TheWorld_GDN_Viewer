@@ -33,8 +33,8 @@
 #include "QuadTree.h"
 //#include <MapManager.h>
 
-#define MAX_DEPTH_ON_PERIMETER	6
-#define MAX_CACHE_ON_PERIMETER	2
+#define MAX_SETTABLE_DEPTH_ON_PERIMETER	25
+#define MAX_SETTABLE_CACHE_ON_PERIMETER	5
 
 namespace godot
 {
@@ -831,8 +831,9 @@ namespace godot
 		//void toggleFullScreen(void);
 		void toggleQuadrantSelected(void);
 		godot::Camera3D* getWorldCamera(void);
-		godot::Camera3D* getCameraInEditor(void);
-		void setEditorCamera(godot::Camera3D* editorCamera);
+		godot::Camera2D* getMapCamera(void);
+		godot::Camera3D* getWorldCameraInEditor(void);
+		void setWorldEditorCamera(godot::Camera3D* editorCamera);
 		void setMinDepthQuadOnPerimeter(int depth);
 		int getMinDepthQuadOnPerimeter(void) const;
 		void setCacheQuadOnPerimeter(int cache);

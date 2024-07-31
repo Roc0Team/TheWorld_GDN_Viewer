@@ -1635,7 +1635,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_anchor_for_origin_shift", "p_anchor"), &GDN_TheWorld_Viewer::setAnchorForOriginShift);
 	ClassDB::bind_method(D_METHOD("set_editor_interface"), &GDN_TheWorld_Viewer::setEditorInterface);
 	ClassDB::bind_method(D_METHOD("set_editor_3d_overlay"), &GDN_TheWorld_Viewer::setEditor3dOverlay);
-	ClassDB::bind_method(D_METHOD("set_editor_camera"), &GDN_TheWorld_Viewer::setEditorCamera);
+	ClassDB::bind_method(D_METHOD("set_world_editor_camera"), &GDN_TheWorld_Viewer::setWorldEditorCamera);
 	ClassDB::bind_method(D_METHOD("get_world_camera"), &GDN_TheWorld_Viewer::getWorldCamera);
 	ClassDB::bind_method(D_METHOD("get_info_camera"), &GDN_TheWorld_Viewer::getInfoCamera);
 	ClassDB::bind_method(D_METHOD("get_camera_projection_mode"), &GDN_TheWorld_Viewer::getCameraProjectionMode);
@@ -2577,7 +2577,7 @@ bool GDN_TheWorld_Viewer::init(void)
 			if (m_cacheQuadOnPerimeter == -1)
 				m_cacheQuadOnPerimeter = THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER_IN_EDITOR;
 			if (m_maxDepthQuadOnPerimeter == -1)
-				m_maxDepthQuadOnPerimeter = MAX_DEPTH_ON_PERIMETER;
+				m_maxDepthQuadOnPerimeter = MAX_SETTABLE_DEPTH_ON_PERIMETER;
 		}
 		else
 		{
@@ -2586,7 +2586,7 @@ bool GDN_TheWorld_Viewer::init(void)
 			if (m_cacheQuadOnPerimeter == -1)
 				m_cacheQuadOnPerimeter = THEWORLD_DEFAULT_CACHE_QUAD_ON_PERIMETER;
 			if (m_maxDepthQuadOnPerimeter == -1)
-				m_maxDepthQuadOnPerimeter = MAX_DEPTH_ON_PERIMETER;
+				m_maxDepthQuadOnPerimeter = MAX_SETTABLE_DEPTH_ON_PERIMETER;
 		}
 
 		m_shaderParam_groundUVScale.set_normal(godot::Vector3(0.0f, 0.0f, 0.0f));	// if every coord is 0.0 the parameter is not passed to the shader
@@ -4350,9 +4350,11 @@ String GDN_TheWorld_Viewer::getChunkDebugModeStr(void) const
 
 void GDN_TheWorld_Viewer::setMinDepthQuadOnPerimeter(int depth)
 {
-	if (depth >= 0 && depth <= MAX_DEPTH_ON_PERIMETER)
+	if (depth >= 0 && depth <= MAX_SETTABLE_DEPTH_ON_PERIMETER)
 	{
 		m_minDepthQuadOnPerimeter = depth;
+		if (m_minDepthQuadOnPerimeter != -1 and m_minDepthQuadOnPerimeter > getMaxDepthQuadOnPerimeter())
+			setMaxDepthQuadOnPerimeter(m_minDepthQuadOnPerimeter);
 		m_lastProcessedCameraPosForQuadrants = godot::Vector3();
 		m_lastProcessedCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
@@ -4367,7 +4369,7 @@ int GDN_TheWorld_Viewer::getMinDepthQuadOnPerimeter(void) const
 
 void GDN_TheWorld_Viewer::setCacheQuadOnPerimeter(int cache)
 {
-	if (cache >= 0 && cache <= MAX_CACHE_ON_PERIMETER)
+	if (cache >= 0 && cache <= MAX_SETTABLE_CACHE_ON_PERIMETER)
 	{
 		m_cacheQuadOnPerimeter = cache;
 		m_lastProcessedCameraPosForQuadrants = godot::Vector3();
@@ -4384,14 +4386,24 @@ int GDN_TheWorld_Viewer::getCacheQuadOnPerimeter(void) const
 
 void GDN_TheWorld_Viewer::setMaxDepthQuadOnPerimeter(int depth)
 {
-	if (depth >= 0 && depth <= MAX_DEPTH_ON_PERIMETER)
+	if (depth >= 0 && depth <= MAX_SETTABLE_DEPTH_ON_PERIMETER)
 	{
 		m_maxDepthQuadOnPerimeter = depth;
+		if (m_maxDepthQuadOnPerimeter != -1 and m_maxDepthQuadOnPerimeter < getMinDepthQuadOnPerimeter())
+			setMinDepthQuadOnPerimeter(m_maxDepthQuadOnPerimeter);
 		m_lastProcessedCameraPosForQuadrants = godot::Vector3();
 		m_lastProcessedCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 			m_recalcQuadrantsInViewNeeded = true;
 	}
+}
+
+int GDN_TheWorld_Viewer::getMaxDepthQuadOnPerimeter(void) const
+{
+	if (m_maxDepthQuadOnPerimeter < m_minDepthQuadOnPerimeter)
+		return m_minDepthQuadOnPerimeter;
+	else
+		return m_maxDepthQuadOnPerimeter;
 }
 
 int GDN_TheWorld_Viewer::maxActualDepthQuadInAllDirections(void) const
@@ -4404,14 +4416,6 @@ int GDN_TheWorld_Viewer::maxActualDepthQuadInAllDirections(void) const
 	if (m_numVisibleQuadrantOnPerimeterOnEastSide > ret)
 		ret = m_numVisibleQuadrantOnPerimeterOnEastSide;
 	return ret;
-}
-
-int GDN_TheWorld_Viewer::getMaxDepthQuadOnPerimeter(void) const
-{
-	if (m_maxDepthQuadOnPerimeter < m_minDepthQuadOnPerimeter)
-		return m_minDepthQuadOnPerimeter;
-	else
-		return m_maxDepthQuadOnPerimeter;
 }
 
 void GDN_TheWorld_Viewer::setForceShaderElevation0(bool elevation0)
@@ -8846,7 +8850,7 @@ bool GDN_TheWorld_Viewer::terrainShiftPermitted(void)
 godot::Camera3D* GDN_TheWorld_Viewer::getWorldCamera(void)
 {
 	if (IS_EDITOR_HINT())
-		return getCameraInEditor();
+		return getWorldCameraInEditor();
 	else
 	{
 		//return get_tree()->get_root()->get_camera_3d();
@@ -8854,7 +8858,18 @@ godot::Camera3D* GDN_TheWorld_Viewer::getWorldCamera(void)
 	}
 }
 
-void GDN_TheWorld_Viewer::setEditorCamera(godot::Camera3D* editorCamera)
+godot::Camera2D* GDN_TheWorld_Viewer::getMapCamera(void)
+{
+	if (IS_EDITOR_HINT())
+		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("GDN_TheWorld_Viewer::getMapCamera not implemented in EDITOR").c_str()));
+	else
+	{
+		//return get_tree()->get_root()->get_camera_3d();
+		return get_viewport()->get_camera_2d();
+	}
+}
+
+void GDN_TheWorld_Viewer::setWorldEditorCamera(godot::Camera3D* editorCamera)
 {
 	if (m_editorCamera == nullptr)
 		onTransformChanged();
@@ -8862,7 +8877,7 @@ void GDN_TheWorld_Viewer::setEditorCamera(godot::Camera3D* editorCamera)
 	m_editorCamera = editorCamera;
 }
 
-godot::Camera3D* GDN_TheWorld_Viewer::getCameraInEditor(void)
+godot::Camera3D* GDN_TheWorld_Viewer::getWorldCameraInEditor(void)
 {
 	if (!IS_EDITOR_HINT())
 		return nullptr;

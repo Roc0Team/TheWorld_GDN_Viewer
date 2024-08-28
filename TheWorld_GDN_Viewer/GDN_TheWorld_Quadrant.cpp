@@ -118,7 +118,7 @@ namespace godot
 		if (m_deinitInProgress)
 			return;
 
-		if (!m_viewer->quadTreeMapValid())
+		if (!m_viewer->worldQuadrantsMapValid())
 			return;
 		
 		m_processInProgress = true;

@@ -41,8 +41,12 @@ namespace godot {
 		virtual void _process(double _delta) override;
 		virtual void _input(const Ref<InputEvent>& event) override;
 		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+		virtual void _physics_process(double _delta) override;
 
 	public:
+		godot::Transform2D getCameraMapTransform();
+		godot::Vector2 getCameraMapPos();
+
 		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
 		{
 			m_mapViewer = mapViewer;
@@ -50,6 +54,8 @@ namespace godot {
 
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
+		int m_zoomRequired = 0;
+		bool m_updateCameraRequired = false;
 	};
 
 	class GDN_TheWorld_Camera : public Camera3D
@@ -72,9 +78,10 @@ namespace godot {
 		
 		bool initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll);
 		void set_cameraFar(void);
-		godot::Transform3D getCameraMapTransform(void);
-		void setCameraMapTransform(godot::Transform3D map);
-		void setCameraMapPos(godot::Vector3 mapPos);
+		godot::Transform3D getWorldTransform(void);
+		void setWorldTransform(godot::Transform3D map);
+		godot::Vector3 getWorldPos(void);
+		void setWorldPos(godot::Vector3 mapPos);
 		//bool initPlayerCamera(void);
 		//bool initOtherEntityCamera(void);
 		void calcYawPitchRoll(void);
@@ -178,9 +185,14 @@ namespace godot {
 
 		void updateAltitudeFromTerrain(bool force);
 
+		float cameraMaxAltitudeFromTerrainDetected(void) const;
 		float cameraAltitudeFromTerrain(void) const
 		{
 			return m_lastCameraAltitudeFromTerrain;
+		}
+		float cameraAltitudeFromTerrainValid(void) const
+		{
+			return m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE;
 		}
 		void forceRecalcCameraAltitude(void)
 		{
@@ -191,7 +203,7 @@ namespace godot {
 			m_forceRecalcCameraFar = true;
 		}
 
-		void setCameraGlobalTransform(godot::Transform3D t)
+		void setGlobalTransform(godot::Transform3D t)
 		{
 			set_global_transform(t);
 		}

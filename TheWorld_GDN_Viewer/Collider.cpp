@@ -329,7 +329,7 @@ namespace godot
 		if (!m_initialized)
 			return;
 
-		m_cameraGlobalTranform = m_quadTree->Viewer()->getWorldCamera()->get_global_transform();
+		//m_cameraGlobalTranform = m_quadTree->Viewer()->getWorldCamera()->get_global_transform();
 		float colliderAltitude = getColliderAltitude();
 		Transform3D t = getTransform();
 		t.origin.y = colliderAltitude;
@@ -357,17 +357,17 @@ namespace godot
 		else
 			m_lastGridStepInWUUsed = gridStepInWU;
 		
-		//int numVerticesPerSize = m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize();
+											//int numVerticesPerSize = m_quadTree->getQuadrant()->getPos().getNumVerticesPerSize();
 		float sizeInWU = m_quadTree->getQuadrant()->getPos().getSizeInWU();
-		//float gridStepInWU = m_quadTree->getQuadrant()->getPos().getGridStepInWU();
+											//float gridStepInWU = m_quadTree->getQuadrant()->getPos().getGridStepInWU();
 		Transform3D igt = m_quadTree->getInternalGlobalTransform();
-		//float axisScaleFactr = sqrtf(powf(gridStepInWU, (float)2.0) / (float)2.0);
+											//float axisScaleFactr = sqrtf(powf(gridStepInWU, (float)2.0) / (float)2.0);
 		float axisScaleFactr = gridStepInWU;
-		Camera3D* cam = m_quadTree->Viewer()->getWorldCamera();
-		m_cameraGlobalTranform = cam->get_global_transform();
+		//Camera3D* cam = m_quadTree->Viewer()->getWorldCamera();
+		//m_cameraGlobalTranform = cam->get_global_transform();
 		float colliderAltitude = getColliderAltitude();
-		//Vector3 centerOfQuadrant = igt.origin + 0.5 * Vector3(sizeInWU, 0, sizeInWU);
-		//Vector3 centerOfQuadrantDistFromCamera = cam->get_global_transform().origin - centerOfQuadrant;
+											//Vector3 centerOfQuadrant = igt.origin + 0.5 * Vector3(sizeInWU, 0, sizeInWU);
+											//Vector3 centerOfQuadrantDistFromCamera = cam->get_global_transform().origin - centerOfQuadrant;
 
 		// set body to the center of the quadrant
 		Transform3D tTranslate(Basis(), Vector3((float)0.5 * sizeInWU, (float)colliderAltitude, (float)0.5 * sizeInWU));

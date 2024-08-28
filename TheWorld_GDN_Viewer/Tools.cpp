@@ -363,9 +363,9 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 				if (item.second->drawingType == Drawing::DrawingType::line && start != end)
 				{
 					if (start == godot::Vector3() && m_camera != nullptr)
-						start = m_viewer->globalPosToMapPos(m_camera->get_global_position());
+						start = m_viewer->globalPosToWorldPos(m_camera->get_global_position());
 					if (end == godot::Vector3() && m_camera != nullptr)
-						end = m_viewer->globalPosToMapPos(m_camera->get_global_position());
+						end = m_viewer->globalPosToWorldPos(m_camera->get_global_position());
 
 					drawLine(start, end, item.second->color);
 					if (item.second->labelPos == Drawing::LabelPos::not_set)
@@ -439,8 +439,8 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 								}
 								else if (item.second->labelPos == Drawing::LabelPos::center)
 								{
-									godot::Vector3 globalStart = m_viewer->mapPosToGlobalPos(start);
-									godot::Vector3 globalEnd = m_viewer->mapPosToGlobalPos(end);
+									godot::Vector3 globalStart = m_viewer->worldPosToGlobalPos(start);
+									godot::Vector3 globalEnd = m_viewer->worldPosToGlobalPos(end);
 									godot::Vector2 endOnViewport = m_camera->unproject_position(globalEnd);
 									godot::Vector2 startOnViewport = m_camera->unproject_position(globalStart);
 									godot::Size2 viewportSize = m_viewer->getViewportSize();
@@ -493,7 +493,7 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 								else if (item.second->labelPos == Drawing::LabelPos::end)
 								{
 									godot::Vector3 position = end + (end - start).normalized() * item.second->label3dOffset;
-									viewportPos = m_camera->unproject_position(m_viewer->mapPosToGlobalPos(position));
+									viewportPos = m_camera->unproject_position(m_viewer->worldPosToGlobalPos(position));
 									label_visible = true;
 								}
 
@@ -534,7 +534,7 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 				{
 					if (m_camera != nullptr && m_viewer != nullptr)
 					{
-						godot::Vector3 pos = m_viewer->mapPosToGlobalPos(start);
+						godot::Vector3 pos = m_viewer->worldPosToGlobalPos(start);
 
 						bool label_visible = true;
 						if (m_camera->is_position_behind(pos))

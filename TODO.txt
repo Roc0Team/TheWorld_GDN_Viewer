@@ -2,14 +2,19 @@
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde
 
+* environment con nebbia, dissolvenza in lontananza, nubi etc.
+* strade
+* laghi
+* fiumi
+* architettura client-server
+* ciclo giorno-notte
 * miglior effetto visivo della sabbia
 * Visibilità che sfuma in 2D come mappa: a comando ed oltre una certa altezza
-* Minimap
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
 
 Tag 2024/07/25
-* ***OK*** aggiunto gofot.natvis (strutture custom in debug) e configurato nel progetto TheWorld_GDN_Viewer
+* ***OK*** aggiunto godot.natvis (strutture custom in debug) e configurato nel progetto TheWorld_GDN_Viewer
 * ***OK*** fix in UI
 
 Tag 2024/07/22

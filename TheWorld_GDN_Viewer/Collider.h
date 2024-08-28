@@ -66,7 +66,7 @@ namespace godot
 		int32_t m_shapeIdx = -1;
 		RID m_bodyRID;
 		Transform3D m_colliderTransform;
-		Transform3D m_cameraGlobalTranform;
+		//Transform3D m_cameraGlobalTranform;
 		float m_lastGridStepInWUUsed = 0.0f;
 	};
 }

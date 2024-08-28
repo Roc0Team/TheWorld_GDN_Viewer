@@ -33,6 +33,7 @@ using namespace godot;
 
 void GDN_TheWorld_MapCamera::_bind_methods(void)
 {
+	ClassDB::bind_method(D_METHOD("get_camera_map_transform"), &GDN_TheWorld_MapCamera::getCameraMapTransform);
 }
 
 GDN_TheWorld_MapCamera::GDN_TheWorld_MapCamera(void)
@@ -75,6 +76,28 @@ void GDN_TheWorld_MapCamera::_input(const Ref<InputEvent>& event)
 	//{
 	//	int a = 0;
 	//}
+	
+	if (m_mapViewer == nullptr)
+		return;
+
+	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+	if (viewer == nullptr)
+		return;
+	
+	if (!viewer->mapMode())
+		return;
+
+	if (event->is_action_pressed("ui_mouse_wheel_up"))
+	{
+		m_zoomRequired++;
+		m_updateCameraRequired = true;
+	}
+
+	if (event->is_action_pressed("ui_mouse_wheel_down"))
+	{
+		m_zoomRequired--;
+		m_updateCameraRequired = true;
+	}
 }
 
 void GDN_TheWorld_MapCamera::_unhandled_input(const Ref<InputEvent>& event)
@@ -92,8 +115,55 @@ void GDN_TheWorld_MapCamera::_ready(void)
 {
 }
 
+void GDN_TheWorld_MapCamera::_physics_process(double _delta)
+{
+	if (m_mapViewer == nullptr)
+		return;
+
+	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+	if (viewer == nullptr)
+		return;
+
+	GDN_TheWorld_Map* map = m_mapViewer->getMap();
+	if (map == nullptr)
+		return;
+
+	if (m_updateCameraRequired)
+	{
+		m_updateCameraRequired = false;
+
+		if (m_zoomRequired != 0)
+		{
+			map->zoom(m_zoomRequired);
+			m_zoomRequired = 0;
+		}
+	}
+}
+
 void GDN_TheWorld_MapCamera::_process(double _delta)
 {
+}
+
+godot::Transform2D GDN_TheWorld_MapCamera::getCameraMapTransform()
+{
+	godot::Transform2D map;
+
+	if (m_mapViewer == nullptr)
+		return map;
+
+	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+	if (viewer == nullptr)
+		return map;
+
+	godot::Transform2D cameraT = get_global_transform();
+	map = viewer->globalToMap(cameraT);
+	
+	return map;
+}
+
+godot::Vector2 GDN_TheWorld_MapCamera::getCameraMapPos()
+{
+	return getCameraMapTransform().get_origin();
 }
 
 void GDN_TheWorld_Camera::_bind_methods()
@@ -115,9 +185,9 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_camera_tracking_offset", "p_value"), &GDN_TheWorld_Camera::setCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_tracking_offset"), &GDN_TheWorld_Camera::getCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_altitude_from_terrain"), &GDN_TheWorld_Camera::cameraAltitudeFromTerrain);
-	ClassDB::bind_method(D_METHOD("set_camera_global_transform"), &GDN_TheWorld_Camera::setCameraGlobalTransform);
-	ClassDB::bind_method(D_METHOD("set_camera_map_transform", "p_transform"), &GDN_TheWorld_Camera::setCameraMapTransform);
-	ClassDB::bind_method(D_METHOD("get_camera_map_transform"), &GDN_TheWorld_Camera::getCameraMapTransform);
+	ClassDB::bind_method(D_METHOD("set_camera_global_transform"), &GDN_TheWorld_Camera::setGlobalTransform);
+	ClassDB::bind_method(D_METHOD("set_camera_world_transform", "p_transform"), &GDN_TheWorld_Camera::setWorldTransform);
+	ClassDB::bind_method(D_METHOD("get_camera_world_transform"), &GDN_TheWorld_Camera::getWorldTransform);
 
 	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
 	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_camera_tracking_speed", "get_camera_tracking_speed");
@@ -324,7 +394,7 @@ void GDN_TheWorld_Camera::_process(double _delta)
 	//}
 }
 
-godot::Transform3D GDN_TheWorld_Camera::getCameraMapTransform(void)
+godot::Transform3D GDN_TheWorld_Camera::getWorldTransform(void)
 {
 	godot::Transform3D map;
 
@@ -333,32 +403,37 @@ godot::Transform3D GDN_TheWorld_Camera::getCameraMapTransform(void)
 		return map;
 
 	godot::Transform3D cameraT = get_global_transform();
-	map = viewer->globalToMap(cameraT);
+	map = viewer->globalToWorld(cameraT);
 	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
 	//ret = viewerT * cameraT;
 
-	//godot::Transform3D cameraT1 = viewer->mapToGlobal(map);	// DEBUG ONLY
+	//godot::Transform3D cameraT1 = viewer->worldToGlobal(map);	// DEBUG ONLY
 
 	return map;
 }
 
-void GDN_TheWorld_Camera::setCameraMapTransform(godot::Transform3D map)
+void GDN_TheWorld_Camera::setWorldTransform(godot::Transform3D map)
 {
 	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
 	if (viewer == nullptr)
 		return;
 
 	//godot::Transform3D cameraT = get_global_transform();	// DEBUG ONLY
-	godot::Transform3D newCameraT = viewer->mapToGlobal(map);
+	godot::Transform3D newCameraT = viewer->worldToGlobal(map);
 	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
 	//godot::Transform3D newCameraT = viewerT * t;
 	set_global_transform(newCameraT);
 }
 
-void GDN_TheWorld_Camera::setCameraMapPos(godot::Vector3 mapPos)
+godot::Vector3 GDN_TheWorld_Camera::getWorldPos(void)
+{
+	return getWorldTransform().get_origin();
+}
+
+void GDN_TheWorld_Camera::setWorldPos(godot::Vector3 mapPos)
 {
 	godot::Transform3D mapTransform(get_global_transform().basis, mapPos);
-	setCameraMapTransform(mapTransform);
+	setWorldTransform(mapTransform);
 }
 
 void GDN_TheWorld_Camera::_physics_process(double _delta)
@@ -376,6 +451,9 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 	if (viewer == nullptr)
 		return;
 
+	if (!viewer->worldMode())
+		return;
+	
 	if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
 		return;
 
@@ -576,6 +654,9 @@ void GDN_TheWorld_Camera::_input(const Ref<godot::InputEvent>& event)
 
 	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
 	if (viewer == nullptr)
+		return;
+
+	if (!viewer->worldMode())
 		return;
 
 	if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
@@ -779,8 +860,8 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 	//Vector3 worldNodePosGlobalCoord = Globals()->Viewer()->getWorldNode()->get_global_transform().origin;
 	//Vector3 cameraPosGlobalCoord = cameraPos + worldNodePosGlobalCoord;
 	//Vector3 lookAtGlobalCoord = lookAt + worldNodePosGlobalCoord;
-	Vector3 cameraPosGlobalCoord = Globals()->Viewer()->mapToGlobal(godot::Transform3D(godot::Basis(), cameraPos)).origin;
-	Vector3 lookAtGlobalCoord = Globals()->Viewer()->mapToGlobal(godot::Transform3D(godot::Basis(), lookAt)).origin;;
+	Vector3 cameraPosGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), cameraPos)).origin;
+	Vector3 lookAtGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), lookAt)).origin;;
 	if (cameraPosGlobalCoord != lookAtGlobalCoord)
 		Camera3D::look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, Vector3(0, 1, 0));
 
@@ -795,13 +876,6 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 
 	//set_cameraFar();
 	Camera3D::set_far(30000.0);
-
-	// TODORIC mah
-	//Camera::set_frustum(size / 2, offset, z_near, z_far * 100);
-	//Camera::set_frustum(size / 10.0F, offset, z_near, z_far * 100);
-	//Camera::set_frustum(size, offset, z_near, z_far * 100);
-
-	//Camera::set_orthogonal(size, z_near, z_far);
 
 	m_WorldCamera = true;
 
@@ -824,6 +898,17 @@ bool GDN_TheWorld_Camera::updateCamera(double _delta)
 
 void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 {
+	GDN_TheWorld_Globals* globals = Globals();
+	if (globals == nullptr)
+		return;
+
+	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
+	if (viewer == nullptr)
+		return;
+
+	if (!viewer->worldMode())
+		return;
+
 	if (m_postProcessingUnderWaterNode != nullptr)
 	{
 		if (m_postProcessingUnderWaterOverrideNode == nullptr or !m_postProcessingUnderWaterOverrideNode->is_visible())
@@ -1190,6 +1275,11 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 	return true;
 }
 
+float GDN_TheWorld_Camera::cameraMaxAltitudeFromTerrainDetected(void) const
+{
+	return MAX_ALTITUDE_DETECTED;
+}
+
 void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 {
 	if (Globals()->status() != TheWorldStatus::worldDeployed)
@@ -1273,7 +1363,6 @@ godot::Ref<godot::ArrayMesh> GDN_TheWorld_Camera::DrawViewFrustum(Color c)
 	float m_AspectRatio = (m_ScreenWidth > m_ScreenHeight) ? (m_ScreenWidth / m_ScreenHeight) : (m_ScreenHeight / m_ScreenWidth);
 
 	float m_FarHeight = 2.0f * ((float)tan(godot::Camera3D::get_fov() / 2.0f)) * m_FarOffset;
-	//float m_FarWidth = m_FarOffset * m_AspectRatio;	// TODORIC mah
 	float m_FarWidth = m_FarHeight * m_AspectRatio;
 
 	m_FarHeight = m_FarHeight + ((m_FarHeight / 7) * 3);

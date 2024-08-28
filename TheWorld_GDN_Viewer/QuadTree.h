@@ -25,6 +25,30 @@ namespace godot
 	class GDN_TheWorld_Quadrant;
 	class GDN_TheWorld_MapModder;
 
+	class MapQuadrant
+	{
+	public:
+		MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer);
+		~MapQuadrant();
+
+		godot::Ref<godot::Image> getMapImage(void) const;
+		void setMapImage(godot::Ref<godot::Image> mapImage);
+		bool updated(void)
+		{
+			return m_updated;
+		}
+		void updated(bool b)
+		{
+			m_updated = b;
+		}
+
+	private:
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
+		TheWorld_Utils::QuadrantPos m_quadrantPos;
+		godot::Ref<godot::Image> m_mapImage;
+		bool m_updated = false;
+	};
+	
 	enum class QuadType
 	{
 		NotSet = -1
@@ -542,6 +566,11 @@ namespace godot
 		NeighbourQuadrantData& eastQuadrantData(void)
 		{
 			return m_eastQuadrantData;
+		}
+
+		godot::Ref<godot::Image> getMapImage(void) const
+		{
+			return m_mapImage;
 		}
 
 	private:

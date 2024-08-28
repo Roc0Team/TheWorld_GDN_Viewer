@@ -37,6 +37,27 @@ GDN_TheWorld_ShaderTexture* ShaderTerrainData::g_lookDevShaderTexture = nullptr;
 
 // QuadTree coordinates are local to Viewer Node which contains the grid of quads: the first chunk (posX = posZ = 0) has its lower vertex in the origin of the Viwer Node
 
+MapQuadrant::MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer)
+{
+	m_quadrantPos = quadrantPos;
+	m_viewer = viewer;
+}
+
+MapQuadrant::~MapQuadrant()
+{
+}
+
+godot::Ref<godot::Image> MapQuadrant::getMapImage(void) const
+{
+	return m_mapImage;
+}
+
+void MapQuadrant::setMapImage(godot::Ref<godot::Image> mapImage)
+{
+	m_mapImage = mapImage;
+	m_updated = true;
+}
+
 Quad::Quad(enum class QuadType quadType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
 {
 	m_quadType = quadType;
@@ -4831,6 +4852,9 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		}
 	}
 
+	size_t optimizationLevel = 4;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
+	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
+
 	if (m_globalmapBuffer.size() > 0)
 	{
 		setGlobalmapUpdated(true);
@@ -4854,11 +4878,15 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		}
 
 		std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
-		size_t optimizationLevel = 4;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
-		size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
 		m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevel, cachedTextureResolution);
 		//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".map.png";
 		//m_mapImage->save_png(outFileName.c_str());
+	}
+
+	if (m_mapImage == nullptr)
+	{
+		m_mapImage = godot::Image::create((int32_t)cachedTextureResolution, (int32_t)cachedTextureResolution, false, godot::Image::FORMAT_RGB8);
+		m_mapImage->fill(godot::Color(1.0, 1.0, 1.0, 1.0));
 	}
 
 	if (m_colormapBuffer.size() > 0)

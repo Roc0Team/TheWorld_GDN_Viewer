@@ -13,6 +13,7 @@
 #include <godot_cpp/classes/editor_plugin.hpp>
 #include <godot_cpp/classes/camera3d.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
+#include <godot_cpp/classes/mesh_instance2d.hpp>
 #include <godot_cpp/classes/immediate_mesh.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/classes/sprite2d.hpp>
@@ -23,6 +24,7 @@
 #include <godot_cpp/classes/h_box_container.hpp>
 #include <godot_cpp/classes/container.hpp>
 #include <godot_cpp/classes/panel_container.hpp>
+//#include <godot_cpp/classes/dictionary.hpp>
 #pragma warning(pop)
 
 #include <map>
@@ -40,6 +42,7 @@ namespace godot
 {
 	class MeshCache;
 	class QuadTree;
+	class MapQuadrant;
 	class Chunk;
 	class GDN_TheWorld_Globals;
 	class GDN_TheWorld_Camera;
@@ -47,7 +50,38 @@ namespace godot
 	class GDN_TheWorld_Drawer;
 	class GDN_TheWorld_Gizmo3d;
 
-	typedef std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<QuadTree>> MapQuadTree;
+	//typedef std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<QuadTree>> WorldQuadrantsMap;
+	//typedef std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrant>> MapQuadrantsMap;
+
+	class WorldQuadrantsMap : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<QuadTree>>
+	{
+	public:
+		void setViewer(GDN_TheWorld_Viewer* viewer);
+
+	private:
+		GDN_TheWorld_Viewer* m_viewer;
+	};
+
+	class MapQuadrantsMap : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrant>>
+	{
+	public:
+		void setViewer(GDN_TheWorld_Viewer* viewer);
+		godot::Ref<godot::Image> getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos);
+		void setMapImage(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos);
+		bool updated(void)
+		{
+			return m_updated;
+		}
+		void updated(bool b)
+		{
+			m_updated = b;
+		}
+
+	private:
+		GDN_TheWorld_Viewer* m_viewer;
+		godot::Vector2i m_mapImageSize;
+		bool m_updated = false;
+	};
 
 #define STREAMER_SLEEP_TIME			10
 #define STREAMER_SYNC_PERIOD_TIME	1000
@@ -299,9 +333,9 @@ namespace godot
 		godot::GDN_TheWorld_Map* m_map = nullptr;
 	};
 
-	class GDN_TheWorld_Map : public godot::PanelContainer
+	class GDN_TheWorld_Map : public godot::Node2D
 	{
-		GDCLASS(GDN_TheWorld_Map, PanelContainer)
+		GDCLASS(GDN_TheWorld_Map, Node2D)
 
 	protected:
 		static void _bind_methods(void);
@@ -328,9 +362,32 @@ namespace godot
 		{
 			return m_mapViewer;
 		}
+		godot::Vector2i getTextureRectSize(void)
+		{
+			return m_textureRectSize;
+		}
+		
+		godot::Vector2 globalPosToMapPos(godot::Vector2 global);
+		godot::Vector2 mapPosToGlobalPos(godot::Vector2 mapPos);
+
+		void setMapImage(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, bool replace = false);
+		void setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir = false, bool visible = true);
+
+		void zoom(int zoomRequired)
+		{
+			m_zoomRequired = zoomRequired;
+		}
+
+	private:
+		GDN_TheWorld_Globals* Globals(bool useCache = true);
 
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
+		GDN_TheWorld_Globals* m_globals = nullptr;
+		godot::Vector2i m_textureRectSize;
+		godot::Dictionary m_worldFlagDict;
+		int m_zoomRequired = 0;
+		godot::Vector2 m_scale;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -571,7 +628,8 @@ namespace godot
 				, process_updateOriginShift = 20
 				, process_castRayFromCamera = 21
 				, process_updateGridDimension = 22
-				, process_updateHud = 23
+				, process_mapQuadrants = 23
+				, process_updateHud = 24
 			};
 			ProcessStep(enum class ProcessStepIdx idx, size_t elapsed, int num = 1)
 			{
@@ -626,6 +684,18 @@ namespace godot
 					return "Quadrant_updateCollider";
 				case ProcessStepIdx::EndOfProcessExecution:
 					return "EndOfProcessExecution";
+				case ProcessStepIdx::process_updateCameraInQuadrants:
+					return "process_updateCameraInQuadrants";
+				case ProcessStepIdx::process_updateOriginShift:
+					return "process_updateOriginShift";
+				case ProcessStepIdx::process_castRayFromCamera:
+					return "process_castRayFromCamera";
+				case ProcessStepIdx::process_updateGridDimension:
+					return "process_updateGridDimension";
+				case ProcessStepIdx::process_mapQuadrants:
+					return "process_mapQuadrants";
+				case ProcessStepIdx::process_updateHud:
+					return "process_updateHud";
 				default:
 					return "not_set";
 				}
@@ -743,7 +813,7 @@ namespace godot
 		virtual void _physics_process(double _delta) override;
 		virtual void _input(const Ref<InputEvent>& event) override;
 		
-		void process_impl(double _delta, godot::Camera3D* activeCamera);
+		void process_impl(double _delta, godot::Camera2D* activeMapCamera, godot::Camera3D* activeWorldCamera);
 
 		//Ref<Material> getRegularMaterial(void);
 		//Ref<Material> getLookDevMaterial(void);
@@ -815,6 +885,9 @@ namespace godot
 		void setEditor3dOverlay(godot::Object* editor3dOverlay);
 		bool trackMouse(void) const;
 		void trackMouse(bool b);
+		bool mapMode(void) const;
+		bool worldMode(void) const;
+		void toggleMapView(void);
 		void toggleTrackMouse(void);
 		void toggleEditMode(void);
 		void setEditMode(bool editMode);
@@ -831,6 +904,7 @@ namespace godot
 		//void toggleFullScreen(void);
 		void toggleQuadrantSelected(void);
 		godot::Camera3D* getWorldCamera(void);
+		godot::Camera3D* getWorldCamera2(bool force = false);
 		godot::Camera2D* getMapCamera(void);
 		godot::Camera3D* getWorldCameraInEditor(void);
 		void setWorldEditorCamera(godot::Camera3D* editorCamera);
@@ -962,7 +1036,10 @@ namespace godot
 			if (m_mouseTrackedOnSomething)
 			{
 				godot::Camera3D* camera = getWorldCamera();
-				return (float)camera->get_global_transform().origin.distance_to(m_trackedMouseHitGlobal);
+				if (camera == nullptr)
+					return 0.0f;
+				else
+					return (float)camera->get_global_transform().origin.distance_to(m_trackedMouseHitGlobal);
 			}
 			else
 				return 0.0f;
@@ -1133,7 +1210,7 @@ namespace godot
 		{
 			m_reloadSelectedQuadrantShaderRequired = b;
 		}
-		void trackedMouseHitChanged(godot::Camera3D* activeCamera, QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit, godot::Vector3 normalHit = Vector3Zero);
+		void trackedMouseHitChanged(godot::Camera3D* activeWorldCamera, QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit, godot::Vector3 normalHit = Vector3Zero);
 		void clearQuadTreeMap(void);
 		bool gizmoVisible(void) const
 		{
@@ -1342,12 +1419,15 @@ namespace godot
 		int getGroundTextureLayer(godot::String texName);
 		godot::Vector4 getGroundTextureLayers(void);
 
-		godot::Transform3D globalToMap(godot::Transform3D global) const;
-		godot::Transform3D globalPosToMapTransform(godot::Vector3 global) const;
-		godot::Vector3 globalPosToMapPos(godot::Vector3 global) const;
-		godot::Transform3D mapToGlobal(godot::Transform3D map) const;
-		godot::Transform3D mapPosToGlobalTransform(godot::Vector3 map) const;
-		godot::Vector3 mapPosToGlobalPos(godot::Vector3 map) const;
+		godot::Transform3D globalToWorld(godot::Transform3D global) const;
+		godot::Transform2D globalToMap(godot::Transform2D global);
+		godot::Transform3D globalPosToWorldTransform(godot::Vector3 global) const;
+		godot::Vector3 globalPosToWorldPos(godot::Vector3 global) const;
+		godot::Vector2 globalPosToMapPos(godot::Vector2 global);
+		godot::Transform3D worldToGlobal(godot::Transform3D map) const;
+		godot::Transform3D worldPosToGlobalTransform(godot::Vector3 map) const;
+		godot::Vector3 worldPosToGlobalPos(godot::Vector3 map) const;
+		godot::Vector2 mapPosToGlobalPos(godot::Vector2 mapPos);
 
 		void startInitializingStreamOfQuadrants(void);
 		void endInitializingStreamOfQuadrants(void);
@@ -1362,9 +1442,9 @@ namespace godot
 			return m_allCollidersReady;
 		}
 		void allCollidersReady(bool b);
-		bool quadTreeMapValid(void) const
+		bool worldQuadrantsMapValid(void) const
 		{
-			return m_quadTreeMapValid;
+			return m_worldQuadrantsMapValid;
 		}
 
 		bool finishedResizingGrid(void) const
@@ -1514,16 +1594,16 @@ namespace godot
 		void streamer(void);
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
-		void process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap, godot::Camera3D* activeCamera);
+		void process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap, godot::Camera3D* activeWorldCamera);
 		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap);
 		void process_initNewQuads(bool processCameraPosForQuadrants);
-		void process_updateCameraPosInShader(godot::Camera3D* activeCamera);
-		void process_updateHud(godot::Camera3D* activeCamera);
-		void process_updateOriginShift(godot::Camera3D* activeCamera);
+		void process_updateCameraPosInShader(godot::Camera3D* activeWorldCamera);
+		void process_updateHud(godot::Camera3D* activeWorldCamera);
+		void process_updateOriginShift(godot::Camera2D* activeMapCamera, godot::Camera3D* activeWorldCamera);
 		void setAnchorForOriginShift(godot::Node3D* anchorForOriginShift);
 		godot::Node3D* getAnchorForOriginShift(void);
-		void process_trackMouse(godot::Camera3D* activeCamera);
-		void process_castRayFromCamera(godot::Camera3D* activeCamera);
+		void process_trackMouse(godot::Camera3D* activeWorldCamera);
+		void process_castRayFromCamera(godot::Camera3D* activeWorldCamera);
 		void process_updateLodInQuads(godot::Vector3& cameraPosInMap);
 		void process_updateLodInQuads(godot::Vector3& cameraPosInMap, enum class QuadType type);
 		void process_updateMeshForUpdatedChunks(void);
@@ -1531,6 +1611,7 @@ namespace godot
 		void process_lookDev(void);
 		void process_materialParam(godot::Vector3& cameraPosInMap, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_neighbourQuadrantData(QuadTree* quadTree);
+		void process_mapQuadrants(void);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
@@ -1538,7 +1619,7 @@ namespace godot
 		TheWorld_Utils::QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isQuadrantSelectedForEdit(void);
 		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized);
-		bool setWorldCameraMapPos(float posX, float posZ, float altitudeFromTerrain);
+		bool setWorldCameraWorldPos(godot::Vector2 mapPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform);
 
 	private:
 		bool m_initialized;
@@ -1743,9 +1824,10 @@ namespace godot
 		//QuadTree* m_cameraQuadTree;
 		
 		// World Data
-		bool m_quadTreeMapValid = false;
-		MapQuadTree m_quadTreeMap;
-		MapQuadTree m_extraQuadsMap;
+		bool m_worldQuadrantsMapValid = false;
+		WorldQuadrantsMap m_worldQuadrantsMap;
+		WorldQuadrantsMap m_extraQuadsMap;
+		MapQuadrantsMap m_mapQuadrantsMap;
 		std::recursive_mutex m_mtxQuadTreeAndMainProcessing;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
 		TheWorld_Utils::QuadrantPos m_computedCameraQuadrantPos;
@@ -1767,7 +1849,7 @@ namespace godot
 		int m_numVisibleQuadrantOnPerimeterOnEastSideApplied = -1;
 		size_t m_numCacheQuadrantOnPerimeter = 0;
 		// Node cache
-		GDN_TheWorld_Globals* m_globals;
+		GDN_TheWorld_Globals* m_globals = nullptr;
 		GDN_TheWorld_Edit* m_editModeUIControl;
 		//Ref<ShaderMaterial> m_regularMaterial;
 		//Ref<ShaderMaterial> m_lookDevMaterial;
@@ -1845,11 +1927,15 @@ namespace godot
 		//GDN_TheWorld_WorldViewportContainer* m_worldViewportContainer = nullptr;
 		//GDN_TheWorld_WorldViewport* m_worldViewport = nullptr;
 
+		bool m_mapMode = false;
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_MapViewportContainer* m_mapViewportContainer = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
 		GDN_TheWorld_Map* m_map = nullptr;
 		GDN_TheWorld_MapCamera* m_mapCamera = nullptr;
+		float m_altitudeForToggleToWorldMode = 0;
+		bool m_altitudeForToggleToWorldModeIsAbsolute = true;
+		godot::Transform3D m_worldCameraWorldTransformForToggleToWorldMode;
 
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;

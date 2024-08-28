@@ -377,12 +377,6 @@ bool Chunk::isQuadTreeVisible(void)
 	return m_quadTree->isVisible() && m_quadTree->isValid();
 }
 
-// TODORIC mah Material stuff
-//func set_material(material: Material) :
-//	assert(_mesh_instance != RID())
-//	VisualServer.instance_geometry_set_material_override(\
-//		_mesh_instance, material.get_rid() if material != null else RID())
-
 void Chunk::setMaterial(godot::Ref<godot::Material>& mat)
 {
 	assert(m_meshInstanceRID != godot::RID());

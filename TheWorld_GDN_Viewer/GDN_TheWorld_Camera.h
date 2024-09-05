@@ -56,6 +56,18 @@ namespace godot {
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		int m_zoomRequired = 0;
 		bool m_updateCameraRequired = false;
+
+		bool m_shiftPressed = false;
+		bool m_ctrlPressed = false;
+		bool m_altPressed = false;
+	
+		// Camera Movement/Rotation
+		bool m_mouseShiftCameraOn = false;
+		godot::Vector2 m_mouseRelativePosToShift;
+		// Camera Movement/Rotation
+
+		float m_sensitivity = 1.0;	// 0.0 - 1.0
+
 	};
 
 	class GDN_TheWorld_Camera : public Camera3D
@@ -267,9 +279,9 @@ namespace godot {
 		float m_wheelSlowVelocity;
 		// Camera Movement
 
-		// Camera Rotation
-		bool m_shiftOriCameraOn;
-		bool m_shiftVertCameraOn;
+		// Camera Movement/Rotation
+		bool m_mouseShiftCameraOn;
+		//bool m_shiftVertCameraOn;
 		bool m_rotateCameraOn;
 		bool m_shiftPressed;
 		bool m_ctrlPressed;
@@ -281,8 +293,8 @@ namespace godot {
 		//bool m_upwardMovementOn;
 		//bool m_downwardMovementOn;
 		godot::Vector2 m_mouseRelativePosToRotate;
-		godot::Vector2 m_mouseRelativePosToShiftOriz;
-		godot::Vector2 m_mouseRelativePosToShiftVert;
+		godot::Vector2 m_mouseRelativePosToShift;
+		//godot::Vector2 m_mouseRelativePosToShiftVert;
 		float m_sensitivity;			// 0.0 - 1.0
 		float m_smoothness;				// 0.0 - 0.999 tick 0.001
 		float m_yaw;
@@ -293,7 +305,7 @@ namespace godot {
 		float m_lastPitch;
 		float m_totalPitch;
 		int m_pitchLimit;
-		// Camera Rotation
+		// Camera Movement/Rotation
 		
 		godot::Ref<godot::Image> m_seaWaveMapImage;
 		godot::Ref<godot::NoiseTexture2D> m_seaWaveMapTexture;

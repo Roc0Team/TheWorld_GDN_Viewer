@@ -28,12 +28,16 @@ namespace godot
 	class MapQuadrant
 	{
 	public:
-		MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer);
+		MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, size_t optimizationLevel);
 		~MapQuadrant();
 
-		godot::Ref<godot::Image> getMapImage(void) const;
-		void setMapImage(godot::Ref<godot::Image> mapImage);
-		bool updated(void)
+		godot::Ref<godot::Image> getMapImage(void);
+		
+		void setMapData(godot::Ref<godot::Image> mapImage);
+		
+		void refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer);
+		
+		bool updated(void) const
 		{
 			return m_updated;
 		}
@@ -41,12 +45,27 @@ namespace godot
 		{
 			m_updated = b;
 		}
+		
+		size_t getOptimizationLevel(void) const
+		{
+			return m_optimizationLevel;
+		}
+		int32_t getImageResolution(void) const
+		{
+			return m_imageResolution;
+		}
 
 	private:
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		TheWorld_Utils::QuadrantPos m_quadrantPos;
-		godot::Ref<godot::Image> m_mapImage;
 		bool m_updated = false;
+		int64_t m_lastUpdateTime = 0;
+		size_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
+		int32_t m_imageResolution = 0;
+
+		// Datas
+		godot::Ref<godot::Image> m_mapImage;
+		// Datas
 	};
 	
 	enum class QuadType

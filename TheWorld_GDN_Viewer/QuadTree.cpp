@@ -37,25 +37,116 @@ GDN_TheWorld_ShaderTexture* ShaderTerrainData::g_lookDevShaderTexture = nullptr;
 
 // QuadTree coordinates are local to Viewer Node which contains the grid of quads: the first chunk (posX = posZ = 0) has its lower vertex in the origin of the Viwer Node
 
-MapQuadrant::MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer)
+MapQuadrant::MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, size_t optimizationLevel)
 {
 	m_quadrantPos = quadrantPos;
 	m_viewer = viewer;
+	m_optimizationLevel = optimizationLevel;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
+	m_imageResolution = (int32_t)m_viewer->Globals()->resolutionForOptimizationLevel((size_t)m_optimizationLevel);
 }
 
 MapQuadrant::~MapQuadrant()
 {
 }
 
-godot::Ref<godot::Image> MapQuadrant::getMapImage(void) const
+godot::Ref<godot::Image> MapQuadrant::getMapImage(void)
 {
+	if (m_mapImage == nullptr)
+	{
+		m_mapImage = godot::Image::create(getImageResolution(), getImageResolution(), false, godot::Image::FORMAT_RGB8);
+		m_mapImage->fill(godot::Color(GDN_TheWorld_Globals::g_color_white));
+	}
+
 	return m_mapImage;
 }
 
-void MapQuadrant::setMapImage(godot::Ref<godot::Image> mapImage)
+void MapQuadrant::setMapData(godot::Ref<godot::Image> mapImage)
 {
 	m_mapImage = mapImage;
-	m_updated = true;
+	m_lastUpdateTime = TIME()->get_ticks_msec();
+	updated(true);
+}
+
+void MapQuadrant::refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer)
+{
+	TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1 ") + __FUNCTION__, "Global");
+
+	GDN_TheWorld_Globals* globals = m_viewer->Globals();
+
+	outMeshIdFromBuffer.clear();
+
+	TheWorld_Utils::MemoryBuffer globalmapBuffer;
+
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.1 ") + __FUNCTION__, "cache.refreshMapsFromBuffer");
+
+		TheWorld_Utils::MeshCacheBuffer cache;
+		float minAltitude = 0, maxAltitude = 0;
+		TheWorld_Utils::MemoryBuffer float16HeigthsBuffer;
+		TheWorld_Utils::MemoryBuffer float32HeigthsBuffer;
+		TheWorld_Utils::MemoryBuffer normalsBuffer;
+		TheWorld_Utils::MemoryBuffer splatmapBuffer;
+		TheWorld_Utils::MemoryBuffer colormapBuffer;
+		TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+		cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, false);
+	}
+
+	if (outMeshIdFromBuffer.size() > 0)
+	{
+		size_t l1 = outMeshIdFromBuffer.size();
+		size_t l2 = meshIdFromServer.size();
+		const char* c1 = outMeshIdFromBuffer.c_str();
+		const char* c2 = meshIdFromServer.c_str();
+		//assert(outMeshIdFromBuffer == meshIdFromServer);
+		if (outMeshIdFromBuffer != meshIdFromServer)
+			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("MeshId from buffer not equal to meshId from server").c_str()));
+	}
+
+	if (globalmapBuffer.empty())
+	{
+		setMapData(nullptr);
+	}
+	else
+	{
+		int _resolution = globals->heightmapResolution() + 1;
+		godot::PackedByteArray data;
+		size_t globalmapBufferSizeInBytes = (size_t)_resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
+		data.resize((int)globalmapBufferSizeInBytes);
+		assert(globalmapBufferSizeInBytes == globalmapBuffer.size());
+		{
+			memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
+		}
+		godot::Ref<godot::Image> hiResImage = godot::Image::create_from_data(_resolution, _resolution, false, Image::FORMAT_RGB8, data);
+
+		godot::Ref<godot::Image> resizedImage = godot::Image::create_from_data(hiResImage->get_width(), hiResImage->get_height(), false, hiResImage->get_format(), hiResImage->get_data());
+		resizedImage->resize(getImageResolution(), getImageResolution(), godot::Image::Interpolation::INTERPOLATE_BILINEAR);
+
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.2 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(getImageResolution()));
+
+			//size_t optimizationLevel = 4;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
+			//int32_t newStep = 1 << optimizationLevel;
+			int32_t newStep = (_resolution - 1) / (getImageResolution() - 1);
+			int32_t hiResImageWidth = hiResImage->get_width();
+			int32_t hiResImageHeight = hiResImage->get_height();
+			int32_t resizedImageWidth = resizedImage->get_width();
+			int32_t resizedImageHeight = resizedImage->get_height();
+			for (int32_t x = 0; x < resizedImageWidth; x++)
+			{
+				resizedImage->set_pixel(x, 0, hiResImage->get_pixel(x * newStep, 0));
+				resizedImage->set_pixel(x, resizedImageHeight - 1, hiResImage->get_pixel(x * newStep, hiResImageHeight - 1));
+			}
+			for (int32_t y = 0; y < resizedImageHeight; y++)
+			{
+				resizedImage->set_pixel(0, y, hiResImage->get_pixel(0, y * newStep));
+				resizedImage->set_pixel(resizedImageWidth - 1, y, hiResImage->get_pixel(hiResImageWidth - 1, y * newStep));
+			}
+		}
+
+		setMapData(resizedImage);
+	}
+
+	return;
 }
 
 Quad::Quad(enum class QuadType quadType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
@@ -2923,7 +3014,7 @@ godot::Ref<godot::Image> ShaderTerrainData::resizeImage(std::string& profileHead
 
 	// doing a copy to resize
 	//m_viewer->getMainProcessingMutex().lock();
-	Ref<Image> resizedImage = godot::Image::create_from_data(hiResImage->get_width(), hiResImage->get_height(), false, hiResImage->get_format(), hiResImage->get_data());
+	godot::Ref<godot::Image> resizedImage = godot::Image::create_from_data(hiResImage->get_width(), hiResImage->get_height(), false, hiResImage->get_format(), hiResImage->get_data());
 	//m_viewer->getMainProcessingMutex().unlock();
 
 	resizedImage->resize((int32_t)newResolution, (int32_t)newResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
@@ -2932,19 +3023,19 @@ godot::Ref<godot::Image> ShaderTerrainData::resizeImage(std::string& profileHead
 		TheWorld_Utils::GuardProfiler profiler(_profileHeader + __FUNCTION__, "resize image (adjust borders) " + std::to_string(resolution) + " ==> " + std::to_string(newResolution));
 
 		int32_t newStep = 1 << optimizationLevel;
-		int32_t realImageWidth = hiResImage->get_width();
-		int32_t realImageHeight = hiResImage->get_height();
+		int32_t hiResImageWidth = hiResImage->get_width();
+		int32_t hiResImageHeight = hiResImage->get_height();
 		int32_t resizedImageWidth = resizedImage->get_width();
 		int32_t resizedImageHeight = resizedImage->get_height();
 		for (int32_t x = 0; x < resizedImageWidth; x++)
 		{
 			resizedImage->set_pixel(x, 0, hiResImage->get_pixel(x * newStep, 0));
-			resizedImage->set_pixel(x, resizedImageHeight - 1, hiResImage->get_pixel(x * newStep, realImageHeight - 1));
+			resizedImage->set_pixel(x, resizedImageHeight - 1, hiResImage->get_pixel(x * newStep, hiResImageHeight - 1));
 		}
 		for (int32_t y = 0; y < resizedImageHeight; y++)
 		{
 			resizedImage->set_pixel(0, y, hiResImage->get_pixel(0, y * newStep));
-			resizedImage->set_pixel(resizedImageWidth - 1, y, hiResImage->get_pixel(realImageWidth - 1, y * newStep));
+			resizedImage->set_pixel(resizedImageWidth - 1, y, hiResImage->get_pixel(hiResImageWidth - 1, y * newStep));
 		}
 	}
 
@@ -4881,12 +4972,6 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevel, cachedTextureResolution);
 		//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".map.png";
 		//m_mapImage->save_png(outFileName.c_str());
-	}
-
-	if (m_mapImage == nullptr)
-	{
-		m_mapImage = godot::Image::create((int32_t)cachedTextureResolution, (int32_t)cachedTextureResolution, false, godot::Image::FORMAT_RGB8);
-		m_mapImage->fill(godot::Color(1.0, 1.0, 1.0, 1.0));
 	}
 
 	if (m_colormapBuffer.size() > 0)

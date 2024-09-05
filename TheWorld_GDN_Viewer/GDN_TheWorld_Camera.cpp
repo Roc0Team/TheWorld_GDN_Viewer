@@ -98,6 +98,24 @@ void GDN_TheWorld_MapCamera::_input(const Ref<InputEvent>& event)
 		m_zoomRequired--;
 		m_updateCameraRequired = true;
 	}
+
+	if (event->is_action_pressed("ui_mouse_button_left"))
+		m_mouseShiftCameraOn = true;
+	
+	if (event->is_action_released("ui_mouse_button_left"))
+		m_mouseShiftCameraOn = false;
+
+	const InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<InputEventMouseMotion>(event.ptr());
+	if (eventMouseMotion != nullptr)
+	{
+		//Globals()->debugPrint("GDN_TheWorld_Camera::_input: " + event->as_text());
+		if (m_mouseShiftCameraOn)
+		{
+			m_mouseRelativePosToShift = eventMouseMotion->get_relative();
+			m_updateCameraRequired = true;
+		}
+	}
+
 }
 
 void GDN_TheWorld_MapCamera::_unhandled_input(const Ref<InputEvent>& event)
@@ -128,6 +146,31 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 	if (map == nullptr)
 		return;
 
+	if (!viewer->mapMode())
+		return;
+
+	Input* input = Input::get_singleton();
+
+	if (input->is_action_pressed("ui_shift"))
+		m_shiftPressed = true;
+	else
+		m_shiftPressed = false;
+
+	if (input->is_action_pressed("ui_ctrl"))
+		m_ctrlPressed = true;
+	else
+		m_ctrlPressed = false;
+
+	if (input->is_action_pressed("ui_alt"))
+		m_altPressed = true;
+	else
+		m_altPressed = false;
+
+	//if (input->is_action_pressed("ui_mouse_button_left"))
+	//	m_mouseShiftCameraOn = true;
+	//else
+	//	m_mouseShiftCameraOn = false;
+
 	if (m_updateCameraRequired)
 	{
 		m_updateCameraRequired = false;
@@ -136,6 +179,19 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 		{
 			map->zoom(m_zoomRequired);
 			m_zoomRequired = 0;
+		}
+
+		if (m_mouseRelativePosToShift != godot::Vector2(0, 0))
+		{
+			float sensitivity = m_sensitivity;
+			if (m_ctrlPressed)
+				sensitivity *= 2;
+			m_mouseRelativePosToShift *= sensitivity;
+
+			//translate(godot::Vector2(-m_mouseRelativePosToShift.x, -m_mouseRelativePosToShift.y));
+			translate(-m_mouseRelativePosToShift);
+
+			m_mouseRelativePosToShift = godot::Vector2(0, 0);
 		}
 	}
 }
@@ -226,15 +282,15 @@ GDN_TheWorld_Camera::GDN_TheWorld_Camera()
 	// Camera Movement
 
 	// Camera Rotation
-	m_shiftOriCameraOn = false;
-	m_shiftVertCameraOn = false;
+	m_mouseShiftCameraOn = false;
+	//m_shiftVertCameraOn = false;
 	m_shiftPressed = false;
 	m_ctrlPressed = false;
 	m_altPressed = false;
 	m_rotateCameraOn = false;
-	m_mouseRelativePosToShiftOriz = Vector2(0, 0);
-	m_mouseRelativePosToShiftVert = Vector2(0, 0);
-	m_mouseRelativePosToRotate = Vector2(0, 0);
+	m_mouseRelativePosToShift = godot::Vector2(0, 0);
+	//m_mouseRelativePosToShiftVert = godot::Vector2(0, 0);
+	m_mouseRelativePosToRotate = godot::Vector2(0, 0);
 	m_sensitivity = 1.0;	// 0.5;
 	m_smoothness = 0.5;
 	m_yaw = 0.0;
@@ -495,15 +551,15 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 
 	//input = Input::get_singleton();
 	if (input->is_action_pressed("ui_mouse_button_left") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
-		m_shiftOriCameraOn = true;
+		m_mouseShiftCameraOn = true;
 	else
-		m_shiftOriCameraOn = false;
+		m_mouseShiftCameraOn = false;
 
-	//input = Input::get_singleton();
-	if (input->is_action_pressed("ui_mouse_button_mid") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
-		m_shiftVertCameraOn = true;
-	else
-		m_shiftVertCameraOn = false;
+	////input = Input::get_singleton();
+	//if (input->is_action_pressed("ui_mouse_button_mid") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
+	//	m_shiftVertCameraOn = true;
+	//else
+	//	m_shiftVertCameraOn = false;
 
 	if (input->is_action_pressed("ui_shift"))
 		m_shiftPressed = true;
@@ -684,16 +740,16 @@ void GDN_TheWorld_Camera::_input(const Ref<godot::InputEvent>& event)
 			m_mouseRelativePosToRotate = eventMouseMotion->get_relative();
 			m_updateCameraRequired = true;
 		}
-		if (m_shiftOriCameraOn)
+		if (m_mouseShiftCameraOn)
 		{
-			m_mouseRelativePosToShiftOriz = eventMouseMotion->get_relative();
+			m_mouseRelativePosToShift = eventMouseMotion->get_relative();
 			m_updateCameraRequired = true;
 		}
-		if (m_shiftVertCameraOn)
-		{
-			m_mouseRelativePosToShiftVert = eventMouseMotion->get_relative();
-			m_updateCameraRequired = true;
-		}
+		//if (m_shiftVertCameraOn)
+		//{
+		//	m_mouseRelativePosToShiftVert = eventMouseMotion->get_relative();
+		//	m_updateCameraRequired = true;
+		//}
 	}
 
 	if (!trackingPlayer())
@@ -850,20 +906,20 @@ void GDN_TheWorld_Camera::set_cameraFar(void)
 	//Camera3D::set_far(10000.0);
 }
 
-bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll)
+bool GDN_TheWorld_Camera::initCameraInWorld(godot::Vector3 cameraPos, godot::Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll)
 {
 	//set_name("WorldCamera");
 
 	activateCamera();
 
 	// cameraPos and lookAt are in WorldNode local coordinates and must be transformed in godot global coordinates
-	//Vector3 worldNodePosGlobalCoord = Globals()->Viewer()->getWorldNode()->get_global_transform().origin;
-	//Vector3 cameraPosGlobalCoord = cameraPos + worldNodePosGlobalCoord;
-	//Vector3 lookAtGlobalCoord = lookAt + worldNodePosGlobalCoord;
-	Vector3 cameraPosGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), cameraPos)).origin;
-	Vector3 lookAtGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), lookAt)).origin;;
+	//godot::Vector3 worldNodePosGlobalCoord = Globals()->Viewer()->getWorldNode()->get_global_transform().origin;
+	//godot::Vector3 cameraPosGlobalCoord = cameraPos + worldNodePosGlobalCoord;
+	//godot::Vector3 lookAtGlobalCoord = lookAt + worldNodePosGlobalCoord;
+	godot::Vector3 cameraPosGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), cameraPos)).origin;
+	godot::Vector3 lookAtGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), lookAt)).origin;;
 	if (cameraPosGlobalCoord != lookAtGlobalCoord)
-		Camera3D::look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, Vector3(0, 1, 0));
+		Camera3D::look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, godot::Vector3(0, 1, 0));
 
 	setYaw(cameraYaw, false);
 	setPitch(cameraPitch, false);
@@ -872,7 +928,7 @@ bool GDN_TheWorld_Camera::initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, f
 	//float z_near = Camera::get_znear();
 	//float z_far = Camera::get_zfar();
 	//float size = Camera::get_size();
-	//Vector2 offset = Camera::get_frustum_offset();
+	//godot::Vector2 offset = Camera::get_frustum_offset();
 
 	//set_cameraFar();
 	Camera3D::set_far(30000.0);
@@ -993,7 +1049,7 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 {
 	if (m_rotateCameraOn)
 	{
-		if (m_mouseRelativePosToRotate != Vector2(0, 0))
+		if (m_mouseRelativePosToRotate != godot::Vector2(0, 0))
 		{
 			float sensitivity = m_sensitivity;
 			if (m_shiftPressed)
@@ -1003,7 +1059,7 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 			m_mouseRelativePosToRotate *= sensitivity;
 			m_yaw = m_yaw * m_smoothness + (float)m_mouseRelativePosToRotate.x * (1.0F - m_smoothness);
 			m_pitch = m_pitch * m_smoothness + (float)m_mouseRelativePosToRotate.y * (1.0F - m_smoothness);
-			m_mouseRelativePosToRotate = Vector2(0, 0);
+			m_mouseRelativePosToRotate = godot::Vector2(0, 0);
 
 			if (m_yawLimit < 360)
 				m_yaw = TheWorld_Viewer_Utils::Utils::clamp(m_yaw, -m_yawLimit - m_totalYaw, m_yawLimit - m_totalYaw);
@@ -1019,7 +1075,7 @@ bool GDN_TheWorld_Camera::updatePlayerCamera(double _delta)
 				pitch = (-(kPi / 2)) - (float)get_rotation().x;
 
 			rotate_y(Math::deg_to_rad(-m_yaw));
-			rotate_object_local(Vector3(1, 0, 0), pitch);
+			rotate_object_local(godot::Vector3(1, 0, 0), pitch);
 
 			/*if (m_lastYaw != m_yaw)
 				Godot::print("Camera Yaw: " + String(std::to_string(m_yaw).c_str()));
@@ -1090,7 +1146,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 	godot::Vector3 savedCameraPos = get_global_position();
 	float savedLastCameraAltitudeComputed = m_lastCameraAltitudeFromTerrain;
 
-	if (m_mouseRelativePosToRotate != Vector2(0, 0))
+	if (m_mouseRelativePosToRotate != godot::Vector2(0, 0))
 	{
 		float sensitivity = m_sensitivity;
 		if (m_shiftPressed)
@@ -1100,7 +1156,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		m_mouseRelativePosToRotate *= sensitivity;
 		m_yaw = m_yaw * m_smoothness + (float)m_mouseRelativePosToRotate.x * (1.0F - m_smoothness);
 		m_pitch = m_pitch * m_smoothness + (float)m_mouseRelativePosToRotate.y * (1.0F - m_smoothness);
-		m_mouseRelativePosToRotate = Vector2(0, 0);
+		m_mouseRelativePosToRotate = godot::Vector2(0, 0);
 
 		if (m_yawLimit < 360)
 			m_yaw = TheWorld_Viewer_Utils::Utils::clamp(m_yaw, -m_yawLimit - m_totalYaw, m_yawLimit - m_totalYaw);
@@ -1116,7 +1172,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 			pitch = (-(kPi / 2)) - (float)get_rotation().x;
 
 		rotate_y(Math::deg_to_rad(-m_yaw));
-		rotate_object_local(Vector3(1, 0, 0), pitch);
+		rotate_object_local(godot::Vector3(1, 0, 0), pitch);
 
 		/*if (m_lastYaw != m_yaw)
 			Godot::print("Camera Yaw: " + String(std::to_string(m_yaw).c_str()));
@@ -1127,33 +1183,36 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		m_lastPitch = m_pitch;
 	}
 
-	if (m_mouseRelativePosToShiftOriz != Vector2(0, 0))
+	if (m_mouseRelativePosToShift != godot::Vector2(0, 0))
 	{
-		m_mouseRelativePosToShiftOriz *= m_sensitivity;
+		float sensitivity = m_sensitivity;
+		if (m_ctrlPressed)
+			sensitivity *= 2;
+		m_mouseRelativePosToShift *= sensitivity;
 
-		translate_object_local(Vector3(-m_mouseRelativePosToShiftOriz.x, 0, 0));
+		translate_object_local(godot::Vector3(-m_mouseRelativePosToShift.x, 0, -m_mouseRelativePosToShift.y));
 
-		m_mouseRelativePosToShiftOriz = Vector2(0, 0);
+		m_mouseRelativePosToShift = godot::Vector2(0, 0);
 	}
 
-	if (m_mouseRelativePosToShiftVert != Vector2(0, 0))
-	{
-		m_mouseRelativePosToShiftVert *= m_sensitivity;
+	//if (m_mouseRelativePosToShiftVert != godot::Vector2(0, 0))
+	//{
+	//	m_mouseRelativePosToShiftVert *= m_sensitivity;
 
-		translate_object_local(Vector3(0, 0, -m_mouseRelativePosToShiftVert.y));
+	//	translate_object_local(godot::Vector3(0, 0, -m_mouseRelativePosToShiftVert.y));
 
-		m_mouseRelativePosToShiftVert = Vector2(0, 0);
-	}
+	//	m_mouseRelativePosToShiftVert = godot::Vector2(0, 0);
+	//}
 
 	if (m_numLongMoveStepForward)
 	{
-		translate_object_local(Vector3(0, 0, m_numLongMoveStepForward * m_wheelVeryFastVelocity));
+		translate_object_local(godot::Vector3(0, 0, m_numLongMoveStepForward * m_wheelVeryFastVelocity));
 		m_numLongMoveStepForward = 0;
 	}
 
 	if (m_numLongMoveStepLeft)
 	{
-		translate_object_local(Vector3(-m_numLongMoveStepLeft * m_wheelVeryFastVelocity, 0, 0));
+		translate_object_local(godot::Vector3(-m_numLongMoveStepLeft * m_wheelVeryFastVelocity, 0, 0));
 		m_numLongMoveStepLeft = 0;
 	}
 
@@ -1163,30 +1222,30 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		{
 			if (m_shiftPressed)
 			{
-				translate_object_local(Vector3(0, -m_numMoveStepForward * m_wheelSlowVelocity, 0));
+				translate_object_local(godot::Vector3(0, -m_numMoveStepForward * m_wheelSlowVelocity, 0));
 			}
 			else if (m_ctrlPressed)
 			{
-				translate_object_local(Vector3(0, -m_numMoveStepForward * m_wheelFastVelocity, 0));
+				translate_object_local(godot::Vector3(0, -m_numMoveStepForward * m_wheelFastVelocity, 0));
 			}
 			else
 			{
-				translate_object_local(Vector3(0, -m_numMoveStepForward * m_wheelNormalVelocity, 0));
+				translate_object_local(godot::Vector3(0, -m_numMoveStepForward * m_wheelNormalVelocity, 0));
 			}
 		}
 		else
 		{
 			if (m_shiftPressed)
 			{
-				translate_object_local(Vector3(0, 0, m_numMoveStepForward * m_wheelSlowVelocity));
+				translate_object_local(godot::Vector3(0, 0, m_numMoveStepForward * m_wheelSlowVelocity));
 			}
 			else if (m_ctrlPressed)
 			{
-				translate_object_local(Vector3(0, 0, m_numMoveStepForward * m_wheelFastVelocity));
+				translate_object_local(godot::Vector3(0, 0, m_numMoveStepForward * m_wheelFastVelocity));
 			}
 			else
 			{
-				translate_object_local(Vector3(0, 0, m_numMoveStepForward * m_wheelNormalVelocity));
+				translate_object_local(godot::Vector3(0, 0, m_numMoveStepForward * m_wheelNormalVelocity));
 			}
 		}
 		m_numMoveStepForward = 0;
@@ -1199,15 +1258,15 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		//	Transform t = get_global_transform();
 		//	if (m_shiftPressed)
 		//	{
-		//		t.origin += Vector3(-m_numMoveStepLeft * m_wheelSlowVelocity, 0, 0);
+		//		t.origin += godot::Vector3(-m_numMoveStepLeft * m_wheelSlowVelocity, 0, 0);
 		//	}
 		//	else if (m_ctrlPressed)
 		//	{
-		//		t.origin += Vector3(-m_numMoveStepLeft * m_wheelFastVelocity, 0, 0);
+		//		t.origin += godot::Vector3(-m_numMoveStepLeft * m_wheelFastVelocity, 0, 0);
 		//	}
 		//	else
 		//	{
-		//		t.origin += Vector3(-m_numMoveStepLeft * m_wheelNormalVelocity, 0, 0);
+		//		t.origin += godot::Vector3(-m_numMoveStepLeft * m_wheelNormalVelocity, 0, 0);
 		//	}
 		//	set_global_transform(t);
 		//}
@@ -1215,15 +1274,15 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		//{
 			if (m_shiftPressed)
 			{
-				translate_object_local(Vector3(-m_numMoveStepLeft * m_wheelSlowVelocity, 0, 0));
+				translate_object_local(godot::Vector3(-m_numMoveStepLeft * m_wheelSlowVelocity, 0, 0));
 			}
 			else if (m_ctrlPressed)
 			{
-				translate_object_local(Vector3(-m_numMoveStepLeft * m_wheelFastVelocity, 0, 0));
+				translate_object_local(godot::Vector3(-m_numMoveStepLeft * m_wheelFastVelocity, 0, 0));
 			}
 			else
 			{
-				translate_object_local(Vector3(-m_numMoveStepLeft * m_wheelNormalVelocity, 0, 0));
+				translate_object_local(godot::Vector3(-m_numMoveStepLeft * m_wheelNormalVelocity, 0, 0));
 			}
 		//}
 		m_numMoveStepLeft = 0;
@@ -1234,15 +1293,15 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		Transform3D t = get_global_transform();
 		if (m_shiftPressed)
 		{
-			t.origin += Vector3(0, m_numMoveStepUp * m_wheelSlowVelocity, 0);
+			t.origin += godot::Vector3(0, m_numMoveStepUp * m_wheelSlowVelocity, 0);
 		}
 		else if (m_ctrlPressed)
 		{
-			t.origin += Vector3(0, m_numMoveStepUp * m_wheelFastVelocity, 0);
+			t.origin += godot::Vector3(0, m_numMoveStepUp * m_wheelFastVelocity, 0);
 		}
 		else
 		{
-			t.origin += Vector3(0, m_numMoveStepUp * m_wheelNormalVelocity, 0);
+			t.origin += godot::Vector3(0, m_numMoveStepUp * m_wheelNormalVelocity, 0);
 		}
 		set_global_transform(t);
 		m_numMoveStepUp = 0;
@@ -1368,19 +1427,19 @@ godot::Ref<godot::ArrayMesh> GDN_TheWorld_Camera::DrawViewFrustum(Color c)
 	m_FarHeight = m_FarHeight + ((m_FarHeight / 7) * 3);
 	m_FarWidth = m_FarWidth + ((m_FarWidth / 7) * 3);
 
-	Vector3 m_Forward = godot::Camera3D::get_global_transform().origin + Vector3Forward * m_FarOffset;
+	godot::Vector3 m_Forward = godot::Camera3D::get_global_transform().origin + Vector3Forward * m_FarOffset;
 
 	//--> Near World
-	Vector3 m_NearTopLeft = godot::Camera3D::project_position(Vector2(0, 0), godot::Camera3D::get_near());
-	Vector3 m_NearTopRight = godot::Camera3D::project_position(Vector2(m_ScreenWidth, 0), godot::Camera3D::get_near());
-	Vector3 m_NearBottomLeft = godot::Camera3D::project_position(Vector2(0, m_ScreenHeight), godot::Camera3D::get_near());
-	Vector3 m_NearBottomRight = godot::Camera3D::project_position(Vector2(m_ScreenWidth, m_ScreenHeight), godot::Camera3D::get_near());
+	godot::Vector3 m_NearTopLeft = godot::Camera3D::project_position(godot::Vector2(0, 0), godot::Camera3D::get_near());
+	godot::Vector3 m_NearTopRight = godot::Camera3D::project_position(godot::Vector2(m_ScreenWidth, 0), godot::Camera3D::get_near());
+	godot::Vector3 m_NearBottomLeft = godot::Camera3D::project_position(godot::Vector2(0, m_ScreenHeight), godot::Camera3D::get_near());
+	godot::Vector3 m_NearBottomRight = godot::Camera3D::project_position(godot::Vector2(m_ScreenWidth, m_ScreenHeight), godot::Camera3D::get_near());
 	
 	//--> Far LOCAL
-	Vector3 m_FarTopLeft = m_Forward + (Vector3Up * m_FarHeight / 2.0f) - (Vector3Right * m_FarWidth / 2.0f);
-	Vector3 m_FarTopRight = m_Forward + (Vector3Up * m_FarHeight / 2.0f) + (Vector3Right * m_FarWidth / 2.0f);
-	Vector3 m_FarBottomLeft = m_Forward - (Vector3Up * m_FarHeight / 2.0f) - (Vector3Right * m_FarWidth / 2.0f);
-	Vector3 m_FarBottomRight = m_Forward - (Vector3Up * m_FarHeight / 2.0f) + (Vector3Right * m_FarWidth / 2.0f);
+	godot::Vector3 m_FarTopLeft = m_Forward + (Vector3Up * m_FarHeight / 2.0f) - (Vector3Right * m_FarWidth / 2.0f);
+	godot::Vector3 m_FarTopRight = m_Forward + (Vector3Up * m_FarHeight / 2.0f) + (Vector3Right * m_FarWidth / 2.0f);
+	godot::Vector3 m_FarBottomLeft = m_Forward - (Vector3Up * m_FarHeight / 2.0f) - (Vector3Right * m_FarWidth / 2.0f);
+	godot::Vector3 m_FarBottomRight = m_Forward - (Vector3Up * m_FarHeight / 2.0f) + (Vector3Right * m_FarWidth / 2.0f);
 
 	//--> Far WORLD
 	m_FarTopLeft = godot::Camera3D::get_transform().xform(m_FarTopLeft);

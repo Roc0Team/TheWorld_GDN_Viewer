@@ -56,7 +56,7 @@ namespace godot
 	class WorldQuadrantsMap : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<QuadTree>>
 	{
 	public:
-		void setViewer(GDN_TheWorld_Viewer* viewer);
+		void init(GDN_TheWorld_Viewer* viewer);
 
 	private:
 		GDN_TheWorld_Viewer* m_viewer;
@@ -65,22 +65,84 @@ namespace godot
 	class MapQuadrantsMap : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrant>>
 	{
 	public:
-		void setViewer(GDN_TheWorld_Viewer* viewer);
-		godot::Ref<godot::Image> getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos);
-		void setMapImage(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos);
+		enum class UpdateStatus
+		{
+			UpdateNeeded = 0
+			, UpdateInProgress = 1
+		};
+
+	public:
+		void init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLevel);
+		//godot::Ref<godot::Image> getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos);
+		void setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos);
 		bool updated(void)
 		{
-			return m_updated;
+			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+			return (m_updatedQuadrants.size() > 0);
 		}
-		void updated(bool b)
+
+		void addUpdatedQuadrant(TheWorld_Utils::QuadrantPos pos)
 		{
-			m_updated = b;
+			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+			m_updatedQuadrants[pos] = true;
+			if (m_updatingQuadrants.contains(pos))
+				m_updatingQuadrants.erase(pos);
+		}
+		TheWorld_Utils::QuadrantPos fetchUpdatedQuadrant(void)
+		{
+			TheWorld_Utils::QuadrantPos pos;
+			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+			if (m_updatedQuadrants.size() > 0)
+			{
+				pos = m_updatedQuadrants.begin()->first;
+				m_updatedQuadrants.erase(m_updatedQuadrants.begin());
+			}
+			return pos;
+		}
+
+		bool addUpdatingQuadrant(TheWorld_Utils::QuadrantPos pos);
+
+		void lock(void)
+		{
+			m_internalMutex.lock();
+		}
+		void unlock(void)
+		{
+#pragma warning(suppress: 26110)
+			m_internalMutex.unlock();
+		}
+
+		//godot::Vector2i getMapImageSize(void) const
+		//{
+		//	return m_mapImageSize;
+		//}
+
+		int32_t getOptimizationLevel(void) const
+		{
+			return m_optimizationLevel;
+		}
+		int32_t getImageResolution(void) const
+		{
+			return m_imageResolution;
+		}
+
+		size_t getNumUpdatingQuadrants(void) const
+		{
+			return m_updatingQuadrants.size();
+		}
+		size_t getNumQuadrantsToShow(void) const
+		{
+			return m_updatedQuadrants.size();
 		}
 
 	private:
+		std::recursive_mutex m_internalMutex;
 		GDN_TheWorld_Viewer* m_viewer;
-		godot::Vector2i m_mapImageSize;
-		bool m_updated = false;
+		//godot::Vector2i m_mapImageSize;
+		std::map<TheWorld_Utils::QuadrantPos, bool> m_updatedQuadrants;
+		std::map<TheWorld_Utils::QuadrantPos, enum class UpdateStatus> m_updatingQuadrants;
+		int32_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
+		int32_t m_imageResolution = 0;
 	};
 
 #define STREAMER_SLEEP_TIME			10
@@ -362,15 +424,12 @@ namespace godot
 		{
 			return m_mapViewer;
 		}
-		godot::Vector2i getTextureRectSize(void)
-		{
-			return m_textureRectSize;
-		}
+		godot::Vector2i getTextureRectSize(void);
 		
 		godot::Vector2 globalPosToMapPos(godot::Vector2 global);
 		godot::Vector2 mapPosToGlobalPos(godot::Vector2 mapPos);
 
-		void setMapImage(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, bool replace = false);
+		void setMapData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, bool replace = false);
 		void setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir = false, bool visible = true);
 
 		void zoom(int zoomRequired)
@@ -378,16 +437,23 @@ namespace godot
 			m_zoomRequired = zoomRequired;
 		}
 
+		float getScaleFactor(void) const
+		{
+			return m_scaleFactor;
+		}
+
+		int32_t getNumRects(void);
+
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_Globals* m_globals = nullptr;
-		godot::Vector2i m_textureRectSize;
+		//godot::Vector2i m_textureRectSize;
 		godot::Dictionary m_worldFlagDict;
 		int m_zoomRequired = 0;
-		godot::Vector2 m_scale;
+		float m_scaleFactor;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -886,6 +952,7 @@ namespace godot
 		bool trackMouse(void) const;
 		void trackMouse(bool b);
 		bool mapMode(void) const;
+		void mapMode(bool b);
 		bool worldMode(void) const;
 		void toggleMapView(void);
 		void toggleTrackMouse(void);
@@ -924,6 +991,11 @@ namespace godot
 		//GDN_TheWorld_WorldViewport* WorldViewport(bool useCache = true);
 		GDN_TheWorld_Camera* CustomWorldCamera(bool useCache = true);
 		GDN_TheWorld_HudControls* HudControls(bool useCache = true);
+		GDN_TheWorld_MapViewer* getMapViewer(void)
+		{
+			return MapViewer();
+		}
+		float getMapScaleFactor(void);
 		GDN_TheWorld_MapViewer* MapViewer(bool useCache = true);
 		GDN_TheWorld_MapViewportContainer* MapViewportContainer(bool useCache = true);
 		GDN_TheWorld_MapViewport* MapViewport(bool useCache = true);
@@ -1579,6 +1651,20 @@ namespace godot
 		//	return Map();
 		//}
 
+		int32_t getMapResolution(void)
+		{
+			return m_mapQuadrantsMap.getImageResolution();
+		}
+
+		void forceProcessNewMapQuadrants(bool b)
+		{
+			m_forceProcessNewMapQuadrants = b;
+		}
+		bool forceProcessNewMapQuadrants(void)
+		{
+			return m_forceProcessNewMapQuadrants;
+		}
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -1611,7 +1697,7 @@ namespace godot
 		void process_lookDev(void);
 		void process_materialParam(godot::Vector3& cameraPosInMap, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_neighbourQuadrantData(QuadTree* quadTree);
-		void process_mapQuadrants(void);
+		void process_mapQuadrants(godot::Vector3 cameraWorldPos);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
@@ -1885,6 +1971,9 @@ namespace godot
 		Chunk* m_lastCameraTerrainChunk = nullptr;
 		int64_t m_timeElapsedFromLastProcessCameraPosForQuadrants = 0;
 		godot::Vector3 m_lastProcessedCameraPosForChunks;
+
+		godot::Vector3 m_lastProcessedCameraForMapQuadrants;
+		bool m_forceProcessNewMapQuadrants = false;
 
 		float m_lastCameraAltitudeSetToShader = -1.0f;
 		godot::Vector3 m_lastCameraPosSetToShader;

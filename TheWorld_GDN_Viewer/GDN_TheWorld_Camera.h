@@ -52,10 +52,25 @@ namespace godot {
 			m_mapViewer = mapViewer;
 		}
 
+		void pauseMouseMovement(void)
+		{
+			m_mouseMovementPaused = true;
+		}
+		void resumeMouseMovement(void)
+		{
+			m_mouseMovementPaused = false;
+		}
+		bool mouseMovementSuspended(void) const
+		{
+			return m_mouseMovementPaused;
+		}
+
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		int m_zoomRequired = 0;
 		bool m_updateCameraRequired = false;
+
+		bool m_mouseMovementPaused = false;
 
 		bool m_shiftPressed = false;
 		bool m_ctrlPressed = false;
@@ -225,6 +240,19 @@ namespace godot {
 			return m_cameraUnderWater;
 		}
 
+		void pauseMouseMovement(void)
+		{
+			m_mouseMovementPaused = true;
+		}
+		void resumeMouseMovement(void)
+		{
+			m_mouseMovementPaused = false;
+		}
+		bool mouseMovementSuspended(void) const
+		{
+			return m_mouseMovementPaused;
+		}
+
 	private:
 
 	private:
@@ -241,6 +269,9 @@ namespace godot {
 		bool m_trackingPlayer = false;
 		float m_trackingLerpSpeed = 10.0f;
 		godot::Vector3 m_trackingOffset = godot::Vector3(0.0f, 7.0f, 5.0f);
+
+		bool m_mouseMovementPaused = false;
+
 		
 		godot::Vector3 m_savedCameraPosAfterSetFar = godot::Vector3(0.0f, 0.0f, 0.0f);
 		bool m_forceRecalcCameraFar = false;
@@ -278,6 +309,9 @@ namespace godot {
 		float m_wheelNormalVelocity;
 		float m_wheelSlowVelocity;
 		// Camera Movement
+
+		bool m_mouseButtonRightPressedWhenSuspended = false;
+		bool m_mouseButtonLeftPressedWhenSuspended = false;
 
 		// Camera Movement/Rotation
 		bool m_mouseShiftCameraOn;

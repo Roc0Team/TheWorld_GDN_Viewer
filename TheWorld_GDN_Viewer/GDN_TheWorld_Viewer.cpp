@@ -50,6 +50,8 @@ using namespace godot;
 
 namespace fs = std::filesystem;
 
+constexpr int32_t MAP_QUADRANT_OTPIMIZATION_LEVEL=4;
+
 void WorldQuadrantsMap::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_viewer = viewer;
@@ -72,6 +74,16 @@ void MapQuadrantsMap::init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLeve
 //	else
 //		return nullptr;
 //}
+
+void MapQuadrantsMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos pos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	if (not m_updatedQuadrants.contains(pos))
+		m_viewer->incUpdatedMapQuadrants();
+	m_updatedQuadrants[pos] = true;
+	if (m_updatingQuadrants.contains(pos))
+		m_updatingQuadrants.erase(pos);
+}
 
 void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos)
 {
@@ -1948,6 +1960,10 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_lowres_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider);
 	ClassDB::bind_method(D_METHOD("get_num_process_not_owns_lock"), &GDN_TheWorld_Viewer::getProcessNotOwnsLock);
 	ClassDB::bind_method(D_METHOD("get_process_duration"), &GDN_TheWorld_Viewer::getProcessDuration);
+	ClassDB::bind_method(D_METHOD("get_map_quadrants_num"), &GDN_TheWorld_Viewer::getMapQuadrantsNum);
+	ClassDB::bind_method(D_METHOD("get_updating_map_quadrants_num"), &GDN_TheWorld_Viewer::getUpdatingMapQuadrantsNum);
+	ClassDB::bind_method(D_METHOD("get_to_show_map_quadrants_num"), &GDN_TheWorld_Viewer::getToShowMapQuadrantsNum);
+	ClassDB::bind_method(D_METHOD("get_map_quadrants_rect"), &GDN_TheWorld_Viewer::getMapQuadrantRects);
 	//ClassDB::bind_method(D_METHOD("get_refresh_quads_duration"), &GDN_TheWorld_Viewer::getRefreshMapQuadDuration);
 	ClassDB::bind_method(D_METHOD("get_update_quads1_duration"), &GDN_TheWorld_Viewer::getUpdateQuads1Duration);
 	ClassDB::bind_method(D_METHOD("get_update_quads2_duration"), &GDN_TheWorld_Viewer::getUpdateQuads2Duration);
@@ -1992,6 +2008,8 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_ground_texture_albedo_bump"), &GDN_TheWorld_Viewer::getGroundTextureAlbedoBump);
 	ClassDB::bind_method(D_METHOD("get_ground_texture_normal_roughness"), &GDN_TheWorld_Viewer::getGroundTextureNormalRoughness);
 	ClassDB::bind_method(D_METHOD("get_ground_texture_layers"), &GDN_TheWorld_Viewer::getGroundTextureLayers);
+	ClassDB::bind_method(D_METHOD("pause_mouse_movement"), &GDN_TheWorld_Viewer::pauseMouseMovement);
+	ClassDB::bind_method(D_METHOD("resume_mouse_movement"), &GDN_TheWorld_Viewer::resumeMouseMovement);
 
 	ClassDB::bind_method(D_METHOD("global_transform_to_world_transform", "p_transform"), &GDN_TheWorld_Viewer::globalToWorld);
 	ClassDB::bind_method(D_METHOD("global_pos_to_world_transform", "p_transform"), &GDN_TheWorld_Viewer::globalPosToWorldTransform);
@@ -2824,7 +2842,7 @@ bool GDN_TheWorld_Viewer::init(void)
 	globals->addElementToInitialize();
 	
 	m_worldQuadrantsMap.init(this);
-	m_mapQuadrantsMap.init(this, 4);
+	m_mapQuadrantsMap.init(this, MAP_QUADRANT_OTPIMIZATION_LEVEL);
 
 	// Shader Global Params
 	{
@@ -2894,7 +2912,7 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	// Set World Camera
 	{
-		GDN_TheWorld_Camera* camera = CustomWorldCamera(false);
+		GDN_TheWorld_Camera* camera = WorldCamera(false);
 		if (camera == nullptr)
 			camera = memnew(GDN_TheWorld_Camera);
 		camera->set_name(THEWORLD_CAMERA_NODE_NAME);
@@ -6715,6 +6733,12 @@ void GDN_TheWorld_Viewer::writeStatisticsNewQuadrants(void)
 	size_t numQuadrants = m_worldQuadrantsMap.size();
 	m_mtxQuadTreeAndMainProcessing.unlock();
 
+	GDN_TheWorld_Map* map = Map();
+	std::string mapQuadrantsMessage = "MAP QUADRANTS\n"
+		+ std::string("Num Map Quadrants = ") + std::to_string(m_mapQuadrantsMap.size())
+		+ std::string("Num Updated Map Quadrants = ") + std::to_string(fetchUpdatedMapQuadrants())
+		+ std::string("Num Map Texture Rects = ") + std::to_string(map->getNumRects());
+
 	std::string s;
 	if (m_streamingTime.counterStarted())
 	{
@@ -6735,15 +6759,14 @@ void GDN_TheWorld_Viewer::writeStatisticsNewQuadrants(void)
 		<< "  reset shader params = " << m_numResetShaderParam << "  elapsed = " << std::to_string(m_elapsedResetShaderParam) << " average = " << std::to_string(m_elapsedResetShaderParam / (m_numResetShaderParam == 0 ? 1 : m_numResetShaderParam)) << "\n"
 		<< "  update shader params = " << m_numUpdateShaderParam << "  elapsed = " << std::to_string(m_elapsedUpdateShaderParam) << " average = " << std::to_string(m_elapsedUpdateShaderParam / (m_numUpdateShaderParam == 0 ? 1 : m_numUpdateShaderParam)) << "\n"
 		<< "  set hires collisions = " << m_numSetHiResCollisionData << "  elapsed = " << std::to_string(m_elapsedSetHiResCollisionData) << " average = " << std::to_string(m_elapsedSetHiResCollisionData / (m_numSetHiResCollisionData == 0 ? 1 : m_numSetHiResCollisionData)) << "\n"
-		<< "  set lowres collisions = " << m_numSetLowResCollisionData << "  elapsed = " << std::to_string(m_elapsedSetLowResCollisionData) << " average = " << std::to_string(m_elapsedSetLowResCollisionData / (m_numSetLowResCollisionData == 0 ? 1 : m_numSetLowResCollisionData)) << "\n";
+		<< "  set lowres collisions = " << m_numSetLowResCollisionData << "  elapsed = " << std::to_string(m_elapsedSetLowResCollisionData) << " average = " << std::to_string(m_elapsedSetLowResCollisionData / (m_numSetLowResCollisionData == 0 ? 1 : m_numSetLowResCollisionData)) << "\n"
+		<< mapQuadrantsMessage;
 
-	GDN_TheWorld_Map* map = Map();
-
-	PLOG_DEBUG << "MAP QUADRANTS\n"
-		<< "Num Map Quadrants = " << m_mapQuadrantsMap.size()
-		<< " Updating = " << m_mapQuadrantsMap.getNumUpdatingQuadrants()
-		<< " To show = " << m_mapQuadrantsMap.getNumQuadrantsToShow() << "\n"
-		<< "Num Map Texture Rects = " << map->getNumRects();
+	//PLOG_DEBUG << "MAP QUADRANTS\n"
+	//	<< "Num Map Quadrants = " << m_mapQuadrantsMap.size()
+	//	<< " Updating = " << m_mapQuadrantsMap.getNumUpdatingQuadrants()
+	//	<< " To show = " << m_mapQuadrantsMap.getNumQuadrantsToShow() << "\n"
+	//	<< "Num Map Texture Rects = " << map->getNumRects();
 
 	m_numVisibleQuadrantsStreamed = 0;
 	m_numInvisibleQuadrantsStreamed = 0;
@@ -6908,6 +6931,25 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 		}
 
 	}
+}
+
+void GDN_TheWorld_Viewer::pauseMouseMovement(void)
+{
+	GDN_TheWorld_MapCamera* mapCamera = MapCamera();
+	if (mapCamera != nullptr)
+		mapCamera->pauseMouseMovement();
+	GDN_TheWorld_Camera* worldCamera = WorldCamera();
+	if (worldCamera != nullptr)
+		worldCamera->pauseMouseMovement();
+}
+void GDN_TheWorld_Viewer::resumeMouseMovement(void)
+{
+	GDN_TheWorld_MapCamera* mapCamera = MapCamera();
+	if (mapCamera != nullptr)
+		mapCamera->resumeMouseMovement();
+	GDN_TheWorld_Camera* worldCamera = WorldCamera();
+	if (worldCamera != nullptr)
+		worldCamera->resumeMouseMovement();
 }
 
 void GDN_TheWorld_Viewer::setHudMessage(godot::String _hudMessage, int _fadingTime)
@@ -8425,7 +8467,7 @@ void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 				m_notStreamingTime.tick();
 			}
 
-			refreshQuadTreeStatistics();
+			refreshQuadrantStatistics();
 
 			if (m_numProcessExecution > 0)
 			{
@@ -8541,7 +8583,7 @@ void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 			}
 			else
 				m_averageStreamingQuadrantStuff = 0;
-
+			
 			m_timeElapsedFromLastStatistic = timeElapsed;
 		}
 	}
@@ -9239,7 +9281,7 @@ GDN_TheWorld_Globals* GDN_TheWorld_Viewer::Globals(bool useCache)
 //	return m_worldViewport;
 //}
 
-GDN_TheWorld_Camera* GDN_TheWorld_Viewer::CustomWorldCamera(bool useCache)
+GDN_TheWorld_Camera* GDN_TheWorld_Viewer::WorldCamera(bool useCache)
 {
 	if (m_customWorldCamera == NULL || !useCache)
 	{
@@ -9844,7 +9886,7 @@ String GDN_TheWorld_Viewer::getCameraTerrainQuadrantName(void)
 		return "";
 }
 
-void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
+void GDN_TheWorld_Viewer::refreshQuadrantStatistics()
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 
@@ -9949,6 +9991,12 @@ void GDN_TheWorld_Viewer::refreshQuadTreeStatistics()
 				m_mapNumActiveSeaChunksPerLod[item.first] = item.second;
 		}
 	}
+
+	GDN_TheWorld_Map* map = Map();
+	m_mapQuadrantsNum = m_mapQuadrantsMap.size();
+	m_updatingMapQuadrantsNum = m_mapQuadrantsMap.getNumUpdatingQuadrants();
+	m_toShowMapQuadrantsNum = m_mapQuadrantsMap.getNumQuadrantsToShow();
+	m_mapQuadrantRects = map->getNumRects();
 
 	m_numSplits = numSplits;
 	m_numJoins = numJoins;

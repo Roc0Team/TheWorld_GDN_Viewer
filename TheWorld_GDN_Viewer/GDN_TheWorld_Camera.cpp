@@ -87,35 +87,39 @@ void GDN_TheWorld_MapCamera::_input(const Ref<InputEvent>& event)
 	if (!viewer->mapMode())
 		return;
 
-	if (event->is_action_pressed("ui_mouse_wheel_up"))
-	{
-		m_zoomRequired++;
-		m_updateCameraRequired = true;
-	}
-
-	if (event->is_action_pressed("ui_mouse_wheel_down"))
-	{
-		m_zoomRequired--;
-		m_updateCameraRequired = true;
-	}
-
-	if (event->is_action_pressed("ui_mouse_button_left"))
-		m_mouseShiftCameraOn = true;
-	
-	if (event->is_action_released("ui_mouse_button_left"))
+	if (mouseMovementSuspended())
 		m_mouseShiftCameraOn = false;
-
-	const InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<InputEventMouseMotion>(event.ptr());
-	if (eventMouseMotion != nullptr)
+	else
 	{
-		//Globals()->debugPrint("GDN_TheWorld_Camera::_input: " + event->as_text());
-		if (m_mouseShiftCameraOn)
+		if (event->is_action_pressed("ui_mouse_wheel_up"))
 		{
-			m_mouseRelativePosToShift = eventMouseMotion->get_relative();
+			m_zoomRequired++;
 			m_updateCameraRequired = true;
 		}
-	}
 
+		if (event->is_action_pressed("ui_mouse_wheel_down"))
+		{
+			m_zoomRequired--;
+			m_updateCameraRequired = true;
+		}
+
+		if (event->is_action_pressed("ui_mouse_button_left"))
+			m_mouseShiftCameraOn = true;
+
+		if (event->is_action_released("ui_mouse_button_left"))
+			m_mouseShiftCameraOn = false;
+
+		const InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<InputEventMouseMotion>(event.ptr());
+		if (eventMouseMotion != nullptr)
+		{
+			//Globals()->debugPrint("GDN_TheWorld_Camera::_input: " + event->as_text());
+			if (m_mouseShiftCameraOn)
+			{
+				m_mouseRelativePosToShift = eventMouseMotion->get_relative();
+				m_updateCameraRequired = true;
+			}
+		}
+	}
 }
 
 void GDN_TheWorld_MapCamera::_unhandled_input(const Ref<InputEvent>& event)
@@ -165,11 +169,6 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 		m_altPressed = true;
 	else
 		m_altPressed = false;
-
-	//if (input->is_action_pressed("ui_mouse_button_left"))
-	//	m_mouseShiftCameraOn = true;
-	//else
-	//	m_mouseShiftCameraOn = false;
 
 	if (m_updateCameraRequired)
 	{
@@ -536,24 +535,49 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 
 	Input* input = Input::get_singleton();
 
-	if (input->is_action_pressed("ui_mouse_button_right") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
+	if (mouseMovementSuspended())
 	{
-		//if (!m_rotateCameraOn)
-		//	Globals()->debugPrint("Rotate ON");
-		m_rotateCameraOn = true;
-	}
-	else
-	{
-		//if (m_rotateCameraOn)
-		//	Globals()->debugPrint("Rotate OFF");
-		m_rotateCameraOn = false;
-	}
-
-	//input = Input::get_singleton();
-	if (input->is_action_pressed("ui_mouse_button_left") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
-		m_mouseShiftCameraOn = true;
-	else
 		m_mouseShiftCameraOn = false;
+		m_rotateCameraOn = false;
+		if (input->is_action_pressed("ui_mouse_button_right"))
+			m_mouseButtonRightPressedWhenSuspended = true;
+		else
+			m_mouseButtonRightPressedWhenSuspended = false;
+		if (input->is_action_pressed("ui_mouse_button_left"))
+			m_mouseButtonLeftPressedWhenSuspended = true;
+		else
+			m_mouseButtonLeftPressedWhenSuspended = false;
+	}
+	else
+	{
+		if (input->is_action_pressed("ui_mouse_button_right") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
+		{
+			if (not m_mouseButtonRightPressedWhenSuspended)
+			{
+				//if (!m_rotateCameraOn)
+				//	Globals()->debugPrint("Rotate ON");
+				m_rotateCameraOn = true;
+			}
+		}
+		else
+		{
+			//if (m_rotateCameraOn)
+			//	Globals()->debugPrint("Rotate OFF");
+			m_rotateCameraOn = false;
+			m_mouseButtonRightPressedWhenSuspended = false;
+		}
+
+		if (input->is_action_pressed("ui_mouse_button_left") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
+		{
+			if (not m_mouseButtonLeftPressedWhenSuspended)
+				m_mouseShiftCameraOn = true;
+		}
+		else
+		{
+			m_mouseShiftCameraOn = false;
+			m_mouseButtonLeftPressedWhenSuspended = false;
+		}
+	}
 
 	////input = Input::get_singleton();
 	//if (input->is_action_pressed("ui_mouse_button_mid") /* && viewer->terrainShiftPermitted()*/ /* && !viewer->editMode()*/)
@@ -731,44 +755,47 @@ void GDN_TheWorld_Camera::_input(const Ref<godot::InputEvent>& event)
 	if (viewer->mouseInsideMainEditPanel())
 		return;
 
-	const InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<InputEventMouseMotion>(event.ptr());
-	if (eventMouseMotion != nullptr)
+	if (not mouseMovementSuspended())
 	{
-		//Globals()->debugPrint("GDN_TheWorld_Camera::_input: " + event->as_text());
-		if (m_rotateCameraOn)
+		const InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<InputEventMouseMotion>(event.ptr());
+		if (eventMouseMotion != nullptr)
 		{
-			m_mouseRelativePosToRotate = eventMouseMotion->get_relative();
-			m_updateCameraRequired = true;
-		}
-		if (m_mouseShiftCameraOn)
-		{
-			m_mouseRelativePosToShift = eventMouseMotion->get_relative();
-			m_updateCameraRequired = true;
-		}
-		//if (m_shiftVertCameraOn)
-		//{
-		//	m_mouseRelativePosToShiftVert = eventMouseMotion->get_relative();
-		//	m_updateCameraRequired = true;
-		//}
-	}
-
-	if (!trackingPlayer())
-	{
-		if (event->is_action_pressed("ui_mouse_wheel_up"))
-		{
-			if (viewer->terrainShiftPermitted())
+			//Globals()->debugPrint("GDN_TheWorld_Camera::_input: " + event->as_text());
+			if (m_rotateCameraOn)
 			{
-				m_numMoveStepForward--;
+				m_mouseRelativePosToRotate = eventMouseMotion->get_relative();
 				m_updateCameraRequired = true;
 			}
+			if (m_mouseShiftCameraOn)
+			{
+				m_mouseRelativePosToShift = eventMouseMotion->get_relative();
+				m_updateCameraRequired = true;
+			}
+			//if (m_shiftVertCameraOn)
+			//{
+			//	m_mouseRelativePosToShiftVert = eventMouseMotion->get_relative();
+			//	m_updateCameraRequired = true;
+			//}
 		}
 
-		if (event->is_action_pressed("ui_mouse_wheel_down"))
+		if (!trackingPlayer())
 		{
-			if (viewer->terrainShiftPermitted())
+			if (event->is_action_pressed("ui_mouse_wheel_up"))
 			{
-				m_numMoveStepForward++;
-				m_updateCameraRequired = true;
+				if (viewer->terrainShiftPermitted())
+				{
+					m_numMoveStepForward--;
+					m_updateCameraRequired = true;
+				}
+			}
+
+			if (event->is_action_pressed("ui_mouse_wheel_down"))
+			{
+				if (viewer->terrainShiftPermitted())
+				{
+					m_numMoveStepForward++;
+					m_updateCameraRequired = true;
+				}
 			}
 		}
 	}

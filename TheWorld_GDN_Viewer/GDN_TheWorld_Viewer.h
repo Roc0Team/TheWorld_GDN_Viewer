@@ -81,13 +81,7 @@ namespace godot
 			return (m_updatedQuadrants.size() > 0);
 		}
 
-		void addUpdatedQuadrant(TheWorld_Utils::QuadrantPos pos)
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
-			m_updatedQuadrants[pos] = true;
-			if (m_updatingQuadrants.contains(pos))
-				m_updatingQuadrants.erase(pos);
-		}
+		void addUpdatedQuadrant(TheWorld_Utils::QuadrantPos pos);
 		TheWorld_Utils::QuadrantPos fetchUpdatedQuadrant(void)
 		{
 			TheWorld_Utils::QuadrantPos pos;
@@ -989,7 +983,7 @@ namespace godot
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 		//GDN_TheWorld_WorldViewportContainer* WorldViewportContainer(bool useCache = true);
 		//GDN_TheWorld_WorldViewport* WorldViewport(bool useCache = true);
-		GDN_TheWorld_Camera* CustomWorldCamera(bool useCache = true);
+		GDN_TheWorld_Camera* WorldCamera(bool useCache = true);
 		GDN_TheWorld_HudControls* HudControls(bool useCache = true);
 		GDN_TheWorld_MapViewer* getMapViewer(void)
 		{
@@ -1061,7 +1055,7 @@ namespace godot
 		int getQuadrantNumWithEnabledCollider(void) const;
 		int getQuadrantNumWithHiResCollider(void) const;
 		int getQuadrantNumWithLowResCollider(void) const;
-		void refreshQuadTreeStatistics(void);
+		void refreshQuadrantStatistics(void);
 		void resetMaterialParamsForEveryQuadrant(void);
 		void updateMaterialParamsForEveryQuadrant(void);
 		void setColliderNeedUpdateForEveryQuadrant(void);
@@ -1665,6 +1659,37 @@ namespace godot
 			return m_forceProcessNewMapQuadrants;
 		}
 
+		void incUpdatedMapQuadrants(void)
+		{
+			m_updatedMapQuadrantsNum++;
+		}
+		size_t fetchUpdatedMapQuadrants(void)
+		{
+			size_t s = m_updatedMapQuadrantsNum;
+			m_updatedMapQuadrantsNum = 0;
+			return s;
+		}
+
+		size_t getMapQuadrantsNum(void)
+		{
+			return m_mapQuadrantsNum;
+		}
+		size_t getUpdatingMapQuadrantsNum(void)
+		{
+			return m_updatingMapQuadrantsNum;
+		}
+		size_t getToShowMapQuadrantsNum(void)
+		{
+			return m_toShowMapQuadrantsNum;
+		}
+		size_t getMapQuadrantRects(void)
+		{
+			return m_mapQuadrantRects;
+		}
+
+		void pauseMouseMovement(void);
+		void resumeMouseMovement(void);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -1803,6 +1828,12 @@ namespace godot
 		size_t m_elapsedSetHiResCollisionData = 0;
 		size_t m_numSetLowResCollisionData = 0;
 		size_t m_elapsedSetLowResCollisionData = 0;
+
+		size_t m_mapQuadrantsNum = 0;
+		size_t m_updatingMapQuadrantsNum = 0;
+		size_t m_toShowMapQuadrantsNum = 0;
+		size_t m_mapQuadrantRects = 0;
+		size_t m_updatedMapQuadrantsNum = 0;
 		// Statistics data
 
 		std::map<enum class TrackedInputEvent, bool> m_trackedInputEventsForProcess;

@@ -38,6 +38,9 @@
 #define MAX_SETTABLE_DEPTH_ON_PERIMETER	25
 #define MAX_SETTABLE_CACHE_ON_PERIMETER	5
 
+//constexpr float MAP_INITIAL_SCALE_FACTOR = 1.0;	//  0.5;		// 1.0;
+constexpr int32_t MAP_NUM_IMAGES_FOR_TEXTURE = 5;
+
 namespace godot
 {
 	class MeshCache;
@@ -71,6 +74,39 @@ namespace godot
 			, UpdateInProgress = 1
 		};
 
+		class UpdatingInfo
+		{
+		public:
+			UpdatingInfo(void)
+			{
+				m_status = UpdateStatus::UpdateNeeded;
+				m_lastStatusChangeTime = TIME()->get_ticks_msec();
+			}
+			~UpdatingInfo(void) {}
+
+			void status(enum class UpdateStatus status)
+			{
+				if (m_status != status)
+				{
+					m_status = status;
+					m_lastStatusChangeTime = TIME()->get_ticks_msec();
+				}
+			}
+			enum class UpdateStatus status(void) const
+			{
+				return m_status;
+			}
+
+			uint64_t elapsedFromLastStatusChange(void) const
+			{
+				return TIME()->get_ticks_msec() - m_lastStatusChangeTime;
+			}
+
+		private:
+			enum class UpdateStatus m_status = UpdateStatus::UpdateNeeded;
+			uint64_t m_lastStatusChangeTime = 0;
+		};
+
 	public:
 		void init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLevel);
 		//godot::Ref<godot::Image> getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos);
@@ -95,6 +131,7 @@ namespace godot
 		}
 
 		bool addUpdatingQuadrant(TheWorld_Utils::QuadrantPos pos);
+		bool checkUpdatingQuadrants(void);
 
 		void lock(void)
 		{
@@ -134,7 +171,7 @@ namespace godot
 		GDN_TheWorld_Viewer* m_viewer;
 		//godot::Vector2i m_mapImageSize;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_updatedQuadrants;
-		std::map<TheWorld_Utils::QuadrantPos, enum class UpdateStatus> m_updatingQuadrants;
+		std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<UpdatingInfo>> m_updatingQuadrants;
 		int32_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
 		int32_t m_imageResolution = 0;
 	};
@@ -398,6 +435,69 @@ namespace godot
 		void _notification(int p_what);
 
 	public:
+		class MapTextureRectPos
+		{
+		public:
+			MapTextureRectPos(godot::Vector2i idx, godot::Size2 globalSize);
+			MapTextureRectPos(godot::Vector2 globalPos, godot::Size2 globalSize);
+			~MapTextureRectPos(void) {}
+
+			godot::Vector2 getGlobalLowerPos() const
+			{
+				return m_globalLowerPos;
+			}
+			float getGlobalLowerPosX() const
+			{
+				return m_globalLowerPos.x;
+			}
+			float getGlobalLowerPosY() const
+			{
+				return m_globalLowerPos.y;
+			}
+			float getGlobalHigherPosX() const
+			{
+				return m_globalLowerPos.x + m_globalSize.x;
+			}
+			float getGlobalHigherPosY() const
+			{
+				return m_globalLowerPos.y + m_globalSize.y;
+			}
+			godot::Vector2i getIdx() const
+			{
+				return m_idx;
+			}
+			int32_t getIdxX() const
+			{
+				return m_idx.x;
+			}
+			int32_t getIdxY() const
+			{
+				return m_idx.y;
+			}
+			godot::Size2 getGlobalSize() const
+			{
+				return m_globalSize;
+			}
+
+			bool operator==(const MapTextureRectPos& textureRectPos) const;
+			void operator=(const MapTextureRectPos& textureRectPos);
+			MapTextureRectPos operator+(const MapTextureRectPos& textureRectPos) const;
+
+		private:
+			godot::Vector2 m_globalLowerPos;
+			godot::Vector2i m_idx;
+			godot::Size2 m_globalSize;
+		};
+
+		//class MapTextureRect
+		//{
+		//};
+
+		//class MapTextureRectContainer : public std::map<MapTextureRectPos, std::unique_ptr<MapTextureRect>>
+		//{
+		//};
+
+	public:
 		GDN_TheWorld_Map(void);
 		~GDN_TheWorld_Map(void);
 
@@ -410,33 +510,41 @@ namespace godot
 		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
 
 	public:
-		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
-		{
-			m_mapViewer = mapViewer;
-		}
-		GDN_TheWorld_MapViewer* getMapViewer(void)
+		void init(GDN_TheWorld_MapViewer* mapViewer);
+		GDN_TheWorld_MapViewer* getMapViewer(void) const
 		{
 			return m_mapViewer;
 		}
-		godot::Vector2i getTextureRectSize(void);
-		
+
+		//void setScale(float scaleFactor);
+		godot::Vector2i getImageSize(void) const;
+		godot::Vector2i getTextureRectSize(void) const;
+		//godot::Vector2i getTextureRectIdxFromWorldPos(float x, float z, int level, int numVerticesPerSize, float gridStepInWU) const;
+		godot::Rect2 getScreenRectInGlobalCoord(void) const;
+		godot::Size2 getScreenSizeInGlobalCoord(void) const;
+		godot::Vector2 getMousePosInGlobalCoord(void) const;
+
 		godot::Vector2 globalPosToMapPos(godot::Vector2 global);
 		godot::Vector2 mapPosToGlobalPos(godot::Vector2 mapPos);
 
-		void setMapData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, bool replace = false);
+		void setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, bool replace = false);
 		void setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir = false, bool visible = true);
 
-		void zoom(int zoomRequired)
+		//void zoom(int zoomRequired)
+		//{
+		//	m_zoomRequired = zoomRequired;
+		//}
+
+		//float getScaleFactor(void) const
+		//{
+		//	return m_scaleFactor;
+		//}
+		int32_t getNumImagesForTextureRectSide(void) const
 		{
-			m_zoomRequired = zoomRequired;
+			return m_numImagesForTexture;
 		}
 
-		float getScaleFactor(void) const
-		{
-			return m_scaleFactor;
-		}
-
-		int32_t getNumRects(void);
+		int32_t getNumTextureRects(void);
 
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
@@ -446,8 +554,9 @@ namespace godot
 		GDN_TheWorld_Globals* m_globals = nullptr;
 		//godot::Vector2i m_textureRectSize;
 		godot::Dictionary m_worldFlagDict;
-		int m_zoomRequired = 0;
-		float m_scaleFactor;
+		//int m_zoomRequired = 0;
+		//float m_scaleFactor = MAP_INITIAL_SCALE_FACTOR;
+		int32_t m_numImagesForTexture = MAP_NUM_IMAGES_FOR_TEXTURE;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -945,8 +1054,16 @@ namespace godot
 		void setEditor3dOverlay(godot::Object* editor3dOverlay);
 		bool trackMouse(void) const;
 		void trackMouse(bool b);
+		bool _mapMode(void) const
+		{
+			return mapMode();
+		}
 		bool mapMode(void) const;
 		void mapMode(bool b);
+		bool _worldMode(void) const
+		{
+			return worldMode();
+		}
 		bool worldMode(void) const;
 		void toggleMapView(void);
 		void toggleTrackMouse(void);
@@ -989,7 +1106,7 @@ namespace godot
 		{
 			return MapViewer();
 		}
-		float getMapScaleFactor(void);
+		//float getMapScaleFactor(void);
 		GDN_TheWorld_MapViewer* MapViewer(bool useCache = true);
 		GDN_TheWorld_MapViewportContainer* MapViewportContainer(bool useCache = true);
 		GDN_TheWorld_MapViewport* MapViewport(bool useCache = true);
@@ -1085,17 +1202,27 @@ namespace godot
 		bool terrainShiftPermitted(void);
 		godot::Vector3 getMouseHitGlobal(void) const
 		{
-			if (m_mouseTrackedOnSomething)
+			if (mapMode())
 				return m_trackedMouseHitGlobal;
 			else
-				return godot::Vector3();
+			{
+				if (m_mouseTrackedOnSomething)
+					return m_trackedMouseHitGlobal;
+				else
+					return godot::Vector3();
+			}
 		}
 		godot::Vector3 getMouseHitInMap(void) const
 		{
-			if (m_mouseTrackedOnSomething)
+			if (mapMode())
 				return m_trackedMouseHitInMap;
 			else
-				return godot::Vector3();
+			{
+				if (m_mouseTrackedOnSomething)
+					return m_trackedMouseHitInMap;
+				else
+					return godot::Vector3();
+			}
 		}
 		float getMouseHitDistanceFromCamera(void)
 		{
@@ -1225,7 +1352,7 @@ namespace godot
 			return m_isInEditor;
 		}
 
-		godot::Vector2 getMousPosInViewport(void)
+		godot::Vector2 getMousePosInViewport(void)
 		{
 			if (isInEditor())
 			{
@@ -1353,7 +1480,7 @@ namespace godot
 						m_positionDrawer->updateSphere(m_spherePositionEndIdx, godot::Vector3(), 0.0f);
 				}
 		}
-		bool trackedInputEvent(TrackedInputEvent event, std::map<enum class TrackedInputEvent, bool>* inputEvents = nullptr)
+		bool isInputEventTracked(TrackedInputEvent event, std::map<enum class TrackedInputEvent, bool>* inputEvents = nullptr)
 		{
 			if (inputEvents == nullptr)
 				inputEvents = &m_trackedInputEventsForProcess;
@@ -1363,7 +1490,7 @@ namespace godot
 			else
 				return false;
 		}
-		void setTrackedInputEvents(std::map<enum class TrackedInputEvent, bool>* inputEvents = nullptr)
+		void compressTrackedInputEvents(std::map<enum class TrackedInputEvent, bool>* inputEvents = nullptr)
 		{
 			if (inputEvents == nullptr)
 				inputEvents = &m_trackedInputEventsForProcess;
@@ -1645,7 +1772,7 @@ namespace godot
 		//	return Map();
 		//}
 
-		int32_t getMapResolution(void)
+		int32_t getImageMapResolution(void)
 		{
 			return m_mapQuadrantsMap.getImageResolution();
 		}
@@ -1654,7 +1781,7 @@ namespace godot
 		{
 			m_forceProcessNewMapQuadrants = b;
 		}
-		bool forceProcessNewMapQuadrants(void)
+		bool forceProcessNewMapQuadrants(void) const
 		{
 			return m_forceProcessNewMapQuadrants;
 		}
@@ -1670,19 +1797,19 @@ namespace godot
 			return s;
 		}
 
-		size_t getMapQuadrantsNum(void)
+		size_t getMapQuadrantsNum(void) const
 		{
 			return m_mapQuadrantsNum;
 		}
-		size_t getUpdatingMapQuadrantsNum(void)
+		size_t getUpdatingMapQuadrantsNum(void) const
 		{
 			return m_updatingMapQuadrantsNum;
 		}
-		size_t getToShowMapQuadrantsNum(void)
+		size_t getToShowMapQuadrantsNum(void) const
 		{
 			return m_toShowMapQuadrantsNum;
 		}
-		size_t getMapQuadrantRects(void)
+		size_t getMapQuadrantRects(void) const
 		{
 			return m_mapQuadrantRects;
 		}
@@ -2005,6 +2132,7 @@ namespace godot
 
 		godot::Vector3 m_lastProcessedCameraForMapQuadrants;
 		bool m_forceProcessNewMapQuadrants = false;
+		int64_t m_timeElapsedFromLastUpdatingQuadrantsCheck = 0;
 
 		float m_lastCameraAltitudeSetToShader = -1.0f;
 		godot::Vector3 m_lastCameraPosSetToShader;
@@ -2056,6 +2184,8 @@ namespace godot
 		float m_altitudeForToggleToWorldMode = 0;
 		bool m_altitudeForToggleToWorldModeIsAbsolute = true;
 		godot::Transform3D m_worldCameraWorldTransformForToggleToWorldMode;
+		bool mapCameraGlobalPositionSet = false;
+		godot::Vector2 m_mapCameraGlobalPos;
 
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;

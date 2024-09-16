@@ -43,10 +43,18 @@ MapQuadrant::MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_
 	m_viewer = viewer;
 	m_optimizationLevel = optimizationLevel;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
 	m_imageResolution = (int32_t)m_viewer->Globals()->resolutionForOptimizationLevel((size_t)m_optimizationLevel);
+	std::string mapName = m_viewer->Globals()->getMapName();
+	std::string dir = GDN_TheWorld_Globals::getClientDataDir();
+	m_cache = TheWorld_Utils::MeshCacheBuffer(dir, mapName, m_quadrantPos.getGridStepInWU(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getLevel(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex());
 }
 
 MapQuadrant::~MapQuadrant()
 {
+}
+
+TheWorld_Utils::MeshCacheBuffer& MapQuadrant::getMeshCacheBuffer(void)
+{
+	return m_cache;
 }
 
 godot::Ref<godot::Image> MapQuadrant::getMapImage(void)
@@ -76,19 +84,19 @@ void MapQuadrant::refreshDataFromServer(std::string& bufferFromServer, std::stri
 	outMeshIdFromBuffer.clear();
 
 	TheWorld_Utils::MemoryBuffer globalmapBuffer;
+	float minAltitude = 0, maxAltitude = 0;
+	TheWorld_Utils::MemoryBuffer float16HeigthsBuffer;
+	TheWorld_Utils::MemoryBuffer float32HeigthsBuffer;
+	TheWorld_Utils::MemoryBuffer normalsBuffer;
+	TheWorld_Utils::MemoryBuffer splatmapBuffer;
+	TheWorld_Utils::MemoryBuffer colormapBuffer;
+	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.1 ") + __FUNCTION__, "cache.refreshMapsFromBuffer");
 
-		TheWorld_Utils::MeshCacheBuffer cache;
-		float minAltitude = 0, maxAltitude = 0;
-		TheWorld_Utils::MemoryBuffer float16HeigthsBuffer;
-		TheWorld_Utils::MemoryBuffer float32HeigthsBuffer;
-		TheWorld_Utils::MemoryBuffer normalsBuffer;
-		TheWorld_Utils::MemoryBuffer splatmapBuffer;
-		TheWorld_Utils::MemoryBuffer colormapBuffer;
-		TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-		cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, false);
+		//TheWorld_Utils::MeshCacheBuffer cache;
+		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, false);
 	}
 
 	if (outMeshIdFromBuffer.size() > 0)
@@ -100,6 +108,13 @@ void MapQuadrant::refreshDataFromServer(std::string& bufferFromServer, std::stri
 		//assert(outMeshIdFromBuffer == meshIdFromServer);
 		if (outMeshIdFromBuffer != meshIdFromServer)
 			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("MeshId from buffer not equal to meshId from server").c_str()));
+	}
+	
+	if (outMeshIdFromBuffer.size() == 0 or terrainEditValuesBuffer.empty())
+	{
+		// Buffer from server was empty
+		TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.1 ") + __FUNCTION__, "cache.refreshMapsFromDisk");
+		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer);
 	}
 
 	if (globalmapBuffer.empty())

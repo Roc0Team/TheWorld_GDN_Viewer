@@ -437,7 +437,7 @@ namespace TheWorld_ClientServer
 		long long elapsedFromStartOfClientMethod;
 		if (reply->expiredTimeToLive(&elapsedFromStartOfClientMethod))
 		{
-			reply->replyError(THEWORLD_CLIENTSERVER_RC_TIMETOLIVE_EXPIRED, (std::string(__FUNCTION__) + std::string("Time To Live (") + std::to_string(reply->m_timeToLive) + std::string(") Expired: ") + std::to_string(elapsedFromStartOfClientMethod)).c_str());
+			reply->replyError(THEWORLD_CLIENTSERVER_RC_TIMETOLIVE_EXPIRED, (std::string(__FUNCTION__) + std::string(" Time To Live (") + std::to_string(reply->m_timeToLive) + std::string(") Expired: ") + std::to_string(elapsedFromStartOfClientMethod)).c_str());
 			return true;
 		}
 		else

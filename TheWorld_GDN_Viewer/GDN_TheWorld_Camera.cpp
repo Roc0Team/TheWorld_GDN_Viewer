@@ -34,6 +34,7 @@ using namespace godot;
 void GDN_TheWorld_MapCamera::_bind_methods(void)
 {
 	ClassDB::bind_method(D_METHOD("get_camera_map_transform"), &GDN_TheWorld_MapCamera::getCameraMapTransform);
+	ClassDB::bind_method(D_METHOD("get_zoom_factor"), &GDN_TheWorld_MapCamera::getZoomFactor);
 }
 
 GDN_TheWorld_MapCamera::GDN_TheWorld_MapCamera(void)
@@ -135,6 +136,7 @@ void GDN_TheWorld_MapCamera::_unhandled_input(const Ref<InputEvent>& event)
 
 void GDN_TheWorld_MapCamera::_ready(void)
 {
+	setZoom(m_zoomFactor);
 }
 
 void GDN_TheWorld_MapCamera::_physics_process(double _delta)
@@ -176,7 +178,15 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 
 		if (m_zoomRequired != 0)
 		{
-			map->zoom(m_zoomRequired);
+			//map->zoom(m_zoomRequired);
+			constexpr float ZOOM_INCREMENET = 0.05f;
+			float zoomFactor = m_zoomFactor;
+			zoomFactor += ZOOM_INCREMENET * m_zoomRequired;
+			if (zoomFactor > 0)
+			{
+				setZoom(zoomFactor);
+			}
+
 			m_zoomRequired = 0;
 		}
 
@@ -192,6 +202,16 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 
 			m_mouseRelativePosToShift = godot::Vector2(0, 0);
 		}
+	}
+}
+
+void GDN_TheWorld_MapCamera::setZoom(float zoomFactor)
+{
+	if (zoomFactor > 0)
+	{
+		godot::Vector2 zoom(zoomFactor, zoomFactor);
+		set_zoom(zoom);
+		m_zoomFactor = zoomFactor;
 	}
 }
 

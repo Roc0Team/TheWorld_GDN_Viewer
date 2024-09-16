@@ -17,6 +17,8 @@
 #define GD_CUSTOM_CAMERAS_GROUP	"TheWorldViewerCustomCameras"
 #define INVALID_CAMERA_ALTITUDE	-999999999.9f
 
+constexpr float CAMERA_INITIAL_SCALE_FACTOR = 0.5;		// 1.0;
+
 namespace godot {
 
 	class GDN_TheWorld_Globals;
@@ -65,6 +67,12 @@ namespace godot {
 			return m_mouseMovementPaused;
 		}
 
+		void setZoom(float zoomFactor);
+		float getZoomFactor(void) const
+		{
+			return m_zoomFactor;
+		}
+
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		int m_zoomRequired = 0;
@@ -83,6 +91,7 @@ namespace godot {
 
 		float m_sensitivity = 1.0;	// 0.0 - 1.0
 
+		float m_zoomFactor = CAMERA_INITIAL_SCALE_FACTOR;
 	};
 
 	class GDN_TheWorld_Camera : public Camera3D

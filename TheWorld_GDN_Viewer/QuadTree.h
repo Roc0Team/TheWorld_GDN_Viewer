@@ -55,9 +55,12 @@ namespace godot
 			return m_imageResolution;
 		}
 
+		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
+
 	private:
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		TheWorld_Utils::QuadrantPos m_quadrantPos;
+		TheWorld_Utils::MeshCacheBuffer m_cache;
 		bool m_updated = false;
 		int64_t m_lastUpdateTime = 0;
 		size_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
@@ -1348,10 +1351,10 @@ namespace godot
 		bool statusRefreshTerrainDataNeeded(void)
 		{
 			bool b = status() == QuadrantStatus::refreshTerrainDataNeeded;
-			if (b)
-			{
-				b = status() == QuadrantStatus::refreshTerrainDataNeeded;
-			}
+			//if (b)
+			//{
+			//	b = status() == QuadrantStatus::refreshTerrainDataNeeded;
+			//}
 			return b;
 		}
 		bool statusRefreshTerrainDataInProgress(void)

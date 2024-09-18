@@ -46,8 +46,8 @@ namespace godot {
 		virtual void _physics_process(double _delta) override;
 
 	public:
-		godot::Transform2D getCameraMapTransform();
-		godot::Vector2 getCameraMapPos();
+		godot::Transform2D getCameraWorldTransform();
+		godot::Vector2 getCameraWorldPos();
 
 		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
 		{
@@ -117,7 +117,7 @@ namespace godot {
 		godot::Transform3D getWorldTransform(void);
 		void setWorldTransform(godot::Transform3D map);
 		godot::Vector3 getWorldPos(void);
-		void setWorldPos(godot::Vector3 mapPos);
+		void setWorldPos(godot::Vector3 worldPos);
 		//bool initPlayerCamera(void);
 		//bool initOtherEntityCamera(void);
 		void calcYawPitchRoll(void);

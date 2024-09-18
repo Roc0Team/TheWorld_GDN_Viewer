@@ -52,44 +52,6 @@ namespace fs = std::filesystem;
 
 constexpr int32_t MAP_QUADRANT_OTPIMIZATION_LEVEL=4;
 
-GDN_TheWorld_Map::MapTextureRectPos::MapTextureRectPos(godot::Vector2 globalPos, godot::Size2 globalSize)
-{
-	m_globalLowerPos.x = floor(globalPos.x / globalSize.x) * globalSize.x;
-	m_globalLowerPos.y = floor(globalPos.y / globalSize.y) * globalSize.y;
-	m_idx.x = (int32_t)(m_globalLowerPos.x / globalSize.x);
-	m_idx.y = (int32_t)(m_globalLowerPos.y / globalSize.y);
-	m_globalSize = globalSize;
-}
-
-GDN_TheWorld_Map::MapTextureRectPos::MapTextureRectPos(godot::Vector2i idx, godot::Size2 globalSize)
-{
-	m_idx = idx;
-	m_globalLowerPos.x = m_idx.x * globalSize.x;
-	m_globalLowerPos.y = m_idx.y * globalSize.y;
-	m_globalSize = globalSize;
-}
-
-bool GDN_TheWorld_Map::MapTextureRectPos::operator==(const MapTextureRectPos& textureRectPos) const
-{
-	if (m_globalLowerPos == textureRectPos.m_globalLowerPos
-		and m_globalSize == textureRectPos.m_globalSize)
-		return true;
-	else
-		return false;
-}
-void GDN_TheWorld_Map::MapTextureRectPos::operator=(const MapTextureRectPos& textureRectPos)
-{
-	m_globalLowerPos = textureRectPos.m_globalLowerPos;
-	m_globalSize = textureRectPos.m_globalSize;
-	m_idx = textureRectPos.m_idx;
-}
-GDN_TheWorld_Map::MapTextureRectPos GDN_TheWorld_Map::MapTextureRectPos::operator+(const MapTextureRectPos& textureRectPos) const
-{
-	GDN_TheWorld_Map::MapTextureRectPos ret(m_idx + textureRectPos.m_idx, textureRectPos.m_globalSize);
-	return ret;
-}
-
-
 void WorldQuadrantsMap::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_viewer = viewer;
@@ -161,40 +123,60 @@ bool MapQuadrantsMap::checkUpdatingQuadrants(void)
 	return statusChanged;
 }
 
-bool MapQuadrantsMap::addUpdatingQuadrant(TheWorld_Utils::QuadrantPos pos)
+bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos pos)
 {
-	bool added = false;
+	//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "ALL");
+
+	bool scheduled = false;
 	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
-	
-	//if (pos.getIndexPosX() == 1 and pos.getIndexPosZ() == 1)	// DEBUG ONLY
-	//	1;														// DEBUG ONLY
 
-	bool updateFromServerNeeded = false;
-	if (not contains(pos))
 	{
-		(*this)[pos] = std::make_unique<MapQuadrant>(pos, m_viewer, getOptimizationLevel());
-		added = true;
-		updateFromServerNeeded = true;
-	}
+		//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "Inside mutex");
 
-	if (not updateFromServerNeeded and (m_updatingQuadrants.contains(pos) and m_updatingQuadrants[pos]->status() == UpdateStatus::UpdateNeeded))
-		updateFromServerNeeded = true;
+		//if (pos.getIndexPosX() == 1 and pos.getIndexPosZ() == 1)	// DEBUG ONLY
+		//	1;														// DEBUG ONLY
+
+		bool updateFromServerNeeded = false;
+		
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "Check and create MapQuadrant");
+
+			if (not contains(pos))
+			{
+				(*this)[pos] = std::make_unique<MapQuadrant>(pos, m_viewer, getOptimizationLevel());
+				updateFromServerNeeded = true;
+			}
+		}
+
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.2. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "Check and change status");
+
+			if (not updateFromServerNeeded and (m_updatingQuadrants.contains(pos) and m_updatingQuadrants[pos]->status() == UpdateStatus::UpdateNeeded))
+			{
+				updateFromServerNeeded = true;
+			}
+		}
+
+		if (updateFromServerNeeded)
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.3. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "m_viewer->Globals()->Client()->MapManagerGetQuadrantVertices");
+
+			if (not m_updatingQuadrants.contains(pos))
+				m_updatingQuadrants[pos] = std::make_unique<UpdatingInfo>();
+			m_updatingQuadrants[pos]->status(UpdateStatus::UpdateInProgress);
+
+			TheWorld_Utils::MeshCacheBuffer cache = (*this)[pos]->getMeshCacheBuffer();
+			std::string meshId = cache.getMeshIdFromDisk(false, nullptr, false);
+			//std::string meshId;
+			m_viewer->Globals()->Client()->MapManagerGetQuadrantVertices(m_viewer->isInEditor(), 0, 0, 0, 0, 0, 0, pos.getLowerXGridVertex(), pos.getLowerZGridVertex(),
+				1, // TheWorld_MapManager::MapManager::anchorType::upperleftcorner
+				pos.getNumVerticesPerSize(), pos.getGridStepInWU(), pos.getLevel(), false, 0, meshId);
+
+			scheduled = true;
+		}
+	}
 	
-	if (updateFromServerNeeded)
-	{
-		if (not m_updatingQuadrants.contains(pos))
-			m_updatingQuadrants[pos] = std::make_unique<UpdatingInfo>();
-		m_updatingQuadrants[pos]->status(UpdateStatus::UpdateInProgress);
-
-		TheWorld_Utils::MeshCacheBuffer cache = (*this)[pos]->getMeshCacheBuffer();
-		std::string meshId = cache.getMeshIdFromDisk(false, nullptr, false);
-		//std::string meshId;
-		m_viewer->Globals()->Client()->MapManagerGetQuadrantVertices(m_viewer->isInEditor(), 0, 0, 0, 0, 0, 0, pos.getLowerXGridVertex(), pos.getLowerZGridVertex(),
-			1, // TheWorld_MapManager::MapManager::anchorType::upperleftcorner
-			pos.getNumVerticesPerSize(), pos.getGridStepInWU(), pos.getLevel(), false, 0, meshId);
-	}
-
-	return added;
+	return scheduled;
 }
 
 //void GDN_TheWorld_WorldViewport::_bind_methods(void)
@@ -327,6 +309,160 @@ bool MapQuadrantsMap::addUpdatingQuadrant(TheWorld_Utils::QuadrantPos pos)
 //void GDN_TheWorld_WorldViewportContainer::_process(double _delta)
 //{
 //}
+
+GDN_TheWorld_Map::MapTextureRect::MapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	m_map = map;
+	m_mapTextureRectPos = mapTextureRectPos;
+
+	constexpr size_t NUM_PADDING_ZEROES = 6;
+	std::string strPosX, strPosY;
+	int32_t posX = int32_t(m_mapTextureRectPos.getGlobalLowerPosX()), posY = int32_t(m_mapTextureRectPos.getGlobalLowerPosY());
+	if (posX < 0)
+		strPosX = "-" + TheWorld_Utils::padIntValueTo(-posX, NUM_PADDING_ZEROES);
+	else
+		strPosX = TheWorld_Utils::padIntValueTo(posX, NUM_PADDING_ZEROES);
+	if (posY < 0)
+		strPosY = "-" + TheWorld_Utils::padIntValueTo(-posY, NUM_PADDING_ZEROES);
+	else
+		strPosY = TheWorld_Utils::padIntValueTo(posY, NUM_PADDING_ZEROES);
+
+	m_rectName = "MapRect_" + strPosX + "_" + strPosY;
+}
+
+bool GDN_TheWorld_Map::MapTextureRect::rectFull(void)
+{
+	if (m_quadrantImages.empty())
+		return false;
+
+	bool rectFull = true;
+
+	for (int y = 0; y < m_mapTextureRectPos.getNumQuadrantsPerSize(); y++)
+	{
+		for (int x = 0; x < m_mapTextureRectPos.getNumQuadrantsPerSize(); x++)
+			if (m_quadrantImages[y][x] == nullptr)
+			{
+				rectFull = false;
+				break;
+			}
+		if (not rectFull)
+			break;
+	}
+
+	return rectFull;
+}
+
+bool GDN_TheWorld_Map::MapTextureRect::isTextureRectRendered(void)
+{
+	return getTextureRect() != nullptr;
+}
+
+godot::TextureRect* GDN_TheWorld_Map::MapTextureRect::getTextureRect(void)
+{
+	godot::TextureRect* textureRect = nullptr;
+	godot::Node* n = m_map->find_child(m_rectName.c_str(), false, false);
+	if (n != nullptr)
+	{
+		textureRect = godot::Object::cast_to<godot::TextureRect>(n);
+		my_assert(textureRect != nullptr);
+	}
+	return textureRect;
+}
+
+void GDN_TheWorld_Map::MapTextureRect::renderTexture(godot::Ref<godot::Image> image)
+{
+	godot::TextureRect* textureRect = getTextureRect();
+
+	godot::Vector2i rectImageSize = image->get_size();
+
+	if (textureRect == nullptr)
+	{
+		textureRect = memnew(godot::TextureRect);
+		textureRect->set_name(m_rectName.c_str());
+		textureRect->add_to_group("MapTextureRect");
+		m_map->add_child(textureRect);
+		textureRect->set_size(rectImageSize);
+		godot::Vector2 pos(m_mapTextureRectPos.getGlobalLowerPosX(), m_mapTextureRectPos.getGlobalLowerPosY());
+		textureRect->set_position(pos);
+
+		godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+		textureRect->set_texture(tex);
+	}
+}
+
+godot::String GDN_TheWorld_Map::MapTextureRect::getImageCachePath(void)
+{
+	godot::String cacheDir = m_map->getCacheDir() + "\\MapRects\\";
+	godot::String imagePath = cacheDir + m_rectName.c_str() + ".png";
+	std::string _cacheDir = cacheDir.utf8().get_data();
+	if (!fs::exists(_cacheDir))
+	{
+		fs::create_directories(_cacheDir);
+	}
+	return imagePath;
+}
+
+bool GDN_TheWorld_Map::MapTextureRect::renderCachedTexture(void)
+{
+	godot::String imagePath = getImageCachePath();
+	std::string _imagePath = imagePath.utf8().get_data();
+	if (!fs::exists(_imagePath))
+		return false;
+	godot::Ref<godot::Image> image = godot::Image::load_from_file(imagePath);
+	if (image == nullptr)
+		return false;
+	else
+	{
+		renderTexture(image);
+		return true;
+	}
+}
+
+void GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
+{
+	if (mapImage == nullptr)
+		return;
+
+	if (not m_mapTextureRectPos.initialized())
+		return;
+
+	if (m_quadrantImages.empty())
+	{
+		//godot::Ref<godot::Image> nullImage;
+		// pre init of images vector
+		for (int y = 0; y < m_mapTextureRectPos.getNumQuadrantsPerSize(); y++)
+		{
+			std::vector<godot::Ref<godot::Image>> v;
+			m_quadrantImages.push_back(v);
+			for (int x = 0; x < m_mapTextureRectPos.getNumQuadrantsPerSize(); x++)
+				m_quadrantImages[y].push_back(nullptr);
+		}
+	}
+
+	int32_t idxX, idxY;
+	bool quadrantIsContainedInRect = m_mapTextureRectPos.getQuadrantRelativeIndices(quadrantPos, idxX, idxY);
+	if (quadrantIsContainedInRect)
+		m_quadrantImages[idxY][idxX] = mapImage;
+
+	if (rectFull())
+	{
+		godot::Ref<godot::Image> rectImage = godot::Image::create_empty(int32_t(m_mapTextureRectPos.getGlobalSize()), int32_t(m_mapTextureRectPos.getGlobalSize()), false, Image::FORMAT_RGB8);
+
+		for (int32_t y = 0; y < m_mapTextureRectPos.getNumQuadrantsPerSize(); y++)
+			for (int32_t x = 0; x < m_mapTextureRectPos.getNumQuadrantsPerSize(); x++)
+			{
+				godot::Ref<godot::Image> quadrantImage = m_quadrantImages[y][x];
+				godot::Rect2i quadrantImageRect(0, 0, quadrantImage->get_size().x, quadrantImage->get_size().y);
+				godot::Vector2i pos(x * int32_t(m_mapTextureRectPos.getQuadrantGlobalSize()), y * int32_t(m_mapTextureRectPos.getQuadrantGlobalSize()));
+				rectImage->blit_rect(quadrantImage, quadrantImageRect, pos);
+			}
+
+		godot::String imagePath = getImageCachePath();
+		rectImage->save_png(imagePath);
+
+		renderTexture(rectImage);
+	}
+}
 
 void GDN_TheWorld_Map::_bind_methods(void)
 {
@@ -471,6 +607,21 @@ godot::Rect2 GDN_TheWorld_Map::getScreenRectInGlobalCoord(void) const
 //	return godot::Vector2i((int)(lowerX / sizeInWU), (int)(lowerZ / sizeInWU));
 //}
 
+float GDN_TheWorld_Map::getQuadrantWorldSize(void)
+{
+	return Globals()->heightmapSizeInWUs();
+}
+
+float GDN_TheWorld_Map::getQuadrantGlobalSize(void) const
+{
+	return float(m_mapViewer->getViewer()->getImageMapResolution());
+}
+
+int32_t GDN_TheWorld_Map::getNumQuadrantsPerSize(void)
+{
+	return getNumImagesForTextureRectSide();
+}
+
 godot::Vector2i GDN_TheWorld_Map::getTextureRectSize(void) const
 {
 	godot::Vector2 imageSize = getImageSize();
@@ -482,16 +633,16 @@ godot::Vector2i GDN_TheWorld_Map::getImageSize(void) const
 	return godot::Vector2i(m_mapViewer->getViewer()->getImageMapResolution(), m_mapViewer->getViewer()->getImageMapResolution());
 }
 
-godot::Vector2 GDN_TheWorld_Map::globalPosToMapPos(godot::Vector2 global)
+godot::Vector2 GDN_TheWorld_Map::globalPosToWorldPos(godot::Vector2 global)
 {
-	godot::Vector2 mapPos = global / getImageSize();
-	mapPos = mapPos * Globals()->heightmapSizeInWUs();
-	return mapPos;
+	godot::Vector2 worldPos = global / getImageSize();
+	worldPos = worldPos * Globals()->heightmapSizeInWUs();
+	return worldPos;
 }
 
-godot::Vector2 GDN_TheWorld_Map::mapPosToGlobalPos(godot::Vector2 mapPos)
+godot::Vector2 GDN_TheWorld_Map::worldPosToGlobalPos(godot::Vector2 worldPos)
 {
-	godot::Vector2 globalPos = mapPos / Globals()->heightmapSizeInWUs();
+	godot::Vector2 globalPos = worldPos / Globals()->heightmapSizeInWUs();
 	globalPos = globalPos * getImageSize();
 	return globalPos;
 }
@@ -511,70 +662,49 @@ int32_t GDN_TheWorld_Map::getNumTextureRects(void)
 	return num;
 }
 
-void GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, bool replace)
+godot::String GDN_TheWorld_Map::getCacheDir(void)
+{
+	return m_mapViewer->getViewer()->Globals()->getCacheDir(m_mapViewer->getViewer()->getLevel());
+}
+
+bool GDN_TheWorld_Map::isTextureRectRendered(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	return getTextureRect(mapTextureRectPos)->isTextureRectRendered();
+}
+
+bool GDN_TheWorld_Map::renderCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	return getTextureRect(mapTextureRectPos)->renderCachedTexture();
+}
+
+GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	if (not m_mapTextureRectContainer.contains(mapTextureRectPos))
+		m_mapTextureRectContainer[mapTextureRectPos] = std::make_unique<MapTextureRect>(this, mapTextureRectPos);
+	return m_mapTextureRectContainer[mapTextureRectPos].get();
+}
+
+GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getTextureRect(const TheWorld_Utils::QuadrantPos& quadrantPos)
+{
+	godot::Vector2 quadrantGlobalPos = worldPosToGlobalPos(godot::Vector2(quadrantPos.getLowerXGridVertex(), quadrantPos.getLowerZGridVertex()));
+	TheWorld_Utils::MapTextureRectPos mapTextureRectPos(quadrantGlobalPos.x, quadrantGlobalPos.y, getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
+	return getTextureRect(mapTextureRectPos);
+}
+
+void GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
 {
 	if (mapImage == nullptr)
 		return;
-
-	constexpr size_t NUM_PADDING_ZEROES = 6;
-	std::string strPosX, strPosZ;
-	int posX = quadrantPos.getIndexPosX(), posZ = quadrantPos.getIndexPosZ();
-	if (posX < 0)
-		strPosX = "-" + TheWorld_Utils::padIntValueTo(-posX, NUM_PADDING_ZEROES);
-	else
-		strPosX = TheWorld_Utils::padIntValueTo(posX, NUM_PADDING_ZEROES);
-	if (posZ < 0)
-		strPosZ = "-" + TheWorld_Utils::padIntValueTo(-posZ, NUM_PADDING_ZEROES);
-	else
-		strPosZ = TheWorld_Utils::padIntValueTo(posZ, NUM_PADDING_ZEROES);
-
-	std::string rectName = "Quadrant_" + strPosX + "_" + strPosZ;
-
-	godot::TextureRect* textureRect = nullptr;
-	godot::Node* n = find_child(rectName.c_str(), false, true);
-	if (n != nullptr)
-	{
-		textureRect = godot::Object::cast_to<godot::TextureRect>(n);
-		my_assert(textureRect != nullptr);
-	}
-
-	godot::Vector2i imageSize = mapImage->get_size();
 	
-	if (textureRect == nullptr)
-	{
-		textureRect = memnew(godot::TextureRect);
-		textureRect->set_name(rectName.c_str());
-		textureRect->add_to_group("MapTextureRect");
-		add_child(textureRect);
-		godot::Vector2i textureRectSize = getImageSize();		// occhio!
-		my_assert(textureRectSize == imageSize);
-		textureRect->set_size(textureRectSize);
-		godot::Vector2 pos(real_t(quadrantPos.getIndexPosX() * textureRectSize.x), real_t(quadrantPos.getIndexPosZ() * textureRectSize.y));
-		textureRect->set_position(pos);
-
-		godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(mapImage);
-		textureRect->set_texture(tex);
-	}
-	else if (replace)
-	{
-		godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(mapImage);
-		textureRect->set_texture(tex);
-	}
+	getTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos);
 }
 
 void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir, bool visible)
 {
-	//godot::MeshInstance2D* worldFlag = nullptr;
-	//godot::Line2D* worldDir = nullptr;
 	godot::Node2D* worldFlag = nullptr;
 	if (m_worldFlagDict.has(name))
 	{
 		worldFlag = Object::cast_to<godot::Node2D>(m_worldFlagDict[name]);
-		//godot::Dictionary worldFlagPartsDict = m_worldFlagDict[name];
-		//if (worldFlagPartsDict.has("flag"))
-		//	worldFlag = Object::cast_to<godot::MeshInstance2D>((*worldFlagPartsDict)["flag"]);
-		//if (worldFlagPartsDict.has("dir"))
-		//	worldDir = Object::cast_to<godot::Line2D>((*worldFlagPartsDict)["dir"]);
 	}
 	else
 	{
@@ -611,7 +741,7 @@ void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Transform3D world
 
 	if (worldFlag != nullptr)
 	{
-		godot::Vector2 worldFlagGlobalPosition = m_mapViewer->getViewer()->mapPosToGlobalPos(godot::Vector2(worldTransform.origin.x, worldTransform.origin.z));
+		godot::Vector2 worldFlagGlobalPosition = m_mapViewer->getViewer()->worldPosToGlobalPos(godot::Vector2(worldTransform.origin.x, worldTransform.origin.z));
 		worldFlag->set_global_position(worldFlagGlobalPosition);
 
 		if (setCameraDir)
@@ -2147,12 +2277,12 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("pause_mouse_movement"), &GDN_TheWorld_Viewer::pauseMouseMovement);
 	ClassDB::bind_method(D_METHOD("resume_mouse_movement"), &GDN_TheWorld_Viewer::resumeMouseMovement);
 
-	ClassDB::bind_method(D_METHOD("global_transform_to_world_transform", "p_transform"), &GDN_TheWorld_Viewer::globalToWorld);
+	ClassDB::bind_method(D_METHOD("global_transform_to_world_transform", "p_transform"), &GDN_TheWorld_Viewer::globalToWorld3d);
 	ClassDB::bind_method(D_METHOD("global_pos_to_world_transform", "p_transform"), &GDN_TheWorld_Viewer::globalPosToWorldTransform);
-	ClassDB::bind_method(D_METHOD("global_pos_to_world_pos", "p_transform"), &GDN_TheWorld_Viewer::globalPosToWorldPos);
+	ClassDB::bind_method(D_METHOD("global_pos_to_world_pos", "p_transform"), &GDN_TheWorld_Viewer::globalPosToWorldPos3d);
 	ClassDB::bind_method(D_METHOD("world_transform_to_global_transform", "p_transform"), &GDN_TheWorld_Viewer::worldToGlobal);
 	ClassDB::bind_method(D_METHOD("world_pos_to_global_transform", "p_transform"), &GDN_TheWorld_Viewer::worldPosToGlobalTransform);
-	ClassDB::bind_method(D_METHOD("world_pos_to_global_pos", "p_transform"), &GDN_TheWorld_Viewer::worldPosToGlobalPos);
+	ClassDB::bind_method(D_METHOD("world_pos_to_global_pos", "p_transform"), &GDN_TheWorld_Viewer::worldPosToGlobalPos3d);
 
 	ADD_SIGNAL(MethodInfo("tw_quadrant_selected_for_edit", PropertyInfo(Variant::BOOL, "value")));
 }
@@ -4169,7 +4299,7 @@ void GDN_TheWorld_Viewer::_ready(void)
 	m_ready = true;
 }
 
-bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 mapPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform)
+bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform)
 {
 	bool ret = false;
 	GDN_TheWorld_Globals* globals = Globals();
@@ -4177,7 +4307,7 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 mapPos, float al
 	if (Globals()->status() == TheWorldStatus::worldDeployed)
 	{
 		// get quadrant containing requested pos
-		TheWorld_Utils::QuadrantPos quadrantPos(mapPos.x, mapPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), globals->gridStepInWU());
+		TheWorld_Utils::QuadrantPos quadrantPos(worldPos.x, worldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), globals->gridStepInWU());
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
 		if (m_worldQuadrantsMap.contains(quadrantPos))
 		{
@@ -4187,7 +4317,7 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 mapPos, float al
 #define MAX_ALTITUDE_DETECTED		20000
 
 				float cameraAltitude = -999999999.9f;
-				godot::Vector3 globalPosGroundZero = worldPosToGlobalPos(godot::Vector3(mapPos.x, 0, mapPos.y));
+				godot::Vector3 globalPosGroundZero = worldPosToGlobalPos(godot::Vector3(worldPos.x, 0, worldPos.y));
 
 				if (altitudeIsAbsolute)
 				{
@@ -4228,12 +4358,6 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 mapPos, float al
 				{
 					activeWorldCamera->set_global_transform(worldCameraWorldTransform);
 					activeWorldCamera->set_global_position(godot::Vector3(globalPosGroundZero.x, cameraAltitude, globalPosGroundZero.z));
-					//GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
-					//if (cam != nullptr)
-					//{
-					//	godot::Vector3 worldCameraMapPos(mapPosX, cameraAltitude, mapPosZ);
-					//	cam->setCameraMapPos(worldCameraMapPos);
-					//}
 				}
 			}
 		}
@@ -4467,13 +4591,13 @@ void GDN_TheWorld_Viewer::toggleMapView(void)
 
 				//// SWITCHING TO WORLD MODE: world camera will position on map camera position
 				//{
-				//	setWorldCameraWorldPos(globalPosToMapPos(mapCameraGlobalPos), m_altitudeForToggleToWorldMode, m_altitudeForToggleToWorldModeIsAbsolute, m_worldCameraWorldTransformForToggleToWorldMode);
+				//	setWorldCameraWorldPos(globalPosToWorldPos(mapCameraGlobalPos), m_altitudeForToggleToWorldMode, m_altitudeForToggleToWorldModeIsAbsolute, m_worldCameraWorldTransformForToggleToWorldMode);
 				//}
 
 				// SWITCHING TO WORLD MODE: world camera will not move (remaining where it was when map mode was activated)
 				{
-					godot::Vector2 mapPos(m_worldCameraWorldTransformForToggleToWorldMode.origin.x, m_worldCameraWorldTransformForToggleToWorldMode.origin.z);
-					setWorldCameraWorldPos(mapPos, m_altitudeForToggleToWorldMode, m_altitudeForToggleToWorldModeIsAbsolute, m_worldCameraWorldTransformForToggleToWorldMode);
+					godot::Vector2 worldPos(m_worldCameraWorldTransformForToggleToWorldMode.origin.x, m_worldCameraWorldTransformForToggleToWorldMode.origin.z);
+					setWorldCameraWorldPos(worldPos, m_altitudeForToggleToWorldMode, m_altitudeForToggleToWorldModeIsAbsolute, m_worldCameraWorldTransformForToggleToWorldMode);
 				}
 
 				mapMode(false);
@@ -4501,7 +4625,7 @@ void GDN_TheWorld_Viewer::toggleMapView(void)
 							// SWITCHING TO MAP MODE: on first switch map camera will be positioned on world camera position on next switch will stay where it was when map mode was quit
 							if (not mapCameraGlobalPositionSet)
 							{
-								m_mapCameraGlobalPos = mapPosToGlobalPos(godot::Vector2(worldCameraWorldPos.x, worldCameraWorldPos.z));
+								m_mapCameraGlobalPos = worldPosToGlobalPos(godot::Vector2(worldCameraWorldPos.x, worldCameraWorldPos.z));
 							}
 							mapCamera->set_global_position(m_mapCameraGlobalPos);
 							m_worldCameraWorldTransformForToggleToWorldMode = cam->getWorldTransform();
@@ -5698,7 +5822,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		if (IS_EDITOR_HINT())
 			mapCameraWorldPos = activeMapCamera->get_global_transform().get_origin();
 		else
-			mapCameraWorldPos = ((GDN_TheWorld_MapCamera*)activeMapCamera)->getCameraMapPos();
+			mapCameraWorldPos = ((GDN_TheWorld_MapCamera*)activeMapCamera)->getCameraWorldPos();
 		cameraWorldPos = godot::Vector3(mapCameraWorldPos.x, m_altitudeForToggleToWorldMode, mapCameraWorldPos.y);
 	}
 
@@ -6937,13 +7061,23 @@ void GDN_TheWorld_Viewer::writeStatisticsNewQuadrants(void)
 	m_elapsedSetLowResCollisionData = 0;
 }
 
+godot::Transform3D GDN_TheWorld_Viewer::globalToWorld3d(godot::Transform3D global) const
+{
+	return globalToWorld(global);
+}
+
 godot::Transform3D GDN_TheWorld_Viewer::globalToWorld(godot::Transform3D global) const
 {
 	godot::Transform3D viewerT = getInternalGlobalTransform().affine_inverse();
 	return viewerT * global;
 }
 
-godot::Transform2D GDN_TheWorld_Viewer::globalToMap(godot::Transform2D global)
+godot::Transform2D GDN_TheWorld_Viewer::globalToWorld2d(godot::Transform2D global)
+{
+	return globalToWorld(global);
+}
+
+godot::Transform2D GDN_TheWorld_Viewer::globalToWorld(godot::Transform2D global)
 {
 	//godot::Transform3D viewerT3d = getInternalGlobalTransform().affine_inverse();
 	//godot::Transform2D viewerT2d;
@@ -6951,7 +7085,7 @@ godot::Transform2D GDN_TheWorld_Viewer::globalToMap(godot::Transform2D global)
 	//return viewerT2d * global;
 	GDN_TheWorld_Map* map = Map();
 	godot::Transform2D viewerT2d = map->get_transform();
-	viewerT2d.set_origin(globalPosToMapPos(global.get_origin()));
+	viewerT2d.set_origin(globalPosToWorldPos(global.get_origin()));
 	return viewerT2d;
 }
 
@@ -6961,6 +7095,11 @@ godot::Transform3D GDN_TheWorld_Viewer::globalPosToWorldTransform(godot::Vector3
 	return viewerT * godot::Transform3D(godot::Basis(), global);
 }
 
+godot::Vector3 GDN_TheWorld_Viewer::globalPosToWorldPos3d(godot::Vector3 global) const
+{
+	return globalPosToWorldPos(global);
+}
+
 godot::Vector3 GDN_TheWorld_Viewer::globalPosToWorldPos(godot::Vector3 global) const
 {
 	godot::Transform3D viewerT = getInternalGlobalTransform().affine_inverse();
@@ -6968,41 +7107,50 @@ godot::Vector3 GDN_TheWorld_Viewer::globalPosToWorldPos(godot::Vector3 global) c
 	return t.origin;
 }
 
-godot::Vector2 GDN_TheWorld_Viewer::globalPosToMapPos(godot::Vector2 global)
+godot::Vector2 GDN_TheWorld_Viewer::globalPosToWorldPos2d(godot::Vector2 global)
+{
+	return globalPosToWorldPos(global);
+}
+
+godot::Vector2 GDN_TheWorld_Viewer::globalPosToWorldPos(godot::Vector2 global)
 {
 	GDN_TheWorld_Map* map = Map();
-	return map->globalPosToMapPos(global);
-	//godot::Vector2 mapPos = global / map->getTextureRectSize();
-	//mapPos = mapPos * Globals()->heightmapSizeInWUs();
-	//return mapPos;
+	return map->globalPosToWorldPos(global);
 }
 
-godot::Transform3D GDN_TheWorld_Viewer::worldToGlobal(godot::Transform3D map) const
+godot::Transform3D GDN_TheWorld_Viewer::worldToGlobal(godot::Transform3D world) const
 {
 	godot::Transform3D viewerT = getInternalGlobalTransform();
-	return viewerT * map;
+	return viewerT * world;
 }
 
-godot::Transform3D GDN_TheWorld_Viewer::worldPosToGlobalTransform(godot::Vector3 map) const
+godot::Transform3D GDN_TheWorld_Viewer::worldPosToGlobalTransform(godot::Vector3 worldPos) const
 {
 	godot::Transform3D viewerT = getInternalGlobalTransform();
-	return viewerT * godot::Transform3D(godot::Basis(), map);
+	return viewerT * godot::Transform3D(godot::Basis(), worldPos);
 }
 
-godot::Vector3 GDN_TheWorld_Viewer::worldPosToGlobalPos(godot::Vector3 map) const
+godot::Vector3 GDN_TheWorld_Viewer::worldPosToGlobalPos3d(godot::Vector3 world) const
+{
+	return worldPosToGlobalPos(world);
+}
+
+godot::Vector3 GDN_TheWorld_Viewer::worldPosToGlobalPos(godot::Vector3 world) const
 {
 	godot::Transform3D viewerT = getInternalGlobalTransform();
-	godot::Transform3D t = viewerT * godot::Transform3D(godot::Basis(), map);
+	godot::Transform3D t = viewerT * godot::Transform3D(godot::Basis(), world);
 	return t.origin;
 }
 
-godot::Vector2 GDN_TheWorld_Viewer::mapPosToGlobalPos(godot::Vector2 mapPos)
+godot::Vector2 GDN_TheWorld_Viewer::worldPosToGlobalPos2d(godot::Vector2 worldPos)
+{
+	return worldPosToGlobalPos(worldPos);
+}
+
+godot::Vector2 GDN_TheWorld_Viewer::worldPosToGlobalPos(godot::Vector2 worldPos)
 {
 	GDN_TheWorld_Map* map = Map();
-	return map->mapPosToGlobalPos(mapPos);
-	//godot::Vector2 globalPos = mapPos / Globals()->heightmapSizeInWUs();
-	//globalPos = globalPos * map->getTextureRectSize();
-	//return globalPos;
+	return map->worldPosToGlobalPos(worldPos);
 }
 
 void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCamera, godot::Camera3D* activeWorldCamera)
@@ -7029,7 +7177,7 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 
 	float distance;
 	godot::Transform3D cameraWorldTransform;
-	godot::Vector2 cameraMapPos;
+	godot::Vector2 cameraWorldPos;
 	if (worldMode())
 	{
 		cameraWorldTransform = globalPosToWorldTransform(activeWorldCamera->get_global_position() * godot::Vector3(1, 0, 1));
@@ -7038,8 +7186,8 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 	else
 	{
 		godot::Vector2 lastOriginShiftCameraPosInMap(m_lastOriginShiftCameraPosInMap.x, m_lastOriginShiftCameraPosInMap.z);
-		cameraMapPos = globalPosToMapPos(activeMapCamera->get_global_position());
-		distance = cameraMapPos.distance_to(lastOriginShiftCameraPosInMap);
+		cameraWorldPos = globalPosToWorldPos(activeMapCamera->get_global_position());
+		distance = cameraWorldPos.distance_to(lastOriginShiftCameraPosInMap);
 	}
 
 	//if (m_originShiftedQuadrantPos != m_computedCameraQuadrantPos)
@@ -7074,7 +7222,7 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 		if (worldMode())
 			m_lastOriginShiftCameraPosInMap = cameraWorldTransform.origin;
 		else
-			m_lastOriginShiftCameraPosInMap = godot::Vector3(cameraMapPos.x, 0, cameraMapPos.y);
+			m_lastOriginShiftCameraPosInMap = godot::Vector3(cameraWorldPos.x, 0, cameraWorldPos.y);
 
 		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 		if (m_editMode && editModeUIControl && editModeUIControl->initialized())
@@ -7327,7 +7475,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 			godot::Vector2 mousePosGlobal = map->getMousePosInGlobalCoord();
 			m_trackedMouseHitGlobal = godot::Vector3(mousePosGlobal.x, 0, mousePosGlobal.y);
 
-			godot::Vector2 mousePosInMap = map->globalPosToMapPos(mousePosGlobal);
+			godot::Vector2 mousePosInMap = map->globalPosToWorldPos(mousePosGlobal);
 			m_trackedMouseHitInMap = godot::Vector3(mousePosInMap.x, 0, mousePosInMap.y);
 
 			int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
@@ -8274,31 +8422,40 @@ void GDN_TheWorld_Viewer::process_lookDev(void)
 
 void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 {
+	TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1. ") + __FUNCTION__, "ALL");
+
 	GDN_TheWorld_Map* map = Map();
 	if (map != nullptr)
 	{
 		m_mapQuadrantsMap.lock();
 
-		// Render updated quadrants
-		while (m_mapQuadrantsMap.updated())
-		{
-			TheWorld_Utils::QuadrantPos pos = m_mapQuadrantsMap.fetchUpdatedQuadrant();
-			if (not pos.empty() and m_mapQuadrantsMap.contains(pos))
-			{
-				MapQuadrant* mapQuadrant = m_mapQuadrantsMap.at(pos).get();
-				if (mapQuadrant->updated())
-				{
-					map->setMapQuadrantData(mapQuadrant->getMapImage(), pos, true);
-					mapQuadrant->updated(false);
-				}
-			}
-		}
+		//if (m_mapQuadrantsMap.updated())
+		//{
+		//	TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.1. ") + __FUNCTION__, "Loop map->setMapQuadrantData");
+
+		//	// Render updated quadrants
+		//	while (m_mapQuadrantsMap.updated())
+		//	{
+		//		TheWorld_Utils::QuadrantPos pos = m_mapQuadrantsMap.fetchUpdatedQuadrant();
+		//		if (not pos.empty() and m_mapQuadrantsMap.contains(pos))
+		//		{
+		//			MapQuadrant* mapQuadrant = m_mapQuadrantsMap.at(pos).get();
+		//			if (mapQuadrant->updated())
+		//			{
+		//				map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
+		//				mapQuadrant->updated(false);
+		//			}
+		//		}
+		//	}
+		//}
 
 		// Check quadrant update request timed out
 		constexpr int64_t  secondsBetweenCheck = 1;
 		int64_t timeElapsed = TIME()->get_ticks_msec();
 		if (timeElapsed - m_timeElapsedFromLastUpdatingQuadrantsCheck > secondsBetweenCheck * 1000)
 		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.2. ") + __FUNCTION__, "m_mapQuadrantsMap.checkUpdatingQuadrants");
+
 			bool statusChanged = m_mapQuadrantsMap.checkUpdatingQuadrants();
 			if (statusChanged)
 				forceProcessNewMapQuadrants(true);
@@ -8307,18 +8464,24 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 		}
 
 		// Request update for new quadrants (when map camera moves / scales)
-		if (forceProcessNewMapQuadrants() 
+		if (forceProcessNewMapQuadrants()
+			or m_mapQuadrantsMap.updated()
 			or m_lastProcessedCameraForMapQuadrants == godot::Vector3()
 			or (m_lastProcessedCameraForMapQuadrants.x != cameraWorldPos.x or m_lastProcessedCameraForMapQuadrants.z != cameraWorldPos.z))
 		{
+			bool breakLoop = false;
+
 			GDN_TheWorld_Map* map = Map();
 			GDN_TheWorld_MapCamera* mapCamera = MapCamera();
 			if (map != nullptr and mapCamera != nullptr)
 			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3. ") + __FUNCTION__, "Loop m_mapQuadrantsMap.addUpdatingQuadrant");
+
 				// W A R N I N G: all calcs are made in global coords not in pixels because camera zoom alter distances
 				godot::Rect2 screenRectInGlobalCoord = map->getScreenRectInGlobalCoord();
 				godot::Vector2i textureRectSize = map->getTextureRectSize();
-				GDN_TheWorld_Map::MapTextureRectPos cameraTextureRectGlobalPos(mapCamera->get_global_position(), textureRectSize);
+				godot::Vector2 mapCameraGlobalPos = mapCamera->get_global_position();
+				TheWorld_Utils::MapTextureRectPos cameraTextureRectGlobalPos(mapCameraGlobalPos.x, mapCameraGlobalPos.y, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
 				int32_t numTextureRectsUpToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosY() - screenRectInGlobalCoord.position.y) / textureRectSize.y);
 				int32_t numTextureRectsDownToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().y - cameraTextureRectGlobalPos.getGlobalHigherPosY()) / textureRectSize.y);
 				int32_t numTextureRectsLeftToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosX() - screenRectInGlobalCoord.position.x) / textureRectSize.x);
@@ -8333,35 +8496,59 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 				float gridStepInWU = Globals()->gridStepInWU();
 
 				// from upper left texture rect moving horizontally and vertically to the edge of the screen
-				for (int y = lowerIndexY; y <= higherIndexY; y++)
+				for (int32_t y = lowerIndexY; y <= higherIndexY; y++)
 				{
-					for (int x = lowerIndexX; x <= higherIndexX; x++)
+					for (int32_t x = lowerIndexX; x <= higherIndexX; x++)
 					{
-						GDN_TheWorld_Map::MapTextureRectPos textureRectGlobalPos(godot::Vector2i(x, y), textureRectSize);
+						TheWorld_Utils::MapTextureRectPos textureRectGlobalPos(x, y, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
 
-						for (int imageIdxY = 0; imageIdxY < map->getNumImagesForTextureRectSide(); imageIdxY++)
+						if (not map->isTextureRectRendered(textureRectGlobalPos))
 						{
-							for (int imageIdxX = 0; imageIdxX < map->getNumImagesForTextureRectSide(); imageIdxX++)
+							bool rendered = map->renderCachedTexture(textureRectGlobalPos);
+							if (not rendered)
 							{
-								godot::Vector2 globalPos(textureRectGlobalPos.getGlobalLowerPosX() + imageIdxX * map->getImageSize().x, textureRectGlobalPos.getGlobalLowerPosY() + imageIdxY * map->getImageSize().y);
-								godot::Vector2 mapPos = map->globalPosToMapPos(globalPos);
-								TheWorld_Utils::QuadrantPos pos(mapPos.x, mapPos.y, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
-								//if (not m_mapQuadrantsMap.contains(pos))
-								//{
-									bool added = m_mapQuadrantsMap.addUpdatingQuadrant(pos);
-								//}
+								std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
+								textureRectGlobalPos.getQuadrantsPosContained(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+								for (auto& pos : quadrantsPos)
+								{
+									if (m_mapQuadrantsMap.contains(pos))
+									{
+										MapQuadrant* mapQuadrant = m_mapQuadrantsMap[pos].get();
+										if (mapQuadrant->updated())
+										{
+											map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
+											mapQuadrant->updated(false);
+											m_mapQuadrantsMap.fetchUpdatedQuadrant(pos);
+										}
+									}
+									else
+									{
+										bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+										if (scheduled)
+											breakLoop = true;
+									}
+								}
 							}
 						}
+
+						if (breakLoop)
+							break;
 					}
+
+					if (breakLoop)
+						break;
 				}
 			}
 
 			m_lastProcessedCameraForMapQuadrants = cameraWorldPos;
-			forceProcessNewMapQuadrants(false);
+			
+			if (breakLoop)
+				forceProcessNewMapQuadrants(true);
+			else
+				forceProcessNewMapQuadrants(false);
 		}
 
 		m_mapQuadrantsMap.unlock();
-
 	}
 }
 

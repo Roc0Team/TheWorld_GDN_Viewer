@@ -77,7 +77,7 @@ namespace godot
 		return dir;
 	}
 
-	String GDN_TheWorld_Globals::getCacheDir(int level)
+	godot::String GDN_TheWorld_Globals::getCacheDir(int level)
 	{
 		std::string clientDataDir = GDN_TheWorld_Globals::getClientDataDir();
 		if (clientDataDir.length() == 0)
@@ -92,7 +92,7 @@ namespace godot
 		return cacheDir.c_str();
 	}
 
-	String GDN_TheWorld_Globals::getConfigFilename(int level)
+	godot::String GDN_TheWorld_Globals::getConfigFilename(int level)
 	{
 		String cacheDir = getCacheDir(level);
 		if (cacheDir.length() == 0)

@@ -33,7 +33,7 @@ using namespace godot;
 
 void GDN_TheWorld_MapCamera::_bind_methods(void)
 {
-	ClassDB::bind_method(D_METHOD("get_camera_map_transform"), &GDN_TheWorld_MapCamera::getCameraMapTransform);
+	ClassDB::bind_method(D_METHOD("get_camera_world_transform"), &GDN_TheWorld_MapCamera::getCameraWorldTransform);
 	ClassDB::bind_method(D_METHOD("get_zoom_factor"), &GDN_TheWorld_MapCamera::getZoomFactor);
 }
 
@@ -219,7 +219,7 @@ void GDN_TheWorld_MapCamera::_process(double _delta)
 {
 }
 
-godot::Transform2D GDN_TheWorld_MapCamera::getCameraMapTransform()
+godot::Transform2D GDN_TheWorld_MapCamera::getCameraWorldTransform()
 {
 	godot::Transform2D map;
 
@@ -231,14 +231,14 @@ godot::Transform2D GDN_TheWorld_MapCamera::getCameraMapTransform()
 		return map;
 
 	godot::Transform2D cameraT = get_global_transform();
-	map = viewer->globalToMap(cameraT);
+	map = viewer->globalToWorld(cameraT);
 	
 	return map;
 }
 
-godot::Vector2 GDN_TheWorld_MapCamera::getCameraMapPos()
+godot::Vector2 GDN_TheWorld_MapCamera::getCameraWorldPos()
 {
-	return getCameraMapTransform().get_origin();
+	return getCameraWorldTransform().get_origin();
 }
 
 void GDN_TheWorld_Camera::_bind_methods()
@@ -505,10 +505,10 @@ godot::Vector3 GDN_TheWorld_Camera::getWorldPos(void)
 	return getWorldTransform().get_origin();
 }
 
-void GDN_TheWorld_Camera::setWorldPos(godot::Vector3 mapPos)
+void GDN_TheWorld_Camera::setWorldPos(godot::Vector3 worldPos)
 {
-	godot::Transform3D mapTransform(get_global_transform().basis, mapPos);
-	setWorldTransform(mapTransform);
+	godot::Transform3D worldTransform(get_global_transform().basis, worldPos);
+	setWorldTransform(worldTransform);
 }
 
 void GDN_TheWorld_Camera::_physics_process(double _delta)

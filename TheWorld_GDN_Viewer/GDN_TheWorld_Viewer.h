@@ -118,7 +118,7 @@ namespace godot
 			return (m_updatedQuadrants.size() > 0);
 		}
 
-		void addUpdatedQuadrant(TheWorld_Utils::QuadrantPos pos);
+		void addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		TheWorld_Utils::QuadrantPos fetchUpdatedQuadrant(void)
 		{
 			TheWorld_Utils::QuadrantPos pos;
@@ -131,13 +131,27 @@ namespace godot
 			return pos;
 		}
 
+		void erase(TheWorld_Utils::QuadrantPos& pos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+			std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrant>>::erase(pos);
+			fetchUpdatedQuadrant(pos);
+			fetchUpdatingQuadrant(pos);
+		}
+		
 		void fetchUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 			m_updatedQuadrants.erase(pos);
 		}
+		void fetchUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+			m_updatingQuadrants.erase(pos);
+		}
 
-		bool scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos pos);
+		bool updateNeeded(TheWorld_Utils::QuadrantPos& pos);
+		bool scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos);
 		bool checkUpdatingQuadrants(void);
 
 		void lock(void)
@@ -449,7 +463,7 @@ namespace godot
 			~MapTextureRect(void) {}
 
 			bool rectFull(void);
-			void setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
+			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
 			bool isTextureRectRendered(void);
 			godot::TextureRect* getTextureRect(void);
 			bool renderCachedTexture(void);
@@ -493,6 +507,7 @@ namespace godot
 		godot::Vector2i getImageSize(void) const;
 		godot::Vector2i getTextureRectSize(void) const;
 		//godot::Vector2i getTextureRectIdxFromWorldPos(float x, float z, int level, int numVerticesPerSize, float gridStepInWU) const;
+		void getScreenTextureRects(std::vector<TheWorld_Utils::MapTextureRectPos>& rectsPos);
 		godot::Rect2 getScreenRectInGlobalCoord(void) const;
 		godot::Size2 getScreenSizeInGlobalCoord(void) const;
 		godot::Vector2 getMousePosInGlobalCoord(void) const;
@@ -504,7 +519,7 @@ namespace godot
 		MapTextureRect* getTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool isTextureRectRendered(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool renderCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
-		void setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
+		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
 		void setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir = false, bool visible = true);
 		godot::String getCacheDir(void);
 
@@ -1175,7 +1190,7 @@ namespace godot
 		size_t getExtraQuadsMapSize(void);
 		void getAllQuadrantPos(std::vector<TheWorld_Utils::QuadrantPos>& allQuandrantPos, bool withExtraQuads = false);
 		QuadTree* getQuadTree(TheWorld_Utils::QuadrantPos pos, bool excludeToErase = true, bool lockQuadrant = false, bool extraQuadAllowed = false);
-		Chunk* getActiveChunkAt(TheWorld_Utils::QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
+		Chunk* getActiveChunkAt(TheWorld_Utils::QuadrantPos& pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
 		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
 		bool terrainShiftPermitted(void);
 		godot::Vector3 getMouseHitGlobal(void) const

@@ -75,7 +75,7 @@ void MapQuadrantsMap::init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLeve
 //		return nullptr;
 //}
 
-void MapQuadrantsMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos pos)
+void MapQuadrantsMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	if (not m_updatedQuadrants.contains(pos))
@@ -123,7 +123,16 @@ bool MapQuadrantsMap::checkUpdatingQuadrants(void)
 	return statusChanged;
 }
 
-bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos pos)
+bool MapQuadrantsMap::updateNeeded(TheWorld_Utils::QuadrantPos& pos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	if (m_updatingQuadrants.contains(pos) and m_updatingQuadrants[pos]->status() == UpdateStatus::UpdateNeeded)
+		return true;
+	else
+		return false;
+}
+
+bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos)
 {
 	//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "ALL");
 
@@ -418,13 +427,15 @@ bool GDN_TheWorld_Map::MapTextureRect::renderCachedTexture(void)
 	}
 }
 
-void GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
+bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
 {
+	bool fullRectRendered = false;
+	
 	if (mapImage == nullptr)
-		return;
+		return fullRectRendered;
 
 	if (not m_mapTextureRectPos.initialized())
-		return;
+		return fullRectRendered;
 
 	if (m_quadrantImages.empty())
 	{
@@ -442,7 +453,9 @@ void GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 	int32_t idxX, idxY;
 	bool quadrantIsContainedInRect = m_mapTextureRectPos.getQuadrantRelativeIndices(quadrantPos, idxX, idxY);
 	if (quadrantIsContainedInRect)
+	{
 		m_quadrantImages[idxY][idxX] = mapImage;
+	}
 
 	if (rectFull())
 	{
@@ -457,11 +470,17 @@ void GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 				rectImage->blit_rect(quadrantImage, quadrantImageRect, pos);
 			}
 
+		m_quadrantImages.clear();
+
 		godot::String imagePath = getImageCachePath();
 		rectImage->save_png(imagePath);
 
 		renderTexture(rectImage);
+
+		fullRectRendered = true;
 	}
+
+	return fullRectRendered;
 }
 
 void GDN_TheWorld_Map::_bind_methods(void)
@@ -589,6 +608,43 @@ godot::Vector2 GDN_TheWorld_Map::getMousePosInGlobalCoord(void) const
 	return mousePosInGlobalCoord;
 }
 
+void GDN_TheWorld_Map::getScreenTextureRects(std::vector<TheWorld_Utils::MapTextureRectPos>& rectsPos)
+{
+	rectsPos.clear();
+	
+	GDN_TheWorld_Viewer* viewer = getMapViewer()->getViewer();
+	GDN_TheWorld_MapCamera* mapCamera = viewer->MapCamera();
+
+	// W A R N I N G: all calcs are made in global coords not in pixels because camera zoom alter distances
+	godot::Rect2 screenRectInGlobalCoord = getScreenRectInGlobalCoord();
+	godot::Vector2i textureRectSize = getTextureRectSize();
+	godot::Vector2 mapCameraGlobalPos = mapCamera->get_global_position();
+	TheWorld_Utils::MapTextureRectPos cameraTextureRectGlobalPos(mapCameraGlobalPos.x, mapCameraGlobalPos.y, getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
+	int32_t numTextureRectsUpToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosY() - screenRectInGlobalCoord.position.y) / textureRectSize.y);
+	int32_t numTextureRectsDownToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().y - cameraTextureRectGlobalPos.getGlobalHigherPosY()) / textureRectSize.y);
+	int32_t numTextureRectsLeftToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosX() - screenRectInGlobalCoord.position.x) / textureRectSize.x);
+	int32_t numTextureRectsRightToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().x - cameraTextureRectGlobalPos.getGlobalHigherPosX()) / textureRectSize.x);
+
+	int lowerIndexY = cameraTextureRectGlobalPos.getIdxY() - numTextureRectsUpToScreenBorder;
+	int higherIndexY = cameraTextureRectGlobalPos.getIdxY() + numTextureRectsDownToScreenBorder;
+	int lowerIndexX = cameraTextureRectGlobalPos.getIdxX() - numTextureRectsLeftToScreenBorder;
+	int higherIndexX = cameraTextureRectGlobalPos.getIdxX() + numTextureRectsRightToScreenBorder;
+
+	int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
+	float gridStepInWU = Globals()->gridStepInWU();
+
+	// from upper left texture rect moving horizontally and vertically to the edge of the screen
+	//higherIndexY = lowerIndexY;		higherIndexX = lowerIndexX;		// DEBUG ONLY
+	for (int32_t y = lowerIndexY; y <= higherIndexY; y++)
+	{
+		for (int32_t x = lowerIndexX; x <= higherIndexX; x++)
+		{
+			TheWorld_Utils::MapTextureRectPos textureRectGlobalPos(x, y, getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
+			rectsPos.push_back(textureRectGlobalPos);
+		}
+	}
+}
+
 godot::Rect2 GDN_TheWorld_Map::getScreenRectInGlobalCoord(void) const
 {
 	godot::Size2 screenSizeInGlobalCoord = getScreenSizeInGlobalCoord();
@@ -691,12 +747,12 @@ GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getTextureRect(const TheWorl
 	return getTextureRect(mapTextureRectPos);
 }
 
-void GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
+bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
 {
 	if (mapImage == nullptr)
-		return;
+		return false;
 	
-	getTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos);
+	return getTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos);
 }
 
 void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir, bool visible)
@@ -3776,6 +3832,11 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						std::string outMeshIdFromBuffer;
 						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer);
 						m_mapQuadrantsMap.addUpdatedQuadrant(quadrantPos);
+					}
+					else
+					{
+						// clear everything
+						m_mapQuadrantsMap.erase(quadrantPos);
 					}
 					
 #pragma warning(suppress: 26117)
@@ -8477,66 +8538,98 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 			{
 				TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3. ") + __FUNCTION__, "Loop m_mapQuadrantsMap.addUpdatingQuadrant");
 
-				// W A R N I N G: all calcs are made in global coords not in pixels because camera zoom alter distances
-				godot::Rect2 screenRectInGlobalCoord = map->getScreenRectInGlobalCoord();
-				godot::Vector2i textureRectSize = map->getTextureRectSize();
-				godot::Vector2 mapCameraGlobalPos = mapCamera->get_global_position();
-				TheWorld_Utils::MapTextureRectPos cameraTextureRectGlobalPos(mapCameraGlobalPos.x, mapCameraGlobalPos.y, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
-				int32_t numTextureRectsUpToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosY() - screenRectInGlobalCoord.position.y) / textureRectSize.y);
-				int32_t numTextureRectsDownToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().y - cameraTextureRectGlobalPos.getGlobalHigherPosY()) / textureRectSize.y);
-				int32_t numTextureRectsLeftToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosX() - screenRectInGlobalCoord.position.x) / textureRectSize.x);
-				int32_t numTextureRectsRightToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().x - cameraTextureRectGlobalPos.getGlobalHigherPosX()) / textureRectSize.x);
+				//// W A R N I N G: all calcs are made in global coords not in pixels because camera zoom alter distances
+				//godot::Rect2 screenRectInGlobalCoord = map->getScreenRectInGlobalCoord();
+				//godot::Vector2i textureRectSize = map->getTextureRectSize();
+				//godot::Vector2 mapCameraGlobalPos = mapCamera->get_global_position();
+				//TheWorld_Utils::MapTextureRectPos cameraTextureRectGlobalPos(mapCameraGlobalPos.x, mapCameraGlobalPos.y, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
+				//int32_t numTextureRectsUpToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosY() - screenRectInGlobalCoord.position.y) / textureRectSize.y);
+				//int32_t numTextureRectsDownToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().y - cameraTextureRectGlobalPos.getGlobalHigherPosY()) / textureRectSize.y);
+				//int32_t numTextureRectsLeftToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosX() - screenRectInGlobalCoord.position.x) / textureRectSize.x);
+				//int32_t numTextureRectsRightToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().x - cameraTextureRectGlobalPos.getGlobalHigherPosX()) / textureRectSize.x);
 
-				int lowerIndexY = cameraTextureRectGlobalPos.getIdxY() - numTextureRectsUpToScreenBorder;
-				int higherIndexY = cameraTextureRectGlobalPos.getIdxY() + numTextureRectsDownToScreenBorder;
-				int lowerIndexX = cameraTextureRectGlobalPos.getIdxX() - numTextureRectsLeftToScreenBorder;
-				int higherIndexX = cameraTextureRectGlobalPos.getIdxX() + numTextureRectsRightToScreenBorder;
+				//int lowerIndexY = cameraTextureRectGlobalPos.getIdxY() - numTextureRectsUpToScreenBorder;
+				//int higherIndexY = cameraTextureRectGlobalPos.getIdxY() + numTextureRectsDownToScreenBorder;
+				//int lowerIndexX = cameraTextureRectGlobalPos.getIdxX() - numTextureRectsLeftToScreenBorder;
+				//int higherIndexX = cameraTextureRectGlobalPos.getIdxX() + numTextureRectsRightToScreenBorder;
 
-				int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
-				float gridStepInWU = Globals()->gridStepInWU();
+				//int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
+				//float gridStepInWU = Globals()->gridStepInWU();
 
-				// from upper left texture rect moving horizontally and vertically to the edge of the screen
-				for (int32_t y = lowerIndexY; y <= higherIndexY; y++)
+				//// from upper left texture rect moving horizontally and vertically to the edge of the screen
+				////higherIndexY = lowerIndexY;		higherIndexX = lowerIndexX;		// DEBUG ONLY
+				//for (int32_t y = lowerIndexY; y <= higherIndexY; y++)
+				//{
+				//	for (int32_t x = lowerIndexX; x <= higherIndexX; x++)
+				//	{
+						//TheWorld_Utils::MapTextureRectPos textureRectGlobalPos(x, y, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
+
+				std::vector<TheWorld_Utils::MapTextureRectPos> rectsPos;
+				map->getScreenTextureRects(rectsPos);
+
+				for (auto& item : rectsPos)
 				{
-					for (int32_t x = lowerIndexX; x <= higherIndexX; x++)
-					{
-						TheWorld_Utils::MapTextureRectPos textureRectGlobalPos(x, y, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
+					int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
+					float gridStepInWU = Globals()->gridStepInWU();
+					TheWorld_Utils::MapTextureRectPos textureRectGlobalPos = item;
 
-						if (not map->isTextureRectRendered(textureRectGlobalPos))
+					bool fullRectRendered = false;
+						
+					std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
+					textureRectGlobalPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+
+					if (not map->isTextureRectRendered(textureRectGlobalPos))
+					{
+						bool rendered = map->renderCachedTexture(textureRectGlobalPos);
+						if (rendered)
 						{
-							bool rendered = map->renderCachedTexture(textureRectGlobalPos);
-							if (not rendered)
+							fullRectRendered = true;
+						}
+						else
+						{
+							std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
+							textureRectGlobalPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+							for (auto& pos : quadrantsPos)
 							{
-								std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
-								textureRectGlobalPos.getQuadrantsPosContained(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
-								for (auto& pos : quadrantsPos)
+								if (m_mapQuadrantsMap.contains(pos))
 								{
-									if (m_mapQuadrantsMap.contains(pos))
+									MapQuadrant* mapQuadrant = m_mapQuadrantsMap[pos].get();
+									if (mapQuadrant->updated())
 									{
-										MapQuadrant* mapQuadrant = m_mapQuadrantsMap[pos].get();
-										if (mapQuadrant->updated())
-										{
-											map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
-											mapQuadrant->updated(false);
-											m_mapQuadrantsMap.fetchUpdatedQuadrant(pos);
-										}
+										bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
+										if (b)
+											fullRectRendered = true;
 									}
 									else
-									{
-										bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
-										if (scheduled)
-											breakLoop = true;
-									}
+										if (m_mapQuadrantsMap.updateNeeded(pos))
+										{
+											bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+											if (scheduled)
+												breakLoop = true;
+										}
+								}
+								else
+								{
+									bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+									if (scheduled)
+										breakLoop = true;
 								}
 							}
 						}
+					}
 
-						if (breakLoop)
-							break;
+					if (fullRectRendered)
+					{
+						for (auto& pos : quadrantsPos)
+							m_mapQuadrantsMap.erase(pos);
 					}
 
 					if (breakLoop)
 						break;
+					//}
+
+					//if (breakLoop)
+					//	break;
 				}
 			}
 
@@ -9097,7 +9190,7 @@ QuadTree* GDN_TheWorld_Viewer::getQuadTree(TheWorld_Utils::QuadrantPos pos, bool
 	return quadTree;
 }
 
-Chunk* GDN_TheWorld_Viewer::getActiveChunkAt(TheWorld_Utils::QuadrantPos pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type)
+Chunk* GDN_TheWorld_Viewer::getActiveChunkAt(TheWorld_Utils::QuadrantPos& pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type)
 {
 	QuadTree* quadTree = getQuadTree(pos);
 	if (quadTree == nullptr)

@@ -323,8 +323,15 @@ namespace TheWorld_ClientServer
 						{
 							if (itReply->second->error())
 							{
-								PLOG_ERROR << "Server execution error - Method: " + itReply->second->getMethod() + " - Error: " + std::to_string(itReply->second->getErrorCode()) + " - " + itReply->second->getErrorMessage();
-								tempToErase[itReply->first] = make_unique<ClientServerExecution>(*itReply->second);
+								if (itReply->second->clientCallbackSpecified())
+								{
+									toCallCallback[itReply->first] = make_unique<ClientServerExecution>(*itReply->second);
+								}
+								else
+								{
+									PLOG_ERROR << "Server execution error - Method: " + itReply->second->getMethod() + " - Error: " + std::to_string(itReply->second->getErrorCode()) + " - " + itReply->second->getErrorMessage();
+									tempToErase[itReply->first] = make_unique<ClientServerExecution>(*itReply->second);
+								}
 							}
 							else
 							{
@@ -508,8 +515,8 @@ namespace TheWorld_ClientServer
 					return;
 				}
 
-				float* gridStepinWU = std::get_if<float>(&reply->m_inputParams[3]);
-				if (gridStepinWU == nullptr)
+				float* gridStepInWU = std::get_if<float>(&reply->m_inputParams[3]);
+				if (gridStepInWU == nullptr)
 				{
 					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Fourth param must be a FLOAT");
 					return;
@@ -530,11 +537,30 @@ namespace TheWorld_ClientServer
 				}
 				std::string buffer(_buffer->begin(), _buffer->end());
 
+				int32_t* numQuadrantsPerSize = std::get_if<int>(&reply->m_inputParams[7]);
+				if (numQuadrantsPerSize == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Seventh param must be an int32_t");
+					return;
+				}
+				float* quadrantGlobalSize = std::get_if<float>(&reply->m_inputParams[8]);
+				if (quadrantGlobalSize == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Eight param must be a float");
+					return;
+				}
+				float* quadrantWorldSize = std::get_if<float>(&reply->m_inputParams[9]);
+				if (quadrantWorldSize == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Nineth param must be a float");
+					return;
+				}
+
 				if (expiredTimeToLive(reply))
 					return;
 
 				bool refreshRequired;
-				m_threadContextPool->getCurrentContext()->getMapManager()->uploadCacheBuffer(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, *gridStepinWU, *level, buffer, refreshRequired);
+				m_threadContextPool->getCurrentContext()->getMapManager()->uploadCacheBuffer(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, *gridStepInWU, *level, buffer, refreshRequired, *numQuadrantsPerSize, *quadrantGlobalSize, *quadrantWorldSize);
 
 				reply->replyParam(refreshRequired);
 
@@ -579,8 +605,8 @@ namespace TheWorld_ClientServer
 					return;
 				}
 				
-				float* gridStepinWU = std::get_if<float>(&reply->m_inputParams[5]);
-				if (gridStepinWU == nullptr)
+				float* gridStepInWU = std::get_if<float>(&reply->m_inputParams[5]);
+				if (gridStepInWU == nullptr)
 				{
 					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Sixth param must be a FLOAT");
 					return;
@@ -613,9 +639,9 @@ namespace TheWorld_ClientServer
 				if (expiredTimeToLive(reply))
 					return;
 
-				if (_gridStepInWU != *gridStepinWU)
+				if (_gridStepInWU != *gridStepInWU)
 				{
-					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "gridStepinWU not compatible");
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "gridStepInWU not compatible");
 					return;
 				}
 
@@ -700,8 +726,8 @@ namespace TheWorld_ClientServer
 					return;
 				}
 
-				float* gridStepinWU = std::get_if<float>(&reply->m_inputParams[2]);
-				if (gridStepinWU == nullptr)
+				float* gridStepInWU = std::get_if<float>(&reply->m_inputParams[2]);
+				if (gridStepInWU == nullptr)
 				{
 					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Third param must be a float");
 					return;
@@ -722,9 +748,17 @@ namespace TheWorld_ClientServer
 					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Fifth param must be a bool");
 					return;
 				}
+				std::vector<unsigned char>* _mapTextureRects = std::get_if<std::vector<unsigned char>>(&reply->m_inputParams[5]);
+				if (_mapTextureRects == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Sixth param must be a std::string");
+					return;
+				}
+				std::string mapTextureRects((*_mapTextureRects).begin(), (*_mapTextureRects).end());
+				//size_t l1 = clientQuadrants.size();	// DEBUG
 
-				std::string replyClientQuadrants, replyProceGenStatus, replyExtraQuadrants;
-				m_threadContextPool->getCurrentContext()->getMapManager()->sync(*isInEditor, *inGameEditMode, *numVerticesPerSize, *gridStepinWU, &clientQuadrants, replyClientQuadrants, replyProceGenStatus, replyExtraQuadrants);
+				std::string replyClientQuadrants, replyProceGenStatus, replyExtraQuadrants, replyMapTextureRects;
+				m_threadContextPool->getCurrentContext()->getMapManager()->sync(*isInEditor, *inGameEditMode, *numVerticesPerSize, *gridStepInWU, &clientQuadrants, replyClientQuadrants, replyProceGenStatus, replyExtraQuadrants, mapTextureRects, replyMapTextureRects);
 
 				std::vector<unsigned char> _replyClientQuadrants(replyClientQuadrants.begin(), replyClientQuadrants.end());
 				reply->replyParam(_replyClientQuadrants);
@@ -732,6 +766,8 @@ namespace TheWorld_ClientServer
 				reply->replyParam(_replyProceGenStatus);
 				std::vector<unsigned char> _replyExtraQuadrants(replyExtraQuadrants.begin(), replyExtraQuadrants.end());
 				reply->replyParam(_replyExtraQuadrants);
+				std::vector<unsigned char> _replyMapTextureRects(replyMapTextureRects.begin(), replyMapTextureRects.end());
+				reply->replyParam(_replyMapTextureRects);
 
 				reply->replyComplete();
 			}

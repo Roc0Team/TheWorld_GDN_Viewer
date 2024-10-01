@@ -46,6 +46,7 @@ namespace godot {
 		virtual void _physics_process(double _delta) override;
 
 	public:
+		godot::Vector2 getSavedGlobalPosition(void);
 		godot::Transform2D getCameraWorldTransform();
 		godot::Vector2 getCameraWorldPos();
 
@@ -77,6 +78,7 @@ namespace godot {
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		int m_zoomRequired = 0;
 		bool m_updateCameraRequired = false;
+		godot::Vector2 m_savedGlobalPos;
 
 		bool m_mouseMovementPaused = false;
 

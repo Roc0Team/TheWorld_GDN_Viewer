@@ -4340,7 +4340,7 @@ void Quadrant::process_mapModder(double _delta)
 				terrainEdit->needUploadToServer = false;
 				std::string buffer;
 				getQuadrantBufferForCache(buffer);
-				m_viewer->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_quadrantPos.getLevel(), buffer);
+				m_viewer->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
 				unlockInternalData();
 				return;
 			}
@@ -4779,7 +4779,7 @@ void Quadrant::populateGridVertices(float cameraX, float cameraY, float cameraZ,
 
 	float lowerXGridVertex = m_quadrantPos.getLowerXGridVertex();
 	float lowerZGridVertex = m_quadrantPos.getLowerZGridVertex();
-	float gridStepinWU = m_quadrantPos.getGridStepInWU();
+	float gridStepInWU = m_quadrantPos.getGridStepInWU();
 	int numVerticesPerSize = m_quadrantPos.getNumVerticesPerSize();
 	int lvl = m_quadrantPos.getLevel();
 	std::string buffGridVertices;
@@ -4794,7 +4794,7 @@ void Quadrant::populateGridVertices(float cameraX, float cameraY, float cameraZ,
 		m_quadTree->Viewer()->Globals()->Client()->MapManagerGetQuadrantVertices(m_quadTree->Viewer()->isInEditor(), cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll,
 																		 lowerXGridVertex, lowerZGridVertex,
 																		 1, // TheWorld_MapManager::MapManager::anchorType::upperleftcorner
-																		 numVerticesPerSize, gridStepinWU, lvl, setCamera, cameraDistanceFromTerrainForced, meshId);
+																		 numVerticesPerSize, gridStepInWU, lvl, setCamera, cameraDistanceFromTerrainForced, meshId);
 		//clock.tock();
 		//m_quadTree->Viewer()->Globals()->debugPrint(String("ELAPSED - QUADRANT ") + getId().getId().c_str() + " TAG=" + getId().getTag().c_str() + " - client MapManagerGetVertices (quadrant found in cache) " + std::to_string(clock.duration().count()).c_str() + " ms");
 	}
@@ -4804,7 +4804,7 @@ void Quadrant::populateGridVertices(float cameraX, float cameraY, float cameraZ,
 		m_quadTree->Viewer()->Globals()->Client()->MapManagerGetQuadrantVertices(m_quadTree->Viewer()->isInEditor(), cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll,
 																		 lowerXGridVertex, lowerZGridVertex,
 																		 1, // TheWorld_MapManager::MapManager::anchorType::upperleftcorner
-																		 numVerticesPerSize, gridStepinWU, lvl, setCamera, cameraDistanceFromTerrainForced, meshId);
+																		 numVerticesPerSize, gridStepInWU, lvl, setCamera, cameraDistanceFromTerrainForced, meshId);
 		//clock.tock();
 		//m_quadTree->Viewer()->Globals()->debugPrint(String("ELAPSED - QUADRANT ") + getId().getId().c_str() + " TAG=" + getId().getTag().c_str() + " - client MapManagerGetVertices " + std::to_string(clock.duration().count()).c_str() + " ms");
 	}

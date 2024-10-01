@@ -159,7 +159,7 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::MapManagerGetQuadrantVertices(bool isInEditor, float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, float lowerXGridVertex, float lowerZGridVertex, int anchorType, int numVerticesPerSize, float gridStepinWU, int level, bool setCamera, float cameraDistanceFromTerrainForced, std::string meshId)
+	void GDN_TheWorld_Globals_Client::MapManagerGetQuadrantVertices(bool isInEditor, float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, float lowerXGridVertex, float lowerZGridVertex, int anchorType, int numVerticesPerSize, float gridStepInWU, int level, bool setCamera, float cameraDistanceFromTerrainForced, std::string meshId)
 	{
 		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
@@ -168,7 +168,7 @@ namespace godot
 		inputParams.push_back(lowerXGridVertex);
 		inputParams.push_back(lowerZGridVertex);
 		inputParams.push_back(numVerticesPerSize);
-		inputParams.push_back(gridStepinWU);
+		inputParams.push_back(gridStepInWU);
 		inputParams.push_back(level);
 		std::vector<unsigned char> _meshId(meshId.begin(), meshId.end());
 		inputParams.push_back(_meshId);
@@ -188,19 +188,22 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::Sync(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepinWU, std::string& quadrants)
+	void GDN_TheWorld_Globals_Client::Sync(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& quadrants, std::string& mapTextureRects)
 	{
 		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(isInEditor);
 		inputParams.push_back(numVerticesPerSize);
-		inputParams.push_back(gridStepinWU);
+		inputParams.push_back(gridStepInWU);
 		std::vector<unsigned char> _quadrants(quadrants.begin(), quadrants.end());
-		size_t l1 = quadrants.size();
-		size_t l2 = _quadrants.size();
-		//inputParams.push_back(quadrants);
+		//size_t l1 = quadrants.size();		// DEBUG
+		//size_t l2 = _quadrants.size();	// DEBUG
 		inputParams.push_back(_quadrants);
 		inputParams.push_back(inGameEditMode);
+		std::vector<unsigned char> _mapTextureRects(mapTextureRects.begin(), mapTextureRects.end());
+		//l1 = mapTextureRects.size();		// DEBUG
+		//l2 = _mapTextureRects.size();		// DEBUG
+		inputParams.push_back(_mapTextureRects);
 		std::string ref;
 		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
@@ -210,18 +213,21 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::MapManagerUploadBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepinWU, int level, std::string buffer)
+	void GDN_TheWorld_Globals_Client::MapManagerUploadBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepInWU, int level, std::string buffer, int32_t numQuadrantsPerSize, float quadrantGlobalSize, float quadrantWorldSize)
 	{
 		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(lowerXGridVertex);
 		inputParams.push_back(lowerZGridVertex);
 		inputParams.push_back(numVerticesPerSize);
-		inputParams.push_back(gridStepinWU);
+		inputParams.push_back(gridStepInWU);
 		inputParams.push_back(level);
 		std::vector<unsigned char> _buffer(buffer.begin(), buffer.end());
 		inputParams.push_back(_buffer);
 		inputParams.push_back(isInEditor);
+		inputParams.push_back(numQuadrantsPerSize);
+		inputParams.push_back(quadrantGlobalSize);
+		inputParams.push_back(quadrantWorldSize);
 		std::string ref;
 		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
@@ -231,13 +237,13 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::MapManagerDeployLevel(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepinWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll)
+	void GDN_TheWorld_Globals_Client::MapManagerDeployLevel(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepInWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll)
 	{
 		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(level);
 		inputParams.push_back(numVerticesPerSize);
-		inputParams.push_back(gridStepinWU);
+		inputParams.push_back(gridStepInWU);
 		inputParams.push_back(setCamera);
 		inputParams.push_back(cameraX);
 		inputParams.push_back(cameraY);
@@ -256,13 +262,13 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::MapManagerDeployWorld(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepinWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll)
+	void GDN_TheWorld_Globals_Client::MapManagerDeployWorld(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepInWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll)
 	{
 		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(level);
 		inputParams.push_back(numVerticesPerSize);
-		inputParams.push_back(gridStepinWU);
+		inputParams.push_back(gridStepInWU);
 		inputParams.push_back(setCamera);
 		inputParams.push_back(cameraX);
 		inputParams.push_back(cameraY);
@@ -715,7 +721,7 @@ namespace godot
 
 	void GDN_TheWorld_Globals::prepareDisconnectFromServer(void)
 	{
-		if ((int)status() >= (int)TheWorldStatus::connectedToServer)
+		if ((int)status() >= (int)TheWorldStatus::connectedToServer or status() == TheWorldStatus::error)
 		{
 			if (m_client != nullptr)
 				m_client->prepareDisconnect();

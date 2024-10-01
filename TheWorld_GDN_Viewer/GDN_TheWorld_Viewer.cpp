@@ -31,6 +31,7 @@
 #include <godot_cpp/classes/label.hpp>
 #include <godot_cpp/classes/sphere_mesh.hpp>
 #include <godot_cpp/classes/line2d.hpp>
+#include <godot_cpp/classes/thread.hpp>
 #include "warning_pop.h"
 //#pragma warning(pop)
 
@@ -188,155 +189,10 @@ bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos
 	return scheduled;
 }
 
-//void GDN_TheWorld_WorldViewport::_bind_methods(void)
-//{
-//}
-//
-//GDN_TheWorld_WorldViewport::GDN_TheWorld_WorldViewport(void)
-//{
-//}
-//
-//GDN_TheWorld_WorldViewport::~GDN_TheWorld_WorldViewport(void)
-//{
-//}
-//
-//void GDN_TheWorld_WorldViewport::_notification(int p_what)
-//{
-//	switch (p_what)
-//	{
-//	case NOTIFICATION_ENTER_TREE:
-//	{
-//	}
-//	break;
-//	case NOTIFICATION_WM_CLOSE_REQUEST:
-//	{
-//	}
-//	break;
-//	case NOTIFICATION_PREDELETE:
-//	{
-//	}
-//	break;
-//	}
-//}
-//
-//void GDN_TheWorld_WorldViewport::_input(const Ref<InputEvent>& event)
-//{
-//	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
-//	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-//
-//	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
-//	//{
-//	//	int a = 0;
-//	//}
-//}
-//
-//void GDN_TheWorld_WorldViewport::_unhandled_input(const Ref<InputEvent>& event)
-//{
-//	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
-//	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-//
-//	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
-//	//{
-//	//	int a = 0;
-//	//}
-//}
-//
-//void GDN_TheWorld_WorldViewport::_ready(void)
-//{
-//}
-//
-//void GDN_TheWorld_WorldViewport::_process(double _delta)
-//{
-//}
-//
-//void GDN_TheWorld_WorldViewportContainer::_bind_methods(void)
-//{
-//}
-//
-//GDN_TheWorld_WorldViewportContainer::GDN_TheWorld_WorldViewportContainer(void)
-//{
-//}
-//
-//GDN_TheWorld_WorldViewportContainer::~GDN_TheWorld_WorldViewportContainer(void)
-//{
-//}
-//
-//void GDN_TheWorld_WorldViewportContainer::_notification(int p_what)
-//{
-//	switch (p_what)
-//	{
-//	case NOTIFICATION_ENTER_TREE:
-//	{
-//	}
-//	break;
-//	case NOTIFICATION_WM_CLOSE_REQUEST:
-//	{
-//	}
-//	break;
-//	case NOTIFICATION_PREDELETE:
-//	{
-//	}
-//	break;
-//	case NOTIFICATION_RESIZED:
-//	{
-//		godot::Vector2 newSize = get_size();
-//
-//		GDN_TheWorld_WorldViewport* worldViewport = getWorldViewport();
-//		if (worldViewport != nullptr)
-//			worldViewport->set_size(newSize);
-//	}
-//	break;
-//	}
-//}
-//
-//void GDN_TheWorld_WorldViewportContainer::_input(const Ref<InputEvent>& event)
-//{
-//	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
-//	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-//
-//	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
-//	//{
-//	//	int a = 0;
-//	//}
-//}
-//
-//void GDN_TheWorld_WorldViewportContainer::_unhandled_input(const Ref<InputEvent>& event)
-//{
-//	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
-//	//const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-//
-//	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
-//	//{
-//	//	int a = 0;
-//	//}
-//}
-//
-//void GDN_TheWorld_WorldViewportContainer::_ready(void)
-//{
-//}
-//
-//void GDN_TheWorld_WorldViewportContainer::_process(double _delta)
-//{
-//}
-
 GDN_TheWorld_Map::MapTextureRect::MapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
 {
 	m_map = map;
 	m_mapTextureRectPos = mapTextureRectPos;
-
-	constexpr size_t NUM_PADDING_ZEROES = 6;
-	std::string strPosX, strPosY;
-	int32_t posX = int32_t(m_mapTextureRectPos.getGlobalLowerPosX()), posY = int32_t(m_mapTextureRectPos.getGlobalLowerPosY());
-	if (posX < 0)
-		strPosX = "-" + TheWorld_Utils::padIntValueTo(-posX, NUM_PADDING_ZEROES);
-	else
-		strPosX = TheWorld_Utils::padIntValueTo(posX, NUM_PADDING_ZEROES);
-	if (posY < 0)
-		strPosY = "-" + TheWorld_Utils::padIntValueTo(-posY, NUM_PADDING_ZEROES);
-	else
-		strPosY = TheWorld_Utils::padIntValueTo(posY, NUM_PADDING_ZEROES);
-
-	m_rectName = "MapRect_" + strPosX + "_" + strPosY;
 }
 
 bool GDN_TheWorld_Map::MapTextureRect::rectFull(void)
@@ -361,6 +217,17 @@ bool GDN_TheWorld_Map::MapTextureRect::rectFull(void)
 	return rectFull;
 }
 
+bool GDN_TheWorld_Map::MapTextureRect::destroyTextureRect(void)
+{
+	godot::TextureRect* textureRect = getTextureRect();
+	if (textureRect == nullptr)
+		return false;
+
+	textureRect->queue_free();
+
+	return true;
+}
+
 bool GDN_TheWorld_Map::MapTextureRect::isTextureRectRendered(void)
 {
 	return getTextureRect() != nullptr;
@@ -369,7 +236,7 @@ bool GDN_TheWorld_Map::MapTextureRect::isTextureRectRendered(void)
 godot::TextureRect* GDN_TheWorld_Map::MapTextureRect::getTextureRect(void)
 {
 	godot::TextureRect* textureRect = nullptr;
-	godot::Node* n = m_map->find_child(m_rectName.c_str(), false, false);
+	godot::Node* n = m_map->find_child(m_mapTextureRectPos.getName().c_str(), true, false);
 	if (n != nullptr)
 	{
 		textureRect = godot::Object::cast_to<godot::TextureRect>(n);
@@ -387,7 +254,7 @@ void GDN_TheWorld_Map::MapTextureRect::renderTexture(godot::Ref<godot::Image> im
 	if (textureRect == nullptr)
 	{
 		textureRect = memnew(godot::TextureRect);
-		textureRect->set_name(m_rectName.c_str());
+		textureRect->set_name(m_mapTextureRectPos.getName().c_str());
 		textureRect->add_to_group("MapTextureRect");
 		m_map->add_child(textureRect);
 		textureRect->set_size(rectImageSize);
@@ -402,13 +269,24 @@ void GDN_TheWorld_Map::MapTextureRect::renderTexture(godot::Ref<godot::Image> im
 godot::String GDN_TheWorld_Map::MapTextureRect::getImageCachePath(void)
 {
 	godot::String cacheDir = m_map->getCacheDir() + "\\MapRects\\";
-	godot::String imagePath = cacheDir + m_rectName.c_str() + ".png";
+	godot::String imagePath = cacheDir + m_mapTextureRectPos.getName().c_str() + ".png";
 	std::string _cacheDir = cacheDir.utf8().get_data();
 	if (!fs::exists(_cacheDir))
 	{
 		fs::create_directories(_cacheDir);
 	}
 	return imagePath;
+}
+
+bool GDN_TheWorld_Map::MapTextureRect::eraseCachedTexture(void)
+{
+	godot::String imagePath = getImageCachePath();
+	std::string _imagePath = imagePath.utf8().get_data();
+	if (!fs::exists(_imagePath))
+		return false;
+
+	fs::remove(_imagePath);
+	return true;
 }
 
 bool GDN_TheWorld_Map::MapTextureRect::renderCachedTexture(void)
@@ -423,6 +301,8 @@ bool GDN_TheWorld_Map::MapTextureRect::renderCachedTexture(void)
 	else
 	{
 		renderTexture(image);
+		m_fileTime = fs::last_write_time(_imagePath);
+		m_FileTimeStr = std::format("{}", m_fileTime);		// es: 2023-09-04 19:33:24.702639224
 		return true;
 	}
 }
@@ -474,6 +354,9 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 
 		godot::String imagePath = getImageCachePath();
 		rectImage->save_png(imagePath);
+		std::string _imagePath = imagePath.utf8().get_data();
+		m_fileTime = fs::last_write_time(_imagePath);
+		m_FileTimeStr = std::format("{}", m_fileTime);		// es: 2023-09-04 19:33:24.702639224
 
 		renderTexture(rectImage);
 
@@ -588,7 +471,13 @@ godot::Size2 GDN_TheWorld_Map::getScreenSizeInGlobalCoord(void) const
 	godot::Size2 screenSize;
 
 	GDN_TheWorld_Viewer* viewer = getMapViewer()->getViewer();
-	godot::Size2 windowSize = viewer->getViewportSize();
+	uint64_t mainTid = godot::OS::get_singleton()->get_main_thread_id();
+	uint64_t tid = godot::OS::get_singleton()->get_thread_caller_id();
+	godot::Size2 windowSize;
+	if (mainTid == tid)
+		windowSize = viewer->getViewportSize();
+	else
+		windowSize = viewer->getSavedViewportSize();
 	GDN_TheWorld_MapCamera* mapCamera = viewer->MapCamera();
 
 	screenSize = windowSize * (1 / mapCamera->getZoomFactor());
@@ -618,8 +507,14 @@ void GDN_TheWorld_Map::getScreenTextureRects(std::vector<TheWorld_Utils::MapText
 	// W A R N I N G: all calcs are made in global coords not in pixels because camera zoom alter distances
 	godot::Rect2 screenRectInGlobalCoord = getScreenRectInGlobalCoord();
 	godot::Vector2i textureRectSize = getTextureRectSize();
-	godot::Vector2 mapCameraGlobalPos = mapCamera->get_global_position();
-	TheWorld_Utils::MapTextureRectPos cameraTextureRectGlobalPos(mapCameraGlobalPos.x, mapCameraGlobalPos.y, getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
+	godot::Vector2 mapCameraGlobalPos;
+	uint64_t mainTid = godot::OS::get_singleton()->get_main_thread_id();
+	uint64_t tid = godot::OS::get_singleton()->get_thread_caller_id();
+	if (mainTid == tid)
+		mapCameraGlobalPos = mapCamera->get_global_position();
+	else
+		mapCameraGlobalPos = mapCamera->getSavedGlobalPosition();
+	TheWorld_Utils::MapTextureRectPos cameraTextureRectGlobalPos(mapCameraGlobalPos.x, mapCameraGlobalPos.y, viewer->getLevel(), getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
 	int32_t numTextureRectsUpToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosY() - screenRectInGlobalCoord.position.y) / textureRectSize.y);
 	int32_t numTextureRectsDownToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().y - cameraTextureRectGlobalPos.getGlobalHigherPosY()) / textureRectSize.y);
 	int32_t numTextureRectsLeftToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosX() - screenRectInGlobalCoord.position.x) / textureRectSize.x);
@@ -639,7 +534,7 @@ void GDN_TheWorld_Map::getScreenTextureRects(std::vector<TheWorld_Utils::MapText
 	{
 		for (int32_t x = lowerIndexX; x <= higherIndexX; x++)
 		{
-			TheWorld_Utils::MapTextureRectPos textureRectGlobalPos(x, y, getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
+			TheWorld_Utils::MapTextureRectPos textureRectGlobalPos(x, y, viewer->getLevel(), getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
 			rectsPos.push_back(textureRectGlobalPos);
 		}
 	}
@@ -723,28 +618,60 @@ godot::String GDN_TheWorld_Map::getCacheDir(void)
 	return m_mapViewer->getViewer()->Globals()->getCacheDir(m_mapViewer->getViewer()->getLevel());
 }
 
+bool GDN_TheWorld_Map::destroyTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	return getMapTextureRect(mapTextureRectPos)->destroyTextureRect();
+}
+
 bool GDN_TheWorld_Map::isTextureRectRendered(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
 {
-	return getTextureRect(mapTextureRectPos)->isTextureRectRendered();
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	return getMapTextureRect(mapTextureRectPos)->isTextureRectRendered();
+}
+
+bool GDN_TheWorld_Map::eraseCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	return getMapTextureRect(mapTextureRectPos)->eraseCachedTexture();
 }
 
 bool GDN_TheWorld_Map::renderCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
 {
-	return getTextureRect(mapTextureRectPos)->renderCachedTexture();
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	return getMapTextureRect(mapTextureRectPos)->renderCachedTexture();
 }
 
-GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, bool add)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+
+	if (!add and not m_mapTextureRectContainer.contains(mapTextureRectPos))
+		return nullptr;
+
 	if (not m_mapTextureRectContainer.contains(mapTextureRectPos))
 		m_mapTextureRectContainer[mapTextureRectPos] = std::make_unique<MapTextureRect>(this, mapTextureRectPos);
 	return m_mapTextureRectContainer[mapTextureRectPos].get();
 }
 
-GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getTextureRect(const TheWorld_Utils::QuadrantPos& quadrantPos)
+bool GDN_TheWorld_Map::eraseMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+
+	if (m_mapTextureRectContainer.contains(mapTextureRectPos))
+	{
+		m_mapTextureRectContainer.erase(mapTextureRectPos);
+		return true;
+	}
+	else
+		return false;
+}
+
+GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getMapTextureRect(const TheWorld_Utils::QuadrantPos& quadrantPos, bool add)
 {
 	godot::Vector2 quadrantGlobalPos = worldPosToGlobalPos(godot::Vector2(quadrantPos.getLowerXGridVertex(), quadrantPos.getLowerZGridVertex()));
-	TheWorld_Utils::MapTextureRectPos mapTextureRectPos(quadrantGlobalPos.x, quadrantGlobalPos.y, getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
-	return getTextureRect(mapTextureRectPos);
+	TheWorld_Utils::MapTextureRectPos mapTextureRectPos(quadrantGlobalPos.x, quadrantGlobalPos.y, quadrantPos.getLevel(), getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
+	return getMapTextureRect(mapTextureRectPos, add);
 }
 
 bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
@@ -752,7 +679,9 @@ bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImag
 	if (mapImage == nullptr)
 		return false;
 	
-	return getTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos);
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+
+	return getMapTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos);
 }
 
 void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir, bool visible)
@@ -2422,7 +2351,7 @@ godot::Node3D* GDN_TheWorld_Viewer::getAnchorForOriginShift(void)
 
 void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, float z, int32_t num_vertices_per_side, int32_t level, float grid_step)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	TheWorld_Utils::QuadrantPos pos(x, z, level, num_vertices_per_side, grid_step);
 	QuadTree* quadTree = getQuadTree(pos, true, false, true);
@@ -3373,7 +3302,7 @@ void GDN_TheWorld_Viewer::preDeinit(void)
 
 bool GDN_TheWorld_Viewer::canDeinit(void)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	for (auto& it : m_worldQuadrantsMap)
 	{
@@ -3445,7 +3374,7 @@ void GDN_TheWorld_Viewer::deinit(void)
 		//if (m_initialWorldViewerPosSet)
 		//{
 		// useless as at this point m_worldQuadrantsMap is empty because it has been cleared during undeploy reply from server
-		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 		for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 		{
 			if (!itQuadTree->second->isValid())
@@ -3515,8 +3444,19 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 	if (reply.error())
 	{
-		Globals()->setStatus(TheWorldStatus::error);
+		//Globals()->setStatus(TheWorldStatus::error);
 		Globals()->errorPrint((std::string("GDN_TheWorld_Viewer::replyFromServer: error method ") + method + std::string(" rc=") + std::to_string(reply.getErrorCode()) + std::string(" ") + reply.getErrorMessage()).c_str());
+		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC)
+		{
+			ClientServerVariant v = reply.getInputParam(3);
+			std::vector<unsigned char>* _clientQuadrants = std::get_if<std::vector<unsigned char>>(&v);
+			if (_clientQuadrants != NULL)
+			{
+				std::string clientQuadrants((*_clientQuadrants).begin(), (*_clientQuadrants).end());
+				if (clientQuadrants.length() > 0)
+					m_quadrantSyncRunning = false;
+			}
+		}
 		return;
 	}
 
@@ -3696,7 +3636,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				//if (quadrantPos.getIndexPosX() == 100 && quadrantPos.getIndexPosZ() == 100)	// DEBUG ONLY
 				//	v = reply.getInputParam(13);												// DEBUG ONLY
 
-				m_mtxQuadTreeAndMainProcessing.lock();
+				m_mtxQuadrantsAndMainProcessing.lock();
 				if ((m_worldQuadrantsMap.contains(quadrantPos) && !m_worldQuadrantsMap[quadrantPos]->statusToErase())
 					|| (m_extraQuadsMap.contains(quadrantPos) && !m_extraQuadsMap[quadrantPos]->statusToErase() && status == TheWorldStatus::worldDeployed))
 				{
@@ -3719,7 +3659,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						//if (quadrantPos.getIndexPosX() == 93 && quadrantPos.getIndexPosZ() == 99)
 						//	PLOG_DEBUG << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " Reply from server";
 					}
-					m_mtxQuadTreeAndMainProcessing.unlock();
+					m_mtxQuadrantsAndMainProcessing.unlock();
 
 					//PLOG_DEBUG << "GDN_TheWorld_Viewer::replyFromServer - " << quadTree->getQuadrant()->getPos().getName();
 
@@ -3744,7 +3684,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 							std::string outMeshIdFromBuffer;
 							{
-								//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);	// SUPERDEBUGRIC : to remove when the mock for altitudes is removed from cache.refreshMeshCacheFromBuffer
+								//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);	// SUPERDEBUGRIC : to remove when the mock for altitudes is removed from cache.refreshMeshCacheFromBuffer
 								TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1 ") + __FUNCTION__, "quadTree->getQuadrant()->refreshGridVertices");
 								quadTree->getQuadrant()->refreshGridVerticesFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
 								
@@ -3821,7 +3761,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				}
 				else
 				{
-					m_mtxQuadTreeAndMainProcessing.unlock();
+					m_mtxQuadrantsAndMainProcessing.unlock();
 
 					m_mapQuadrantsMap.lock();
 					
@@ -3962,7 +3902,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				Sleep(1);
 			}
 
-			std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+			std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 			//clearQuadTreeMap();	// we almost should clear only current level quadrants
 			m_worldQuadrantsMap[quadrantPos] = make_unique<QuadTree>(this, quadrantPos);
@@ -4078,7 +4018,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UNDEPLOYWORLD)
 		{
 			{
-				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 				for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 				{
@@ -4110,7 +4050,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			}
 
 			{
-				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing); 
+				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 				clearQuadTreeMap();
 			}
 
@@ -4141,13 +4081,13 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			size_t numVerticesPerSize = *_numVerticesPerSize;
 
 			v = reply.getInputParam(2);
-			const auto _gridStepinWU(std::get_if<float>(&v));
-			if (_gridStepinWU == NULL)
+			const auto _gridStepInWU(std::get_if<float>(&v));
+			if (_gridStepInWU == NULL)
 			{
 				std::string m = std::string("Reply MapManager::sync did not return a float as third input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
-			float gridStepinWU = *_gridStepinWU;
+			float gridStepInWU = *_gridStepInWU;
 
 			v = reply.getInputParam(3);
 			std::vector<unsigned char>* _clientQuadrants = std::get_if<std::vector<unsigned char>>(&v);
@@ -4157,6 +4097,15 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
 			std::string clientQuadrants((*_clientQuadrants).begin(), (*_clientQuadrants).end());
+
+			v = reply.getInputParam(5);
+			std::vector<unsigned char>* _mapTextureRects = std::get_if<std::vector<unsigned char>>(&v);
+			if (_mapTextureRects == NULL)
+			{
+				std::string m = std::string("Reply MapManager::sync did not return a std::vector<unsigned char> as sisxth input param");
+				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+			}
+			std::string mapTextureRects((*_mapTextureRects).begin(), (*_mapTextureRects).end());
 
 			v = reply.getReplyParam(0);
 			std::vector<unsigned char>* _replyClientQuadrants = std::get_if<std::vector<unsigned char>>(&v);
@@ -4180,10 +4129,19 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			std::vector<unsigned char>* _replyExtraQuadrants = std::get_if<std::vector<unsigned char>>(&v);
 			if (_replyExtraQuadrants == NULL)
 			{
-				std::string m = std::string("Reply MapManager::sync did not return a std::vector<unsigned char> as first return param");
+				std::string m = std::string("Reply MapManager::sync did not return a std::vector<unsigned char> as third return param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
 			std::string replyExtraQuadrants((*_replyExtraQuadrants).begin(), (*_replyExtraQuadrants).end());
+
+			v = reply.getReplyParam(3);
+			std::vector<unsigned char>* _replyMapTextureRects = std::get_if<std::vector<unsigned char>>(&v);
+			if (_replyMapTextureRects == NULL)
+			{
+				std::string m = std::string("Reply MapManager::sync did not return a std::vector<unsigned char> as fourth return param");
+				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+			}
+			std::string replyMapTextureRects((*_replyMapTextureRects).begin(), (*_replyMapTextureRects).end());
 
 			if (clientQuadrants.length() > 0 && replyClientQuadrants.length() > 0)
 			{
@@ -4226,7 +4184,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 						if (quadrantRefreshNeeded)
 						{
-							std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+							std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 							if (m_worldQuadrantsMap.contains(pos))
 							{
@@ -4235,6 +4193,50 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 									quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
 							}
 						}
+					}
+				}
+			}
+
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr and mapTextureRects.length() > 0 and replyMapTextureRects.length() > 0)
+			{
+				size_t size = 0;
+
+				size_t mapTextureRectsCursor = 1;	// bypassing first byte '0'
+				size_t numMapTextureRects = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
+				mapTextureRectsCursor += size;
+
+				size_t replyMapTextureRectsCursor = 1;	// bypassing first byte '0'
+				size_t numMapTextureRectsReplied = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyMapTextureRects.c_str() + replyMapTextureRectsCursor, size);
+				replyMapTextureRectsCursor += size;
+
+				for (int idx = 0; idx < numMapTextureRectsReplied; idx++)
+				{
+					size_t mapTextureRectPosSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
+					mapTextureRectsCursor += size;
+
+					TheWorld_Utils::MemoryBuffer tmpBuffer((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, mapTextureRectPosSize);
+					mapTextureRectsCursor += mapTextureRectPosSize;
+
+					TheWorld_Utils::MapTextureRectPos pos;
+					pos.deserialize(tmpBuffer);
+
+					size_t fileTimeSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
+					mapTextureRectsCursor += size;
+
+					std::string fileTime(mapTextureRects.c_str() + mapTextureRectsCursor, fileTimeSize);
+					mapTextureRectsCursor += fileTimeSize;
+
+					bool refreshRequired = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyMapTextureRects.c_str() + replyMapTextureRectsCursor, size);
+					replyMapTextureRectsCursor += size;
+
+					if (refreshRequired)
+					{
+						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+						bool success = map->destroyTextureRect(pos);
+						success = map->eraseCachedTexture(pos);
+						success = map->eraseMapTextureRect(pos);
 					}
 				}
 			}
@@ -4289,7 +4291,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						TheWorld_Utils::QuadrantPos pos;
 						pos.deserialize(tmpBuffer);
 
-						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 						
 						if (m_worldQuadrantsMap.contains(pos))
 						{
@@ -4369,7 +4371,7 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 	{
 		// get quadrant containing requested pos
 		TheWorld_Utils::QuadrantPos quadrantPos(worldPos.x, worldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), globals->gridStepInWU());
-		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 		if (m_worldQuadrantsMap.contains(quadrantPos))
 		{
 			QuadTree* quadTree = m_worldQuadrantsMap[quadrantPos].get();
@@ -4445,7 +4447,7 @@ void GDN_TheWorld_Viewer::toggleQuadrantSelected(void)
 				m_quadrantSelPos = m_quadrantHitPos;
 
 				{
-					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 					WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(m_quadrantSelPos);
 					if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
 					{
@@ -4460,7 +4462,7 @@ void GDN_TheWorld_Viewer::toggleQuadrantSelected(void)
 		else
 		{
 			{
-				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 				WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(m_quadrantSelPos);
 				if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
 				{
@@ -4639,6 +4641,8 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 
 void GDN_TheWorld_Viewer::toggleMapView(void)
 {
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
 	GDN_TheWorld_MapViewer* mapViewer = MapViewer();
 	if (mapViewer != nullptr)
 	{
@@ -4764,7 +4768,7 @@ void GDN_TheWorld_Viewer::trackMouse(bool b)
 	m_trackMouse = b;
 	if (!m_trackMouse)
 	{
-		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 		for (auto& it : m_worldQuadrantsMap)
 		{
@@ -4939,7 +4943,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 			//}
 			////if (m_initialWorldViewerPosSet)
 			////{
-			//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+			//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 			//for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 			//{
 			//	if (!itQuadTree->second->isValid())
@@ -4960,7 +4964,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 			//	globals->debugPrint("Exit world");
 			////if (m_initialWorldViewerPosSet)
 			////{
-			//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+			//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 			//for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 			//{
 			//	if (!itQuadTree->second->isValid())
@@ -4984,7 +4988,7 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 				globals->debugPrint("Visibility changed");
 			//if (m_initialWorldViewerPosSet)
 			//{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+			std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 			for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 			{
 				if (!itQuadTree->second->isValid())
@@ -5372,7 +5376,7 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	bool counterStartedNow = false;
 	
 	{
-		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 		//TheWorld_Utils::GuardProfiler profiler(std::string("recalcQuadrantsInView 1.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants (map stuff)");
 		// insert needed quadrants not present in map and refresh the ones which are already in it
@@ -5550,6 +5554,8 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	// To activate _process method add this Node to a Godot Scene
 	//Godot::print("GDN_TheWorld_Viewer::_process");
 
+	m_savedViewportSize = getViewportSize();
+	
 	GDN_TheWorld_Globals* globals = Globals();
 	if (globals == nullptr)
 		return;
@@ -5607,8 +5613,8 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 				globals->setStatus(TheWorldStatus::sessionInitialized);
 		}
 
-		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);		// WARNING
-		std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
+		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);		// WARNING
+		std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 		if (!lock.owns_lock())
 		{
 			m_numProcessNotOwnsLock++;
@@ -5956,7 +5962,6 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 
-	//if (worldMode())	// TODO in mapMode: process_trackMouse
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.05 ") + __FUNCTION__, "Track mouse");
 		process_trackMouse(activeWorldCamera);
@@ -6148,7 +6153,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 		this->m_sumEraseQuads += this->m_lastEraseQuads;
 		});
 
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	std::vector<TheWorld_Utils::QuadrantPos> toErase;
 
@@ -6219,7 +6224,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 		this->m_sumProcessMapModder += this->m_lastProcessMapModder;
 		});
 
-	std::lock_guard<std::recursive_mutex> lock1(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock1(m_mtxQuadrantsAndMainProcessing);
 
 	//if (m_mapModder != nullptr)
 	//{
@@ -6952,7 +6957,7 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 
 	bool allQuadrantInitialized = true;
 
-	std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
+	std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 	if (lock.owns_lock())
 	{
 		for (size_t numQuadrantsFromCameraQuadrant = 0; numQuadrantsFromCameraQuadrant <= getMaxDepthQuadOnPerimeter() + m_numCacheQuadrantOnPerimeter; numQuadrantsFromCameraQuadrant++)
@@ -7072,9 +7077,9 @@ void GDN_TheWorld_Viewer::writeStatisticsNewQuadrants(void)
 	if (!m_streamingTime.counterStarted() && !m_notStreamingTime.counterStarted())
 		return;
 	
-	m_mtxQuadTreeAndMainProcessing.lock();
+	m_mtxQuadrantsAndMainProcessing.lock();
 	size_t numQuadrants = m_worldQuadrantsMap.size();
-	m_mtxQuadTreeAndMainProcessing.unlock();
+	m_mtxQuadrantsAndMainProcessing.unlock();
 
 	GDN_TheWorld_Map* map = Map();
 	std::string mapQuadrantsMessage = "MAP QUADRANTS\n"
@@ -7526,24 +7531,27 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 {
 	if (mapMode())
 	{
-		m_mouseTrackedOnSomething = false;
-
-		m_mouseQuadrantHitTag = "";
-
-		GDN_TheWorld_Map* map = Map();
-		if (map != nullptr)
+		if (trackMouse())
 		{
-			godot::Vector2 mousePosGlobal = map->getMousePosInGlobalCoord();
-			m_trackedMouseHitGlobal = godot::Vector3(mousePosGlobal.x, 0, mousePosGlobal.y);
+			m_mouseTrackedOnSomething = false;
 
-			godot::Vector2 mousePosInMap = map->globalPosToWorldPos(mousePosGlobal);
-			m_trackedMouseHitInMap = godot::Vector3(mousePosInMap.x, 0, mousePosInMap.y);
+			m_mouseQuadrantHitTag = "";
 
-			int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
-			float gridStepInWU = Globals()->gridStepInWU();
-			TheWorld_Utils::QuadrantPos pos(mousePosInMap.x, mousePosInMap.y, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
-			m_mouseQuadrantHitName = pos.getName();
-			m_mouseQuadrantHitPos = godot::Vector3(pos.getLowerXGridVertex(), 0, pos.getLowerZGridVertex());
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr)
+			{
+				godot::Vector2 mousePosGlobal = map->getMousePosInGlobalCoord();
+				m_trackedMouseHitGlobal = godot::Vector3(mousePosGlobal.x, 0, mousePosGlobal.y);
+
+				godot::Vector2 mousePosInMap = map->globalPosToWorldPos(mousePosGlobal);
+				m_trackedMouseHitInMap = godot::Vector3(mousePosInMap.x, 0, mousePosInMap.y);
+
+				int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
+				float gridStepInWU = Globals()->gridStepInWU();
+				TheWorld_Utils::QuadrantPos pos(mousePosInMap.x, mousePosInMap.y, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+				m_mouseQuadrantHitName = pos.getName();
+				m_mouseQuadrantHitPos = godot::Vector3(pos.getLowerXGridVertex(), 0, pos.getLowerZGridVertex());
+			}
 		}
 	}
 	else
@@ -8532,105 +8540,70 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 		{
 			bool breakLoop = false;
 
-			GDN_TheWorld_Map* map = Map();
-			GDN_TheWorld_MapCamera* mapCamera = MapCamera();
-			if (map != nullptr and mapCamera != nullptr)
+			TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3. ") + __FUNCTION__, "Loop m_mapQuadrantsMap.addUpdatingQuadrant");
+
+			std::vector<TheWorld_Utils::MapTextureRectPos> rectsPos;
+			map->getScreenTextureRects(rectsPos);
+
+			for (auto& item : rectsPos)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3. ") + __FUNCTION__, "Loop m_mapQuadrantsMap.addUpdatingQuadrant");
+				int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
+				float gridStepInWU = Globals()->gridStepInWU();
+				TheWorld_Utils::MapTextureRectPos textureRectGlobalPos = item;
 
-				//// W A R N I N G: all calcs are made in global coords not in pixels because camera zoom alter distances
-				//godot::Rect2 screenRectInGlobalCoord = map->getScreenRectInGlobalCoord();
-				//godot::Vector2i textureRectSize = map->getTextureRectSize();
-				//godot::Vector2 mapCameraGlobalPos = mapCamera->get_global_position();
-				//TheWorld_Utils::MapTextureRectPos cameraTextureRectGlobalPos(mapCameraGlobalPos.x, mapCameraGlobalPos.y, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
-				//int32_t numTextureRectsUpToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosY() - screenRectInGlobalCoord.position.y) / textureRectSize.y);
-				//int32_t numTextureRectsDownToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().y - cameraTextureRectGlobalPos.getGlobalHigherPosY()) / textureRectSize.y);
-				//int32_t numTextureRectsLeftToScreenBorder = (int32_t)ceil((cameraTextureRectGlobalPos.getGlobalLowerPosX() - screenRectInGlobalCoord.position.x) / textureRectSize.x);
-				//int32_t numTextureRectsRightToScreenBorder = (int32_t)ceil((screenRectInGlobalCoord.get_end().x - cameraTextureRectGlobalPos.getGlobalHigherPosX()) / textureRectSize.x);
-
-				//int lowerIndexY = cameraTextureRectGlobalPos.getIdxY() - numTextureRectsUpToScreenBorder;
-				//int higherIndexY = cameraTextureRectGlobalPos.getIdxY() + numTextureRectsDownToScreenBorder;
-				//int lowerIndexX = cameraTextureRectGlobalPos.getIdxX() - numTextureRectsLeftToScreenBorder;
-				//int higherIndexX = cameraTextureRectGlobalPos.getIdxX() + numTextureRectsRightToScreenBorder;
-
-				//int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
-				//float gridStepInWU = Globals()->gridStepInWU();
-
-				//// from upper left texture rect moving horizontally and vertically to the edge of the screen
-				////higherIndexY = lowerIndexY;		higherIndexX = lowerIndexX;		// DEBUG ONLY
-				//for (int32_t y = lowerIndexY; y <= higherIndexY; y++)
-				//{
-				//	for (int32_t x = lowerIndexX; x <= higherIndexX; x++)
-				//	{
-						//TheWorld_Utils::MapTextureRectPos textureRectGlobalPos(x, y, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
-
-				std::vector<TheWorld_Utils::MapTextureRectPos> rectsPos;
-				map->getScreenTextureRects(rectsPos);
-
-				for (auto& item : rectsPos)
-				{
-					int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
-					float gridStepInWU = Globals()->gridStepInWU();
-					TheWorld_Utils::MapTextureRectPos textureRectGlobalPos = item;
-
-					bool fullRectRendered = false;
+				bool fullRectRendered = false;
 						
-					std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
-					textureRectGlobalPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+				std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
+				textureRectGlobalPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
 
-					if (not map->isTextureRectRendered(textureRectGlobalPos))
+				if (not map->isTextureRectRendered(textureRectGlobalPos))
+				{
+					bool rendered = map->renderCachedTexture(textureRectGlobalPos);
+					if (rendered)
 					{
-						bool rendered = map->renderCachedTexture(textureRectGlobalPos);
-						if (rendered)
+						fullRectRendered = true;
+					}
+					else
+					{
+						std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
+						textureRectGlobalPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+						for (auto& pos : quadrantsPos)
 						{
-							fullRectRendered = true;
-						}
-						else
-						{
-							std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
-							textureRectGlobalPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
-							for (auto& pos : quadrantsPos)
+							if (m_mapQuadrantsMap.contains(pos))
 							{
-								if (m_mapQuadrantsMap.contains(pos))
+								MapQuadrant* mapQuadrant = m_mapQuadrantsMap[pos].get();
+								if (mapQuadrant->updated())
 								{
-									MapQuadrant* mapQuadrant = m_mapQuadrantsMap[pos].get();
-									if (mapQuadrant->updated())
-									{
-										bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
-										if (b)
-											fullRectRendered = true;
-									}
-									else
-										if (m_mapQuadrantsMap.updateNeeded(pos))
-										{
-											bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
-											if (scheduled)
-												breakLoop = true;
-										}
+									bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
+									if (b)
+										fullRectRendered = true;
 								}
 								else
-								{
-									bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
-									if (scheduled)
-										breakLoop = true;
-								}
+									if (m_mapQuadrantsMap.updateNeeded(pos))
+									{
+										bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+										if (scheduled)
+											breakLoop = true;
+									}
+							}
+							else
+							{
+								bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+								if (scheduled)
+									breakLoop = true;
 							}
 						}
 					}
-
-					if (fullRectRendered)
-					{
-						for (auto& pos : quadrantsPos)
-							m_mapQuadrantsMap.erase(pos);
-					}
-
-					if (breakLoop)
-						break;
-					//}
-
-					//if (breakLoop)
-					//	break;
 				}
+
+				if (fullRectRendered)
+				{
+					for (auto& pos : quadrantsPos)
+						m_mapQuadrantsMap.erase(pos);
+				}
+
+				if (breakLoop)
+					break;
 			}
 
 			m_lastProcessedCameraForMapQuadrants = cameraWorldPos;
@@ -9123,7 +9096,7 @@ void GDN_TheWorld_Viewer::_physics_process(double _delta)
 
 void GDN_TheWorld_Viewer::clearQuadTreeMap(void)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	m_worldQuadrantsMapValid = false;
 	m_worldQuadrantsMap.clear();
@@ -9137,7 +9110,7 @@ void GDN_TheWorld_Viewer::clearQuadTreeMap(void)
 
 size_t GDN_TheWorld_Viewer::getExtraQuadsMapSize(void)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 	return m_extraQuadsMap.size();
 }
 
@@ -9145,7 +9118,7 @@ void GDN_TheWorld_Viewer::getAllQuadrantPos(std::vector<TheWorld_Utils::Quadrant
 {
 	allQuandrantPos.clear();
 
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	size_t size = m_worldQuadrantsMap.size();
 	if (withExtraQuads)
@@ -9161,7 +9134,7 @@ void GDN_TheWorld_Viewer::getAllQuadrantPos(std::vector<TheWorld_Utils::Quadrant
 
 QuadTree* GDN_TheWorld_Viewer::getQuadTree(TheWorld_Utils::QuadrantPos pos, bool excludeToErase, bool lockQuadrant, bool extraQuadAllowed)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	auto item = m_worldQuadrantsMap.find(pos);
 	if (item == m_worldQuadrantsMap.end())
@@ -9648,9 +9621,9 @@ void GDN_TheWorld_Viewer::createEditModeUI(void)
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 	if (editModeUIControl == nullptr)
 	{
-		m_mtxQuadTreeAndMainProcessing.lock();
+		m_mtxQuadrantsAndMainProcessing.lock();
 		editModeUIControl = memnew(GDN_TheWorld_Edit);
-		m_mtxQuadTreeAndMainProcessing.unlock();
+		m_mtxQuadrantsAndMainProcessing.unlock();
 		if (editModeUIControl == nullptr)
 			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Create Control error!").c_str()));
 	}
@@ -9690,7 +9663,7 @@ TheWorld_Utils::QuadrantPos GDN_TheWorld_Viewer::getQuadrantSelForEdit(QuadTree*
 		else
 			return ret;
 
-		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 		//WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(ret);
 		//if (it == m_worldQuadrantsMap.end() || it->second->statusToErase())
 		//	return QuadrantPos();
@@ -10090,7 +10063,7 @@ void GDN_TheWorld_Viewer::deployWorld(float cameraX, float cameraY, float camera
 		//QuadrantPos quadrantPos(cameraX, cameraZ, level, m_numWorldVerticesPerSize, _gridStepInWU);
 		//quadrantPos.setTag("Camera");
 
-		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 		//clearQuadTreeMap();
 		//m_worldQuadrantsMap[quadrantPos] = make_unique<QuadTree>(this, quadrantPos);
@@ -10115,7 +10088,7 @@ void GDN_TheWorld_Viewer::deployWorld(float cameraX, float cameraY, float camera
 
 void GDN_TheWorld_Viewer::undeployWorld(void)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	m_stopDeploy = true;
 	
@@ -10210,7 +10183,7 @@ void GDN_TheWorld_Viewer::onTransformChanged(void)
 	if (!is_inside_tree())
 		return;
 
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	//godot::Camera3D* activeCamera = nullptr;
 	//if (IS_EDITOR_HINT())
@@ -10381,7 +10354,7 @@ String GDN_TheWorld_Viewer::getCameraTerrainQuadrantName(void)
 
 void GDN_TheWorld_Viewer::refreshQuadrantStatistics()
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	int numSplits = 0;
 	int numJoins = 0;
@@ -10680,7 +10653,7 @@ void GDN_TheWorld_Viewer::dump()
 		size_t mapMemoryOccupation = 0, heightmap16MemoryOccupation = 0, heightmap32MemoryOccupation = 0, normalmapMemoryOccupation = 0, splatmapMemoryOccupation = 0, globalmapMemoryOccupation = 0, colormapMemoryOccupation = 0, terrainEditMemoryOccupation = 0, colliderHeightsMemoryOccupation = 0;
 		size_t texMemoryOccupation = 0;
 		size_t resizedTexMemoryOccupation = 0;
-		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 		for (auto& quadTree : m_worldQuadrantsMap)
 		{
 			if (quadTree.second->containsSeaChunks())
@@ -10830,7 +10803,7 @@ void GDN_TheWorld_Viewer::dump()
 	//}
 	
 	{
-		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 		for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 		{
 			itQuadTree->second->dump(true);
@@ -10907,8 +10880,8 @@ void GDN_TheWorld_Viewer::streamer(void)
 			try
 			{
 				{
-					//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing);
-					std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
+					//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+					std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 					if (lock.owns_lock())
 					{
 						for (WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.begin(); it != m_worldQuadrantsMap.end(); it++)
@@ -10950,15 +10923,16 @@ void GDN_TheWorld_Viewer::streamer(void)
 				if ((now - lastSyncTime).count() > STREAMER_SYNC_PERIOD_TIME)
 				{
 					std::string quadrants;
+					std::string mapTextureRects;
 					if (!m_quadrantSyncRunning && Globals()->status() == TheWorldStatus::worldDeployed)
 					{
-						std::unique_lock<std::recursive_mutex> lock(m_mtxQuadTreeAndMainProcessing, std::try_to_lock);
+						std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 						if (lock.owns_lock())
 						{
 							m_quadrantSyncRunning = true;
 
 							TheWorld_Utils::MemoryBuffer buffer;
-							buffer.reserve(100000);
+							buffer.reserve(100000);		// preallocation for optimization purpose
 							
 							*buffer.ptr() = '0';
 							size_t cursor = 1;
@@ -10993,9 +10967,67 @@ void GDN_TheWorld_Viewer::streamer(void)
 							
 							buffer.adjustSize(cursor);
 							buffer.toString(quadrants);
+
+							if (mapMode())
+							{
+								GDN_TheWorld_Map* map = Map();
+								if (map != nullptr)
+								{
+									std::vector<TheWorld_Utils::MapTextureRectPos> rectsPos;
+									map->getScreenTextureRects(rectsPos);
+
+									buffer.clear();
+									buffer.reserve(100000);		// preallocation for optimization purpose
+
+									*buffer.ptr() = '0';
+									cursor = 1;
+
+									TheWorld_Utils::serializeToByteStream<size_t>(rectsPos.size(), buffer.ptr() + cursor, size);
+									cursor += size;
+
+									TheWorld_Utils::MapTextureRectPos nullMapTextureRectPos;
+									GDN_TheWorld_Map::MapTextureRect nullMapTextureRect(map, nullMapTextureRectPos);
+
+									for (auto& textureRectPos : rectsPos)
+									{
+										std::lock_guard<std::recursive_mutex> lock(getMainProcessingMutex());
+										GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(textureRectPos, false);
+										if (mapTextureRect == nullptr)
+											mapTextureRect = &nullMapTextureRect;
+
+										TheWorld_Utils::MemoryBuffer textureRectPosBuffer;
+										textureRectPos.serialize(textureRectPosBuffer);
+
+										buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
+										TheWorld_Utils::serializeToByteStream<size_t>(textureRectPosBuffer.size(), buffer.ptr() + cursor, size);
+										cursor += size;
+
+										buffer.reserve(cursor + textureRectPosBuffer.size());		// to avoid memory overflow
+										memcpy(buffer.ptr() + cursor, textureRectPosBuffer.ptr(), textureRectPosBuffer.size());
+										cursor += textureRectPosBuffer.size();
+
+										std::string fileTime = mapTextureRect->getFileTimeStr();
+
+										buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
+										TheWorld_Utils::serializeToByteStream<size_t>(fileTime.size(), buffer.ptr() + cursor, size);
+										cursor += size;
+
+										buffer.reserve(cursor + fileTime.size());		// to avoid memory overflow
+										memcpy(buffer.ptr() + cursor, fileTime.c_str(), fileTime.size());
+										cursor += fileTime.size();
+									}
+									
+									buffer.adjustSize(cursor);
+									buffer.toString(mapTextureRects);
+								}
+							}
+
+							lock.unlock();
 						}
 					}
-					Globals()->Client()->Sync(isInEditor(), isEditMode(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU(), quadrants);
+					
+					Globals()->Client()->Sync(isInEditor(), isEditMode(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU(), quadrants, mapTextureRects);
+					
 					lastSyncTime = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 				}
 

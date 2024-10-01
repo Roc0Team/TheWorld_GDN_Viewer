@@ -145,13 +145,13 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			int numVerticesPerSize = *_numVerticesPerSize;
 
 			v = reply.getInputParam(3);
-			const auto _gridStepinWU(std::get_if<float>(&v));
-			if (_gridStepinWU == NULL)
+			const auto _gridStepInWU(std::get_if<float>(&v));
+			if (_gridStepInWU == NULL)
 			{
 				std::string m = std::string("Reply MapManager::uploadCacheBuffer did not have a float as forth input param");
 				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 			}
-			float gridStepInWU = *_gridStepinWU;
+			float gridStepInWU = *_gridStepInWU;
 
 			v = reply.getInputParam(4);
 			const auto _level(std::get_if<int>(&v));
@@ -2868,9 +2868,9 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 			float lowerXGridVertex = pos.getLowerXGridVertex();
 			float lowerZGridVertex = pos.getLowerZGridVertex();
 			int numVerticesPerSize = pos.getNumVerticesPerSize();
-			float gridStepinWU = pos.getGridStepInWU();
+			float gridStepInWU = pos.getGridStepInWU();
 			int lvl = pos.getLevel();
-			quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(quadTree->Viewer()->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepinWU, lvl, buffer);
+			quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
 
 			//quadTree->getQuadrant()->setNeedUploadToServer(false);
 		}

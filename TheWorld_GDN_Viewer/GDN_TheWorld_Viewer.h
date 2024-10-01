@@ -31,6 +31,7 @@
 #include <map>
 #include <memory>
 #include <thread>
+#include <filesystem>
 
 #include "GDN_TheWorld_Globals.h"
 #include "QuadTree.h"
@@ -223,89 +224,10 @@ namespace godot
 //#define DEFAULT_DIRT_TEX_NAME								"Ground049C_1K"
 //#define DEFAULT_ROCKS_TEX_NAME							"rocks07"
 
-	//class GDN_TheWorld_WorldViewport;
-
 	class GDN_TheWorld_MapViewportContainer;
 	class GDN_TheWorld_MapViewport;
 	class GDN_TheWorld_Map;
 	class GDN_TheWorld_MapCamera;
-
-	//class GDN_TheWorld_WorldViewportContainer : public godot::SubViewportContainer
-	//{
-	//	GDCLASS(GDN_TheWorld_WorldViewportContainer, SubViewportContainer)
-
-	//protected:
-	//	static void _bind_methods(void);
-	//	void _notification(int p_what);
-
-	//public:
-	//	GDN_TheWorld_WorldViewportContainer(void);
-	//	~GDN_TheWorld_WorldViewportContainer(void);
-
-	//	//
-	//	// Godot Standard Functions
-	//	//
-	//	virtual void _ready(void) override;
-	//	virtual void _process(double _delta) override;
-	//	virtual void _input(const Ref<InputEvent>& event) override;
-	//	virtual void _unhandled_input(const Ref<InputEvent>& event) override;
-
-	//public:
-	//	void setViewer(GDN_TheWorld_Viewer* viewer)
-	//	{
-	//		m_viewer = viewer;
-	//	}
-	//	GDN_TheWorld_Viewer* getViewer(void)
-	//	{
-	//		return m_viewer;
-	//	}
-	//	void setWorldViewport(GDN_TheWorld_WorldViewport* worldViewport)
-	//	{
-	//		m_worldViewport = worldViewport;
-	//	}
-	//	GDN_TheWorld_WorldViewport* getWorldViewport(void)
-	//	{
-	//		return m_worldViewport;
-	//	}
-
-	//private:
-	//	GDN_TheWorld_Viewer* m_viewer = nullptr;
-	//	GDN_TheWorld_WorldViewport* m_worldViewport = nullptr;
-	//};
-
-	//class GDN_TheWorld_WorldViewport : public godot::SubViewport
-	//{
-	//	GDCLASS(GDN_TheWorld_WorldViewport, SubViewport)
-
-	//protected:
-	//	static void _bind_methods(void);
-	//	void _notification(int p_what);
-
-	//public:
-	//	GDN_TheWorld_WorldViewport(void);
-	//	~GDN_TheWorld_WorldViewport(void);
-
-	//	//
-	//	// Godot Standard Functions
-	//	//
-	//	virtual void _ready(void) override;
-	//	virtual void _process(double _delta) override;
-	//	virtual void _input(const Ref<InputEvent>& event) override;
-	//	virtual void _unhandled_input(const Ref<InputEvent>& event) override;
-
-	//public:
-	//	void setWorldViewportContainer(GDN_TheWorld_WorldViewportContainer* worldViewportContainer)
-	//	{
-	//		m_worldViewportContainer = worldViewportContainer;
-	//	}
-	//	GDN_TheWorld_WorldViewportContainer* getWorldViewportContainer(void)
-	//	{
-	//		return m_worldViewportContainer;
-	//	}
-
-	//private:
-	//	GDN_TheWorld_WorldViewportContainer* m_worldViewportContainer = nullptr;
-	//};
 
 	class GDN_TheWorld_MapViewer : public godot::Node2D
 	{
@@ -464,17 +386,24 @@ namespace godot
 
 			bool rectFull(void);
 			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
+			bool destroyTextureRect(void);
 			bool isTextureRectRendered(void);
 			godot::TextureRect* getTextureRect(void);
+			bool eraseCachedTexture(void);
 			bool renderCachedTexture(void);
 			void renderTexture(godot::Ref<godot::Image> image);
 			godot::String getImageCachePath(void);
+			std::string getFileTimeStr(void) const
+			{
+				return m_FileTimeStr;
+			}
 
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
 			TheWorld_Utils::MapTextureRectPos m_mapTextureRectPos;
 			std::vector<std::vector<godot::Ref<godot::Image>>> m_quadrantImages;	// bi-dimensional vector of Image references
-			std::string m_rectName;
+			std::filesystem::file_time_type m_fileTime;
+			std::string m_FileTimeStr;
 		};
 
 		class MapTextureRectContainer : public std::map<TheWorld_Utils::MapTextureRectPos, std::unique_ptr<MapTextureRect>>
@@ -515,9 +444,12 @@ namespace godot
 		godot::Vector2 globalPosToWorldPos(godot::Vector2 global);
 		godot::Vector2 worldPosToGlobalPos(godot::Vector2 worldPos);
 
-		MapTextureRect* getTextureRect(const TheWorld_Utils::QuadrantPos& quadrantPos);
-		MapTextureRect* getTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		MapTextureRect* getMapTextureRect(const TheWorld_Utils::QuadrantPos& quadrantPos, bool add = true);
+		MapTextureRect* getMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, bool add = true);
+		bool eraseMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool destroyTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool isTextureRectRendered(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool eraseCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool renderCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
 		void setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir = false, bool visible = true);
@@ -1316,7 +1248,7 @@ namespace godot
 
 		std::recursive_mutex& getMainProcessingMutex(void)
 		{
-			return m_mtxQuadTreeAndMainProcessing;
+			return m_mtxQuadrantsAndMainProcessing;
 		}
 
 		std::string to_string(godot::String s)
@@ -1374,11 +1306,22 @@ namespace godot
 			}
 			else
 			{
-				godot::Rect2 rect = get_viewport()->get_visible_rect();
-				return godot::Size2(rect.size);
+				godot::Viewport* v = get_viewport();
+				if (v != nullptr)
+				{
+					godot::Rect2 rect = v->get_visible_rect();
+					return godot::Size2(rect.size);
+				}
+				else
+					return godot::Vector2(0.0f, 0.0f);
 			}
 		}
 		
+		godot::Size2 getSavedViewportSize(void)
+		{
+			return m_savedViewportSize;
+		}
+
 		void viewportSizeChanged(void);
 		bool ReloadAllShadersRequired(void) const
 		{
@@ -1820,6 +1763,43 @@ namespace godot
 		{
 			return m_worldViewerLevel;
 		}
+		
+		float getQuadrantWorldSize(void)
+		{
+			float ret = 0;
+
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr)
+			{
+				ret = map->getQuadrantWorldSize();
+			}
+
+			return ret;
+		}
+		float getQuadrantGlobalSize(void)
+		{
+			float ret = 0;
+
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr)
+			{
+				ret = map->getQuadrantGlobalSize();
+			}
+
+			return ret;
+		}
+		int32_t getNumQuadrantsPerSize(void)
+		{
+			int32_t ret = 0;
+
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr)
+			{
+				ret = map->getNumQuadrantsPerSize();
+			}
+
+			return ret;
+		}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -2058,6 +2038,8 @@ namespace godot
 
 		bool m_refreshRequired;
 
+		godot::Size2 m_savedViewportSize;
+		
 		//RID m_viewFrustumMeshInstance;
 		//RID m_viewFrustumMeshRID;
 		//Ref<Mesh> m_viewFrustumMesh;
@@ -2076,7 +2058,7 @@ namespace godot
 		WorldQuadrantsMap m_worldQuadrantsMap;
 		WorldQuadrantsMap m_extraQuadsMap;
 		MapQuadrantsMap m_mapQuadrantsMap;
-		std::recursive_mutex m_mtxQuadTreeAndMainProcessing;
+		std::recursive_mutex m_mtxQuadrantsAndMainProcessing;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
 		TheWorld_Utils::QuadrantPos m_computedCameraQuadrantPos;
 		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;

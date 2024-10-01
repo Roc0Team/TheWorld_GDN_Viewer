@@ -217,6 +217,12 @@ void GDN_TheWorld_MapCamera::setZoom(float zoomFactor)
 
 void GDN_TheWorld_MapCamera::_process(double _delta)
 {
+	m_savedGlobalPos = get_global_position();
+}
+
+godot::Vector2 GDN_TheWorld_MapCamera::getSavedGlobalPosition(void)
+{
+	return m_savedGlobalPos;
 }
 
 godot::Transform2D GDN_TheWorld_MapCamera::getCameraWorldTransform()

@@ -112,7 +112,7 @@ namespace godot
 	public:
 		void init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLevel);
 		//godot::Ref<godot::Image> getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos);
-		void setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos);
+		void setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId);
 		bool updated(void)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
@@ -397,13 +397,21 @@ namespace godot
 			{
 				return m_FileTimeStr;
 			}
+			bool canCheckForRefresh(void)
+			{
+				return m_FileTimeStr.size() > 0;
+			}
+			void checkForRefreshDisabled(void)
+			{
+				m_FileTimeStr.clear();
+			}
 
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
 			TheWorld_Utils::MapTextureRectPos m_mapTextureRectPos;
 			std::vector<std::vector<godot::Ref<godot::Image>>> m_quadrantImages;	// bi-dimensional vector of Image references
-			std::filesystem::file_time_type m_fileTime;
-			std::string m_FileTimeStr;
+			//std::filesystem::file_time_type m_fileTime;
+			std::string m_FileTimeStr;		// es: 2023-09-04 19:33:24.702639224
 		};
 
 		class MapTextureRectContainer : public std::map<TheWorld_Utils::MapTextureRectPos, std::unique_ptr<MapTextureRect>>
@@ -471,6 +479,8 @@ namespace godot
 
 		int32_t getNumTextureRects(void);
 
+		void addMapTextureRectRefreshScheduled(TheWorld_Utils::MapTextureRectPos& pos);
+
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 
@@ -478,6 +488,7 @@ namespace godot
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_Globals* m_globals = nullptr;
 		MapTextureRectContainer m_mapTextureRectContainer;
+		std::map<TheWorld_Utils::MapTextureRectPos, bool> m_mapTextureRectRefreshScheduled;
 		godot::Dictionary m_worldFlagDict;
 		//int m_zoomRequired = 0;
 		//float m_scaleFactor = MAP_INITIAL_SCALE_FACTOR;
@@ -1717,6 +1728,12 @@ namespace godot
 		int32_t getImageMapResolution(void)
 		{
 			return m_mapQuadrantsMap.getImageResolution();
+		}
+
+		void eraseMapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(getMainProcessingMutex());
+			m_mapQuadrantsMap.erase(quadrantPos);
 		}
 
 		void forceProcessNewMapQuadrants(bool b)

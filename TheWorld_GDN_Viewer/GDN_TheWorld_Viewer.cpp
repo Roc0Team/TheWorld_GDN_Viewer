@@ -86,7 +86,7 @@ void MapQuadrantsMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		m_updatingQuadrants.erase(pos);
 }
 
-void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos)
+void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId)
 {
 	//std::recursive_mutex& m = m_viewer->getMainProcessingMutex();
 	//std::lock_guard<std::recursive_mutex> lock(m);
@@ -102,6 +102,7 @@ void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Uti
 	if (not contains(quadrantPos))
 		(*this)[quadrantPos] = std::make_unique<MapQuadrant>(quadrantPos, m_viewer, getOptimizationLevel());
 	(*this)[quadrantPos]->setMapData(mapImage);
+	(*this)[quadrantPos]->setMeshId(meshId);
 
 	addUpdatedQuadrant(quadrantPos);
 }
@@ -301,8 +302,11 @@ bool GDN_TheWorld_Map::MapTextureRect::renderCachedTexture(void)
 	else
 	{
 		renderTexture(image);
-		m_fileTime = fs::last_write_time(_imagePath);
-		m_FileTimeStr = std::format("{}", m_fileTime);		// es: 2023-09-04 19:33:24.702639224
+		m_FileTimeStr = TheWorld_Utils::last_write_time_str(_imagePath);
+
+		//std::filesystem::file_time_type fileTime = fs::last_write_time(_imagePath);		// wrong: we must adjust time in local time
+		//m_FileTimeStr = std::format("{}", fileTime);									// es: 2023-09-04 19:33:24.702639224
+
 		return true;
 	}
 }
@@ -355,9 +359,8 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 		godot::String imagePath = getImageCachePath();
 		rectImage->save_png(imagePath);
 		std::string _imagePath = imagePath.utf8().get_data();
-		m_fileTime = fs::last_write_time(_imagePath);
-		m_FileTimeStr = std::format("{}", m_fileTime);		// es: 2023-09-04 19:33:24.702639224
-
+		m_FileTimeStr = TheWorld_Utils::last_write_time_str(_imagePath);
+		
 		renderTexture(rectImage);
 
 		fullRectRendered = true;
@@ -454,6 +457,21 @@ void GDN_TheWorld_Map::_process(double _delta)
 
 	//	viewver->forceProcessNewMapQuadrants(true);
 	//}
+
+	std::lock_guard<std::recursive_mutex> lockM (m_mapViewer->getViewer()->getMainProcessingMutex());
+
+	for (auto& item : m_mapTextureRectRefreshScheduled)
+	{
+		TheWorld_Utils::MapTextureRectPos pos = item.first;
+
+		bool success = destroyTextureRect(pos);
+		success = eraseCachedTexture(pos);
+		success = eraseMapTextureRect(pos);
+
+		m_mapViewer->getViewer()->forceProcessNewMapQuadrants(true);
+	}
+
+	m_mapTextureRectRefreshScheduled.clear();
 }
 
 //void GDN_TheWorld_Map::setScale(float scaleFactor)
@@ -613,6 +631,14 @@ int32_t GDN_TheWorld_Map::getNumTextureRects(void)
 	return num;
 }
 
+void GDN_TheWorld_Map::addMapTextureRectRefreshScheduled(TheWorld_Utils::MapTextureRectPos& pos)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+	m_mapTextureRectRefreshScheduled[pos] = true;
+	if (m_mapTextureRectContainer.contains(pos))
+		m_mapTextureRectContainer[pos]->checkForRefreshDisabled();
+}
+
 godot::String GDN_TheWorld_Map::getCacheDir(void)
 {
 	return m_mapViewer->getViewer()->Globals()->getCacheDir(m_mapViewer->getViewer()->getLevel());
@@ -656,7 +682,15 @@ GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getMapTextureRect(TheWorld_U
 
 bool GDN_TheWorld_Map::eraseMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+	std::lock_guard<std::recursive_mutex> lock(viewer->getMainProcessingMutex());
+
+	GDN_TheWorld_Globals* globals = viewer->Globals();
+
+	std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
+	mapTextureRectPos.getAllContainedQuadrantPos(quadrantsPos, viewer->getLevel(), (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
+	for (auto& pos : quadrantsPos)
+		viewer->eraseMapQuadrant(pos);
 
 	if (m_mapTextureRectContainer.contains(mapTextureRectPos))
 	{
@@ -3636,11 +3670,15 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				//if (quadrantPos.getIndexPosX() == 100 && quadrantPos.getIndexPosZ() == 100)	// DEBUG ONLY
 				//	v = reply.getInputParam(13);												// DEBUG ONLY
 
+				bool updateMapQuadrantMap = true;
+				
 				m_mtxQuadrantsAndMainProcessing.lock();
+				
 				if ((m_worldQuadrantsMap.contains(quadrantPos) && !m_worldQuadrantsMap[quadrantPos]->statusToErase())
 					|| (m_extraQuadsMap.contains(quadrantPos) && !m_extraQuadsMap[quadrantPos]->statusToErase() && status == TheWorldStatus::worldDeployed))
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1 ") + __FUNCTION__, "Elab. quadrant");
+					
 					QuadTree* quadTree = nullptr;
 					bool refreshingQuadrant = false;
 					bool worldQuadrant = true;
@@ -3659,6 +3697,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						//if (quadrantPos.getIndexPosX() == 93 && quadrantPos.getIndexPosZ() == 99)
 						//	PLOG_DEBUG << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " Reply from server";
 					}
+					
 					m_mtxQuadrantsAndMainProcessing.unlock();
 
 					//PLOG_DEBUG << "GDN_TheWorld_Viewer::replyFromServer - " << quadTree->getQuadrant()->getPos().getName();
@@ -3672,6 +3711,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					{
 						//quadTree->setStatus(QuadrantStatus::initialized);
 						quadTree->setStatus(QuadrantStatus::initializationStopped);
+						updateMapQuadrantMap = false;
 					}
 					else
 					{
@@ -3687,11 +3727,12 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 								//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);	// SUPERDEBUGRIC : to remove when the mock for altitudes is removed from cache.refreshMeshCacheFromBuffer
 								TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1 ") + __FUNCTION__, "quadTree->getQuadrant()->refreshGridVertices");
 								quadTree->getQuadrant()->refreshGridVerticesFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
-								
+
 								if (worldQuadrant)
 								{
 									godot::Ref<godot::Image> mapImage = quadTree->getQuadrant()->getMapImage();
-									m_mapQuadrantsMap.setMapData(mapImage, quadrantPos);
+									m_mapQuadrantsMap.setMapData(mapImage, quadrantPos, meshIdFromServer);
+									updateMapQuadrantMap = false;
 								}
 							}
 
@@ -3744,13 +3785,13 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 							if (quadTree->statusRefreshTerrainDataInProgress())
 								Globals()->debugPrint((std::string("Refreshed quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " " + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
-							
+
 							if (refreshingQuadrant)
 							{
 								Chunk::TerrainHeightsChangedChunkAction action;
 								quadTree->ForAllChunk(action, QuadType::NotSet);
 							}
-							
+
 							quadTree->getQuadrant()->mapModderWorkDone(false);
 
 							quadTree->setStatus(QuadrantStatus::initialized);
@@ -3762,15 +3803,18 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				else
 				{
 					m_mtxQuadrantsAndMainProcessing.unlock();
+				}
 
+				if (updateMapQuadrantMap)
+				{
 					m_mapQuadrantsMap.lock();
-					
+
 					if (m_mapQuadrantsMap.contains(quadrantPos))
 					{
 						MapQuadrant* mapQuadrant = m_mapQuadrantsMap[quadrantPos].get();
 
 						std::string outMeshIdFromBuffer;
-						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer);
+						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
 						m_mapQuadrantsMap.addUpdatedQuadrant(quadrantPos);
 					}
 					else
@@ -3778,7 +3822,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						// clear everything
 						m_mapQuadrantsMap.erase(quadrantPos);
 					}
-					
+
 #pragma warning(suppress: 26117)
 					m_mapQuadrantsMap.unlock();
 				}
@@ -4232,11 +4276,12 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 					if (refreshRequired)
 					{
-						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
-
-						bool success = map->destroyTextureRect(pos);
-						success = map->eraseCachedTexture(pos);
-						success = map->eraseMapTextureRect(pos);
+						map->addMapTextureRectRefreshScheduled(pos);
+						
+						//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+						//bool success = map->destroyTextureRect(pos);
+						//success = map->eraseCachedTexture(pos);
+						//success = map->eraseMapTextureRect(pos);
 					}
 				}
 			}
@@ -8518,6 +8563,29 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 		//	}
 		//}
 
+		// Erasing MapQuadrants with refreshTime less than textureRectRefreshTime (the updated time on disk of the texture png)
+		std::vector<TheWorld_Utils::QuadrantPos> quadrantsPosToErase;
+		for (auto& item : m_mapQuadrantsMap)
+		{
+			MapQuadrant* mapQuadrant = item.second.get();
+			std::time_t quadrantRefreshTime = mapQuadrant->getRefreshTime();
+			if (quadrantRefreshTime > 0)
+			{
+				std::time_t mapRectTextureRefreshTime = 0;
+				
+				TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
+				//TheWorld_Utils::MapTextureRectPos mapTextureRectPos(quadrantPos, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
+				GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
+				if (mapTextureRect != nullptr and !mapTextureRect->getFileTimeStr().empty())
+					mapRectTextureRefreshTime = TheWorld_Utils::str_time_to_time_t(mapTextureRect->getFileTimeStr());
+
+				if (quadrantRefreshTime < mapRectTextureRefreshTime)
+					quadrantsPosToErase.push_back(quadrantPos);
+			}
+		}
+		for (auto& pos : quadrantsPosToErase)
+			m_mapQuadrantsMap.erase(pos);
+
 		// Check quadrant update request timed out
 		constexpr int64_t  secondsBetweenCheck = 1;
 		int64_t timeElapsed = TIME()->get_ticks_msec();
@@ -10992,7 +11060,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 									{
 										std::lock_guard<std::recursive_mutex> lock(getMainProcessingMutex());
 										GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(textureRectPos, false);
-										if (mapTextureRect == nullptr)
+										if (mapTextureRect == nullptr or !mapTextureRect->canCheckForRefresh())
 											mapTextureRect = &nullMapTextureRect;
 
 										TheWorld_Utils::MemoryBuffer textureRectPosBuffer;

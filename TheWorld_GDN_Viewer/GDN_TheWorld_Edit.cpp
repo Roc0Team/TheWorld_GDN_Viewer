@@ -2012,7 +2012,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			+ "Quad Hit: " + m_innerData->m_mouseQuadHitStr + " Sea: " + quadHitCanContainSeaStr + "\n"
 			+ "Pos: " + m_innerData->m_mouseQuadHitPosStr + "\n"
 			+ "Type: " + TheWorld_Utils::TerrainEdit::terrainTypeString(quadHitTerrainType) + " Min: " + std::format("{:.2f}", quadHitMinHeight) + " Max: " + std::format("{:.2f}", quadHitMaxHeight) + "\n"
-			+ "Opt. Level: " + quadHitOptimizationLevelInfoStr + " Collider: " + quadHitColliderInfoStr;
+			+ "Opt. Level: " + quadHitOptimizationLevelInfoStr + " Collider: " + quadHitColliderInfoStr + "\n"
+			+ "To Upload: " + (m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False") + " To Save: " + (m_mapQuadToSave.contains(m_innerData->m_quadTreeHit->getQuadrant()->getPos()) ? "True" : "False");
 		m_innerData->m_hitQuadInfoLabel->set_text(hitQuadInfoLabelText.c_str());
 
 		std::string selQuadInfoLabelText;
@@ -2021,7 +2022,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			"Quad Sel: " + m_innerData->m_mouseQuadSelStr + " Sea: " + quadSelCanContainSeaStr + "\n"
 			+ "Pos: " + m_innerData->m_mouseQuadSelPosStr + "\n"
 			+ "Type: " + TheWorld_Utils::TerrainEdit::terrainTypeString(m_innerData->m_selectedTerrainType) + " Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
-			+ "Opt. Level: " + quadSelOptimizationLevelInfoStr + " Collider: " + quadSelColliderInfoStr;
+			+ "Opt. Level: " + quadSelOptimizationLevelInfoStr + " Collider: " + quadSelColliderInfoStr + "\n"
+			+ "To Upload: " + (quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False") + " To Save: " + (m_mapQuadToSave.contains(quadTreeSel->getQuadrant()->getPos()) ? "True" : "False");
 		m_innerData->m_selQuadInfoLabel->set_text(selQuadInfoLabelText.c_str());
 		
 		if (quadSelCanContainSea && !m_innerData->m_selQuadSeaCheckBox->is_pressed())	
@@ -2810,8 +2812,6 @@ void GDN_TheWorld_Edit::editModeUploadAction(void)
 
 void GDN_TheWorld_Edit::editModeUpload(void)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
-
 	editModeSave();
 		
 	if (m_actionClock.counterStarted())
@@ -2826,53 +2826,73 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 
 	TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1 ") + __FUNCTION__, "ALL");
 
-	std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
-	m_viewer->getAllQuadrantPos(allQuandrantPos);
-
-	std::vector<TheWorld_Utils::QuadrantPos> quandrantPos;
-	for (auto& pos : allQuandrantPos)
 	{
-		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
-		if (quadTree != nullptr)
+		std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+
+		QuadTree* quadTreeSel = nullptr;
+		TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+		bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+		if (!allCheched && (quadrantSelPos.empty() or !quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer))
 		{
-			if (quadTree->getQuadrant()->needUploadToServer())
+			m_actionClock.tock();
+			m_actionInProgress = false;
+			setMessage(godot::String("Completed!"), true);
+			return;
+		}
+
+		std::vector<TheWorld_Utils::QuadrantPos> quandrantPosToUpload;
+		if (allCheched)
+		{
+			std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
+			m_viewer->getAllQuadrantPos(allQuandrantPos);
+
+			for (auto& pos : allQuandrantPos)
 			{
-				quandrantPos.push_back(pos);
+				QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+				if (quadTree != nullptr)
+				{
+					if (quadTree->getQuadrant()->needUploadToServer())
+					{
+						quandrantPosToUpload.push_back(pos);
+					}
+				}
 			}
 		}
-	}
+		else
+			quandrantPosToUpload.push_back(quadrantSelPos);
 
-	m_completedItems = 0;
-	m_elapsedCompleted = 0;
-	m_lastElapsed = 0;
-	m_allItems = quandrantPos.size();
-	for (auto& pos : quandrantPos)
-	{
-		if (m_actionStopRequested)
+		m_completedItems = 0;
+		m_elapsedCompleted = 0;
+		m_lastElapsed = 0;
+		m_allItems = quandrantPosToUpload.size();
+		for (auto& pos : quandrantPosToUpload)
 		{
-			m_actionStopRequested = false;
-			break;
-		}
+			if (m_actionStopRequested)
+			{
+				m_actionStopRequested = false;
+				break;
+			}
 
-		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
-		if (quadTree != nullptr)
-		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1.1 ") + __FUNCTION__, "Single QuadTree");
+			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+			if (quadTree != nullptr)
+			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1.1 ") + __FUNCTION__, "Single QuadTree");
 
-			std::string buffer;
-			bool saved = quadTree->getQuadrant()->saveQuadrantToDiskCache2(buffer, false, true, false);
-			my_assert(saved);
-			if (!saved)
-				throw(GDN_TheWorld_Exception(__FUNCTION__, "Quadrant not saved!"));
+				std::string buffer;
+				bool saved = quadTree->getQuadrant()->saveQuadrantToDiskCache2(buffer, false, true, false);
+				my_assert(saved);
+				if (!saved)
+					throw(GDN_TheWorld_Exception(__FUNCTION__, "Quadrant not saved!"));
 
-			float lowerXGridVertex = pos.getLowerXGridVertex();
-			float lowerZGridVertex = pos.getLowerZGridVertex();
-			int numVerticesPerSize = pos.getNumVerticesPerSize();
-			float gridStepInWU = pos.getGridStepInWU();
-			int lvl = pos.getLevel();
-			quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
+				float lowerXGridVertex = pos.getLowerXGridVertex();
+				float lowerZGridVertex = pos.getLowerZGridVertex();
+				int numVerticesPerSize = pos.getNumVerticesPerSize();
+				float gridStepInWU = pos.getGridStepInWU();
+				int lvl = pos.getLevel();
+				quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
 
-			//quadTree->getQuadrant()->setNeedUploadToServer(false);
+				//quadTree->getQuadrant()->setNeedUploadToServer(false);
+			}
 		}
 	}
 	

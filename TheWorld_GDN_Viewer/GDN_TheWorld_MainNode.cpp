@@ -56,6 +56,50 @@ void GDN_TheWorld_MainNode::_ready(void)
 		globals->debugPrint("GDN_TheWorld_MainNode::_ready");
 
 	m_ready = true;
+
+	//// Test UTC Date/Time
+
+	////std::chrono::system_clock::time_point now1_tp_utc_1 = std::chrono::system_clock::now();		// UTC Time
+	////std::string now1_str_utc_1 = std::format("{}", now1_tp_utc_1);
+	////std::time_t now1_time_t_utc_1 = std::chrono::system_clock::to_time_t(now1_tp_utc_1);
+	////std::chrono::system_clock::time_point now1_tp_utc_2 = std::chrono::system_clock::from_time_t(now1_time_t_utc_1);
+	////std::string now1_str_utc_2 = std::format("{}", now1_tp_utc_2);
+	////std::time_t now1_time_t_utc_2 = 0;
+	////std::vector<std::string> v = TheWorld_Utils::Utils::split(now1_str_utc_2, '.');
+	////std::string s = v[0];
+	//////s += "Z";
+	////std::tm t = {};
+	////std::istringstream ss(v[0]);
+	////ss >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
+	////if (not ss.fail())
+	////{
+	////	//now1_time_t_utc_2 = std::mktime(&t);
+	////	now1_time_t_utc_2 = _mkgmtime(&t);
+	////}
+
+	//std::time_t now_time_t_utc_1 = TheWorld_Utils::current_utc_time();
+	//std::string now_str_utc_1 = TheWorld_Utils::time_t_to_str_time(now_time_t_utc_1);
+	//std::time_t now_time_t_utc_2 = TheWorld_Utils::str_time_to_time_t(now_str_utc_1);
+	//
+	//FILE* outFile = nullptr;
+	//std::string tempPath = "c:/temp/prova.txt";
+	//errno_t err = fopen_s(&outFile, tempPath.c_str(), "w");
+	//std::string shortBuffer = "AAAAAAAAAAA";
+	//size_t num = fwrite(shortBuffer.c_str(), shortBuffer.size(), 1, outFile);
+	//fclose(outFile);
+	//
+	////const auto fileTime_utc = std::filesystem::last_write_time(tempPath);					// UTC Time
+	////std::string fileTime_str1_utc = std::format("{}", fileTime_utc);
+	////const auto systemTime_utc = std::chrono::clock_cast<std::chrono::system_clock>(fileTime_utc);
+	////std::time_t fileTime_time_t_utc = std::chrono::system_clock::to_time_t(systemTime_utc);
+	////std::chrono::system_clock::time_point fileTime_tp_utc = std::chrono::system_clock::from_time_t(fileTime_time_t_utc);
+	////std::string fileTime_str2_utc = std::format("{}", fileTime_tp_utc);
+	//
+	//std::time_t fileTime_time_t_utc_1 = TheWorld_Utils::last_write_time(tempPath);
+	//std::string fileTime_str_utc_1 = TheWorld_Utils::last_write_time_str(tempPath);
+	//std::time_t fileTime_time_t_utc_2 = TheWorld_Utils::str_time_to_time_t(fileTime_str_utc_1);
+
+	//// Test UTC Date/Time
 }
 
 void GDN_TheWorld_MainNode::_notification(int p_what)

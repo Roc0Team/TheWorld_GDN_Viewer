@@ -57,6 +57,20 @@ TheWorld_Utils::MeshCacheBuffer& MapQuadrant::getMeshCacheBuffer(void)
 	return m_cache;
 }
 
+std::time_t MapQuadrant::getRefreshTime(void)
+{
+	std::time_t ret = 0;
+
+	if (!m_meshId.empty())
+	{
+		std::string meshIdWithoutBinaryTime;
+		std::chrono::system_clock::time_point tp = TheWorld_Utils::MeshCacheBuffer::getTimeFromMeshId(m_meshId, meshIdWithoutBinaryTime);
+		ret = std::chrono::system_clock::to_time_t(tp);
+	}
+	
+	return ret;
+}
+
 godot::Ref<godot::Image> MapQuadrant::getMapImage(void)
 {
 	if (m_mapImage == nullptr)
@@ -75,7 +89,7 @@ void MapQuadrant::setMapData(godot::Ref<godot::Image> mapImage)
 	updated(true);
 }
 
-void MapQuadrant::refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer)
+void MapQuadrant::refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer, bool updateCache)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1 ") + __FUNCTION__, "Global");
 
@@ -96,7 +110,7 @@ void MapQuadrant::refreshDataFromServer(std::string& bufferFromServer, std::stri
 		TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.1 ") + __FUNCTION__, "cache.refreshMapsFromBuffer");
 
 		//TheWorld_Utils::MeshCacheBuffer cache;
-		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, false);
+		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, updateCache);
 	}
 
 	if (outMeshIdFromBuffer.size() > 0)
@@ -117,6 +131,8 @@ void MapQuadrant::refreshDataFromServer(std::string& bufferFromServer, std::stri
 		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer);
 	}
 
+	setMeshId(meshIdFromServer);
+	
 	if (globalmapBuffer.empty())
 	{
 		setMapData(nullptr);

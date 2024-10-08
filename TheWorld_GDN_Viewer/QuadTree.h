@@ -35,7 +35,7 @@ namespace godot
 		
 		void setMapData(godot::Ref<godot::Image> mapImage);
 		
-		void refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer);
+		void refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer, bool updateCache);
 		
 		bool updated(void) const
 		{
@@ -57,10 +57,23 @@ namespace godot
 
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
 
+		void setMeshId(std::string& meshId)
+		{
+			m_meshId = meshId;
+		}
+
+		TheWorld_Utils::QuadrantPos getPos(void)
+		{
+			return m_quadrantPos;
+		}
+
+		std::time_t getRefreshTime(void);
+
 	private:
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		TheWorld_Utils::QuadrantPos m_quadrantPos;
 		TheWorld_Utils::MeshCacheBuffer m_cache;
+		std::string m_meshId;
 		bool m_updated = false;
 		int64_t m_lastUpdateTime = 0;
 		size_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33

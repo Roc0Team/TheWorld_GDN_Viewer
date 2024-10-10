@@ -3,6 +3,7 @@
 #include "GDN_TheWorld_Globals.h"
 #include "GDN_TheWorld_Viewer.h"
 #include "GDN_Template.h"
+//#include "Utils.h"
 
 #pragma warning (push, 0)
 //#include <godot_cpp/core/class_db.hpp>
@@ -80,6 +81,7 @@ void GDN_TheWorld_MainNode::_ready(void)
 	//std::time_t now_time_t_utc_1 = TheWorld_Utils::current_utc_time();
 	//std::string now_str_utc_1 = TheWorld_Utils::time_t_to_str_time(now_time_t_utc_1);
 	//std::time_t now_time_t_utc_2 = TheWorld_Utils::str_time_to_time_t(now_str_utc_1);
+	//assert(now_time_t_utc_1 == now_time_t_utc_2);
 	//
 	//FILE* outFile = nullptr;
 	//std::string tempPath = "c:/temp/prova.txt";
@@ -95,9 +97,16 @@ void GDN_TheWorld_MainNode::_ready(void)
 	////std::chrono::system_clock::time_point fileTime_tp_utc = std::chrono::system_clock::from_time_t(fileTime_time_t_utc);
 	////std::string fileTime_str2_utc = std::format("{}", fileTime_tp_utc);
 	//
-	//std::time_t fileTime_time_t_utc_1 = TheWorld_Utils::last_write_time(tempPath);
-	//std::string fileTime_str_utc_1 = TheWorld_Utils::last_write_time_str(tempPath);
+	//std::time_t fileTime_time_t_utc_1 = TheWorld_Utils::last_write_time_utc(tempPath);
+	//std::string fileTime_str_utc_1 = TheWorld_Utils::last_write_time_utc_str(tempPath);
 	//std::time_t fileTime_time_t_utc_2 = TheWorld_Utils::str_time_to_time_t(fileTime_str_utc_1);
+	//assert(fileTime_time_t_utc_1 == fileTime_time_t_utc_2);
+
+	//std::string meshId = TheWorld_Utils::MeshCacheBuffer::generateNewMeshId();
+	//std:string meshIdWithoutBinaryTime;
+	//std::chrono::system_clock::time_point time_tp = TheWorld_Utils::MeshCacheBuffer::getTimeFromMeshId(meshId, meshIdWithoutBinaryTime);
+	//std::string meshIdEmptyBuffer = TheWorld_Utils::MeshCacheBuffer::generateNewMeshIdForEmptyBuffer();
+	//bool b = TheWorld_Utils::MeshCacheBuffer::isEmptyBuffer(meshIdEmptyBuffer);
 
 	//// Test UTC Date/Time
 }

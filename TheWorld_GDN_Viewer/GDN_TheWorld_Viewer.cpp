@@ -78,7 +78,8 @@ void MapQuadrantsMap::init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLeve
 
 void MapQuadrantsMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 	if (not m_updatedQuadrants.contains(pos))
 		m_viewer->incUpdatedMapQuadrants();
 	m_updatedQuadrants[pos] = true;
@@ -86,11 +87,56 @@ void MapQuadrantsMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		m_updatingQuadrants.erase(pos);
 }
 
+TheWorld_Utils::QuadrantPos MapQuadrantsMap::fetchUpdatedQuadrant(void)
+{
+	TheWorld_Utils::QuadrantPos pos;
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+	if (m_updatedQuadrants.size() > 0)
+	{
+		pos = m_updatedQuadrants.begin()->first;
+		m_updatedQuadrants.erase(m_updatedQuadrants.begin());
+	}
+	return pos;
+}
+void MapQuadrantsMap::fetchUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
+{
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+	m_updatedQuadrants.erase(pos);
+}
+void MapQuadrantsMap::fetchUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos)
+{
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+	m_updatingQuadrants.erase(pos);
+}
+
+void MapQuadrantsMap::erase(TheWorld_Utils::QuadrantPos& pos)
+{
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+	std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrant>>::erase(pos);
+	fetchUpdatedQuadrant(pos);
+	fetchUpdatingQuadrant(pos);
+}
+
+void MapQuadrantsMap::lock(void)
+{
+	//m_internalMutex.lock();
+	m_viewer->getMainProcessingMutex().lock();
+}
+void MapQuadrantsMap::unlock(void)
+{
+	//#pragma warning(suppress: 26110)
+				//m_internalMutex.unlock();
+	m_viewer->getMainProcessingMutex().unlock();
+}
+
 void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId)
 {
-	//std::recursive_mutex& m = m_viewer->getMainProcessingMutex();
-	//std::lock_guard<std::recursive_mutex> lock(m);
-	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 
 	if (mapImage != nullptr)
 	{
@@ -107,9 +153,17 @@ void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Uti
 	addUpdatedQuadrant(quadrantPos);
 }
 
+bool MapQuadrantsMap::updated(void)
+{
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+	return (m_updatedQuadrants.size() > 0);
+}
+
 bool MapQuadrantsMap::checkUpdatingQuadrants(void)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 
 	bool statusChanged = false;
 
@@ -127,7 +181,9 @@ bool MapQuadrantsMap::checkUpdatingQuadrants(void)
 
 bool MapQuadrantsMap::updateNeeded(TheWorld_Utils::QuadrantPos& pos)
 {
-	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+
 	if (m_updatingQuadrants.contains(pos) and m_updatingQuadrants[pos]->status() == UpdateStatus::UpdateNeeded)
 		return true;
 	else
@@ -139,7 +195,8 @@ bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos
 	//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "ALL");
 
 	bool scheduled = false;
-	std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "Inside mutex");
@@ -302,10 +359,7 @@ bool GDN_TheWorld_Map::MapTextureRect::renderCachedTexture(void)
 	else
 	{
 		renderTexture(image);
-		m_FileTimeStr = TheWorld_Utils::last_write_time_str(_imagePath);
-
-		//std::filesystem::file_time_type fileTime = fs::last_write_time(_imagePath);		// wrong: we must adjust time in local time
-		//m_FileTimeStr = std::format("{}", fileTime);									// es: 2023-09-04 19:33:24.702639224
+		m_FileTimeStr = TheWorld_Utils::last_write_time_utc_str(_imagePath);
 
 		return true;
 	}
@@ -359,7 +413,7 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 		godot::String imagePath = getImageCachePath();
 		rectImage->save_png(imagePath);
 		std::string _imagePath = imagePath.utf8().get_data();
-		m_FileTimeStr = TheWorld_Utils::last_write_time_str(_imagePath);
+		m_FileTimeStr = TheWorld_Utils::last_write_time_utc_str(_imagePath);
 		
 		renderTexture(rectImage);
 
@@ -7130,7 +7184,7 @@ void GDN_TheWorld_Viewer::writeStatisticsNewQuadrants(void)
 	std::string mapQuadrantsMessage = "MAP QUADRANTS\n"
 		+ std::string("Num Map Quadrants = ") + std::to_string(m_mapQuadrantsMap.size())
 		+ std::string(" Num Updated Map Quadrants = ") + std::to_string(fetchUpdatedMapQuadrants())
-		+ std::string( "Num Map Texture Rects = ") + std::to_string(map->getNumTextureRects());
+		+ std::string(" Num Map Texture Rects = ") + std::to_string(map->getNumTextureRects());
 
 	std::string s;
 	if (m_streamingTime.counterStarted())
@@ -8574,13 +8628,19 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 				std::time_t mapRectTextureRefreshTime = 0;
 				
 				TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
-				//TheWorld_Utils::MapTextureRectPos mapTextureRectPos(quadrantPos, map->getNumQuadrantsPerSize(), map->getQuadrantGlobalSize(), map->getQuadrantWorldSize());
 				GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
 				if (mapTextureRect != nullptr and !mapTextureRect->getFileTimeStr().empty())
 					mapRectTextureRefreshTime = TheWorld_Utils::str_time_to_time_t(mapTextureRect->getFileTimeStr());
 
 				if (quadrantRefreshTime < mapRectTextureRefreshTime)
 					quadrantsPosToErase.push_back(quadrantPos);
+			}
+			else if (quadrantRefreshTime == 0)	// Empty quadrant
+			{
+				TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
+				GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
+				if (mapTextureRect != nullptr and !mapTextureRect->getFileTimeStr().empty())
+					quadrantsPosToErase.push_back(quadrantPos);	// if empty quadrant and its map texture rect is rendered we can delete it
 			}
 		}
 		for (auto& pos : quadrantsPosToErase)

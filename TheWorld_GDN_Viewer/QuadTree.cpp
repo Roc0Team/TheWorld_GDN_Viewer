@@ -59,7 +59,7 @@ TheWorld_Utils::MeshCacheBuffer& MapQuadrant::getMeshCacheBuffer(void)
 
 std::time_t MapQuadrant::getRefreshTime(void)
 {
-	std::time_t ret = 0;
+	std::time_t ret = -1;
 
 	if (!m_meshId.empty())
 	{
@@ -68,7 +68,7 @@ std::time_t MapQuadrant::getRefreshTime(void)
 		ret = std::chrono::system_clock::to_time_t(tp);
 	}
 	
-	return ret;
+	return ret;		// -1 quadrant not intialized, 0 = empty quadrant, >0 = quadrant last refresh time
 }
 
 godot::Ref<godot::Image> MapQuadrant::getMapImage(void)

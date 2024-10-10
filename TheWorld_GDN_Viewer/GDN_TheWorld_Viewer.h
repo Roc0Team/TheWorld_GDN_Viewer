@@ -113,57 +113,20 @@ namespace godot
 		void init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLevel);
 		//godot::Ref<godot::Image> getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId);
-		bool updated(void)
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
-			return (m_updatedQuadrants.size() > 0);
-		}
+		bool updated(void);
 
 		void addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos);
-		TheWorld_Utils::QuadrantPos fetchUpdatedQuadrant(void)
-		{
-			TheWorld_Utils::QuadrantPos pos;
-			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
-			if (m_updatedQuadrants.size() > 0)
-			{
-				pos = m_updatedQuadrants.begin()->first;
-				m_updatedQuadrants.erase(m_updatedQuadrants.begin());
-			}
-			return pos;
-		}
-
-		void erase(TheWorld_Utils::QuadrantPos& pos)
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
-			std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrant>>::erase(pos);
-			fetchUpdatedQuadrant(pos);
-			fetchUpdatingQuadrant(pos);
-		}
-		
-		void fetchUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
-			m_updatedQuadrants.erase(pos);
-		}
-		void fetchUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos)
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
-			m_updatingQuadrants.erase(pos);
-		}
+		TheWorld_Utils::QuadrantPos fetchUpdatedQuadrant(void);
+		void fetchUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void fetchUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void erase(TheWorld_Utils::QuadrantPos& pos);
 
 		bool updateNeeded(TheWorld_Utils::QuadrantPos& pos);
 		bool scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos);
 		bool checkUpdatingQuadrants(void);
 
-		void lock(void)
-		{
-			m_internalMutex.lock();
-		}
-		void unlock(void)
-		{
-#pragma warning(suppress: 26110)
-			m_internalMutex.unlock();
-		}
+		void lock(void);
+		void unlock(void);
 
 		//godot::Vector2i getMapImageSize(void) const
 		//{
@@ -189,7 +152,7 @@ namespace godot
 		}
 
 	private:
-		std::recursive_mutex m_internalMutex;
+		//std::recursive_mutex m_internalMutex;
 		GDN_TheWorld_Viewer* m_viewer;
 		//godot::Vector2i m_mapImageSize;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_updatedQuadrants;
@@ -493,6 +456,12 @@ namespace godot
 		//int m_zoomRequired = 0;
 		//float m_scaleFactor = MAP_INITIAL_SCALE_FACTOR;
 		int32_t m_numImagesForTexture = MAP_NUM_IMAGES_FOR_TEXTURE;
+
+		godot::Label* m_northLabel = nullptr;
+		godot::Label* m_southLabel = nullptr;
+		godot::Label* m_eastLabel = nullptr;
+		godot::Label* m_westLabel = nullptr;
+
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container

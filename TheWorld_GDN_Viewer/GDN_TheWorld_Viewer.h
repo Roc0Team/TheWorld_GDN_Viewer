@@ -283,10 +283,19 @@ namespace godot
 		{
 			return m_mapViewport;
 		}
+		void setMap(GDN_TheWorld_Map* map)
+		{
+			m_map = map;
+		}
+		GDN_TheWorld_Map* getMap(void)
+		{
+			return m_map;
+		}
 
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
+		godot::GDN_TheWorld_Map* m_map = nullptr;
 	};
 
 	class GDN_TheWorld_MapViewport : public godot::SubViewport
@@ -394,11 +403,12 @@ namespace godot
 		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
 
 	public:
-		void init(GDN_TheWorld_MapViewer* mapViewer);
+		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
 		GDN_TheWorld_MapViewer* getMapViewer(void) const
 		{
 			return m_mapViewer;
 		}
+		void containerResize(godot::Vector2 newSize);
 
 		//void setScale(float scaleFactor);
 		float getQuadrantWorldSize(void);

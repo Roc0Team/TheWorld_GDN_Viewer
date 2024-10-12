@@ -354,7 +354,7 @@ namespace godot
 		{
 		public:
 			MapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
-			~MapTextureRect(void) {}
+			~MapTextureRect(void);
 
 			bool rectFull(void);
 			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
@@ -418,6 +418,7 @@ namespace godot
 		godot::Vector2i getTextureRectSize(void) const;
 		//godot::Vector2i getTextureRectIdxFromWorldPos(float x, float z, int level, int numVerticesPerSize, float gridStepInWU) const;
 		void getScreenTextureRects(std::vector<TheWorld_Utils::MapTextureRectPos>& rectsPos);
+		void eraseNotInScreenTextureRects(void);
 		godot::Rect2 getScreenRectInGlobalCoord(void) const;
 		godot::Size2 getScreenSizeInGlobalCoord(void) const;
 		godot::Vector2 getMousePosInGlobalCoord(void) const;
@@ -981,6 +982,7 @@ namespace godot
 		}
 		bool worldMode(void) const;
 		void toggleMapView(void);
+		void adjustWorldMap(godot::Vector2 desideredCameraGlobalPos);
 		void toggleTrackMouse(void);
 		void toggleEditMode(void);
 		void setEditMode(bool editMode);
@@ -2115,6 +2117,7 @@ namespace godot
 		godot::Vector3 m_lastProcessedCameraForMapQuadrants;
 		bool m_forceProcessNewMapQuadrants = false;
 		int64_t m_timeElapsedFromLastUpdatingQuadrantsCheck = 0;
+		int32_t m_savedNumMapRectsInScreen = 0;
 
 		float m_lastCameraAltitudeSetToShader = -1.0f;
 		godot::Vector3 m_lastCameraPosSetToShader;

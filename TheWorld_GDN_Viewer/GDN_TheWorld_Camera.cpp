@@ -172,6 +172,28 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 	else
 		m_altPressed = false;
 
+#define MAPCAMERA_MOVE_INCREMENT	5.0
+	if (input->is_action_pressed("ui_left"))
+	{
+		m_mouseRelativePosToShift += godot::Vector2(MAPCAMERA_MOVE_INCREMENT, 0);
+		m_updateCameraRequired = true;
+	}
+	if (input->is_action_pressed("ui_right"))
+	{
+		m_mouseRelativePosToShift += godot::Vector2(-MAPCAMERA_MOVE_INCREMENT, 0);
+		m_updateCameraRequired = true;
+	}
+	if (input->is_action_pressed("ui_forward"))
+	{
+		m_mouseRelativePosToShift += godot::Vector2(0, MAPCAMERA_MOVE_INCREMENT);
+		m_updateCameraRequired = true;
+	}
+	if (input->is_action_pressed("ui_backward"))
+	{
+		m_mouseRelativePosToShift += godot::Vector2(0, -MAPCAMERA_MOVE_INCREMENT);
+		m_updateCameraRequired = true;
+	}
+
 	if (m_updateCameraRequired)
 	{
 		m_updateCameraRequired = false;
@@ -179,10 +201,10 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 		if (m_zoomRequired != 0)
 		{
 			//map->zoom(m_zoomRequired);
-			constexpr float ZOOM_INCREMENET = 0.05f;
-			float zoomFactor = m_zoomFactor;
+			constexpr float ZOOM_INCREMENET = 0.01f;
+			float zoomFactor = getZoomFactor();
 			zoomFactor += ZOOM_INCREMENET * m_zoomRequired;
-			if (zoomFactor > 0)
+			if (zoomFactor > 0 and zoomFactor <= 1)
 			{
 				setZoom(zoomFactor);
 			}
@@ -195,7 +217,8 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 			float sensitivity = m_sensitivity;
 			if (m_ctrlPressed)
 				sensitivity *= 2;
-			m_mouseRelativePosToShift *= sensitivity;
+			float zoomModifier = (1 - getZoomFactor()) * 2;
+			m_mouseRelativePosToShift *= sensitivity * zoomModifier;
 
 			//translate(godot::Vector2(-m_mouseRelativePosToShift.x, -m_mouseRelativePosToShift.y));
 			translate(-m_mouseRelativePosToShift);
@@ -212,6 +235,13 @@ void GDN_TheWorld_MapCamera::setZoom(float zoomFactor)
 		godot::Vector2 zoom(zoomFactor, zoomFactor);
 		set_zoom(zoom);
 		m_zoomFactor = zoomFactor;
+
+		if (m_mapViewer != nullptr)
+		{
+			GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+			if (viewer != nullptr)
+				viewer->forceProcessNewMapQuadrants(true);
+		}
 	}
 }
 

@@ -73,6 +73,10 @@ namespace godot {
 		{
 			return m_zoomFactor;
 		}
+		void resetInputEvents(void)
+		{
+			m_mouseShiftCameraOn = false;
+		}
 
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;

@@ -4560,14 +4560,22 @@ void GDN_TheWorld_Viewer::_ready(void)
 	m_ready = true;
 }
 
+bool GDN_TheWorld_Viewer::worldStremingTerminated(void)
+{
+	if (Globals()->status() == TheWorldStatus::worldDeployed and finishedResizingGrid() and m_recalcQuadrantsInViewNeeded == false and !worldStreamingInProgress() and allCollidersReady())
+		return true;
+	else
+		return false;
+}
+
 bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)
 {
 	bool ret = false;
 	GDN_TheWorld_Globals* globals = Globals();
-	godot::Camera3D* camera = getWorldCamera();
+	godot::Camera3D* camera = getWorldCamera2(true);
 	godot::Vector3 cameraGlobalPos = camera->get_global_position();
 	godot::Vector3 cameraWorldPos = globalPosToWorldPos(cameraGlobalPos);
-	TheWorld_Utils::QuadrantPos quadrantPos(cameraWorldPos.x, cameraWorldPos.y, m_worldViewerLevel, (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
+	TheWorld_Utils::QuadrantPos quadrantPos(cameraWorldPos.x, cameraWorldPos.z, m_worldViewerLevel, (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 	if (m_worldQuadrantsMap.contains(quadrantPos))
 	{
@@ -4908,9 +4916,10 @@ void GDN_TheWorld_Viewer::adjustWorldMap(godot::Vector2 desideredCameraGlobalPos
 		if (mapCamera != nullptr)
 		{
 			setWorldCameraWorldPos(globalPosToWorldPos(desideredCameraGlobalPos), 0, true, m_worldCameraWorldTransformForToggleToWorldMode);
-			mapMode(false);
-			mapCamera->set_enabled(false);
-			mapViewer->set_visible(false);
+			delayedWorldMode(true);
+			//mapMode(false);
+			//mapCamera->set_enabled(false);
+			//mapViewer->set_visible(false);
 		}
 	}
 }
@@ -4942,8 +4951,8 @@ void GDN_TheWorld_Viewer::toggleMapView(void)
 				}
 
 				mapMode(false);
-				mapCamera->set_enabled(false);
-				mapViewer->set_visible(false);
+				//mapCamera->set_enabled(false);
+				//mapViewer->set_visible(false);
 			}
 		}
 		else
@@ -4981,9 +4990,11 @@ void GDN_TheWorld_Viewer::toggleMapView(void)
 								m_altitudeForToggleToWorldModeIsAbsolute = true;
 							}
 							mapMode(true);
-							mapCamera->set_enabled(true);
-							mapViewer->set_visible(true);
-							//mapViewer->set_visible(!mapViewer->is_visible());
+							//mapCamera->set_enabled(true);
+							//GDN_TheWorld_MapCamera* map = Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
+							//if (map != nullptr)
+							//	map->resetInputEvents();
+							//mapViewer->set_visible(true);
 						}
 					}
 				}
@@ -5008,9 +5019,54 @@ bool GDN_TheWorld_Viewer::mapMode(void) const
 	return m_mapMode;
 }
 
+bool GDN_TheWorld_Viewer::delayedWorldMode(void) const
+{
+	return m_delayedWorldMode;
+}
+
+void GDN_TheWorld_Viewer::delayedWorldMode(bool b)
+{
+	if (b)
+	{
+		if (mapMode())
+		{
+			m_delayedWorldMode = b;
+			finishedResizingGrid(false);
+		}
+	}
+	else
+		m_delayedWorldMode = b;
+}
+
 void GDN_TheWorld_Viewer::mapMode(bool b)
 {
-	m_mapMode = b;
+	//if (m_mapMode != b)
+	{
+		m_mapMode = b;
+		if (b)
+		{
+			Camera2D* mapCamera = MapCamera();
+			if (mapCamera != nullptr)
+			{
+				mapCamera->set_enabled(true);
+				GDN_TheWorld_MapCamera* map = Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
+				if (map != nullptr)
+					map->resetInputEvents();
+			}
+			GDN_TheWorld_MapViewer* mapViewer = MapViewer();
+			if (mapViewer != nullptr)
+				mapViewer->set_visible(true);
+		}
+		else
+		{
+			GDN_TheWorld_MapViewer* mapViewer = MapViewer();
+			if (mapViewer != nullptr)
+				mapViewer->set_visible(false);
+			Camera2D* mapCamera = MapCamera();
+			if (mapCamera != nullptr)
+				mapCamera->set_enabled(false);
+		}
+	}
 }
 
 bool GDN_TheWorld_Viewer::worldMode(void) const
@@ -6145,6 +6201,25 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 	
+	if (delayedWorldMode())
+	{
+		if (worldMode())
+			delayedWorldMode(false);
+		else
+		{
+			if (worldStremingTerminated())
+			{
+				mapMode(false);
+				//GDN_TheWorld_MapViewer* mapViewer = MapViewer();
+				//if (mapViewer != nullptr)
+				//	mapViewer->set_visible(false);
+				//Camera2D* mapCamera = MapCamera();
+				//if (mapCamera != nullptr)
+				//	mapCamera->set_enabled(false);
+			}
+		}
+	}
+	
 	// erase out-of-view quadrants
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.02 ") + __FUNCTION__, "Erase out-of-view quadrants");
@@ -6316,7 +6391,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 
-	if (worldMode())
+	//if (worldMode())
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.11 ") + __FUNCTION__, "Update Grid Dimension");
 		if (processCameraPosForChunks || !finishedResizingGrid())
@@ -8962,7 +9037,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosInMap, 
 
 	GDN_TheWorld_Globals* globals = Globals();
 
-	if (getWorldCamera() == nullptr)
+	if (getWorldCamera2(true) == nullptr)
 		return;
 	
 	if (ReloadSelectedQuadrantShaderRequired())

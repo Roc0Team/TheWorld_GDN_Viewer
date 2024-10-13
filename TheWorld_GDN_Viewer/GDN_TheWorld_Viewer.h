@@ -980,6 +980,8 @@ namespace godot
 		{
 			return worldMode();
 		}
+		bool delayedWorldMode(void) const;
+		void delayedWorldMode(bool b);
 		bool worldMode(void) const;
 		void toggleMapView(void);
 		void adjustWorldMap(godot::Vector2 desideredCameraGlobalPos);
@@ -1806,6 +1808,8 @@ namespace godot
 
 		bool isCameraQuadrantColliderSet(void);
 
+		bool worldStremingTerminated(void);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -2168,6 +2172,7 @@ namespace godot
 		//GDN_TheWorld_WorldViewport* m_worldViewport = nullptr;
 
 		bool m_mapMode = false;
+		bool m_delayedWorldMode = false;
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_MapViewportContainer* m_mapViewportContainer = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;

@@ -4560,18 +4560,38 @@ void GDN_TheWorld_Viewer::_ready(void)
 	m_ready = true;
 }
 
+bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)
+{
+	bool ret = false;
+	GDN_TheWorld_Globals* globals = Globals();
+	godot::Camera3D* camera = getWorldCamera();
+	godot::Vector3 cameraGlobalPos = camera->get_global_position();
+	godot::Vector3 cameraWorldPos = globalPosToWorldPos(cameraGlobalPos);
+	TheWorld_Utils::QuadrantPos quadrantPos(cameraWorldPos.x, cameraWorldPos.y, m_worldViewerLevel, (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+	if (m_worldQuadrantsMap.contains(quadrantPos))
+	{
+		QuadTree* quadTree = m_worldQuadrantsMap[quadrantPos].get();
+		if (quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::Terrain))
+		{
+			ret = true;
+		}
+	}
+	return ret;
+}
+
 bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform)
 {
 	bool ret = false;
 	GDN_TheWorld_Globals* globals = Globals();
 
-	if (Globals()->status() == TheWorldStatus::worldDeployed)
+	if (globals->status() == TheWorldStatus::worldDeployed)
 	{
 		godot::Vector3 globalPosGroundZero = worldPosToGlobalPos(godot::Vector3(worldPos.x, 0, worldPos.y));
 		float cameraAltitude = altitudeFromTerrain;
 
 		// get quadrant containing requested pos
-		TheWorld_Utils::QuadrantPos quadrantPos(worldPos.x, worldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), globals->gridStepInWU());
+		TheWorld_Utils::QuadrantPos quadrantPos(worldPos.x, worldPos.y, m_worldViewerLevel, (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 		if (m_worldQuadrantsMap.contains(quadrantPos))
 		{
@@ -4626,6 +4646,11 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 		{
 			activeWorldCamera->set_global_transform(worldCameraWorldTransform);
 			activeWorldCamera->set_global_position(godot::Vector3(globalPosGroundZero.x, cameraAltitude, globalPosGroundZero.z));
+			GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
+			if (cam != nullptr)
+			{
+				cam->adjustPositionOnTerrainRequired(true);
+			}
 		}
 	}
 

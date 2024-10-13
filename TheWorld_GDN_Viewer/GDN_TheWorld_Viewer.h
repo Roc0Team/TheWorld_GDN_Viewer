@@ -1799,6 +1799,13 @@ namespace godot
 			return ret;
 		}
 
+		bool worldStreamingInProgress(void) const
+		{
+			return m_streamingInProgress;
+		}
+
+		bool isCameraQuadrantColliderSet(void);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);

@@ -264,6 +264,17 @@ namespace godot {
 			return m_mouseMovementPaused;
 		}
 
+		void updateCameraRequired(bool b)
+		{
+			m_updateCameraRequired = b;
+		}
+
+		void adjustPositionOnTerrain(void);
+		void adjustPositionOnTerrainRequired(bool b)
+		{
+			m_adjustPositionOnTerrainRequired = b;
+		}
+
 	private:
 
 	private:
@@ -272,6 +283,7 @@ namespace godot {
 		godot::Transform3D m_lastCameraPosInWorld;
 		bool m_WorldCamera;
 		bool m_updateCameraRequired;
+		bool m_adjustPositionOnTerrainRequired = false;
 		bool m_isActive;
 		int64_t m_instanceId;
 		godot::Node3D* m_trackedPlayer = nullptr;
@@ -287,6 +299,7 @@ namespace godot {
 		godot::Vector3 m_savedCameraPosAfterSetFar = godot::Vector3(0.0f, 0.0f, 0.0f);
 		bool m_forceRecalcCameraFar = false;
 		godot::Vector3 m_savedCameraPosAfterCalcAltitude = godot::Vector3(0.0f, 0.0f, 0.0f);
+		godot::Vector3 m_lastComputedCameraVerticalOnTerrain;
 		float m_lastCameraAltitudeFromTerrain = INVALID_CAMERA_ALTITUDE;
 		bool m_forceRecalcCameraAltitude = false;
 		//godot::Vector3 m_lastComputedCameraVerticalOnTerrain = godot::Vector3(0.0f, 0.0f, 0.0f);

@@ -562,6 +562,8 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 	if (viewer == nullptr)
 		return;
 
+	adjustPositionOnTerrain();
+	
 	if (!viewer->worldMode())
 		return;
 	
@@ -761,7 +763,6 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 		//	}
 		//}
 	}
-
 
 	{
 		bool b = updateCamera(_delta);
@@ -1417,6 +1418,30 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 	return true;
 }
 
+void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
+{
+	if (m_adjustPositionOnTerrainRequired)
+	{
+		if (Globals()->Viewer()->isCameraQuadrantColliderSet())
+		{
+			updateAltitudeFromTerrain(true);
+
+			if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE)
+			{
+				float altitudeFromTerrain = MIN_ALTITUDE_ALLOWED_FOR_CAMERA;
+				altitudeFromTerrain = 50;
+				godot::Vector3 cameraPos = get_global_position();
+				set_global_position(godot::Vector3(cameraPos.x, m_lastComputedCameraVerticalOnTerrain.y + altitudeFromTerrain, cameraPos.z));
+				m_lastCameraAltitudeFromTerrain = altitudeFromTerrain;
+			}
+
+			m_adjustPositionOnTerrainRequired = false;
+		}
+		else
+			assert(m_adjustPositionOnTerrainRequired);
+	}
+}
+
 float GDN_TheWorld_Camera::cameraMaxAltitudeFromTerrainDetected(void) const
 {
 	return MAX_ALTITUDE_DETECTED;
@@ -1449,8 +1474,8 @@ void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 		rayArray = spaceState->intersect_ray(query);
 		if (rayArray.has("position"))
 		{
-			godot::Vector3 lastComputedCameraVerticalOnTerrain = rayArray["position"];
-			m_lastCameraAltitudeFromTerrain = (float)abs(cameraGlobalPosition.y - lastComputedCameraVerticalOnTerrain.y);
+			m_lastComputedCameraVerticalOnTerrain = rayArray["position"];
+			m_lastCameraAltitudeFromTerrain = (float)abs(cameraGlobalPosition.y - m_lastComputedCameraVerticalOnTerrain.y);
 		}
 		else
 		{
@@ -1461,11 +1486,14 @@ void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 			rayArray = spaceState->intersect_ray(query);
 			if (rayArray.has("position"))
 			{
-				godot::Vector3 lastComputedCameraVerticalOnTerrain = rayArray["position"];
-				m_lastCameraAltitudeFromTerrain = (float)(cameraGlobalPosition.y - lastComputedCameraVerticalOnTerrain.y);
+				m_lastComputedCameraVerticalOnTerrain = rayArray["position"];
+				m_lastCameraAltitudeFromTerrain = (float)(cameraGlobalPosition.y - m_lastComputedCameraVerticalOnTerrain.y);
 			}
 			else
+			{
+				m_lastComputedCameraVerticalOnTerrain = godot::Vector3();
 				m_lastCameraAltitudeFromTerrain = INVALID_CAMERA_ALTITUDE;
+			}
 		}
 
 		m_savedCameraPosAfterCalcAltitude = cameraGlobalPosition;

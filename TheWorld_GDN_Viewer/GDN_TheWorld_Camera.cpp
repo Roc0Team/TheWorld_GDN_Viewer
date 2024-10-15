@@ -1449,7 +1449,9 @@ float GDN_TheWorld_Camera::cameraMaxAltitudeFromTerrainDetected(void) const
 
 void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 {
-	if (Globals()->status() != TheWorldStatus::worldDeployed)
+	//if (Globals()->status() != TheWorldStatus::worldDeployed)
+	//	return;
+	if (!Globals()->Viewer()->isCameraQuadrantColliderSet())
 		return;
 	
 	//return;

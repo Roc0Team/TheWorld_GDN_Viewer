@@ -3477,7 +3477,7 @@ void GDN_TheWorld_Viewer::preDeinit(void)
 				undeployWorld();
 
 			status = Globals()->status();
-			if (status == TheWorldStatus::worldDeployInProgress)
+			if (status == TheWorldStatus::worldDeployInProgress || status == TheWorldStatus::minimalWorldDeployed)
 				Globals()->setStatus(TheWorldStatus::worldDeployed);
 
 			Sleep(5);
@@ -3828,7 +3828,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				m_mtxQuadrantsAndMainProcessing.lock();
 				
 				if ((m_worldQuadrantsMap.contains(quadrantPos) && !m_worldQuadrantsMap[quadrantPos]->statusToErase())
-					|| (m_extraQuadsMap.contains(quadrantPos) && !m_extraQuadsMap[quadrantPos]->statusToErase() && status == TheWorldStatus::worldDeployed))
+					|| (m_extraQuadsMap.contains(quadrantPos) && !m_extraQuadsMap[quadrantPos]->statusToErase() && (status == TheWorldStatus::worldDeployed or status == TheWorldStatus::minimalWorldDeployed)))
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1 ") + __FUNCTION__, "Elab. quadrant");
 					
@@ -4509,7 +4509,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						}
 						else
 						{
-							if (!m_extraQuadsMap.contains(pos) && Globals()->status() == TheWorldStatus::worldDeployed)
+							if (!m_extraQuadsMap.contains(pos) && (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
 							{
 								//if (pos.getIndexPosX() == 93 && pos.getIndexPosZ() == 99)
 								//	PLOG_DEBUG << "Quadrant added to m_extraQuadsMap";
@@ -4560,10 +4560,31 @@ void GDN_TheWorld_Viewer::_ready(void)
 	m_ready = true;
 }
 
-bool GDN_TheWorld_Viewer::worldStremingTerminated(void)
+bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 {
-	if (Globals()->status() == TheWorldStatus::worldDeployed and finishedResizingGrid() and m_recalcQuadrantsInViewNeeded == false and !worldStreamingInProgress() and allCollidersReady())
-		return true;
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+	GDN_TheWorld_Globals* globals = Globals();
+
+	if ((globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
+		and finishedResizingGrid()
+		and !worldStreamingInProgress()
+		and allCollidersReady()
+		and m_recalcQuadrantsInViewNeeded == false
+		and isCameraQuadrantColliderSet()
+		and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
+	{
+		godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
+		if (process_updateGridDimension(globals, activeWorldCamera))
+		{
+			if (m_recalcQuadrantsInViewNeeded == false)
+				return true;
+			else
+				return false;
+		}
+		else
+			return false;
+	}
 	else
 		return false;
 }
@@ -4593,7 +4614,7 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 	bool ret = false;
 	GDN_TheWorld_Globals* globals = Globals();
 
-	if (globals->status() == TheWorldStatus::worldDeployed)
+	if (globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
 	{
 		godot::Vector3 globalPosGroundZero = worldPosToGlobalPos(godot::Vector3(worldPos.x, 0, worldPos.y));
 		float cameraAltitude = altitudeFromTerrain;
@@ -5554,13 +5575,15 @@ int GDN_TheWorld_Viewer::getCameraProjectionMode(void)
 	return (int)projection;
 }
 
-void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
+bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("recalcQuadrantsInView 1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants");
 
+	bool newQuadAdded = false;
+	
 	TheWorld_Utils::QuadrantPos cameraQuadrantPos = m_computedCameraQuadrantPos;
 	if (!cameraQuadrantPos.isInitialized())
-		return;
+		return newQuadAdded;
 	
 	vector<TheWorld_Utils::QuadrantPos> quadrantPosNeeded;
 	quadrantPosNeeded.push_back(cameraQuadrantPos);
@@ -5745,6 +5768,7 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->quadrantPriority(quadrantPriority[idx]);
 					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->numQuadrantsFromCameraQuadrant(numQuadrantsFromCameraQuadrant[idx]);
 					addedQuandrantsForInititalization = true;
+					newQuadAdded = true;
 
 					if (!m_streamingTime.counterStarted())
 					{
@@ -5868,6 +5892,8 @@ void GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	m_numVisibleQuadrantOnPerimeterOnSouthSideApplied = m_numVisibleQuadrantOnPerimeterOnSouthSide;
 	m_numVisibleQuadrantOnPerimeterOnWestSideApplied = m_numVisibleQuadrantOnPerimeterOnWestSide;
 	m_numVisibleQuadrantOnPerimeterOnEastSideApplied = m_numVisibleQuadrantOnPerimeterOnEastSide;
+
+	return newQuadAdded;
 }
 
 void GDN_TheWorld_Viewer::startInitializingStreamOfQuadrants(void)
@@ -5896,7 +5922,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 //#define MAX_PROCESS_DURATION	200000
 #define MAX_PROCESS_DURATION	300000
 	m_maxProcessDuration = MAX_PROCESS_DURATION;
-	if (globals->status() == TheWorldStatus::worldDeployed)
+	if (globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
 		m_processCanBeInterrupted = true;
 	else
 		m_processCanBeInterrupted = false;
@@ -6091,7 +6117,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	m_numProcessExecution++;
 	m_sumProcessDuration += this->m_lastProcessDuration;
 
-	if ((m_lastProcessExecutionInterrupted || m_lastProcessDuration > m_maxProcessDuration) && globals->status() == TheWorldStatus::worldDeployed)
+	if ((m_lastProcessExecutionInterrupted || m_lastProcessDuration > m_maxProcessDuration) && (globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed))
 	{
 		std::map<enum class ProcessStep::ProcessStepIdx, ProcessStep>& steps = m_processSteps.steps();
 		std::string lastExecutedProcessStep = (steps.size() > 0 ? m_processSteps.lastAddedStepName() : "");
@@ -6201,15 +6227,19 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 	
+	if (globals->statusMinimalWorldDeployed() and worldStreamingTerminated())
+		globals->setStatus(TheWorldStatus::worldDeployed);
+	
 	if (delayedWorldMode())
 	{
 		if (worldMode())
 			delayedWorldMode(false);
 		else
 		{
-			if (worldStremingTerminated())
+			if (worldStreamingTerminated())
 			{
 				mapMode(false);
+				delayedWorldMode(false);
 				//GDN_TheWorld_MapViewer* mapViewer = MapViewer();
 				//if (mapViewer != nullptr)
 				//	mapViewer->set_visible(false);
@@ -6246,7 +6276,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 
 	bool processCameraPosForQuadrants = true;
 	bool processCameraPosForChunks = true;
-	if (globals->status() == TheWorldStatus::worldDeployed)
+	if (globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
 	{
 		processCameraPosForQuadrants = false;
 		processCameraPosForChunks = false;
@@ -6396,7 +6426,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.11 ") + __FUNCTION__, "Update Grid Dimension");
 		if (processCameraPosForChunks || !finishedResizingGrid())
 		{
-			process_updateGridDimension(globals, cameraWorldPos, activeWorldCamera);
+			process_updateGridDimension(globals, activeWorldCamera);
 			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateGridDimension))
 			{
 				m_lastProcessExecutionInterrupted = true;
@@ -6636,7 +6666,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	if (globals->getParamShowTerrainChanged())
 		globals->setParamShowTerrainChanged(false);
 
-	if (Globals()->status() == TheWorldStatus::worldDeployed)
+	if (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed)
 	{
 		for (auto& item : m_extraQuadsMap)
 		{
@@ -6657,10 +6687,16 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	}
 }
 
-void GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap, godot::Camera3D* activeWorldCamera)
+bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Camera3D* activeWorldCamera)
 {
+	bool processed = false;
+
+	if (globals == nullptr)
+		return processed;
+
 	int64_t elapsedFromLastRecalc = TIME()->get_ticks_msec() - m_timeElapsedFromLastRecalc;
-	if (Globals()->status() == TheWorldStatus::worldDeployed
+	if ((Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed)
+		&& !m_recalcQuadrantsInViewNeeded
 		&& allCollidersReady()
 		&& !m_streamingInProgress
 		//&& elapsedFromLastRecalc > TIME_INTERVAL_BETWEEN_RECALC_QUADRANT
@@ -6668,6 +6704,8 @@ void GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 		&& Globals()->getStreamWorld())
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.11.01 ") + __FUNCTION__, "Update Grid Dimension");
+
+		processed = true;
 
 		finishedResizingGrid(true);
 
@@ -7222,6 +7260,8 @@ void GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 
 		m_timeElapsedFromLastRecalc = TIME()->get_ticks_msec();
 	}
+
+	return processed;
 }
 
 void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap)
@@ -7285,7 +7325,7 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 		m_refreshQuadTreeMap = false;
 		m_computedCameraQuadrantPos = cameraQuadrantPos;
 
-		if (Globals()->status() != TheWorldStatus::worldDeployed || Globals()->getStreamWorld())
+		if ((Globals()->status() != TheWorldStatus::worldDeployed and Globals()->status() != TheWorldStatus::minimalWorldDeployed) || Globals()->getStreamWorld())
 			m_recalcQuadrantsInViewNeeded = true;
 	}
 
@@ -7324,7 +7364,7 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 			// m_minVisibleQuadrantOnPerimeter == 1
 			if (Globals()->status() == TheWorldStatus::worldDeployInProgress && ((m_minVisibleQuadrantOnPerimeter == 0 && m_worldQuadrantsMap.size() == 1) || m_worldQuadrantsMap.size() > 1))
 			{
-				Globals()->setStatus(TheWorldStatus::worldDeployed);
+				Globals()->setStatus(TheWorldStatus::minimalWorldDeployed);
 				m_refreshRequired = true;
 			}
 
@@ -7401,6 +7441,11 @@ bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQu
 	}
 
 	return exitForNow;
+}
+
+bool GDN_TheWorld_Viewer::allCollidersReady(void) const
+{
+	return m_allCollidersReady;
 }
 
 void GDN_TheWorld_Viewer::allCollidersReady(bool b)
@@ -7586,7 +7631,7 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 	if (anchorForOriginShift == nullptr)
 		return;
 
-	if (globals->status() != TheWorldStatus::worldDeployed)
+	if (globals->status() != TheWorldStatus::worldDeployed and globals->status() != TheWorldStatus::minimalWorldDeployed)
 		return;
 	
 	if (m_streamingInProgress)
@@ -7708,12 +7753,14 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 		std::string hudStreaming;
 		int numInitializedQuadrant = getNumInitializedQuadrant();
 		int numQuadrant = getNumQuadrant();
+		int maxNumQuadrant = (int)pow((getMaxDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1, 2);
 		if (numInitializedQuadrant == numQuadrant)
 			hudStreaming = "";
 		else
 		{
 			int progress = numInitializedQuadrant * 100 / numQuadrant;
-			hudStreaming = "Streaming World " + std::to_string(progress) + "%";
+			int totalProgress = numInitializedQuadrant * 100 / maxNumQuadrant;
+			hudStreaming = "Streaming World " + std::to_string(progress) + "% (" + std::to_string(totalProgress) + "%)";
 		}
 		m_hudStreamingInfoLabel->set_text(hudStreaming.c_str());
 	}
@@ -7783,7 +7830,7 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 
 	GDN_TheWorld_Globals* globals = Globals();
 	
-	if (globals->status() != TheWorldStatus::worldDeployed)
+	if (globals->status() != TheWorldStatus::worldDeployed and globals->status() != TheWorldStatus::minimalWorldDeployed)
 		return;
 
 	GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
@@ -10802,7 +10849,7 @@ void GDN_TheWorld_Viewer::refreshQuadrantStatistics()
 				numQuadrantNeedResetMaterialParams++;
 		}
 		
-		if (itQuadTree.second->statusInitialized())
+		if (itQuadTree.second->statusInitialized() and !itQuadTree.second->statusToErase())
 		{
 			numSplits += itQuadTree.second->getNumSplits();
 			numJoins += itQuadTree.second->getNumJoins();
@@ -10938,13 +10985,28 @@ int GDN_TheWorld_Viewer::getNumJoins(void) const
 	return m_numJoins;
 }
 
-int GDN_TheWorld_Viewer::getNumQuadrant(void) const
+int GDN_TheWorld_Viewer::getNumQuadrant2(bool recalcNow)
 {
+	if (recalcNow)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+		m_numQuadrant = (int)m_worldQuadrantsMap.size();
+	}
+	
 	return m_numQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumInitializedQuadrant(void) const
+int GDN_TheWorld_Viewer::getNumInitializedQuadrant2(bool recalcNow)
 {
+	if (recalcNow)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+		m_numInitializedQuadrant = 0;
+		for (auto& itQuadrantMapItem : m_worldQuadrantsMap)
+			if (itQuadrantMapItem.second->statusInitialized() and !itQuadrantMapItem.second->statusToErase())
+				m_numInitializedQuadrant++;
+	}
+
 	return m_numInitializedQuadrant;
 }
 
@@ -11309,7 +11371,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 				
 				size_t numNeededQuads = static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numVisibleQuadrantOnPerimeterOnSouthSide + 2 * getCacheQuadOnPerimeter())
 					* static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnWestSide + m_numVisibleQuadrantOnPerimeterOnEastSide + 2 * getCacheQuadOnPerimeter());
-				if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployed && m_worldQuadrantsMap.size() < numNeededQuads)
+				if ((int)Globals()->status() >= (int)TheWorldStatus::minimalWorldDeployed && m_worldQuadrantsMap.size() < numNeededQuads)
 					m_recalcQuadrantsInViewNeeded = true;
 
 				if (m_numVisibleQuadrantOnPerimeterOnNorthSideApplied != m_numVisibleQuadrantOnPerimeterOnNorthSide
@@ -11319,9 +11381,12 @@ void GDN_TheWorld_Viewer::streamer(void)
 					)
 					m_recalcQuadrantsInViewNeeded = true;
 				
-				if (m_recalcQuadrantsInViewNeeded && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
+				if (m_recalcQuadrantsInViewNeeded && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and !m_streamingInProgress)
 				{
-					recalcQuadrantsInView();
+					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+					bool newQuadAdded = recalcQuadrantsInView();
+					if (not newQuadAdded)
+						finishedResizingGrid(true);
 					m_recalcQuadrantsInViewNeeded = false;
 				}
 				
@@ -11330,7 +11395,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 				{
 					std::string quadrants;
 					std::string mapTextureRects;
-					if (!m_quadrantSyncRunning && Globals()->status() == TheWorldStatus::worldDeployed)
+					if (!m_quadrantSyncRunning && (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
 					{
 						std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 						if (lock.owns_lock())

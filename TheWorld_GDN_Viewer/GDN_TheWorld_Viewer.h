@@ -1041,7 +1041,7 @@ namespace godot
 		{
 			return m_initialWorldViewerPosSet;
 		}
-		void recalcQuadrantsInView(void);
+		bool recalcQuadrantsInView(void);
 		Node3D* getWorldNode(void) const;
 		MeshCache* getMeshCache(void)
 		{
@@ -1078,8 +1078,16 @@ namespace godot
 		int getUpdateMaterialParamsDuration(void) const;
 		int getMouseTrackHitDuration(void) const;
 		int getProcessNotOwnsLock(void) const;
-		int getNumQuadrant(void) const;
-		int getNumInitializedQuadrant(void) const;
+		int getNumQuadrant(void)
+		{
+			return getNumQuadrant2(false);
+		}
+		int getNumQuadrant2(bool recalcNow);
+		int getNumInitializedQuadrant(void)
+		{
+			return getNumInitializedQuadrant2(false);
+		}
+		int getNumInitializedQuadrant2(bool recalcNow);
 		int getNumToEraseQuadrant(void) const;
 		int getNumVisibleQuadrant(void) const;
 		int getNumInitializedVisibleQuadrant(void) const;
@@ -1566,10 +1574,7 @@ namespace godot
 		void mouseHitTerrainChunk(Chunk* c);
 		Chunk* mouseHitTerrainChunk(void);
 
-		bool allCollidersReady(void) const
-		{
-			return m_allCollidersReady;
-		}
+		bool allCollidersReady(void) const;
 		void allCollidersReady(bool b);
 		bool worldQuadrantsMapValid(void) const
 		{
@@ -1582,7 +1587,10 @@ namespace godot
 		}
 		void finishedResizingGrid(bool b)
 		{
-			m_finishedResizingGrid = b;
+			if (b)
+				m_finishedResizingGrid = b;
+			else
+				m_finishedResizingGrid = b;
 		}
 
 		void terrainHeightsChangedEvent(void);
@@ -1808,7 +1816,7 @@ namespace godot
 
 		bool isCameraQuadrantColliderSet(void);
 
-		bool worldStremingTerminated(void);
+		bool worldStreamingTerminated(void);
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -1825,7 +1833,7 @@ namespace godot
 		void streamer(void);
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
-		void process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap, godot::Camera3D* activeWorldCamera);
+		bool process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Camera3D* activeWorldCamera);
 		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap);
 		void process_initNewQuads(bool processCameraPosForQuadrants);
 		void process_updateCameraPosInShader(godot::Camera3D* activeWorldCamera);

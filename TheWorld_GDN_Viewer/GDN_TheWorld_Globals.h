@@ -93,7 +93,8 @@ namespace godot
 		connectedToServer = 2,
 		sessionInitialized = 3,
 		worldDeployInProgress = 4,
-		worldDeployed = 5,
+		minimalWorldDeployed = 5,
+		worldDeployed = 6,
 		worldUnDeployInProgress = 100
 	};
 
@@ -226,6 +227,42 @@ namespace godot
 		{
 			return m_status;
 		}
+		bool statusError(void) const
+		{
+			return status() == TheWorldStatus::error;
+		}
+		bool statusUninitialized(void) const
+		{
+			return status() == TheWorldStatus::uninitialized;
+		}
+		bool statusInitialized(void) const
+		{
+			return status() == TheWorldStatus::initialized;
+		}
+		bool statusConnectedToServer(void) const
+		{
+			return status() == TheWorldStatus::connectedToServer;
+		}
+		bool statusSessionInitialized(void) const
+		{
+			return status() == TheWorldStatus::sessionInitialized;
+		}
+		bool statusWorldDeployInProgress(void) const
+		{
+			return status() == TheWorldStatus::worldDeployInProgress;
+		}
+		bool statusMinimalWorldDeployed(void) const
+		{
+			return status() == TheWorldStatus::minimalWorldDeployed;
+		}
+		bool statusWorldDeployed(void) const
+		{
+			return status() == TheWorldStatus::worldDeployed;
+		}
+		bool statusWorldUnDeployInProgress(void) const
+		{
+			return status() == TheWorldStatus::worldUnDeployInProgress;
+		}
 		void setStatus(enum class TheWorldStatus status);
 		int get_status(void) const
 		{
@@ -269,6 +306,11 @@ namespace godot
 				case TheWorldStatus::worldDeployInProgress:
 				{
 					s = "worldDeployInProgress";
+				}
+				break;
+				case TheWorldStatus::minimalWorldDeployed:
+				{
+					s = "minimalWorldDeployed";
 				}
 				break;
 				case TheWorldStatus::worldDeployed:

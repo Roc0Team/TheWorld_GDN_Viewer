@@ -1958,7 +1958,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		m_innerData->m_selTexturePanel->m_changeTextureRequired = false;
 	}
 	
-	if (is_visible() && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) && m_innerData->m_quadTreeHit != nullptr)
+	if (is_visible() && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::minimalWorldDeployed || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) && m_innerData->m_quadTreeHit != nullptr)
 	{
 		int optimizationLevel = (int)m_innerData->m_quadTreeHit->getQuadrant()->optimizationLevel();
 		if (optimizationLevel != m_innerData->m_lastOptimizationLevelDisplayed)
@@ -1976,7 +1976,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		}
 	}
 	
-	if (m_infoLabelTextChanged && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) && m_innerData->m_quadTreeHit != nullptr)
+	if (m_infoLabelTextChanged && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::minimalWorldDeployed || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) && m_innerData->m_quadTreeHit != nullptr)
 	{
 		std::string quadHitOptimizationLevelInfoStr, quadHitColliderInfoStr, quadHitCanContainSeaStr;
 		enum class TheWorld_Utils::TerrainEdit::TerrainType quadHitTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;

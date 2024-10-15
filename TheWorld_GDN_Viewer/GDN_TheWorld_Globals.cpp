@@ -486,6 +486,11 @@ namespace godot
 				if (m_viewer != nullptr)
 					m_viewer->hudMessage("Deploying World ...", 0);
 			}
+			else if (m_status == TheWorldStatus::minimalWorldDeployed)
+			{
+				if (m_viewer != nullptr)
+					m_viewer->hudMessage("Finalizing deploy ...", 0);
+			}
 			else if (m_status == TheWorldStatus::error)
 			{
 				if (m_viewer != nullptr)

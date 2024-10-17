@@ -3086,18 +3086,6 @@ void GDN_TheWorld_Viewer::createHud(void)
 		{
 			add_child(hudControls);
 		}
-
-		//{
-		//	godot::Node* owner = hudControls->get_owner();
-		//	if (owner != nullptr)
-		//	{
-		//		int64_t ownerId = owner->get_instance_id();
-		//		if (ownerId != sceneRootId)
-		//			hudControls->set_owner(sceneRoot);
-		//	}
-		//	else
-		//		hudControls->set_owner(sceneRoot);
-		//}
 	}
 
 	godot::Node* controlsParent = HudControls();
@@ -5110,18 +5098,52 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 				if (map != nullptr)
 					map->resetInputEvents();
 			}
+			
 			GDN_TheWorld_MapViewer* mapViewer = MapViewer();
 			if (mapViewer != nullptr)
+			{
+				GDN_TheWorld_HudControls* hudControls = HudControls();
+				if (hudControls != nullptr)
+				{
+					Node* parent = hudControls->get_parent();
+					if (parent != nullptr)
+					{
+						parent->remove_child(hudControls);
+						mapViewer->add_child(hudControls);
+					}
+					else
+					{
+						mapViewer->add_child(hudControls);
+					}
+				}
+
 				mapViewer->set_visible(true);
+			}
 		}
 		else
 		{
 			GDN_TheWorld_MapViewer* mapViewer = MapViewer();
 			if (mapViewer != nullptr)
 				mapViewer->set_visible(false);
+			
 			Camera2D* mapCamera = MapCamera();
 			if (mapCamera != nullptr)
 				mapCamera->set_enabled(false);
+
+			GDN_TheWorld_HudControls* hudControls = HudControls();
+			if (hudControls != nullptr)
+			{
+				Node* parent = hudControls->get_parent();
+				if (parent != nullptr)
+				{
+					parent->remove_child(hudControls);
+					add_child(hudControls);
+				}
+				else
+				{
+					add_child(hudControls);
+				}
+			}
 		}
 	}
 }

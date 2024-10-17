@@ -267,6 +267,8 @@ namespace godot
 		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
 
 	public:
+		void sizeChanged(godot::Vector2 newSize);
+
 		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
 		{
 			m_mapViewer = mapViewer;
@@ -291,11 +293,21 @@ namespace godot
 		{
 			return m_map;
 		}
+		bool newSizeNotificationRequired(void) const
+		{
+			return m_newSizeNotificationRequired;
+		}
+		void newSizeNotificationRequired(bool b)
+		{
+			m_newSizeNotificationRequired = b;
+		}
 
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
 		godot::GDN_TheWorld_Map* m_map = nullptr;
+		godot::Vector2 m_oldSize;
+		bool m_newSizeNotificationRequired = false;
 	};
 
 	class GDN_TheWorld_MapViewport : public godot::SubViewport
@@ -488,6 +500,9 @@ namespace godot
 		GDN_TheWorld_HudControls() {}
 		~GDN_TheWorld_HudControls() {}
 
+		void init(GDN_TheWorld_Viewer* viewer);
+		void setPos(godot::Size2& windowSize);
+
 		//
 		// Godot Standard Functions
 		//
@@ -495,6 +510,9 @@ namespace godot
 		virtual void _process(double _delta) override {};
 		virtual void _input(const Ref<InputEvent>& event) override;
 		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+	private:
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
 	};
 
 	class GDN_TheWorld_MapModder : public godot::Node

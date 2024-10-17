@@ -518,7 +518,7 @@ void GDN_TheWorld_Map::containerResize(godot::Vector2 newSize)
 	}
 	if (m_eastLabel != nullptr)
 	{
-		godot::Rect2 rect = m_southLabel->get_rect();
+		godot::Rect2 rect = m_eastLabel->get_rect();
 		godot::Size2 size = rect.size;
 		m_eastLabel->set_anchor(godot::Side::SIDE_LEFT, 1.0);
 		m_eastLabel->set_offset(SIDE_LEFT, -size.x);
@@ -1039,6 +1039,13 @@ GDN_TheWorld_MapViewportContainer::~GDN_TheWorld_MapViewportContainer(void)
 
 void GDN_TheWorld_MapViewportContainer::_notification(int p_what)
 {
+	//if (p_what != NOTIFICATION_PROCESS
+	//	and p_what != NOTIFICATION_WM_MOUSE_ENTER and p_what != NOTIFICATION_WM_MOUSE_EXIT
+	//	and p_what != 41 and p_what != 42 and p_what != 61 and p_what != 62 and p_what != 30 and p_what != 31 and p_what != 50 and p_what != 51 and p_what != 1004 and p_what != 1005 and p_what != 2016 and p_what != 2017)
+	//{
+	//	godot::Vector2 newSize = get_size();
+	//}
+	
 	switch (p_what)
 	{
 	case NOTIFICATION_ENTER_TREE:
@@ -1056,20 +1063,29 @@ void GDN_TheWorld_MapViewportContainer::_notification(int p_what)
 	case NOTIFICATION_RESIZED:
 	{
 		godot::Vector2 newSize = get_size();
-
-		GDN_TheWorld_MapViewer* mapViewer = getMapViewer();
-		if (mapViewer != nullptr)
-		{
-			GDN_TheWorld_MapViewport* mapViewport = getMapViewport();
-			if (mapViewport != nullptr)
-				mapViewport->set_size(newSize);
-			//GDN_TheWorld_Map* map = mapViewer->getMap();
-			GDN_TheWorld_Map* map = getMap();
-			if (map != nullptr)
-				map->containerResize(newSize);
-		}
+		sizeChanged(newSize);
 	}
 	break;
+	}
+}
+
+void GDN_TheWorld_MapViewportContainer::sizeChanged(godot::Vector2 newSize)
+{
+	//if (m_oldSize == newSize)
+	//	return;
+
+	m_oldSize = newSize;
+	
+	GDN_TheWorld_MapViewer* mapViewer = getMapViewer();
+	if (mapViewer != nullptr)
+	{
+		GDN_TheWorld_MapViewport* mapViewport = getMapViewport();
+		if (mapViewport != nullptr)
+			mapViewport->set_size(newSize);
+		//GDN_TheWorld_Map* map = mapViewer->getMap();
+		GDN_TheWorld_Map* map = getMap();
+		if (map != nullptr)
+			map->containerResize(newSize);
 	}
 }
 
@@ -1101,6 +1117,12 @@ void GDN_TheWorld_MapViewportContainer::_ready(void)
 
 void GDN_TheWorld_MapViewportContainer::_process(double _delta)
 {
+	//if (newSizeNotificationRequired())
+	//{
+	//	godot::Vector2 newSize = get_size();
+	//	sizeChanged(newSize);
+	//	newSizeNotificationRequired(false);
+	//}
 }
 
 void GDN_TheWorld_MapViewer::_bind_methods(void)
@@ -1170,6 +1192,16 @@ void GDN_TheWorld_HudControls::_unhandled_input(const Ref<InputEvent>& event)
 	//{
 	//	int a = 0;
 	//}
+}
+
+void GDN_TheWorld_HudControls::init(GDN_TheWorld_Viewer* viewer)
+{
+	m_viewer = viewer;
+}
+
+void GDN_TheWorld_HudControls::setPos(godot::Size2& windowSize)
+{
+	set_size(windowSize);
 }
 
 int32_t GDN_TheWorld_MapModder::s_numWorking = 0;
@@ -3037,7 +3069,10 @@ void GDN_TheWorld_Viewer::setPosMapViewer(godot::Size2& windowSize)
 		mapViewportContainer->set_offset(SIDE_LEFT, 0);
 		mapViewportContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
 		mapViewportContainer->set_offset(SIDE_TOP, 0);
+		//mapViewportContainer->set_position(godot::Vector2(0, 0));
 		mapViewportContainer->set_size(windowSize);
+		//mapViewportContainer->newSizeNotificationRequired(true);
+		//mapViewportContainer->sizeChanged(windowSize);
 	}
 
 	//GDN_TheWorld_Map* map = Map();
@@ -3086,6 +3121,7 @@ void GDN_TheWorld_Viewer::createHud(void)
 		{
 			add_child(hudControls);
 		}
+		hudControls->init(this);
 	}
 
 	godot::Node* controlsParent = HudControls();
@@ -3172,11 +3208,7 @@ void GDN_TheWorld_Viewer::setPosHud(godot::Size2& windowSize)
 {
 	GDN_TheWorld_HudControls* hudControls = HudControls();
 	if (hudControls != nullptr)
-	{
-		//godot::Vector2i windowSize = get_tree()->get_root()->get_size();
-		//godot::Size2 windowSize  = getViewportSize();
-		hudControls->set_size(windowSize);
-	}
+		hudControls->setPos(windowSize);
 	
 	// Message Box
 	if (m_hudMessageContainer != nullptr)
@@ -5102,20 +5134,20 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 			GDN_TheWorld_MapViewer* mapViewer = MapViewer();
 			if (mapViewer != nullptr)
 			{
-				GDN_TheWorld_HudControls* hudControls = HudControls();
-				if (hudControls != nullptr)
-				{
-					Node* parent = hudControls->get_parent();
-					if (parent != nullptr)
-					{
-						parent->remove_child(hudControls);
-						mapViewer->add_child(hudControls);
-					}
-					else
-					{
-						mapViewer->add_child(hudControls);
-					}
-				}
+				//GDN_TheWorld_HudControls* hudControls = HudControls();
+				//if (hudControls != nullptr)
+				//{
+				//	Node* parent = hudControls->get_parent();
+				//	if (parent != nullptr)
+				//	{
+				//		parent->remove_child(hudControls);
+				//		mapViewer->add_child(hudControls);
+				//	}
+				//	else
+				//	{
+				//		mapViewer->add_child(hudControls);
+				//	}
+				//}
 
 				mapViewer->set_visible(true);
 			}
@@ -5133,16 +5165,16 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 			GDN_TheWorld_HudControls* hudControls = HudControls();
 			if (hudControls != nullptr)
 			{
-				Node* parent = hudControls->get_parent();
-				if (parent != nullptr)
-				{
-					parent->remove_child(hudControls);
-					add_child(hudControls);
-				}
-				else
-				{
-					add_child(hudControls);
-				}
+				//Node* parent = hudControls->get_parent();
+				//if (parent != nullptr)
+				//{
+				//	parent->remove_child(hudControls);
+				//	add_child(hudControls);
+				//}
+				//else
+				//{
+				//	add_child(hudControls);
+				//}
 			}
 		}
 	}

@@ -384,6 +384,7 @@ namespace godot
 			std::vector<std::vector<godot::Ref<godot::Image>>> m_quadrantImages;	// bi-dimensional vector of Image references
 			//std::filesystem::file_time_type m_fileTime;
 			std::string m_FileTimeStr;		// es: 2023-09-04 19:33:24.702639224
+			godot::TextureRect* m_textureRect = nullptr;
 		};
 
 		class MapTextureRectContainer : public std::map<TheWorld_Utils::MapTextureRectPos, std::unique_ptr<MapTextureRect>>
@@ -690,7 +691,7 @@ namespace godot
 			enum class ProcessStepIdx
 			{
 				not_set = -1
-				, process_updateCameraQuad = 0
+				, process_updateCameraQuadrant = 0
 				, process_initNewQuads = 1
 				, process_trackMouse = 2
 				, process_updateLodInQuads = 3
@@ -731,8 +732,8 @@ namespace godot
 			{
 				switch (idx)
 				{
-				case ProcessStepIdx::process_updateCameraQuad:
-					return "process_updateCameraQuad";
+				case ProcessStepIdx::process_updateCameraQuadrant:
+					return "process_updateCameraQuadrant";
 				case ProcessStepIdx::process_initNewQuads:
 					return "process_initNewQuads";
 				case ProcessStepIdx::process_trackMouse:
@@ -980,11 +981,13 @@ namespace godot
 		{
 			return worldMode();
 		}
+		bool adjustWorldCameraRequired(void) const;
+		void adjustWorldCameraRequired(bool b, godot::Vector2 desideredCameraWorldPos = godot::Vector2());
 		bool delayedWorldMode(void) const;
 		void delayedWorldMode(bool b);
 		bool worldMode(void) const;
 		void toggleMapView(void);
-		void adjustWorldMap(godot::Vector2 desideredCameraGlobalPos);
+		void adjustWorldCamera(godot::Vector2 desideredCameraGlobalPos);
 		void toggleTrackMouse(void);
 		void toggleEditMode(void);
 		void setEditMode(bool editMode);
@@ -1054,13 +1057,13 @@ namespace godot
 		}
 		void dump(void);
 		void dumpRecurseIntoChildrenNodes(Array nodes, int level);
-		void setCameraTerrainChunk(Chunk* chunk, QuadTree* quadTree);
-		AABB getCameraTerrainChunkLocalAABB(void);
-		AABB getCameraTerrainChunkLocalDebugAABB(void);
-		Transform3D getCameraTerrainChunkGlobalTransformApplied(void);
-		Transform3D getCameraTerrainChunkDebugGlobalTransformApplied(void);
-		String getCameraTerrainChunkId(void);
-		String getCameraTerrainQuadrantName(void);
+		void setWorldCameraTerrainChunk(Chunk* chunk, QuadTree* quadTree);
+		AABB getWorldCameraTerrainChunkLocalAABB(void);
+		AABB getWorldCameraTerrainChunkLocalDebugAABB(void);
+		Transform3D getWorldCameraTerrainChunkGlobalTransformApplied(void);
+		Transform3D getWorldCameraTerrainChunkDebugGlobalTransformApplied(void);
+		String getWorldCameraTerrainChunkId(void);
+		String getWorldCameraTerrainQuadrantName(void);
 		int getNumSplits(void) const;
 		int getNumJoins(void) const;
 		int getNumChunks(void) const;
@@ -1511,9 +1514,9 @@ namespace godot
 		//{
 		//	m_lastProcessedCameraPosForQuadrants = godot::Vector3();
 		//}
-		void forceProcessCameraPosForChunks(void)
+		void forceProcessWorldCameraPosForChunks(void)
 		{
-			m_lastProcessedCameraPosForChunks = godot::Vector3();
+			m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
 		}
 		bool processCanBeInterrupted(enum class ProcessStep::ProcessStepIdx idx)
 		{
@@ -1569,8 +1572,8 @@ namespace godot
 		void startInitializingStreamOfQuadrants(void);
 		void endInitializingStreamOfQuadrants(void);
 
-		void cameraTerrainChunk(Chunk* c);
-		Chunk* cameraTerrainChunk(void);
+		void worldCameraTerrainChunk(Chunk* c);
+		Chunk* worldCameraTerrainChunk(void);
 		void mouseHitTerrainChunk(Chunk* c);
 		Chunk* mouseHitTerrainChunk(void);
 
@@ -1834,7 +1837,7 @@ namespace godot
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
 		bool process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Camera3D* activeWorldCamera);
-		void process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap);
+		void process_updateWorldCameraQuadrant(GDN_TheWorld_Globals* globals, godot::Vector3& cameraWorldPos);
 		void process_initNewQuads(bool processCameraPosForQuadrants);
 		void process_updateCameraPosInShader(godot::Camera3D* activeWorldCamera);
 		void process_updateHud(godot::Camera3D* activeWorldCamera);
@@ -1850,7 +1853,7 @@ namespace godot
 		void process_lookDev(void);
 		void process_materialParam(godot::Vector3& cameraPosInMap, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_neighbourQuadrantData(QuadTree* quadTree);
-		void process_mapQuadrants(godot::Vector3 cameraWorldPos);
+		void process_mapQuadrants(godot::Vector2 cameraWorldPos);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
@@ -2066,7 +2069,7 @@ namespace godot
 
 		// Viewer (Camera)
 		GDN_TheWorld_Camera* m_customWorldCamera = nullptr;
-		Chunk* m_cameraTerrainChunk = nullptr;
+		Chunk* m_worldCameraTerrainChunk = nullptr;
 		bool m_cameraVerticalOnSea = false;
 		//QuadTree* m_cameraQuadTree;
 		
@@ -2077,7 +2080,7 @@ namespace godot
 		MapQuadrantsMap m_mapQuadrantsMap;
 		std::recursive_mutex m_mtxQuadrantsAndMainProcessing;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
-		TheWorld_Utils::QuadrantPos m_computedCameraQuadrantPos;
+		TheWorld_Utils::QuadrantPos m_computedWorldCameraQuadrantPos;
 		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;
 		godot::Vector3 m_lastOriginShiftCameraPosInMap;
 		bool m_recalcQuadrantsInViewNeeded = false;
@@ -2128,12 +2131,12 @@ namespace godot
 		int m_cacheQuadOnPerimeter = -1;
 		bool m_forceShaderElevation0 = false;
 
-		godot::Vector3 m_lastProcessedCameraPosForQuadrants;
-		Chunk* m_lastCameraTerrainChunk = nullptr;
-		int64_t m_timeElapsedFromLastProcessCameraPosForQuadrants = 0;
-		godot::Vector3 m_lastProcessedCameraPosForChunks;
+		godot::Vector3 m_lastProcessedWorldCameraPosForQuadrants;
+		Chunk* m_lastWorldCameraTerrainChunk = nullptr;
+		int64_t m_timeElapsedFromLastProcessWorldCameraPosForQuadrants = 0;
+		godot::Vector3 m_lastProcessedWorldCameraPosForChunks;
 
-		godot::Vector3 m_lastProcessedCameraForMapQuadrants;
+		godot::Vector2 m_lastProcessedCameraForMapQuadrants;
 		bool m_forceProcessNewMapQuadrants = false;
 		int64_t m_timeElapsedFromLastUpdatingQuadrantsCheck = 0;
 		int32_t m_savedNumMapRectsInScreen = 0;
@@ -2180,6 +2183,8 @@ namespace godot
 		//GDN_TheWorld_WorldViewport* m_worldViewport = nullptr;
 
 		bool m_mapMode = false;
+		bool m_adjustWorldCameraRequired = false;
+		godot::Vector2 m_desideredCameraWorldPos;
 		bool m_delayedWorldMode = false;
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_MapViewportContainer* m_mapViewportContainer = nullptr;

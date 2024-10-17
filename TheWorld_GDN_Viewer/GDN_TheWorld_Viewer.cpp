@@ -282,11 +282,17 @@ bool GDN_TheWorld_Map::MapTextureRect::rectFull(void)
 
 bool GDN_TheWorld_Map::MapTextureRect::destroyTextureRect(void)
 {
-	godot::TextureRect* textureRect = getTextureRect();
-	if (textureRect == nullptr)
-		return false;
+	//godot::TextureRect* textureRect = getTextureRect();
+	//if (textureRect == nullptr)
+	//	return false;
 
-	textureRect->queue_free();
+	//textureRect->queue_free();
+
+	if (m_textureRect != nullptr)
+	{
+		m_textureRect->queue_free();
+		m_textureRect = nullptr;
+	}
 
 	return true;
 }
@@ -298,35 +304,50 @@ bool GDN_TheWorld_Map::MapTextureRect::isTextureRectRendered(void)
 
 godot::TextureRect* GDN_TheWorld_Map::MapTextureRect::getTextureRect(void)
 {
-	godot::TextureRect* textureRect = nullptr;
-	godot::Node* n = m_map->find_child(m_mapTextureRectPos.getName().c_str(), true, false);
-	if (n != nullptr)
-	{
-		textureRect = godot::Object::cast_to<godot::TextureRect>(n);
-		my_assert(textureRect != nullptr);
-	}
-	return textureRect;
+	//godot::TextureRect* textureRect = nullptr;
+	//godot::Node* n = m_map->find_child(m_mapTextureRectPos.getName().c_str(), true, false);
+	//if (n != nullptr)
+	//{
+	//	textureRect = godot::Object::cast_to<godot::TextureRect>(n);
+	//	my_assert(textureRect != nullptr);
+	//}
+	return m_textureRect;
 }
 
 void GDN_TheWorld_Map::MapTextureRect::renderTexture(godot::Ref<godot::Image> image)
 {
-	godot::TextureRect* textureRect = getTextureRect();
+	//godot::TextureRect* textureRect = getTextureRect();
+
+	//godot::Vector2i rectImageSize = image->get_size();
+
+	//if (textureRect == nullptr)
+	//{
+	//	textureRect = memnew(godot::TextureRect);
+	//	textureRect->set_name(m_mapTextureRectPos.getName().c_str());
+	//	textureRect->add_to_group("MapTextureRect");
+	//	m_map->add_child(textureRect);
+	//	textureRect->set_size(rectImageSize);
+	//	godot::Vector2 pos(m_mapTextureRectPos.getGlobalLowerPosX(), m_mapTextureRectPos.getGlobalLowerPosY());
+	//	textureRect->set_position(pos);
+
+	//	godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+	//	textureRect->set_texture(tex);
+	//}
+
+	destroyTextureRect();
 
 	godot::Vector2i rectImageSize = image->get_size();
 
-	if (textureRect == nullptr)
-	{
-		textureRect = memnew(godot::TextureRect);
-		textureRect->set_name(m_mapTextureRectPos.getName().c_str());
-		textureRect->add_to_group("MapTextureRect");
-		m_map->add_child(textureRect);
-		textureRect->set_size(rectImageSize);
-		godot::Vector2 pos(m_mapTextureRectPos.getGlobalLowerPosX(), m_mapTextureRectPos.getGlobalLowerPosY());
-		textureRect->set_position(pos);
+	m_textureRect = memnew(godot::TextureRect);
+	m_textureRect->set_name(m_mapTextureRectPos.getName().c_str());
+	m_textureRect->add_to_group("MapTextureRect");
+	m_map->add_child(m_textureRect);
+	m_textureRect->set_size(rectImageSize);
+	godot::Vector2 pos(m_mapTextureRectPos.getGlobalLowerPosX(), m_mapTextureRectPos.getGlobalLowerPosY());
+	m_textureRect->set_position(pos);
 
-		godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-		textureRect->set_texture(tex);
-	}
+	godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+	m_textureRect->set_texture(tex);
 }
 
 godot::String GDN_TheWorld_Map::MapTextureRect::getImageCachePath(void)
@@ -2367,12 +2388,12 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("undeploy_world"), &GDN_TheWorld_Viewer::undeployWorld);
 	ClassDB::bind_method(D_METHOD("initial_world_viewer_pos_set"), &GDN_TheWorld_Viewer::initialWorldViewerPosSet);
 	ClassDB::bind_method(D_METHOD("dump_required"), &GDN_TheWorld_Viewer::setDumpRequired);
-	ClassDB::bind_method(D_METHOD("get_camera_chunk_local_aabb"), &GDN_TheWorld_Viewer::getCameraTerrainChunkLocalAABB);
-	ClassDB::bind_method(D_METHOD("get_camera_chunk_local_debug_aabb"), &GDN_TheWorld_Viewer::getCameraTerrainChunkLocalDebugAABB);
-	ClassDB::bind_method(D_METHOD("get_camera_chunk_global_transform_applied"), &GDN_TheWorld_Viewer::getCameraTerrainChunkGlobalTransformApplied);
-	ClassDB::bind_method(D_METHOD("get_camera_chunk_debug_global_transform_applied"), &GDN_TheWorld_Viewer::getCameraTerrainChunkDebugGlobalTransformApplied);
-	ClassDB::bind_method(D_METHOD("get_camera_chunk_id"), &GDN_TheWorld_Viewer::getCameraTerrainChunkId);
-	ClassDB::bind_method(D_METHOD("get_camera_quadrant_name"), &GDN_TheWorld_Viewer::getCameraTerrainQuadrantName);
+	ClassDB::bind_method(D_METHOD("get_camera_chunk_local_aabb"), &GDN_TheWorld_Viewer::getWorldCameraTerrainChunkLocalAABB);
+	ClassDB::bind_method(D_METHOD("get_camera_chunk_local_debug_aabb"), &GDN_TheWorld_Viewer::getWorldCameraTerrainChunkLocalDebugAABB);
+	ClassDB::bind_method(D_METHOD("get_camera_chunk_global_transform_applied"), &GDN_TheWorld_Viewer::getWorldCameraTerrainChunkGlobalTransformApplied);
+	ClassDB::bind_method(D_METHOD("get_camera_chunk_debug_global_transform_applied"), &GDN_TheWorld_Viewer::getWorldCameraTerrainChunkDebugGlobalTransformApplied);
+	ClassDB::bind_method(D_METHOD("get_camera_chunk_id"), &GDN_TheWorld_Viewer::getWorldCameraTerrainChunkId);
+	ClassDB::bind_method(D_METHOD("get_camera_quadrant_name"), &GDN_TheWorld_Viewer::getWorldCameraTerrainQuadrantName);
 	ClassDB::bind_method(D_METHOD("get_num_splits"), &GDN_TheWorld_Viewer::getNumSplits);
 	ClassDB::bind_method(D_METHOD("get_num_joins"), &GDN_TheWorld_Viewer::getNumJoins);
 	ClassDB::bind_method(D_METHOD("get_num_chunks"), &GDN_TheWorld_Viewer::getNumChunks);
@@ -4574,16 +4595,17 @@ bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 		and isCameraQuadrantColliderSet()
 		and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
 	{
-		godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
-		if (process_updateGridDimension(globals, activeWorldCamera))
-		{
-			if (m_recalcQuadrantsInViewNeeded == false)
-				return true;
-			else
-				return false;
-		}
-		else
-			return false;
+		//godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
+		//if (process_updateGridDimension(globals, activeWorldCamera))
+		//{
+		//	if (m_recalcQuadrantsInViewNeeded == false)
+		//		return true;
+		//	else
+		//		return false;
+		//}
+		//else
+		//	return false;
+		return true;
 	}
 	else
 		return false;
@@ -4865,7 +4887,9 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 					mouseOffsetFromScreencenter *= (1 / cam->getZoomFactor());
 					godot::Vector2 globalCameraScreencenterPos = mapCamera->get_screen_center_position();
 					godot::Vector2 desideredCameraGlobalPos = globalCameraScreencenterPos + mouseOffsetFromScreencenter;
-					adjustWorldMap(desideredCameraGlobalPos);
+					godot::Vector2 desideredCameraWorldPos = globalPosToWorldPos(desideredCameraGlobalPos);
+					adjustWorldCameraRequired(true, desideredCameraWorldPos);
+					//adjustWorldCamera(desideredCameraWorldPos);
 				}
 			}
 		}
@@ -4925,7 +4949,7 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 	}
 }
 
-void GDN_TheWorld_Viewer::adjustWorldMap(godot::Vector2 desideredCameraGlobalPos)
+void GDN_TheWorld_Viewer::adjustWorldCamera(godot::Vector2 desideredCameraWorldPos)
 {
 	if (not mapMode())
 		return;
@@ -4936,7 +4960,7 @@ void GDN_TheWorld_Viewer::adjustWorldMap(godot::Vector2 desideredCameraGlobalPos
 		Camera2D* mapCamera = MapCamera();
 		if (mapCamera != nullptr)
 		{
-			setWorldCameraWorldPos(globalPosToWorldPos(desideredCameraGlobalPos), 0, true, m_worldCameraWorldTransformForToggleToWorldMode);
+			setWorldCameraWorldPos(desideredCameraWorldPos, 0, true, m_worldCameraWorldTransformForToggleToWorldMode);
 			delayedWorldMode(true);
 			//mapMode(false);
 			//mapCamera->set_enabled(false);
@@ -5040,6 +5064,17 @@ bool GDN_TheWorld_Viewer::mapMode(void) const
 	return m_mapMode;
 }
 
+bool GDN_TheWorld_Viewer::adjustWorldCameraRequired(void) const
+{
+	return m_adjustWorldCameraRequired;
+}
+
+void GDN_TheWorld_Viewer::adjustWorldCameraRequired(bool b, godot::Vector2 desideredCameraWorldPos)
+{
+	m_adjustWorldCameraRequired = b;
+	m_desideredCameraWorldPos = desideredCameraWorldPos;
+}
+
 bool GDN_TheWorld_Viewer::delayedWorldMode(void) const
 {
 	return m_delayedWorldMode;
@@ -5053,6 +5088,7 @@ void GDN_TheWorld_Viewer::delayedWorldMode(bool b)
 		{
 			m_delayedWorldMode = b;
 			finishedResizingGrid(false);
+			recalcQuadrantsInView();
 		}
 	}
 	else
@@ -5186,7 +5222,7 @@ void GDN_TheWorld_Viewer::toggleDebugVisibility(void)
 {
 	m_debugContentVisibility = !m_debugContentVisibility;
 	m_updateTerrainVisibilityRequired = true;
-	forceProcessCameraPosForChunks();
+	forceProcessWorldCameraPosForChunks();
 }
 
 void GDN_TheWorld_Viewer::rotateChunkDebugMode(void)
@@ -5466,8 +5502,8 @@ void GDN_TheWorld_Viewer::setMinDepthQuadOnPerimeter(int depth)
 		m_minDepthQuadOnPerimeter = depth;
 		if (m_minDepthQuadOnPerimeter != -1 and m_minDepthQuadOnPerimeter > getMaxDepthQuadOnPerimeter())
 			setMaxDepthQuadOnPerimeter(m_minDepthQuadOnPerimeter);
-		m_lastProcessedCameraPosForQuadrants = godot::Vector3();
-		m_lastProcessedCameraPosForChunks = godot::Vector3();
+		m_lastProcessedWorldCameraPosForQuadrants = godot::Vector3();
+		m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 			m_recalcQuadrantsInViewNeeded = true;
 	}
@@ -5483,8 +5519,8 @@ void GDN_TheWorld_Viewer::setCacheQuadOnPerimeter(int cache)
 	if (cache >= 0 && cache <= MAX_SETTABLE_CACHE_ON_PERIMETER)
 	{
 		m_cacheQuadOnPerimeter = cache;
-		m_lastProcessedCameraPosForQuadrants = godot::Vector3();
-		m_lastProcessedCameraPosForChunks = godot::Vector3();
+		m_lastProcessedWorldCameraPosForQuadrants = godot::Vector3();
+		m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 			m_recalcQuadrantsInViewNeeded = true;
 	}
@@ -5502,8 +5538,8 @@ void GDN_TheWorld_Viewer::setMaxDepthQuadOnPerimeter(int depth)
 		m_maxDepthQuadOnPerimeter = depth;
 		if (m_maxDepthQuadOnPerimeter != -1 and m_maxDepthQuadOnPerimeter < getMinDepthQuadOnPerimeter())
 			setMinDepthQuadOnPerimeter(m_maxDepthQuadOnPerimeter);
-		m_lastProcessedCameraPosForQuadrants = godot::Vector3();
-		m_lastProcessedCameraPosForChunks = godot::Vector3();
+		m_lastProcessedWorldCameraPosForQuadrants = godot::Vector3();
+		m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 			m_recalcQuadrantsInViewNeeded = true;
 	}
@@ -5581,7 +5617,7 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 
 	bool newQuadAdded = false;
 	
-	TheWorld_Utils::QuadrantPos cameraQuadrantPos = m_computedCameraQuadrantPos;
+	TheWorld_Utils::QuadrantPos cameraQuadrantPos = m_computedWorldCameraQuadrantPos;
 	if (!cameraQuadrantPos.isInitialized())
 		return newQuadAdded;
 	
@@ -5808,7 +5844,7 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 			// look for the quadrant to delete (the ones not refreshed)
 			for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 			{
-				//size_t distanceInPerimeterFromCameraQuadrant = itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
+				//size_t distanceInPerimeterFromCameraQuadrant = itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(m_computedWorldCameraQuadrantPos);
 
 				if (itQuadTree->second->getRefreshTime().tv_nsec == refreshTime.tv_nsec && itQuadTree->second->getRefreshTime().tv_sec == refreshTime.tv_sec)
 				{
@@ -6230,6 +6266,12 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	if (globals->statusMinimalWorldDeployed() and worldStreamingTerminated())
 		globals->setStatus(TheWorldStatus::worldDeployed);
 	
+	if (adjustWorldCameraRequired() and mapMode())
+	{
+		adjustWorldCamera(m_desideredCameraWorldPos);
+		adjustWorldCameraRequired(false);
+	}
+	
 	if (delayedWorldMode())
 	{
 		if (worldMode())
@@ -6240,12 +6282,6 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 			{
 				mapMode(false);
 				delayedWorldMode(false);
-				//GDN_TheWorld_MapViewer* mapViewer = MapViewer();
-				//if (mapViewer != nullptr)
-				//	mapViewer->set_visible(false);
-				//Camera2D* mapCamera = MapCamera();
-				//if (mapCamera != nullptr)
-				//	mapCamera->set_enabled(false);
 			}
 		}
 	}
@@ -6256,23 +6292,36 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		process_eraseOutOfViewQuads(editModeUIControl);
 	}
 	
-	godot::Vector3 cameraWorldPos;
-	if (worldMode())
+	godot::Vector3 worldCameraWorldPos;
 	{
 		if (IS_EDITOR_HINT())
-			cameraWorldPos = activeWorldCamera->get_global_transform().get_origin();
+			worldCameraWorldPos = activeWorldCamera->get_global_transform().get_origin();
 		else
-			cameraWorldPos = ((GDN_TheWorld_Camera*)activeWorldCamera)->getWorldPos();
+			worldCameraWorldPos = ((GDN_TheWorld_Camera*)activeWorldCamera)->getWorldPos();
 	}
-	else
+	godot::Vector2 mapCameraWorldPos;
 	{
-		godot::Vector2 mapCameraWorldPos;
 		if (IS_EDITOR_HINT())
 			mapCameraWorldPos = activeMapCamera->get_global_transform().get_origin();
 		else
 			mapCameraWorldPos = ((GDN_TheWorld_MapCamera*)activeMapCamera)->getCameraWorldPos();
-		cameraWorldPos = godot::Vector3(mapCameraWorldPos.x, m_altitudeForToggleToWorldMode, mapCameraWorldPos.y);
 	}
+	//if (worldMode())
+	//{
+	//	if (IS_EDITOR_HINT())
+	//		cameraWorldPos = activeWorldCamera->get_global_transform().get_origin();
+	//	else
+	//		cameraWorldPos = ((GDN_TheWorld_Camera*)activeWorldCamera)->getWorldPos();
+	//}
+	//else
+	//{
+	//	godot::Vector2 mapCameraWorldPos;
+	//	if (IS_EDITOR_HINT())
+	//		mapCameraWorldPos = activeMapCamera->get_global_transform().get_origin();
+	//	else
+	//		mapCameraWorldPos = ((GDN_TheWorld_MapCamera*)activeMapCamera)->getCameraWorldPos();
+	//	cameraWorldPos = godot::Vector3(mapCameraWorldPos.x, m_altitudeForToggleToWorldMode, mapCameraWorldPos.y);
+	//}
 
 	bool processCameraPosForQuadrants = true;
 	bool processCameraPosForChunks = true;
@@ -6281,36 +6330,36 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		processCameraPosForQuadrants = false;
 		processCameraPosForChunks = false;
 		int64_t timeElapsed = TIME()->get_ticks_msec();
-		if (m_cameraTerrainChunk == nullptr || m_lastCameraTerrainChunk == nullptr || (TIME_INTERVAL_BETWEEN_ELAB_CAMERA != -1 && timeElapsed - m_timeElapsedFromLastProcessCameraPosForQuadrants > TIME_INTERVAL_BETWEEN_ELAB_CAMERA))
+		if (m_worldCameraTerrainChunk == nullptr || m_lastWorldCameraTerrainChunk == nullptr || (TIME_INTERVAL_BETWEEN_ELAB_CAMERA != -1 && timeElapsed - m_timeElapsedFromLastProcessWorldCameraPosForQuadrants > TIME_INTERVAL_BETWEEN_ELAB_CAMERA))
 		{
-			m_timeElapsedFromLastProcessCameraPosForQuadrants = timeElapsed;
+			m_timeElapsedFromLastProcessWorldCameraPosForQuadrants = timeElapsed;
 			processCameraPosForQuadrants = true;
 			processCameraPosForChunks = true;
-			if (m_lastCameraTerrainChunk != m_cameraTerrainChunk)
-				m_lastCameraTerrainChunk = m_cameraTerrainChunk;
+			if (m_lastWorldCameraTerrainChunk != m_worldCameraTerrainChunk)
+				m_lastWorldCameraTerrainChunk = m_worldCameraTerrainChunk;
 		}
 		else
 		{
-			float distance = (float)cameraWorldPos.distance_to(m_lastProcessedCameraPosForQuadrants);
+			float distance = (float)worldCameraWorldPos.distance_to(m_lastProcessedWorldCameraPosForQuadrants);
 			float threshold = globals->getRefreshQuadrantTreeThreshold();
-			if (m_lastProcessedCameraPosForQuadrants == godot::Vector3() || distance > threshold)
+			if (m_lastProcessedWorldCameraPosForQuadrants == godot::Vector3() || distance > threshold)
 			{
-				m_lastProcessedCameraPosForQuadrants = cameraWorldPos;
+				m_lastProcessedWorldCameraPosForQuadrants = worldCameraWorldPos;
 				processCameraPosForQuadrants = true;
 			}
-			distance = (float)cameraWorldPos.distance_to(m_lastProcessedCameraPosForChunks);
+			distance = (float)worldCameraWorldPos.distance_to(m_lastProcessedWorldCameraPosForChunks);
 			threshold = globals->getRefreshChunkLodThreshold();
-			if (m_lastProcessedCameraPosForChunks == godot::Vector3() || distance > threshold)
+			if (m_lastProcessedWorldCameraPosForChunks == godot::Vector3() || distance > threshold)
 			{
-				m_lastProcessedCameraPosForChunks = cameraWorldPos;
+				m_lastProcessedWorldCameraPosForChunks = worldCameraWorldPos;
 				processCameraPosForChunks = true;
 			}
 			else
 			{
-				if (m_lastCameraTerrainChunk != m_cameraTerrainChunk)
+				if (m_lastWorldCameraTerrainChunk != m_worldCameraTerrainChunk)
 				{
 					processCameraPosForChunks = true;
-					m_lastCameraTerrainChunk = m_cameraTerrainChunk;
+					m_lastWorldCameraTerrainChunk = m_worldCameraTerrainChunk;
 				}
 			}
 		}
@@ -6319,13 +6368,13 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	//Transform globalTransform = internalTransformGlobalCoord();
 	//Vector3 cameraPosViewerNodeLocalCoord = globalTransform.affine_inverse() * cameraPosGlobalCoord;	// Viewer Node (grid) local coordinates of the camera pos
 
-	if (worldMode())
+	//if (worldMode())
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.03 ") + __FUNCTION__, "Adjust Quadtrees");
 		if (processCameraPosForQuadrants)
 		{
-			process_updateCameraQuad(globals, cameraWorldPos);
-			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateCameraQuad))
+			process_updateWorldCameraQuadrant(globals, worldCameraWorldPos);
+			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateCameraQuadrant))
 			{
 				m_lastProcessExecutionInterrupted = true;
 				return;
@@ -6375,7 +6424,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 
-	if (worldMode()) 
+	//if (worldMode()) 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.08 ") + __FUNCTION__, "Update origin shift");
 		process_updateOriginShift(activeMapCamera, activeWorldCamera);
@@ -6391,7 +6440,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.09 ") + __FUNCTION__, "Update quadrants");
 		if (processCameraPosForChunks || !finishedResizingGrid())
 		{
-			process_updateLodInQuads(cameraWorldPos);
+			process_updateLodInQuads(worldCameraWorldPos);
 			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateLodInQuads))
 			{
 				m_lastProcessExecutionInterrupted = true;
@@ -6493,7 +6542,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	//if (worldMode())
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.14 ") + __FUNCTION__, "Process Material Params");
-		process_materialParam(cameraWorldPos, processCameraPosForQuadrants, processCameraPosForChunks);
+		process_materialParam(worldCameraWorldPos, processCameraPosForQuadrants, processCameraPosForChunks);
 		if (m_lastProcessExecutionInterrupted)
 			return;
 	}
@@ -6501,7 +6550,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	if (mapMode())
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.15 ") + __FUNCTION__, "Process Map Quadrants");
-		process_mapQuadrants(cameraWorldPos);
+		process_mapQuadrants(mapCameraWorldPos);
 		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_mapQuadrants))
 		{
 			m_lastProcessExecutionInterrupted = true;
@@ -6700,7 +6749,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 		&& allCollidersReady()
 		&& !m_streamingInProgress
 		//&& elapsedFromLastRecalc > TIME_INTERVAL_BETWEEN_RECALC_QUADRANT
-		&& m_computedCameraQuadrantPos.isInitialized()
+		&& m_computedWorldCameraQuadrantPos.isInitialized()
 		&& Globals()->getStreamWorld())
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.11.01 ") + __FUNCTION__, "Update Grid Dimension");
@@ -6732,7 +6781,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 		_rayEnd.clear();
 		rayArray.clear();
 		{
-			godot::Vector3 castDirection = godot::Vector3(0, 0, -(m_numVisibleQuadrantOnPerimeterOnNorthSide + 1) * m_computedCameraQuadrantPos.getSizeInWU());
+			godot::Vector3 castDirection = godot::Vector3(0, 0, -(m_numVisibleQuadrantOnPerimeterOnNorthSide + 1) * m_computedWorldCameraQuadrantPos.getSizeInWU());
 
 			for (int i = 0; i <= (numRaysPerDirection - 1) / 2; i++)
 			{
@@ -6832,13 +6881,13 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 
 			if (allHit)
 			{
-				if (m_numVisibleQuadrantOnPerimeterOnNorthSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnNorthSide - 1) * m_computedCameraQuadrantPos.getSizeInWU())
+				if (m_numVisibleQuadrantOnPerimeterOnNorthSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnNorthSide - 1) * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					m_numVisibleQuadrantOnPerimeterOnNorthSide--;
 					m_recalcQuadrantsInViewNeeded = true;
 					finishedResizingGrid(false);
 				}
-				else if (m_numVisibleQuadrantOnPerimeterOnNorthSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnNorthSide * m_computedCameraQuadrantPos.getSizeInWU())
+				else if (m_numVisibleQuadrantOnPerimeterOnNorthSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnNorthSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					m_numVisibleQuadrantOnPerimeterOnNorthSide++;
 					m_recalcQuadrantsInViewNeeded = true;
@@ -6865,7 +6914,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 		_rayEnd.clear();
 		rayArray.clear();
 		{
-			godot::Vector3 castDirection = godot::Vector3(0, 0, (m_numVisibleQuadrantOnPerimeterOnSouthSide + 1) * m_computedCameraQuadrantPos.getSizeInWU());
+			godot::Vector3 castDirection = godot::Vector3(0, 0, (m_numVisibleQuadrantOnPerimeterOnSouthSide + 1) * m_computedWorldCameraQuadrantPos.getSizeInWU());
 
 			for (int i = 0; i <= (numRaysPerDirection - 1) / 2; i++)
 			{
@@ -6965,13 +7014,13 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 
 			if (allHit)
 			{
-				if (m_numVisibleQuadrantOnPerimeterOnSouthSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnSouthSide - 1) * m_computedCameraQuadrantPos.getSizeInWU())
+				if (m_numVisibleQuadrantOnPerimeterOnSouthSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnSouthSide - 1) * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					m_numVisibleQuadrantOnPerimeterOnSouthSide--;
 					m_recalcQuadrantsInViewNeeded = true;
 					finishedResizingGrid(false);
 				}
-				else if (m_numVisibleQuadrantOnPerimeterOnSouthSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnSouthSide * m_computedCameraQuadrantPos.getSizeInWU())
+				else if (m_numVisibleQuadrantOnPerimeterOnSouthSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnSouthSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					m_numVisibleQuadrantOnPerimeterOnSouthSide++;
 					m_recalcQuadrantsInViewNeeded = true;
@@ -6996,7 +7045,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 		_rayEnd.clear();
 		rayArray.clear();
 		{
-			godot::Vector3 castDirection = godot::Vector3(-(m_numVisibleQuadrantOnPerimeterOnWestSide + 1) * m_computedCameraQuadrantPos.getSizeInWU(), 0, 0);
+			godot::Vector3 castDirection = godot::Vector3(-(m_numVisibleQuadrantOnPerimeterOnWestSide + 1) * m_computedWorldCameraQuadrantPos.getSizeInWU(), 0, 0);
 
 			for (int i = 0; i <= (numRaysPerDirection - 1) / 2; i++)
 			{
@@ -7096,13 +7145,13 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 
 			if (allHit)
 			{
-				if (m_numVisibleQuadrantOnPerimeterOnWestSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnWestSide - 1) * m_computedCameraQuadrantPos.getSizeInWU())
+				if (m_numVisibleQuadrantOnPerimeterOnWestSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnWestSide - 1) * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					m_numVisibleQuadrantOnPerimeterOnWestSide--;
 					m_recalcQuadrantsInViewNeeded = true;
 					finishedResizingGrid(false);
 				}
-				else if (m_numVisibleQuadrantOnPerimeterOnWestSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnWestSide * m_computedCameraQuadrantPos.getSizeInWU())
+				else if (m_numVisibleQuadrantOnPerimeterOnWestSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnWestSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					m_numVisibleQuadrantOnPerimeterOnWestSide++;
 					m_recalcQuadrantsInViewNeeded = true;
@@ -7127,7 +7176,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 		_rayEnd.clear();
 		rayArray.clear();
 		{
-			godot::Vector3 castDirection = godot::Vector3((m_numVisibleQuadrantOnPerimeterOnEastSide + 1) * m_computedCameraQuadrantPos.getSizeInWU(), 0, 0);
+			godot::Vector3 castDirection = godot::Vector3((m_numVisibleQuadrantOnPerimeterOnEastSide + 1) * m_computedWorldCameraQuadrantPos.getSizeInWU(), 0, 0);
 
 			for (int i = 0; i <= (numRaysPerDirection - 1) / 2; i++)
 			{
@@ -7227,13 +7276,13 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 
 			if (allHit)
 			{
-				if (m_numVisibleQuadrantOnPerimeterOnEastSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnEastSide - 1) * m_computedCameraQuadrantPos.getSizeInWU())
+				if (m_numVisibleQuadrantOnPerimeterOnEastSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnEastSide - 1) * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					m_numVisibleQuadrantOnPerimeterOnEastSide--;
 					m_recalcQuadrantsInViewNeeded = true;
 					finishedResizingGrid(false);
 				}
-				else if (m_numVisibleQuadrantOnPerimeterOnEastSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnEastSide * m_computedCameraQuadrantPos.getSizeInWU())
+				else if (m_numVisibleQuadrantOnPerimeterOnEastSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnEastSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					m_numVisibleQuadrantOnPerimeterOnEastSide++;
 					m_recalcQuadrantsInViewNeeded = true;
@@ -7264,7 +7313,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 	return processed;
 }
 
-void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals, godot::Vector3& cameraPosInMap)
+void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals* globals, godot::Vector3& cameraWorldPos)
 {
 	TimerMcs clock1("GDN_TheWorld_Viewer::_process", "Update Camera Quad", false, false);
 	clock1.tick();
@@ -7275,7 +7324,7 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 		this->m_sumUpdateCameraQuad += this->m_lastUpdateCameraQuad;
 		});
 
-	TheWorld_Utils::QuadrantPos cameraQuadrantPos;
+	TheWorld_Utils::QuadrantPos worldCameraQuadrantPos;
 
 	// Look for Camera QuadTree: it will be used as first element of quadrantPosNeeded
 	for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
@@ -7284,23 +7333,23 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 			continue;
 
 		float quadrantSizeInWU = itQuadTree->second->getQuadrant()->getPos().getSizeInWU();
-		if (cameraPosInMap.x >= itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex() && cameraPosInMap.x < (itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex() + quadrantSizeInWU)
-			&& cameraPosInMap.z >= itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex() && cameraPosInMap.z < (itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex() + quadrantSizeInWU))
+		if (cameraWorldPos.x >= itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex() && cameraWorldPos.x < (itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex() + quadrantSizeInWU)
+			&& cameraWorldPos.z >= itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex() && cameraWorldPos.z < (itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex() + quadrantSizeInWU))
 		{
-			cameraQuadrantPos = itQuadTree->second->getQuadrant()->getPos();
-			cameraQuadrantPos.setTag("Camera");
+			worldCameraQuadrantPos = itQuadTree->second->getQuadrant()->getPos();
+			worldCameraQuadrantPos.setTag("Camera");
 			break;
 		}
 	}
 
-	if (cameraQuadrantPos.empty())	// boh not found camera-quad-tree (it seems impossible) ...
+	if (worldCameraQuadrantPos.empty())	// not found camera-quad-tree ...
 	{
-		// ... btw we create new quad tree containing camera
-		float x = (float)cameraPosInMap.x, z = (float)cameraPosInMap.z;
+		// ... we create new quad tree containing camera
+		float x = (float)cameraWorldPos.x, z = (float)cameraWorldPos.z;
 		float _gridStepInWU = globals->gridStepInWU();
 		TheWorld_Utils::QuadrantPos q(x, z, m_worldViewerLevel, m_numWorldVerticesPerSize, _gridStepInWU);
-		cameraQuadrantPos = q;
-		cameraQuadrantPos.setTag("Camera");
+		worldCameraQuadrantPos = q;
+		worldCameraQuadrantPos.setTag("Camera");
 	}
 
 	//
@@ -7308,8 +7357,8 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 	//
 
 	// if forced or the camera has changed quadrant the cache is repopulated
-	//m_computedCameraQuadrantPos = quadrantPosNeeded[0];	// DEBUG
-	if ((m_refreshQuadTreeMap || m_computedCameraQuadrantPos != cameraQuadrantPos) && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
+	//m_computedWorldCameraQuadrantPos = quadrantPosNeeded[0];	// DEBUG
+	if ((m_refreshQuadTreeMap || m_computedWorldCameraQuadrantPos != worldCameraQuadrantPos) && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants");
 
@@ -7323,7 +7372,7 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 		//	});
 
 		m_refreshQuadTreeMap = false;
-		m_computedCameraQuadrantPos = cameraQuadrantPos;
+		m_computedWorldCameraQuadrantPos = worldCameraQuadrantPos;
 
 		if ((Globals()->status() != TheWorldStatus::worldDeployed and Globals()->status() != TheWorldStatus::minimalWorldDeployed) || Globals()->getStreamWorld())
 			m_recalcQuadrantsInViewNeeded = true;
@@ -7331,7 +7380,7 @@ void GDN_TheWorld_Viewer::process_updateCameraQuad(GDN_TheWorld_Globals* globals
 
 	for (auto& itQuadTree : m_worldQuadrantsMap)
 	{
-		itQuadTree.second->setQuadrantOptimizations(cameraPosInMap);
+		itQuadTree.second->setQuadrantOptimizations(cameraWorldPos);
 	}
 }
 
@@ -7403,7 +7452,7 @@ bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQu
 
 		if (itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded())
 		{
-			//size_t distanceInPerimeterFromCameraQuadrant = quadrant->getPos().distanceInPerimeter(m_computedCameraQuadrantPos);
+			//size_t distanceInPerimeterFromCameraQuadrant = quadrant->getPos().distanceInPerimeter(m_computedWorldCameraQuadrantPos);
 			if (itQuadTree->second->numQuadrantsFromCameraQuadrant() == numQuadrantsFromCameraQuadrant)
 			{
 				bool proceed = true;
@@ -7652,13 +7701,13 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 		distance = cameraWorldPos.distance_to(lastOriginShiftCameraPosInMap);
 	}
 
-	//if (m_originShiftedQuadrantPos != m_computedCameraQuadrantPos)
+	//if (m_originShiftedQuadrantPos != m_computedWorldCameraQuadrantPos)
 	if (distance > globals->heightmapSizeInWUs() * paramOriginShiftFactor)
 	{
 		godot::Vector3 originShift;
-		originShift.x = -m_computedCameraQuadrantPos.getLowerXGridVertex();
+		originShift.x = -m_computedWorldCameraQuadrantPos.getLowerXGridVertex();
 		originShift.y = 0;
-		originShift.z = -m_computedCameraQuadrantPos.getLowerZGridVertex();
+		originShift.z = -m_computedWorldCameraQuadrantPos.getLowerZGridVertex();
 
 		//godot::Vector3 pos1 = activeCamera->get_global_position();	// DEBUG ONLY
 
@@ -7680,7 +7729,7 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 		//for (auto& itQuadTree : m_worldQuadrantsMap)
 		//	itQuadTree.second->ForAllChunk(action);
 
-		m_originShiftedQuadrantPos = m_computedCameraQuadrantPos;
+		m_originShiftedQuadrantPos = m_computedWorldCameraQuadrantPos;
 		if (worldMode())
 			m_lastOriginShiftCameraPosInMap = cameraWorldTransform.origin;
 		else
@@ -7856,8 +7905,8 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 		}
 
 		bool cameraTerrainChunkContainsSea = false;
-		if (m_cameraTerrainChunk != nullptr)
-			cameraTerrainChunkContainsSea = m_cameraTerrainChunk->containsSea();
+		if (m_worldCameraTerrainChunk != nullptr)
+			cameraTerrainChunkContainsSea = m_worldCameraTerrainChunk->containsSea();
 		if (m_cameraVerticalOnSea != cameraTerrainChunkContainsSea)
 		{
 			m_cameraVerticalOnSea = cameraTerrainChunkContainsSea;
@@ -8887,7 +8936,7 @@ void GDN_TheWorld_Viewer::process_lookDev(void)
 	m_desideredLookDevChanged = false;
 }
 
-void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
+void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1. ") + __FUNCTION__, "ALL");
 
@@ -8964,8 +9013,8 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 		// Request update for new quadrants (when map camera moves / scales)
 		if (forceProcessNewMapQuadrants()
 			or m_mapQuadrantsMap.updated()
-			or m_lastProcessedCameraForMapQuadrants == godot::Vector3()
-			or (m_lastProcessedCameraForMapQuadrants.x != cameraWorldPos.x or m_lastProcessedCameraForMapQuadrants.z != cameraWorldPos.z))
+			or m_lastProcessedCameraForMapQuadrants == godot::Vector2()
+			or (m_lastProcessedCameraForMapQuadrants != mapCameraWorldPos))
 		{
 			bool breakLoop = false;
 
@@ -9059,7 +9108,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector3 cameraWorldPos)
 					break;
 			}
 
-			m_lastProcessedCameraForMapQuadrants = cameraWorldPos;
+			m_lastProcessedCameraForMapQuadrants = mapCameraWorldPos;
 			
 			if (breakLoop)
 				forceProcessNewMapQuadrants(true);
@@ -10438,14 +10487,14 @@ godot::Camera3D* GDN_TheWorld_Viewer::getWorldCameraInEditor(void)
 	return editorCamera;
 }
 
-Chunk* GDN_TheWorld_Viewer::cameraTerrainChunk(void)
+Chunk* GDN_TheWorld_Viewer::worldCameraTerrainChunk(void)
 {
-	return m_cameraTerrainChunk;
+	return m_worldCameraTerrainChunk;
 }
 
-void GDN_TheWorld_Viewer::cameraTerrainChunk(Chunk* c)
+void GDN_TheWorld_Viewer::worldCameraTerrainChunk(Chunk* c)
 {
-	m_cameraTerrainChunk = c;
+	m_worldCameraTerrainChunk = c;
 }
 
 Chunk* GDN_TheWorld_Viewer::mouseHitTerrainChunk(void)
@@ -10756,51 +10805,51 @@ void GDN_TheWorld_Viewer::setColliderNeedUpdateForEveryQuadrant(void)
 //	onTransformChanged();
 //}
 
-AABB GDN_TheWorld_Viewer::getCameraTerrainChunkLocalAABB(void)
+AABB GDN_TheWorld_Viewer::getWorldCameraTerrainChunkLocalAABB(void)
 {
-	if (m_cameraTerrainChunk && !m_cameraTerrainChunk->isMeshNull())
-		return m_cameraTerrainChunk->getAABB();
+	if (m_worldCameraTerrainChunk && !m_worldCameraTerrainChunk->isMeshNull())
+		return m_worldCameraTerrainChunk->getAABB();
 	else
 		return AABB();
 }
 
-AABB GDN_TheWorld_Viewer::getCameraTerrainChunkLocalDebugAABB(void)
+AABB GDN_TheWorld_Viewer::getWorldCameraTerrainChunkLocalDebugAABB(void)
 {
-	if (m_cameraTerrainChunk && !m_cameraTerrainChunk->isDebugMeshNull())
-		return m_cameraTerrainChunk->getDebugMeshAABB();
+	if (m_worldCameraTerrainChunk && !m_worldCameraTerrainChunk->isDebugMeshNull())
+		return m_worldCameraTerrainChunk->getDebugMeshAABB();
 	else
 		return AABB();
 }
 
-Transform3D GDN_TheWorld_Viewer::getCameraTerrainChunkGlobalTransformApplied(void)
+Transform3D GDN_TheWorld_Viewer::getWorldCameraTerrainChunkGlobalTransformApplied(void)
 {
-	if (m_cameraTerrainChunk && !m_cameraTerrainChunk->isMeshNull())
-		return m_cameraTerrainChunk->getGlobalTransformApplied();
+	if (m_worldCameraTerrainChunk && !m_worldCameraTerrainChunk->isMeshNull())
+		return m_worldCameraTerrainChunk->getGlobalTransformApplied();
 	else
 		return Transform3D();
 }
 
-Transform3D GDN_TheWorld_Viewer::getCameraTerrainChunkDebugGlobalTransformApplied(void)
+Transform3D GDN_TheWorld_Viewer::getWorldCameraTerrainChunkDebugGlobalTransformApplied(void)
 {
-	if (m_cameraTerrainChunk && !m_cameraTerrainChunk->isDebugMeshNull())
-		return m_cameraTerrainChunk->getDebugGlobalTransformApplied();
+	if (m_worldCameraTerrainChunk && !m_worldCameraTerrainChunk->isDebugMeshNull())
+		return m_worldCameraTerrainChunk->getDebugGlobalTransformApplied();
 	else
 		return Transform3D();
 }
 
 
-String GDN_TheWorld_Viewer::getCameraTerrainChunkId(void)
+String GDN_TheWorld_Viewer::getWorldCameraTerrainChunkId(void)
 {
-	if (m_cameraTerrainChunk)
-		return m_cameraTerrainChunk->getPos().getIdStr().c_str();
+	if (m_worldCameraTerrainChunk)
+		return m_worldCameraTerrainChunk->getPos().getIdStr().c_str();
 	else
 		return "";
 }
 
-String GDN_TheWorld_Viewer::getCameraTerrainQuadrantName(void)
+String GDN_TheWorld_Viewer::getWorldCameraTerrainQuadrantName(void)
 {
-	if (m_cameraTerrainChunk)
-		return m_cameraTerrainChunk->getQuadTree()->getQuadrant()->getPos().getName().c_str();
+	if (m_worldCameraTerrainChunk)
+		return m_worldCameraTerrainChunk->getQuadTree()->getQuadrant()->getPos().getName().c_str();
 	else
 		return "";
 }
@@ -11321,15 +11370,15 @@ void GDN_TheWorld_Viewer::dumpRecurseIntoChildrenNodes(godot::Array nodes, int l
 	}
 }
 
-void GDN_TheWorld_Viewer::setCameraTerrainChunk(Chunk* chunk, QuadTree* quadTree)
+void GDN_TheWorld_Viewer::setWorldCameraTerrainChunk(Chunk* chunk, QuadTree* quadTree)
 {
-	if (m_cameraTerrainChunk != nullptr && m_cameraTerrainChunk != chunk)
+	if (m_worldCameraTerrainChunk != nullptr && m_worldCameraTerrainChunk != chunk)
 	{
-		m_cameraTerrainChunk->resetCameraVerticalOnChunk();
-		quadTree->addChunkUpdate(m_cameraTerrainChunk, chunk->getOwnQuadType());
+		m_worldCameraTerrainChunk->resetCameraVerticalOnChunk();
+		quadTree->addChunkUpdate(m_worldCameraTerrainChunk, chunk->getOwnQuadType());
 	}
 
-	m_cameraTerrainChunk = chunk;
+	m_worldCameraTerrainChunk = chunk;
 	//m_cameraQuadTree = quadTree;
 }
 
@@ -11381,15 +11430,18 @@ void GDN_TheWorld_Viewer::streamer(void)
 					)
 					m_recalcQuadrantsInViewNeeded = true;
 				
-				if (m_recalcQuadrantsInViewNeeded && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and !m_streamingInProgress)
 				{
 					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
-					bool newQuadAdded = recalcQuadrantsInView();
-					if (not newQuadAdded)
-						finishedResizingGrid(true);
-					m_recalcQuadrantsInViewNeeded = false;
+
+					if (m_recalcQuadrantsInViewNeeded && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and !m_streamingInProgress)
+					{
+						bool newQuadAdded = recalcQuadrantsInView();
+						if (not newQuadAdded)
+							finishedResizingGrid(true);
+						m_recalcQuadrantsInViewNeeded = false;
+					}
 				}
-				
+
 				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 				if ((now - lastSyncTime).count() > STREAMER_SYNC_PERIOD_TIME)
 				{

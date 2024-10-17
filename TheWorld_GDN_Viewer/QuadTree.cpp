@@ -779,7 +779,7 @@ void QuadTree::checkMouseHit(enum class QuadType type)
 
 	if (statusLoadTerrainDataFromCacheInProgress() || statusLoadTerrainDataFromCacheNeeded())
 	{
-		m_viewer->forceProcessCameraPosForChunks();
+		m_viewer->forceProcessWorldCameraPosForChunks();
 		return;
 	}
 
@@ -818,7 +818,7 @@ void QuadTree::update(Vector3 cameraPosInMap, enum class UpdateStage updateStage
 
 	if (statusLoadTerrainDataFromCacheInProgress() || statusLoadTerrainDataFromCacheNeeded())
 	{
-		m_viewer->forceProcessCameraPosForChunks();
+		m_viewer->forceProcessWorldCameraPosForChunks();
 		return;
 	}
 	
@@ -878,7 +878,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosInMap, Quad* quad, enum cl
 					if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
 					{
 						setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
-						m_viewer->forceProcessCameraPosForChunks();
+						m_viewer->forceProcessWorldCameraPosForChunks();
 					}
 					else if (statusInitialized())
 					{
@@ -898,7 +898,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosInMap, Quad* quad, enum cl
 					}
 					else
 					{
-						m_viewer->forceProcessCameraPosForChunks();
+						m_viewer->forceProcessWorldCameraPosForChunks();
 					}
 				}
 			}
@@ -1063,7 +1063,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosInMap, Quad* quad, enum cl
 					//quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
 					//float lastComputedDistanceFromCamera = abs((cameraPosGlobalCoord - quadrantCenter).length());
 					setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
-					m_viewer->forceProcessCameraPosForChunks();
+					m_viewer->forceProcessWorldCameraPosForChunks();
 				}
 				else if (statusInitialized())
 				{
@@ -1083,7 +1083,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosInMap, Quad* quad, enum cl
 				}
 				else
 				{
-					m_viewer->forceProcessCameraPosForChunks();
+					m_viewer->forceProcessWorldCameraPosForChunks();
 				}
 			}
 

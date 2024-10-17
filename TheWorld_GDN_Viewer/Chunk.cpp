@@ -32,7 +32,7 @@ void Chunk::SeaInfoChangedChunkAction::exec(Chunk* chunk)
 
 void Chunk::SeaInfoChangedChunkAction::postExec(QuadTree* quadTree)
 {
-	quadTree->Viewer()->forceProcessCameraPosForChunks();
+	quadTree->Viewer()->forceProcessWorldCameraPosForChunks();
 	quadTree->updateForAllChunksForced(QuadType::Sea, true);
 }
 
@@ -55,7 +55,7 @@ void Chunk::TerrainHeightsChangedChunkAction::exec(Chunk* chunk)
 
 void Chunk::TerrainHeightsChangedChunkAction::postExec(QuadTree* quadTree)
 {
-	quadTree->Viewer()->forceProcessCameraPosForChunks();
+	quadTree->Viewer()->forceProcessWorldCameraPosForChunks();
 	quadTree->Viewer()->finishedResizingGrid(false);
 	quadTree->updateForAllChunksForced(QuadType::Sea, true);
 }
@@ -235,8 +235,8 @@ void Chunk::deinit(void)
 
 	if (m_chunkType == ChunkType::Terrain)
 	{
-		if (m_viewer->cameraTerrainChunk() == this)
-			m_viewer->cameraTerrainChunk(nullptr);
+		if (m_viewer->worldCameraTerrainChunk() == this)
+			m_viewer->worldCameraTerrainChunk(nullptr);
 		if (m_viewer->mouseHitTerrainChunk() == this)
 			m_viewer->mouseHitTerrainChunk(nullptr);
 	}
@@ -397,8 +397,8 @@ void Chunk::setCameraPosInMap(Vector3 cameraPosInMap)
 		m_lastCameraPosInMap = Vector3(0, 0, 0);
 		if (m_chunkType == ChunkType::Terrain)
 		{
-			if (m_viewer->cameraTerrainChunk() == this)
-				m_viewer->cameraTerrainChunk(nullptr);
+			if (m_viewer->worldCameraTerrainChunk() == this)
+				m_viewer->worldCameraTerrainChunk(nullptr);
 		}
 		m_isCameraVerticalOnChunk = false;
 	}
@@ -413,8 +413,8 @@ void Chunk::setCameraPosInMap(Vector3 cameraPosInMap)
 		{
 			if (m_chunkType == ChunkType::Terrain)
 			{
-				if (m_viewer->cameraTerrainChunk() == this)
-					m_viewer->cameraTerrainChunk(nullptr);
+				if (m_viewer->worldCameraTerrainChunk() == this)
+					m_viewer->worldCameraTerrainChunk(nullptr);
 			}
 			m_isCameraVerticalOnChunk = false;
 		}
@@ -423,7 +423,7 @@ void Chunk::setCameraPosInMap(Vector3 cameraPosInMap)
 	if (m_chunkType == ChunkType::Terrain)
 	{
 		if (m_isCameraVerticalOnChunk)
-			m_viewer->setCameraTerrainChunk(this, m_quadTree);
+			m_viewer->setWorldCameraTerrainChunk(this, m_quadTree);
 	}
 }
 
@@ -692,8 +692,8 @@ void Chunk::setActive(bool b)
 		m_justJoined = false;
 		if (m_chunkType == ChunkType::Terrain)
 		{
-			if (m_viewer->cameraTerrainChunk() == this)
-				m_viewer->cameraTerrainChunk(nullptr);
+			if (m_viewer->worldCameraTerrainChunk() == this)
+				m_viewer->worldCameraTerrainChunk(nullptr);
 		}
 		m_isCameraVerticalOnChunk = false;
 		m_lastCameraPosInMap = Vector3(0, 0, 0);

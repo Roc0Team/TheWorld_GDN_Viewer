@@ -1434,11 +1434,11 @@ void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 				set_global_position(godot::Vector3(cameraPos.x, m_lastComputedCameraVerticalOnTerrain.y + altitudeFromTerrain, cameraPos.z));
 				m_lastCameraAltitudeFromTerrain = altitudeFromTerrain;
 			}
+			else
+				assert(m_lastCameraAltitudeFromTerrain == INVALID_CAMERA_ALTITUDE);
 
 			m_adjustPositionOnTerrainRequired = false;
 		}
-		else
-			assert(m_adjustPositionOnTerrainRequired);
 	}
 }
 

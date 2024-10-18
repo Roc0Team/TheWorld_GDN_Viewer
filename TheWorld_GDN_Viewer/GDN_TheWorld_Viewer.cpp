@@ -451,7 +451,7 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 
 void GDN_TheWorld_Map::_bind_methods(void)
 {
-	//ClassDB::bind_method(D_METHOD("get_scale_factor"), &GDN_TheWorld_Map::getScaleFactor);
+	ClassDB::bind_method(D_METHOD("viewport_size_changed"), &GDN_TheWorld_Map::viewportSizeChanged);
 }
 
 GDN_TheWorld_Map::GDN_TheWorld_Map(void)
@@ -460,6 +460,11 @@ GDN_TheWorld_Map::GDN_TheWorld_Map(void)
 
 GDN_TheWorld_Map::~GDN_TheWorld_Map(void)
 {
+	if (m_mapViewport != nullptr)
+	{
+		if (m_mapViewport->is_connected("size_changed", Callable(this, "viewport_size_changed")))
+			m_mapViewport->disconnect("size_changed", Callable(this, "viewport_size_changed"));
+	}
 }
 
 void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize)
@@ -467,6 +472,9 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	m_mapViewer = mapViewer;
 
 	GDN_TheWorld_MapViewportContainer* mapViewportContainer = m_mapViewer->getMapViewportContainer();
+	m_mapViewport = mapViewportContainer->getMapViewport();
+
+	godot::Error e = m_mapViewport->connect("size_changed", Callable(this, "viewport_size_changed"));
 
 	m_northLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_northLabel);
@@ -493,12 +501,21 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	sz = m_westLabel->get_theme_font_size("font_size");
 	m_westLabel->add_theme_font_size_override("font_size", sz * 3);
 
-	containerResize(containerSize);
+	viewportResized(containerSize);
 
 	//setScale(m_scaleFactor);
 }
 
-void GDN_TheWorld_Map::containerResize(godot::Vector2 newSize)
+void GDN_TheWorld_Map::viewportSizeChanged(void)
+{
+	if (m_mapViewport != nullptr)
+	{
+		godot::Vector2 newSize = m_mapViewport->get_size();
+		viewportResized(newSize);
+	}
+}
+
+void GDN_TheWorld_Map::viewportResized(godot::Vector2 newSize)
 {
 	if (m_northLabel != nullptr)
 	{
@@ -532,6 +549,8 @@ void GDN_TheWorld_Map::containerResize(godot::Vector2 newSize)
 		m_westLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
 		m_westLabel->set_offset(SIDE_TOP, newSize.y / 2);
 	}
+
+	getMapViewer()->getViewer()->forceProcessNewMapQuadrants(true);
 }
 
 void GDN_TheWorld_Map::_notification(int p_what)
@@ -550,11 +569,6 @@ void GDN_TheWorld_Map::_notification(int p_what)
 	{
 	}
 	break;
-	//case NOTIFICATION_RESIZED:
-	//{
-	//	godot::Vector2 newSize = get_size();
-	//}
-	//break;
 	}
 }
 
@@ -753,7 +767,7 @@ float GDN_TheWorld_Map::getQuadrantGlobalSize(void) const
 	return float(m_mapViewer->getViewer()->getImageMapResolution());
 }
 
-int32_t GDN_TheWorld_Map::getNumQuadrantsPerSize(void)
+int32_t GDN_TheWorld_Map::getNumQuadrantsPerSize(void) const
 {
 	return getNumImagesForTextureRectSide();
 }
@@ -1071,11 +1085,6 @@ void GDN_TheWorld_MapViewportContainer::_notification(int p_what)
 
 void GDN_TheWorld_MapViewportContainer::sizeChanged(godot::Vector2 newSize)
 {
-	//if (m_oldSize == newSize)
-	//	return;
-
-	m_oldSize = newSize;
-	
 	GDN_TheWorld_MapViewer* mapViewer = getMapViewer();
 	if (mapViewer != nullptr)
 	{
@@ -1085,7 +1094,7 @@ void GDN_TheWorld_MapViewportContainer::sizeChanged(godot::Vector2 newSize)
 		//GDN_TheWorld_Map* map = mapViewer->getMap();
 		GDN_TheWorld_Map* map = getMap();
 		if (map != nullptr)
-			map->containerResize(newSize);
+			map->viewportResized(newSize);
 	}
 }
 
@@ -1117,12 +1126,6 @@ void GDN_TheWorld_MapViewportContainer::_ready(void)
 
 void GDN_TheWorld_MapViewportContainer::_process(double _delta)
 {
-	//if (newSizeNotificationRequired())
-	//{
-	//	godot::Vector2 newSize = get_size();
-	//	sizeChanged(newSize);
-	//	newSizeNotificationRequired(false);
-	//}
 }
 
 void GDN_TheWorld_MapViewer::_bind_methods(void)
@@ -2925,6 +2928,8 @@ void GDN_TheWorld_Viewer::createMapViewer(void)
 				mapViewportContainer->set_owner(sceneRoot);
 		}
 		//mapViewportContainer->call_deferred("set_owner", sceneRoot);
+
+		mapViewportContainer->set_anchors_preset(godot::Control::LayoutPreset::PRESET_FULL_RECT);
 	}
 
 	// MapViewport
@@ -3065,14 +3070,18 @@ void GDN_TheWorld_Viewer::setPosMapViewer(godot::Size2& windowSize)
 	GDN_TheWorld_MapViewportContainer* mapViewportContainer = MapViewportContainer();
 	if (mapViewportContainer != nullptr)
 	{
-		mapViewportContainer->set_anchor(godot::Side::SIDE_LEFT, 0.0);
-		mapViewportContainer->set_offset(SIDE_LEFT, 0);
-		mapViewportContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
-		mapViewportContainer->set_offset(SIDE_TOP, 0);
-		//mapViewportContainer->set_position(godot::Vector2(0, 0));
-		mapViewportContainer->set_size(windowSize);
-		//mapViewportContainer->newSizeNotificationRequired(true);
-		//mapViewportContainer->sizeChanged(windowSize);
+		//mapViewportContainer->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+		//mapViewportContainer->set_offset(SIDE_LEFT, 0);
+		//mapViewportContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
+		//mapViewportContainer->set_offset(SIDE_TOP, 0);
+		////mapViewportContainer->set_position(godot::Vector2(0, 0));
+		//mapViewportContainer->set_size(windowSize);
+
+		GDN_TheWorld_MapViewport* mapViewport = mapViewportContainer->getMapViewport();
+		if (mapViewport != nullptr)
+		{
+			mapViewport->set_size(windowSize);
+		}
 	}
 
 	//GDN_TheWorld_Map* map = Map();

@@ -293,21 +293,11 @@ namespace godot
 		{
 			return m_map;
 		}
-		bool newSizeNotificationRequired(void) const
-		{
-			return m_newSizeNotificationRequired;
-		}
-		void newSizeNotificationRequired(bool b)
-		{
-			m_newSizeNotificationRequired = b;
-		}
 
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
 		godot::GDN_TheWorld_Map* m_map = nullptr;
-		godot::Vector2 m_oldSize;
-		bool m_newSizeNotificationRequired = false;
 	};
 
 	class GDN_TheWorld_MapViewport : public godot::SubViewport
@@ -421,12 +411,13 @@ namespace godot
 		{
 			return m_mapViewer;
 		}
-		void containerResize(godot::Vector2 newSize);
+		void viewportSizeChanged(void);
+		void viewportResized(godot::Vector2 newSize);
 
 		//void setScale(float scaleFactor);
 		float getQuadrantWorldSize(void);
 		float getQuadrantGlobalSize(void) const;
-		int32_t getNumQuadrantsPerSize(void);
+		int32_t getNumQuadrantsPerSize(void) const;
 		godot::Vector2i getImageSize(void) const;
 		godot::Vector2i getTextureRectSize(void) const;
 		//godot::Vector2i getTextureRectIdxFromWorldPos(float x, float z, int level, int numVerticesPerSize, float gridStepInWU) const;
@@ -474,6 +465,7 @@ namespace godot
 	private:
 		GDN_TheWorld_MapViewer* m_mapViewer = nullptr;
 		GDN_TheWorld_Globals* m_globals = nullptr;
+		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
 		MapTextureRectContainer m_mapTextureRectContainer;
 		std::map<TheWorld_Utils::MapTextureRectPos, bool> m_mapTextureRectRefreshScheduled;
 		godot::Dictionary m_worldFlagDict;
@@ -1340,7 +1332,7 @@ namespace godot
 			}
 		}
 		
-		godot::Size2 getSavedViewportSize(void)
+		godot::Size2 getSavedViewportSize(void) const
 		{
 			return m_savedViewportSize;
 		}

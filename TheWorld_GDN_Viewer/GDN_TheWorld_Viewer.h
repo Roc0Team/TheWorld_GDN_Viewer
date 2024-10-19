@@ -438,7 +438,7 @@ namespace godot
 		bool eraseCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool renderCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
-		void setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir = false, bool visible = true);
+		void setWorldFlag(godot::String name, godot::Color c, bool setCameraDir = false, bool visible = true);
 		godot::String getCacheDir(void);
 
 		//void zoom(int zoomRequired)
@@ -1091,6 +1091,10 @@ namespace godot
 		int getUpdateMaterialParamsDuration(void) const;
 		int getMouseTrackHitDuration(void) const;
 		int getProcessNotOwnsLock(void) const;
+		int getMaxNumQuadrant(void) const
+		{
+			return (int)pow((getMaxDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1, 2);
+		}
 		int getNumQuadrant(void)
 		{
 			return getNumQuadrant2(false);

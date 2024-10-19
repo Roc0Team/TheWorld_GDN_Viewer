@@ -785,6 +785,36 @@ namespace godot
 		}
 		void shaderParamGlobalTimeApplied(double d);
 
+
+		bool loadingScreen(void) const
+		{
+			return m_loadingScreen;
+
+		}
+		void loadingScreen(bool b)
+		{
+			m_loadingScreen = b;
+
+		}
+		void setLoadingScreen(bool b)
+		{
+			loadingScreen(b);
+		}
+
+		bool loadingScreenExitOnFullWorldDeploy(void) const
+		{
+			return m_loadingScreenExitOnFullWorldDeploy;
+		}
+		void loadingScreenExitOnFullWorldDeploy(bool b)
+		{
+			m_loadingScreenExitOnFullWorldDeploy = b;
+
+		}
+		void setLoadingScreenExitOnFullWorldDeploy(bool b)
+		{
+			loadingScreenExitOnFullWorldDeploy(b);
+		}
+		
 		// DEBUG
 		//static size_t s_num;
 		//static size_t s_elapsed1;
@@ -851,6 +881,8 @@ namespace godot
 		bool m_paramShowTerrainChanged = false;
 		bool m_paramShowChunks = THEWORLD_DEFAULT_SHOW_CHUNKS;
 		bool m_paramElevationZero = false;
+		bool m_loadingScreen = true;
+		bool m_loadingScreenExitOnFullWorldDeploy = true;
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 	};
 }

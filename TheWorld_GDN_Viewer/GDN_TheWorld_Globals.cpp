@@ -334,6 +334,9 @@ namespace godot
 
 	void GDN_TheWorld_Globals::_bind_methods()
 	{
+		ClassDB::bind_method(D_METHOD("set_loading_screen"), &GDN_TheWorld_Globals::setLoadingScreen);
+		ClassDB::bind_method(D_METHOD("set_loading_screen_exit_on_full_world_deploy"), &GDN_TheWorld_Globals::setLoadingScreenExitOnFullWorldDeploy);
+
 		ClassDB::bind_method(D_METHOD("get_cache_dir"), &GDN_TheWorld_Globals::getCacheDir);
 		ClassDB::bind_method(D_METHOD("get_config_filename"), &GDN_TheWorld_Globals::getConfigFilename);
 

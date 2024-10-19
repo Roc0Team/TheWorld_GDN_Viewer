@@ -1,3 +1,6 @@
+* loading screen
+* map view
+
 * ottimizzazione: eliminare cache heightmap 32 precalcolando min max height per ogni chunk e salvandolo insieme alle heightmap
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde

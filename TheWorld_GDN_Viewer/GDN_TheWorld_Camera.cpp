@@ -172,7 +172,7 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 	else
 		m_altPressed = false;
 
-#define MAPCAMERA_MOVE_INCREMENT	5.0
+#define MAPCAMERA_MOVE_INCREMENT	20.0
 	if (input->is_action_pressed("ui_left"))
 	{
 		m_mouseRelativePosToShift += godot::Vector2(MAPCAMERA_MOVE_INCREMENT, 0);

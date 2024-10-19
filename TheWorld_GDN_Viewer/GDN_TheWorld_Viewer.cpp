@@ -476,32 +476,33 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 
 	godot::Error e = m_mapViewport->connect("size_changed", Callable(this, "viewport_size_changed"));
 
+	constexpr int FONT_SIZE_MULTIPLIER = 2;
 	m_northLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_northLabel);
 	m_northLabel->set_text("N");
 	m_northLabel->set_modulate(GDN_TheWorld_Globals::g_color_red);
 	int32_t sz = m_northLabel->get_theme_font_size("font_size");
-	m_northLabel->add_theme_font_size_override("font_size", sz * 3);
+	m_northLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 	m_southLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_southLabel);
 	m_southLabel->set_text("S");
 	m_southLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_southLabel->get_theme_font_size("font_size");
-	m_southLabel->add_theme_font_size_override("font_size", sz * 3);
+	m_southLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 	m_eastLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_eastLabel);
 	m_eastLabel->set_text("E");
 	m_eastLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_eastLabel->get_theme_font_size("font_size");
-	m_eastLabel->add_theme_font_size_override("font_size", sz * 3);
+	m_eastLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 	m_westLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_westLabel);
 	m_westLabel->set_text("W");
 	m_westLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_westLabel->get_theme_font_size("font_size");
-	m_westLabel->add_theme_font_size_override("font_size", sz * 3);
+	m_westLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 
-	viewportResized(containerSize);
+	//viewportResized(containerSize);
 
 	//setScale(m_scaleFactor);
 }
@@ -617,7 +618,14 @@ void GDN_TheWorld_Map::_process(double _delta)
 	//	viewver->forceProcessNewMapQuadrants(true);
 	//}
 
-	std::lock_guard<std::recursive_mutex> lockM (m_mapViewer->getViewer()->getMainProcessingMutex());
+	if (m_mapViewer == nullptr)
+		return;
+
+	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+	if (viewer == nullptr)
+		return;
+
+	std::lock_guard<std::recursive_mutex> lockM (viewer->getMainProcessingMutex());
 
 	for (auto& item : m_mapTextureRectRefreshScheduled)
 	{
@@ -899,7 +907,7 @@ bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImag
 	return getMapTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos);
 }
 
-void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Transform3D worldTransform, godot::Color c, bool setCameraDir, bool visible)
+void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Color c, bool setCameraDir, bool visible)
 {
 	godot::Node2D* worldFlag = nullptr;
 	if (m_worldFlagDict.has(name))
@@ -914,7 +922,7 @@ void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Transform3D world
 		worldFlag->set_visible(false);
 		worldFlag->set_z_index(worldFlag->get_z_index() + 1);
 
-		constexpr int32_t FLAG_RADIUS = 5;
+		constexpr int32_t FLAG_RADIUS = 7;
 		godot::Ref<godot::SphereMesh> sphereFlag = memnew(godot::SphereMesh);
 		sphereFlag->set_radius(FLAG_RADIUS);
 		sphereFlag->set_height(FLAG_RADIUS * 2);
@@ -931,7 +939,7 @@ void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Transform3D world
 			worldFlag->add_child(dir);
 			dir->set_name("dir");
 			dir->set_default_color(c);
-			dir->set_width(1);
+			dir->set_width(3);
 			dir->add_point(godot::Vector2(0, 0));
 			dir->add_point(godot::Vector2(0, -FLAG_RADIUS * 3));
 		}
@@ -941,21 +949,28 @@ void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Transform3D world
 
 	if (worldFlag != nullptr)
 	{
-		godot::Vector2 worldFlagGlobalPosition = m_mapViewer->getViewer()->worldPosToGlobalPos(godot::Vector2(worldTransform.origin.x, worldTransform.origin.z));
-		worldFlag->set_global_position(worldFlagGlobalPosition);
-
-		if (setCameraDir)
+		godot::Camera3D* worldCamera = getMapViewer()->getViewer()->getWorldCamera2(true);
+		GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(worldCamera);
+		if (cam != nullptr)
 		{
-			godot::Transform2D resetTransform(0, worldFlagGlobalPosition);
-			worldFlag->set_transform(resetTransform);
-			godot::Basis b = worldTransform.basis;
-			godot::Vector3 worldCameraDir = -b.rows[b.rows->AXIS_Z];
-			godot::Vector2 maCameraDir(worldCameraDir.x, worldCameraDir.z);
-			float mapAngleToNorth = maCameraDir.angle_to(godot::Vector2(0, -1));
-			worldFlag->rotate(mapAngleToNorth);
-		}
+			godot::Transform3D worldTransform = cam->getWorldTransform();
 
-		worldFlag->set_visible(visible);
+			godot::Vector2 worldFlagGlobalPosition = m_mapViewer->getViewer()->worldPosToGlobalPos(godot::Vector2(worldTransform.origin.x, worldTransform.origin.z));
+			worldFlag->set_global_position(worldFlagGlobalPosition);
+
+			if (setCameraDir)
+			{
+				godot::Transform2D resetTransform(0, worldFlagGlobalPosition);
+				worldFlag->set_transform(resetTransform);
+				godot::Basis b = worldTransform.basis;
+				godot::Vector3 worldCameraDir = -b.rows[b.rows->AXIS_Z];
+				godot::Vector2 maCameraDir(worldCameraDir.x, worldCameraDir.z);
+				float mapAngleToNorth = maCameraDir.angle_to(godot::Vector2(0, -1));
+				worldFlag->rotate(mapAngleToNorth);
+			}
+
+			worldFlag->set_visible(visible);
+		}
 	}
 }
 
@@ -1091,10 +1106,6 @@ void GDN_TheWorld_MapViewportContainer::sizeChanged(godot::Vector2 newSize)
 		GDN_TheWorld_MapViewport* mapViewport = getMapViewport();
 		if (mapViewport != nullptr)
 			mapViewport->set_size(newSize);
-		//GDN_TheWorld_Map* map = mapViewer->getMap();
-		GDN_TheWorld_Map* map = getMap();
-		if (map != nullptr)
-			map->viewportResized(newSize);
 	}
 }
 
@@ -1183,6 +1194,16 @@ void GDN_TheWorld_HudControls::_input(const Ref<InputEvent>& event)
 	//if (eventMouseButton != nullptr and eventMouseButton->is_pressed())
 	//{
 	//	int a = 0;
+	//}
+
+	//if (event->is_action_pressed("ui_mouse_button_left"))
+	//{
+	//	PLOG_INFO << "ui_mouse_button_left is_action_pressed...";
+	//}
+
+	//if (event->is_action_released("ui_mouse_button_left"))
+	//{
+	//	PLOG_INFO << "ui_mouse_button_left is_action_released...";
 	//}
 }
 
@@ -2433,6 +2454,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_joins"), &GDN_TheWorld_Viewer::getNumJoins);
 	ClassDB::bind_method(D_METHOD("get_num_chunks"), &GDN_TheWorld_Viewer::getNumChunks);
 	ClassDB::bind_method(D_METHOD("get_num_active_chunks"), &GDN_TheWorld_Viewer::getNumActiveChunks);
+	ClassDB::bind_method(D_METHOD("get_max_num_quadrant"), &GDN_TheWorld_Viewer::getMaxNumQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_initialized_quadrant"), &GDN_TheWorld_Viewer::getNumInitializedQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_toerase_quadrant"), &GDN_TheWorld_Viewer::getNumToEraseQuadrant);
@@ -3083,16 +3105,6 @@ void GDN_TheWorld_Viewer::setPosMapViewer(godot::Size2& windowSize)
 			mapViewport->set_size(windowSize);
 		}
 	}
-
-	//GDN_TheWorld_Map* map = Map();
-	//if (map != nullptr)
-	//{
-	//	map->set_anchor(godot::Side::SIDE_LEFT, 0.0);
-	//	map->set_offset(SIDE_LEFT, 0);
-	//	mapViewportContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
-	//	map->set_offset(SIDE_TOP, 0);
-	//	map->set_size(windowSize);
-	//}
 }
 
 void GDN_TheWorld_Viewer::createHud(void)
@@ -5076,9 +5088,7 @@ void GDN_TheWorld_Viewer::toggleMapView(void)
 
 			GDN_TheWorld_Map*map = Map();
 			if (map != nullptr)
-			{
-				map->setWorldFlag("WorldCamera", m_worldCameraWorldTransformForToggleToWorldMode, GDN_TheWorld_Globals::g_color_red, true);
-			}
+				map->setWorldFlag("WorldCamera", GDN_TheWorld_Globals::g_color_red, true);
 		}
 	}
 }
@@ -5143,22 +5153,28 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 			GDN_TheWorld_MapViewer* mapViewer = MapViewer();
 			if (mapViewer != nullptr)
 			{
-				//GDN_TheWorld_HudControls* hudControls = HudControls();
-				//if (hudControls != nullptr)
-				//{
-				//	Node* parent = hudControls->get_parent();
-				//	if (parent != nullptr)
-				//	{
-				//		parent->remove_child(hudControls);
-				//		mapViewer->add_child(hudControls);
-				//	}
-				//	else
-				//	{
-				//		mapViewer->add_child(hudControls);
-				//	}
-				//}
-
 				mapViewer->set_visible(true);
+			}
+
+			GDN_TheWorld_MapViewportContainer* mapViewportContainer = MapViewportContainer();
+			if (mapViewportContainer != nullptr)
+			{
+				GDN_TheWorld_HudControls* hudControls = HudControls();
+				if (hudControls != nullptr)
+				{
+					Node* parent = hudControls->get_parent();
+					if (parent != nullptr)
+					{
+						parent->remove_child(hudControls);
+						mapViewportContainer->add_child(hudControls);
+					}
+					else
+					{
+						mapViewportContainer->add_child(hudControls);
+					}
+					//godot::Size2 windowSize = map->get_viewport()->get_visible_rect().size;
+					//setPosHud(windowSize);
+				}
 			}
 		}
 		else
@@ -5174,16 +5190,18 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 			GDN_TheWorld_HudControls* hudControls = HudControls();
 			if (hudControls != nullptr)
 			{
-				//Node* parent = hudControls->get_parent();
-				//if (parent != nullptr)
-				//{
-				//	parent->remove_child(hudControls);
-				//	add_child(hudControls);
-				//}
-				//else
-				//{
-				//	add_child(hudControls);
-				//}
+				Node* parent = hudControls->get_parent();
+				if (parent != nullptr)
+				{
+					parent->remove_child(hudControls);
+					add_child(hudControls);
+				}
+				else
+				{
+					add_child(hudControls);
+				}
+				//godot::Size2 windowSize = getViewportSize();
+				//setPosHud(windowSize);
 			}
 		}
 	}
@@ -6332,6 +6350,9 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	if (adjustWorldCameraRequired() and mapMode())
 	{
 		adjustWorldCamera(m_desideredCameraWorldPos);
+		GDN_TheWorld_Map* map = Map();
+		if (map != nullptr)
+			map->setWorldFlag("WorldCamera", GDN_TheWorld_Globals::g_color_red, true);
 		adjustWorldCameraRequired(false);
 	}
 	
@@ -6476,7 +6497,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 
-	if (worldMode())
+	//if (worldMode())	 // 1
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.07 ") + __FUNCTION__, "Update camera in quadrants");
 		process_updateCameraPosInShader(activeWorldCamera);
@@ -6498,7 +6519,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 
-	if (worldMode())
+	//if (worldMode())	 // 1
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.09 ") + __FUNCTION__, "Update quadrants");
 		if (processCameraPosForChunks || !finishedResizingGrid())
@@ -6519,7 +6540,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 
-	if (worldMode())
+	//if (worldMode())	 // 1
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.10 ") + __FUNCTION__, "Update chunks");
 		//if (processCameraPosForChunks)
@@ -6547,7 +6568,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 
-	if (worldMode()) 
+	//if (worldMode()) // 1
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.12 ") + __FUNCTION__, "Other stuff");
 
@@ -7865,7 +7886,7 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 		std::string hudStreaming;
 		int numInitializedQuadrant = getNumInitializedQuadrant();
 		int numQuadrant = getNumQuadrant();
-		int maxNumQuadrant = (int)pow((getMaxDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1, 2);
+		int maxNumQuadrant = getMaxNumQuadrant();
 		if (numInitializedQuadrant == numQuadrant)
 			hudStreaming = "";
 		else

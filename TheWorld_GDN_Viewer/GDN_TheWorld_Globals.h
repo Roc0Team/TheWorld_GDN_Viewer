@@ -785,7 +785,6 @@ namespace godot
 		}
 		void shaderParamGlobalTimeApplied(double d);
 
-
 		bool loadingScreen(void) const
 		{
 			return m_loadingScreen;

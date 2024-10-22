@@ -1221,11 +1221,64 @@ void GDN_TheWorld_HudControls::_unhandled_input(const Ref<InputEvent>& event)
 void GDN_TheWorld_HudControls::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_viewer = viewer;
+
+	m_loadingVBox = memnew(godot::VBoxContainer);
+	add_child(m_loadingVBox);
+	m_loadingVBox->set_name("HudLoadingVBox");
+	m_loadingVBox->set_custom_minimum_size(godot::Vector2(500, 0));
+	m_loadingVBox->set_visible(false);
+
+	m_loadingLabel = memnew(godot::Label);
+	m_loadingVBox->add_child(m_loadingLabel);
+	m_loadingLabel->set_name("HudLoadingText");
+	m_loadingLabel->add_theme_color_override("font_color", Color(0.5, 0, 0));
+	m_loadingLabel->add_theme_font_size_override("font_size", 20);
+	m_loadingLabel->set_text("Loading...");
+
+	m_loadingProgressBar = memnew(godot::ProgressBar);
+	m_loadingVBox->add_child(m_loadingProgressBar);
+	m_loadingProgressBar->set_name("HudLoadingProgressBar");
 }
 
 void GDN_TheWorld_HudControls::setPos(godot::Size2& windowSize)
 {
 	set_size(windowSize);
+
+	if (m_loadingVBox != nullptr)
+	{
+		godot::Vector2 loadingContainerSize = m_loadingVBox->get_size();
+		
+		m_loadingVBox->set_anchor(godot::Side::SIDE_TOP, 0.0);
+		m_loadingVBox->set_offset(SIDE_TOP, (windowSize.y / 2) - (loadingContainerSize.y / 2));
+		m_loadingVBox->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+		m_loadingVBox->set_offset(SIDE_LEFT, (windowSize.x / 2) - (loadingContainerSize.x / 2));
+	}
+}
+
+void GDN_TheWorld_HudControls::setLoadingProgress(float v)
+{
+	if (m_loadingProgressBar != nullptr)
+		m_loadingProgressBar->set_value(v);
+}
+
+void GDN_TheWorld_HudControls::showLoadingBar(void)
+{
+	if (m_loadingVBox != nullptr)
+		m_loadingVBox->set_visible(true);
+}
+
+void GDN_TheWorld_HudControls::hideLoadingBar(void)
+{
+	if (m_loadingVBox != nullptr)
+		m_loadingVBox->set_visible(false);
+}
+
+bool GDN_TheWorld_HudControls::isLoadingBarVisibile(void)
+{
+	if (m_loadingVBox != nullptr)
+		return m_loadingVBox->is_visible();
+	else
+		return false;
 }
 
 int32_t GDN_TheWorld_MapModder::s_numWorking = 0;
@@ -4628,28 +4681,47 @@ bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 
 	GDN_TheWorld_Globals* globals = Globals();
 
-	if ((globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
-		and finishedResizingGrid()
-		and !worldStreamingInProgress()
-		and allCollidersReady()
-		and m_recalcQuadrantsInViewNeeded == false
-		and isCameraQuadrantColliderSet()
-		and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
+	if (globals->loadingScreenExitOnFullWorldDeploy())
 	{
-		//godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
-		//if (process_updateGridDimension(globals, activeWorldCamera))
-		//{
-		//	if (m_recalcQuadrantsInViewNeeded == false)
-		//		return true;
-		//	else
-		//		return false;
-		//}
-		//else
-		//	return false;
-		return true;
+		if ((globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
+			and finishedResizingGrid()
+			and !worldStreamingInProgress()
+			and allCollidersReady()
+			and m_recalcQuadrantsInViewNeeded == false
+			and isCameraQuadrantColliderSet()
+			and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
+		{
+			//godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
+			//if (process_updateGridDimension(globals, activeWorldCamera))
+			//{
+			//	if (m_recalcQuadrantsInViewNeeded == false)
+			//		return true;
+			//	else
+			//		return false;
+			//}
+			//else
+			//	return false;
+			return true;
+		}
+		else
+			return false;
 	}
 	else
-		return false;
+	{
+		if ((globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
+			and finishedResizingGrid()
+			and !worldStreamingInProgress()
+			and allCollidersReady()
+			and m_recalcQuadrantsInViewNeeded == false
+			and isCameraQuadrantColliderSet()
+			and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
+		{
+			return true;
+		}
+		else
+			return false;
+	}
+
 }
 
 bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)
@@ -4672,7 +4744,7 @@ bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)
 	return ret;
 }
 
-bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform)
+bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea)
 {
 	bool ret = false;
 	GDN_TheWorld_Globals* globals = Globals();
@@ -4733,6 +4805,9 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 			cameraAltitude = 0;
 		}
 
+		//if (overSea and cameraAltitude <= 0)
+		//	cameraAltitude = 30;
+
 		godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
 		if (activeWorldCamera != nullptr)
 		{
@@ -4741,7 +4816,7 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 			GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
 			if (cam != nullptr)
 			{
-				cam->adjustPositionOnTerrainRequired(true);
+				cam->adjustPositionOnTerrainRequired(true, overSea);
 			}
 		}
 	}
@@ -5001,7 +5076,7 @@ void GDN_TheWorld_Viewer::adjustWorldCamera(godot::Vector2 desideredCameraWorldP
 		Camera2D* mapCamera = MapCamera();
 		if (mapCamera != nullptr)
 		{
-			setWorldCameraWorldPos(desideredCameraWorldPos, 0, true, m_worldCameraWorldTransformForToggleToWorldMode);
+			setWorldCameraWorldPos(desideredCameraWorldPos, 0, true, m_worldCameraWorldTransformForToggleToWorldMode, true);
 			delayedWorldMode(true);
 			//mapMode(false);
 			//mapCamera->set_enabled(false);
@@ -5033,7 +5108,7 @@ void GDN_TheWorld_Viewer::toggleMapView(void)
 				// SWITCHING TO WORLD MODE: world camera will not move (remaining where it was when map mode was activated)
 				{
 					godot::Vector2 worldPos(m_worldCameraWorldTransformForToggleToWorldMode.origin.x, m_worldCameraWorldTransformForToggleToWorldMode.origin.z);
-					setWorldCameraWorldPos(worldPos, m_altitudeForToggleToWorldMode, m_altitudeForToggleToWorldModeIsAbsolute, m_worldCameraWorldTransformForToggleToWorldMode);
+					setWorldCameraWorldPos(worldPos, m_altitudeForToggleToWorldMode, m_altitudeForToggleToWorldModeIsAbsolute, m_worldCameraWorldTransformForToggleToWorldMode, true);
 				}
 
 				mapMode(false);
@@ -5172,6 +5247,7 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 					{
 						mapViewportContainer->add_child(hudControls);
 					}
+					hudControls->hideLoadingBar();
 					//godot::Size2 windowSize = map->get_viewport()->get_visible_rect().size;
 					//setPosHud(windowSize);
 				}
@@ -5200,6 +5276,7 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 				{
 					add_child(hudControls);
 				}
+				hudControls->hideLoadingBar();
 				//godot::Size2 windowSize = getViewportSize();
 				//setPosHud(windowSize);
 			}
@@ -6350,9 +6427,20 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	if (adjustWorldCameraRequired() and mapMode())
 	{
 		adjustWorldCamera(m_desideredCameraWorldPos);
+		
 		GDN_TheWorld_Map* map = Map();
 		if (map != nullptr)
 			map->setWorldFlag("WorldCamera", GDN_TheWorld_Globals::g_color_red, true);
+		
+		GDN_TheWorld_HudControls* hudControls = HudControls();
+		if (hudControls != nullptr)
+		{
+			if (globals->loadingScreen())
+				hudControls->showLoadingBar();
+			else
+				hudControls->hideLoadingBar();
+		}
+		
 		adjustWorldCameraRequired(false);
 	}
 	
@@ -6366,6 +6454,21 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 			{
 				mapMode(false);
 				delayedWorldMode(false);
+			} 
+			else
+			{
+				GDN_TheWorld_HudControls* hudControls = HudControls();
+				if (hudControls != nullptr)
+				{
+					// Set progress bar
+					float numQuadrant = (globals->loadingScreenExitOnFullWorldDeploy() ? float(getMaxNumQuadrant()) : float(getNumQuadrant()));
+					float numInitializedQuadrant = float(getNumInitializedQuadrant());
+					if (numQuadrant > 1 and numInitializedQuadrant > 0)
+					{
+						float progress = numInitializedQuadrant / numQuadrant;
+						hudControls->setLoadingProgress(progress * 100);
+					}
+				}
 			}
 		}
 	}

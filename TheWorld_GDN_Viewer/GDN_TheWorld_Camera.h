@@ -274,9 +274,14 @@ namespace godot {
 		}
 
 		void adjustPositionOnTerrain(void);
-		void adjustPositionOnTerrainRequired(bool b)
+		void adjustPositionOnTerrainRequired(bool b, bool overSea = false)
 		{
 			m_adjustPositionOnTerrainRequired = b;
+			m_overSea = overSea;
+		}
+		bool adjustPositionOnTerrainRequired(void)
+		{
+			return m_adjustPositionOnTerrainRequired;
 		}
 
 	private:
@@ -288,6 +293,7 @@ namespace godot {
 		bool m_WorldCamera;
 		bool m_updateCameraRequired;
 		bool m_adjustPositionOnTerrainRequired = false;
+		bool m_overSea = false;
 		bool m_isActive;
 		int64_t m_instanceId;
 		godot::Node3D* m_trackedPlayer = nullptr;

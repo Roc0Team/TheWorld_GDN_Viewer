@@ -25,6 +25,8 @@
 #include <godot_cpp/classes/container.hpp>
 #include <godot_cpp/classes/panel_container.hpp>
 #include <godot_cpp/classes/texture_rect.hpp>
+#include <godot_cpp/classes/v_box_container.hpp>
+#include <godot_cpp/classes/progress_bar.hpp>
 //#include <godot_cpp/classes/dictionary.hpp>
 #pragma warning(pop)
 
@@ -494,6 +496,10 @@ namespace godot
 
 		void init(GDN_TheWorld_Viewer* viewer);
 		void setPos(godot::Size2& windowSize);
+		void setLoadingProgress(float v);
+		void showLoadingBar(void);
+		void hideLoadingBar(void);
+		bool isLoadingBarVisibile(void);
 
 		//
 		// Godot Standard Functions
@@ -505,6 +511,9 @@ namespace godot
 
 	private:
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
+		godot::VBoxContainer* m_loadingVBox = nullptr;
+		godot::Label* m_loadingLabel = nullptr;
+		godot::ProgressBar* m_loadingProgressBar = nullptr;
 	};
 
 	class GDN_TheWorld_MapModder : public godot::Node
@@ -1875,7 +1884,7 @@ namespace godot
 		TheWorld_Utils::QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isQuadrantSelectedForEdit(void);
 		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized);
-		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform);
+		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea);
 
 	private:
 		bool m_initialized;

@@ -201,7 +201,7 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 		if (m_zoomRequired != 0)
 		{
 			//map->zoom(m_zoomRequired);
-			constexpr float ZOOM_INCREMENET = 0.01f;
+			constexpr float ZOOM_INCREMENET = 0.02f;
 			float zoomFactor = getZoomFactor();
 			zoomFactor += ZOOM_INCREMENET * m_zoomRequired;
 			if (zoomFactor > 0 and zoomFactor <= 1)
@@ -1420,8 +1420,11 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 
 void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 {
-	if (m_adjustPositionOnTerrainRequired)
+	if (adjustPositionOnTerrainRequired() or (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE and m_lastCameraAltitudeFromTerrain < 0))
 	{
+		if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE and m_lastCameraAltitudeFromTerrain < 0)
+			assert(m_lastCameraAltitudeFromTerrain < 0);
+		
 		if (Globals()->Viewer()->isCameraQuadrantColliderSet())
 		{
 			updateAltitudeFromTerrain(true);
@@ -1430,14 +1433,17 @@ void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 			{
 				float altitudeFromTerrain = MIN_ALTITUDE_ALLOWED_FOR_CAMERA;
 				altitudeFromTerrain = 50;
+				float cameraAltitudeComputed = m_lastComputedCameraVerticalOnTerrain.y + altitudeFromTerrain;
+				if (m_overSea)
+					cameraAltitudeComputed = THEWORLD_SEA_LEVEL + THEWORLD_SEA_MAX_WAVE_HEIGHT * 2;
 				godot::Vector3 cameraPos = get_global_position();
-				set_global_position(godot::Vector3(cameraPos.x, m_lastComputedCameraVerticalOnTerrain.y + altitudeFromTerrain, cameraPos.z));
+				set_global_position(godot::Vector3(cameraPos.x, cameraAltitudeComputed, cameraPos.z));
 				m_lastCameraAltitudeFromTerrain = altitudeFromTerrain;
 			}
 			else
 				assert(m_lastCameraAltitudeFromTerrain == INVALID_CAMERA_ALTITUDE);
 
-			m_adjustPositionOnTerrainRequired = false;
+			adjustPositionOnTerrainRequired(false);
 		}
 	}
 }

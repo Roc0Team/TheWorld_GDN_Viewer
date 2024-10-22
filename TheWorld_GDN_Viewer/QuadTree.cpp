@@ -76,7 +76,10 @@ godot::Ref<godot::Image> MapQuadrant::getMapImage(void)
 	if (m_mapImage == nullptr)
 	{
 		m_mapImage = godot::Image::create(getImageResolution(), getImageResolution(), false, godot::Image::FORMAT_RGB8);
-		m_mapImage->fill(godot::Color(GDN_TheWorld_Globals::g_color_white));
+		//m_mapImage->fill(godot::Color(GDN_TheWorld_Globals::g_color_white));
+#define water_globalmap_gdshader_u_sea_color	godot::Color(0.10f, 0.19f, 0.32f)
+#define water_globalmap_gdshader_u_sea_color2	godot::Color(0.25f, 0.32f, 0.43f)
+		m_mapImage->fill(godot::Color(43.0F / 255.0F, 57.0F / 255.0F, 73.0F / 255.0F));
 	}
 
 	return m_mapImage;
@@ -2032,8 +2035,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularSeaMaterial(bool reload
 		godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 		m_viewer->getMainProcessingMutex().unlock();
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-		//String shaderPath = "res://addons/twviewer/shaders/water.gdshader";
-		String shaderPath = "res://addons/twviewer/test/water.gdshader";
+		String shaderPath = "res://addons/twviewer/shaders/water.gdshader";
+		//String shaderPath = "res://addons/twviewer/test/water.gdshader";
 		godot::Ref<godot::Shader> shader;
 		if (reload)
 			shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
@@ -2060,8 +2063,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getGlobalmapSeaMaterial(bool relo
 		godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 		m_viewer->getMainProcessingMutex().unlock();
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-		//String shaderPath = "res://addons/twviewer/shaders/water_globalmap.gdshader";
-		String shaderPath = "res://addons/twviewer/test/water_globalmap.gdshader";
+		String shaderPath = "res://addons/twviewer/shaders/water_globalmap.gdshader";
+		//String shaderPath = "res://addons/twviewer/test/water_globalmap.gdshader";
 		godot::Ref<godot::Shader> shader;
 		if (reload)
 			shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
@@ -2095,8 +2098,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 									//String shaderPath = "res://addons/twviewer/shaders/regularChunk.gdshader";
 									//String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
 									//String shaderPath = "res://addons/twviewer/test/regularChunk.tres";
-		//String shaderPath = "res://addons/twviewer/shaders/terrain.gdshader";
-		String shaderPath = "res://addons/twviewer/test/terrain.gdshader";
+		String shaderPath = "res://addons/twviewer/shaders/terrain.gdshader";
+		//String shaderPath = "res://addons/twviewer/test/terrain.gdshader";
 		m_sendTextureToShader = true;
 		godot::Ref<godot::Shader> shader;
 		if (reload)

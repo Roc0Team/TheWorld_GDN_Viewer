@@ -1177,12 +1177,12 @@ namespace godot
 		};
 
 	public:
-		enum class QuadrantPriority
+		enum class QuadrantDepthSet
 		{
 			NotSet = -1
-			, High = 0
-			, Mid = 1
-			, Low = 2
+			, Initial = 0		// Quadrant included in the minimum depth of quadrants
+			, Growing = 1		// Quadrant acquired after minimum deploy of world 
+			, Cache = 2		// Invisible quadrant which are part of the cache pool of quadrants
 		};
 
 		static std::string statusToString(enum class QuadrantStatus status);
@@ -1536,13 +1536,13 @@ namespace godot
 			return containsQuadOfType(QuadType::Sea);
 		}
 
-		enum class QuadrantPriority quadrantPriority(void) const
+		enum class QuadrantDepthSet quadrantDepthSet(void) const
 		{
-			return m_quadPriority;
+			return m_quadrantDepthSet;
 		}
-		void quadrantPriority(enum class QuadrantPriority p)
+		void quadrantDepthSet(enum class QuadrantDepthSet p)
 		{
-			m_quadPriority = p;
+			m_quadrantDepthSet = p;
 		}
 		size_t numQuadrantsFromCameraQuadrant(void) const
 		{
@@ -1604,7 +1604,7 @@ namespace godot
 		bool m_editModeQuadrantSelected = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
 		int m_canContainSea = QUADRANT_SEA_INFO_SET_NOTSET;
-		QuadrantPriority m_quadPriority = QuadrantPriority::NotSet;
+		QuadrantDepthSet m_quadrantDepthSet = QuadrantDepthSet::NotSet;
 		int m_numQuadrantsFromCameraQuadrant = -1;
 
 		std::map<enum class QuadType, std::unique_ptr<Quads>> m_quads;

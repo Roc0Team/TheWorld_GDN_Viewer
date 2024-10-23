@@ -173,7 +173,8 @@ namespace godot
 #define TIME_INTERVAL_BETWEEN_MOUSE_TRACK 50	// 250	// ms
 #define TIME_INTERVAL_BETWEEN_ELAB_CAMERA -1	// 2000	// ms
 #define TIME_INTERVAL_BETWEEN_RECALC_QUADRANT 1000	// 250	// ms
-#define TIME_INTERVAL_BETWEEN_QUADRANT_INIT_AT_LOW_PRIORITY	 200	// ms
+//#define TIME_INTERVAL_BETWEEN_QUADRANT_INIT_AT_LOW_PRIORITY	 200	// ms
+#define TIME_INTERVAL_BETWEEN_QUADRANT_INIT_AT_LOW_PRIORITY	 0	// ms
 
 //#define DEFAULT_HIGH_MOUNTAINS_TEX_NAME					"PaintedPlaster017_1k"
 //#define DEFAULT_HIGH_MOUNTAINS_ALTITUDE_THRESHOLD			2000
@@ -480,6 +481,7 @@ namespace godot
 		godot::Label* m_eastLabel = nullptr;
 		godot::Label* m_westLabel = nullptr;
 
+		godot::Node2D* m_ruler = nullptr;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -497,7 +499,7 @@ namespace godot
 		void init(GDN_TheWorld_Viewer* viewer);
 		void setPos(godot::Size2& windowSize);
 		void setLoadingProgress(float v);
-		void showLoadingBar(void);
+		void showLoadingBar(bool reset = true);
 		void hideLoadingBar(void);
 		bool isLoadingBarVisibile(void);
 
@@ -1100,6 +1102,11 @@ namespace godot
 		int getUpdateMaterialParamsDuration(void) const;
 		int getMouseTrackHitDuration(void) const;
 		int getProcessNotOwnsLock(void) const;
+		float getLoadingProgress();
+		int getMinNumQuadrant(void) const
+		{
+			return (int)pow((getMinDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1, 2);
+		}
 		int getMaxNumQuadrant(void) const
 		{
 			return (int)pow((getMaxDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1, 2);
@@ -1113,6 +1120,10 @@ namespace godot
 		{
 			return getNumInitializedQuadrant2(false);
 		}
+		int getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1);
+		int getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1, QuadTree::QuadrantDepthSet depthSet2);
+		int getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1, QuadTree::QuadrantDepthSet depthSet2, QuadTree::QuadrantDepthSet depthSet3);
+		int getNumReadyQuadrant(void);
 		int getNumInitializedQuadrant2(bool recalcNow);
 		int getNumToEraseQuadrant(void) const;
 		int getNumVisibleQuadrant(void) const;
@@ -1555,6 +1566,10 @@ namespace godot
 				return false;
 		}
 
+		bool recalcQuadrantsInViewNeeded(void) const
+		{
+			return m_recalcQuadrantsInViewNeeded;
+		}
 		void recalcQuadrantsInViewNeeded(bool b)
 		{
 			m_recalcQuadrantsInViewNeeded = b;
@@ -1841,7 +1856,6 @@ namespace godot
 		}
 
 		bool isCameraQuadrantColliderSet(void);
-
 		bool worldStreamingTerminated(void);
 
 	private:

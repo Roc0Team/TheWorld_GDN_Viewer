@@ -255,7 +255,7 @@ GDN_TheWorld_Map::MapTextureRect::MapTextureRect(GDN_TheWorld_Map* map, TheWorld
 
 GDN_TheWorld_Map::MapTextureRect::~MapTextureRect(void)
 {
-	destroyTextureRect();
+	//destroyTextureRect();
 }
 
 bool GDN_TheWorld_Map::MapTextureRect::rectFull(void)
@@ -501,6 +501,18 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	m_westLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_westLabel->get_theme_font_size("font_size");
 	m_westLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
+
+	float MapRulerHLineSize = getQuadrantGlobalSize();
+	m_ruler = memnew(godot::Node2D);
+	mapViewportContainer->add_child(m_ruler);
+	m_ruler->set_name("MapRuler");
+	godot::Line2D* rulerHorizontalLine = memnew(godot::Line2D);
+	m_ruler->add_child(rulerHorizontalLine);
+	rulerHorizontalLine->set_name("MapRulerHLine");
+	rulerHorizontalLine->set_default_color(GDN_TheWorld_Globals::g_color_red);
+	rulerHorizontalLine->set_width(3);
+	rulerHorizontalLine->add_point(godot::Vector2(0, 0));
+	rulerHorizontalLine->add_point(godot::Vector2(MapRulerHLineSize, 0));
 
 	//viewportResized(containerSize);
 
@@ -1259,12 +1271,19 @@ void GDN_TheWorld_HudControls::setLoadingProgress(float v)
 {
 	if (m_loadingProgressBar != nullptr)
 		m_loadingProgressBar->set_value(v);
+
+	if (v == 100)
+		assert(v == 100);
 }
 
-void GDN_TheWorld_HudControls::showLoadingBar(void)
+void GDN_TheWorld_HudControls::showLoadingBar(bool reset)
 {
 	if (m_loadingVBox != nullptr)
+	{
+		if (reset)
+			setLoadingProgress(0);
 		m_loadingVBox->set_visible(true);
+	}
 }
 
 void GDN_TheWorld_HudControls::hideLoadingBar(void)
@@ -2507,7 +2526,9 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_joins"), &GDN_TheWorld_Viewer::getNumJoins);
 	ClassDB::bind_method(D_METHOD("get_num_chunks"), &GDN_TheWorld_Viewer::getNumChunks);
 	ClassDB::bind_method(D_METHOD("get_num_active_chunks"), &GDN_TheWorld_Viewer::getNumActiveChunks);
+	ClassDB::bind_method(D_METHOD("get_loading_progress"), &GDN_TheWorld_Viewer::getLoadingProgress);
 	ClassDB::bind_method(D_METHOD("get_max_num_quadrant"), &GDN_TheWorld_Viewer::getMaxNumQuadrant);
+	ClassDB::bind_method(D_METHOD("get_min_num_quadrant"), &GDN_TheWorld_Viewer::getMinNumQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_initialized_quadrant"), &GDN_TheWorld_Viewer::getNumInitializedQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_toerase_quadrant"), &GDN_TheWorld_Viewer::getNumToEraseQuadrant);
@@ -4709,12 +4730,14 @@ bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 	else
 	{
 		if ((globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
-			and finishedResizingGrid()
-			and !worldStreamingInProgress()
-			and allCollidersReady()
+			//and finishedResizingGrid()
+			//and !worldStreamingInProgress()
+			//and allCollidersReady()
 			and m_recalcQuadrantsInViewNeeded == false
 			and isCameraQuadrantColliderSet()
-			and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
+			and (getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet::Initial, QuadTree::QuadrantDepthSet::Cache)) >= getMinNumQuadrant())
+			//and getNumInitializedQuadrant2(true) >= getMinNumQuadrant())
+			//and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
 		{
 			return true;
 		}
@@ -4736,7 +4759,7 @@ bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)
 	if (m_worldQuadrantsMap.contains(quadrantPos))
 	{
 		QuadTree* quadTree = m_worldQuadrantsMap[quadrantPos].get();
-		if (quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::Terrain))
+		if (quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::NotSet))
 		{
 			ret = true;
 		}
@@ -4760,7 +4783,7 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 		if (m_worldQuadrantsMap.contains(quadrantPos))
 		{
 			QuadTree* quadTree = m_worldQuadrantsMap[quadrantPos].get();
-			if (quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::Terrain))
+			if (quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::NotSet))
 			{
 #define MAX_ALTITUDE_DETECTED		20000
 
@@ -5202,7 +5225,8 @@ void GDN_TheWorld_Viewer::delayedWorldMode(bool b)
 		{
 			m_delayedWorldMode = b;
 			finishedResizingGrid(false);
-			recalcQuadrantsInView();
+			//recalcQuadrantsInView();
+			m_recalcQuadrantsInViewNeeded = true;
 		}
 	}
 	else
@@ -5781,8 +5805,8 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	
 	vector<TheWorld_Utils::QuadrantPos> quadrantPosNeeded;
 	quadrantPosNeeded.push_back(cameraQuadrantPos);
-	vector<enum class QuadTree::QuadrantPriority> quadrantPriority;
-	quadrantPriority.push_back(QuadTree::QuadrantPriority::High);
+	vector<enum class QuadTree::QuadrantDepthSet> quadrantDepthSet;
+	quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Initial);
 	vector<size_t> numQuadrantsFromCameraQuadrant;
 	numQuadrantsFromCameraQuadrant.push_back(0);
 
@@ -5832,19 +5856,19 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 		TheWorld_Utils::QuadrantPos q = cameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus, 1 + i);
 		q.setTag(cameraQuadrantPos.getTag() + " X-" + std::to_string(1 + i));
 		quadrantPosNeeded.push_back(q);
-		if (i < m_numVisibleQuadrantOnPerimeterOnWestSide)
+		if (i < m_minVisibleQuadrantOnPerimeter)
 		{
-			quadrantPriority.push_back(QuadTree::QuadrantPriority::High);
+			quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Initial);
 		}
-		else if (i == m_numVisibleQuadrantOnPerimeterOnWestSide)
+		else if (i < m_numVisibleQuadrantOnPerimeterOnWestSide)
 		{
-			quadrantPriority.push_back(QuadTree::QuadrantPriority::Mid);
+			quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Growing);
 		}
 		else
 		{
-			quadrantPriority.push_back(QuadTree::QuadrantPriority::Low);
+			quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Cache);
 		}
-		numQuadrantsFromCameraQuadrant.push_back(i + 1);
+		numQuadrantsFromCameraQuadrant.push_back(static_cast<size_t>(i) + 1);
 		//break;	// SUPERDEBUGRIC only X-1 quadrant
 	}
 
@@ -5854,19 +5878,19 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 		TheWorld_Utils::QuadrantPos q = cameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus, 1 + i);
 		q.setTag(cameraQuadrantPos.getTag() + " X+" + std::to_string(1 + i));
 		quadrantPosNeeded.push_back(q);
-		if (i < m_numVisibleQuadrantOnPerimeterOnEastSide)
+		if (i < m_minVisibleQuadrantOnPerimeter)
 		{
-			quadrantPriority.push_back(QuadTree::QuadrantPriority::High);
+			quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Initial);
 		}
-		else if (i == m_numVisibleQuadrantOnPerimeterOnEastSide)
+		else if (i < m_numVisibleQuadrantOnPerimeterOnEastSide)
 		{
-			quadrantPriority.push_back(QuadTree::QuadrantPriority::Mid);
+			quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Growing);
 		}
 		else
 		{
-			quadrantPriority.push_back(QuadTree::QuadrantPriority::Low);
+			quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Cache);
 		}
-		numQuadrantsFromCameraQuadrant.push_back(i + 1);
+		numQuadrantsFromCameraQuadrant.push_back(static_cast<size_t>(i) + 1);
 		//break;	// SUPERDEBUGRIC only X+1 quadrant
 	}
 
@@ -5874,25 +5898,31 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	size_t size = quadrantPosNeeded.size();
 	for (size_t idx = 0; idx < size; idx++)
 	{
+		// first is central quadrant
+		// following there are (((size - 1) / 2) - m_numCacheQuadrantOnPerimeter) visible quadrant on left side
+		// following there are m_numCacheQuadrantOnPerimeter cache quadrant on left size
+		// following there are (((size - 1) / 2) - m_numCacheQuadrantOnPerimeter) visible quadrant on right side
+		// finally there are m_numCacheQuadrantOnPerimeter cache quadrant on right size
+		
 		// ... add vertical (Z axis) quadrants up
 		for (size_t i = 0; i < m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numCacheQuadrantOnPerimeter; i++)
 		{
 			TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus, 1 + int(i));
 			q.setTag(quadrantPosNeeded[idx].getTag() + " Z-" + std::to_string(1 + i));
 			quadrantPosNeeded.push_back(q);
-			if (i < m_numVisibleQuadrantOnPerimeterOnNorthSide)
+			if (numQuadrantsFromCameraQuadrant[idx] <= m_minVisibleQuadrantOnPerimeter and i < m_minVisibleQuadrantOnPerimeter)
 			{
-				quadrantPriority.push_back(QuadTree::QuadrantPriority::High);
+				quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Initial);
 			}
-			else if (i == m_numVisibleQuadrantOnPerimeterOnNorthSide)
+			else if (numQuadrantsFromCameraQuadrant[idx] <= m_numVisibleQuadrantOnPerimeterOnWestSide and i < m_numVisibleQuadrantOnPerimeterOnNorthSide)
 			{
-				quadrantPriority.push_back(QuadTree::QuadrantPriority::Mid);
+				quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Growing);
 			}
 			else
 			{
-				quadrantPriority.push_back(QuadTree::QuadrantPriority::Low);
+				quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Cache);
 			}
-			numQuadrantsFromCameraQuadrant.push_back(i + 1);
+			numQuadrantsFromCameraQuadrant.push_back(TheWorld_Utils::Utils::max2(numQuadrantsFromCameraQuadrant[idx], i + 1));
 			//break;	// SUPERDEBUGRIC only Z-1 quadrant
 		}
 
@@ -5902,19 +5932,19 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 			TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus, 1 + int(i));
 			q.setTag(quadrantPosNeeded[idx].getTag() + " Z+" + std::to_string(1 + i));
 			quadrantPosNeeded.push_back(q);
-			if (i < m_numVisibleQuadrantOnPerimeterOnSouthSide)
+			if (numQuadrantsFromCameraQuadrant[idx] <= m_minVisibleQuadrantOnPerimeter and i < m_minVisibleQuadrantOnPerimeter)
 			{
-				quadrantPriority.push_back(QuadTree::QuadrantPriority::High);
+				quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Initial);
 			}
-			else if (i == m_numVisibleQuadrantOnPerimeterOnSouthSide)
+			else if (numQuadrantsFromCameraQuadrant[idx] <= m_numVisibleQuadrantOnPerimeterOnEastSide and i < m_numVisibleQuadrantOnPerimeterOnSouthSide)
 			{
-				quadrantPriority.push_back(QuadTree::QuadrantPriority::Mid);
+				quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Growing);
 			}
 			else
 			{
-				quadrantPriority.push_back(QuadTree::QuadrantPriority::Low);
+				quadrantDepthSet.push_back(QuadTree::QuadrantDepthSet::Cache);
 			}
-			numQuadrantsFromCameraQuadrant.push_back(i + 1);
+			numQuadrantsFromCameraQuadrant.push_back(TheWorld_Utils::Utils::max2(numQuadrantsFromCameraQuadrant[idx], i + 1));
 			//break;	// SUPERDEBUGRIC only Z+1 quadrant
 		}
 	}
@@ -5959,7 +5989,7 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 
 					m_worldQuadrantsMap[quadrantPosNeeded[idx]] = make_unique<QuadTree>(this, quadrantPosNeeded[idx]);
 					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->refreshTime(refreshTime);
-					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->quadrantPriority(quadrantPriority[idx]);
+					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->quadrantDepthSet(quadrantDepthSet[idx]);
 					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->numQuadrantsFromCameraQuadrant(numQuadrantsFromCameraQuadrant[idx]);
 					addedQuandrantsForInititalization = true;
 					newQuadAdded = true;
@@ -5982,7 +6012,7 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 
 					if (it->second->statusToErase())
 					{
-						// recycle of quadrant flagged to erase
+						// recycle quadrant flagged to erase beacusa it is now usefull
 						it->second->setPrevStatus();
 						if (m_toErase.contains(it->first))
 							m_toErase.erase(it->first);
@@ -5990,7 +6020,7 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 
 					it->second->refreshTime(refreshTime);
 					it->second->setTag(quadrantPosNeeded[idx].getTag());
-					it->second->quadrantPriority(quadrantPriority[idx]);
+					it->second->quadrantDepthSet(quadrantDepthSet[idx]);
 					it->second->numQuadrantsFromCameraQuadrant(numQuadrantsFromCameraQuadrant[idx]);
 				}
 			}
@@ -6436,7 +6466,9 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		if (hudControls != nullptr)
 		{
 			if (globals->loadingScreen())
+			{
 				hudControls->showLoadingBar();
+			}
 			else
 				hudControls->hideLoadingBar();
 		}
@@ -6461,13 +6493,15 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 				if (hudControls != nullptr)
 				{
 					// Set progress bar
-					float numQuadrant = (globals->loadingScreenExitOnFullWorldDeploy() ? float(getMaxNumQuadrant()) : float(getNumQuadrant()));
-					float numInitializedQuadrant = float(getNumInitializedQuadrant());
-					if (numQuadrant > 1 and numInitializedQuadrant > 0)
-					{
-						float progress = numInitializedQuadrant / numQuadrant;
-						hudControls->setLoadingProgress(progress * 100);
-					}
+					float loadingProgress = getLoadingProgress();
+					hudControls->setLoadingProgress(loadingProgress);
+					//float numQuadrant = (globals->loadingScreenExitOnFullWorldDeploy() ? float(getMaxNumQuadrant()) : float(getNumQuadrant()));
+					//float numInitializedQuadrant = float(getNumInitializedQuadrant());
+					//if (numQuadrant > 1 and numInitializedQuadrant > 0)
+					//{
+					//	float progress = numInitializedQuadrant / numQuadrant;
+					//	hudControls->setLoadingProgress(progress * 100);
+					//}
 				}
 			}
 		}
@@ -7643,7 +7677,7 @@ bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQu
 			if (itQuadTree->second->numQuadrantsFromCameraQuadrant() == numQuadrantsFromCameraQuadrant)
 			{
 				bool proceed = true;
-				if (itQuadTree->second->quadrantPriority() == QuadTree::QuadrantPriority::Low && finishedResizingGrid())
+				if (TIME_INTERVAL_BETWEEN_QUADRANT_INIT_AT_LOW_PRIORITY > 0 and itQuadTree->second->quadrantDepthSet() == QuadTree::QuadrantDepthSet::Cache and finishedResizingGrid())
 				{
 					int64_t elapsedFromLastQuadInitAtLowPriority = TIME()->get_ticks_msec() - m_timeElapsedFromLastQuadrandtInit;
 					if (elapsedFromLastQuadInitAtLowPriority < TIME_INTERVAL_BETWEEN_QUADRANT_INIT_AT_LOW_PRIORITY)
@@ -7990,7 +8024,7 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 		int numInitializedQuadrant = getNumInitializedQuadrant();
 		int numQuadrant = getNumQuadrant();
 		int maxNumQuadrant = getMaxNumQuadrant();
-		if (numInitializedQuadrant == numQuadrant)
+		if (numQuadrant == 0 or numInitializedQuadrant == numQuadrant)
 			hudStreaming = "";
 		else
 		{
@@ -11221,6 +11255,27 @@ int GDN_TheWorld_Viewer::getNumJoins(void) const
 	return m_numJoins;
 }
 
+float GDN_TheWorld_Viewer::getLoadingProgress()
+{
+	GDN_TheWorld_Globals* globals = Globals();
+	float numQuadrants = 0, numInitializedQuadrants = 0;
+	if (globals->loadingScreenExitOnFullWorldDeploy())
+	{
+		numQuadrants = float(getMaxNumQuadrant());
+		//numInitializedQuadrants = float(getNumInitializedQuadrant2(true));
+		numInitializedQuadrants = float(getNumReadyQuadrant());
+	}
+	else
+	{
+		numQuadrants = float(getMinNumQuadrant());
+		numInitializedQuadrants = float(getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet::Initial, QuadTree::QuadrantDepthSet::Cache));
+	}
+	if (numQuadrants > 1 and numInitializedQuadrants > 0 and numInitializedQuadrants <= numQuadrants)
+		return (numInitializedQuadrants / numQuadrants) * 100;
+	else
+		return 0;
+}
+
 int GDN_TheWorld_Viewer::getNumQuadrant2(bool recalcNow)
 {
 	if (recalcNow)
@@ -11230,6 +11285,55 @@ int GDN_TheWorld_Viewer::getNumQuadrant2(bool recalcNow)
 	}
 	
 	return m_numQuadrant;
+}
+
+int GDN_TheWorld_Viewer::getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1)
+{
+	return getNumReadyQuadrantAtDepthSet(depthSet1, QuadTree::QuadrantDepthSet::NotSet, QuadTree::QuadrantDepthSet::NotSet);
+}
+
+int GDN_TheWorld_Viewer::getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1, QuadTree::QuadrantDepthSet depthSet2)
+{
+	return getNumReadyQuadrantAtDepthSet(depthSet1, depthSet2, QuadTree::QuadrantDepthSet::NotSet);
+}
+
+int GDN_TheWorld_Viewer::getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1, QuadTree::QuadrantDepthSet depthSet2, QuadTree::QuadrantDepthSet depthSet3)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+	int num = 0;
+	for (auto& itQuadrantMapItem : m_worldQuadrantsMap)
+	{
+		QuadTree::QuadrantDepthSet currentDepthSet = itQuadrantMapItem.second->quadrantDepthSet();
+		if (itQuadrantMapItem.second->statusInitialized() and !itQuadrantMapItem.second->statusToErase()
+			and !itQuadrantMapItem.second->colliderNeedReset(QuadType::NotSet) and !itQuadrantMapItem.second->materialParamsNeedReset() and !itQuadrantMapItem.second->materialParamsNeedUpdate()
+			and	(
+				(depthSet1 != QuadTree::QuadrantDepthSet::NotSet and currentDepthSet == depthSet1)
+				or (depthSet2 != QuadTree::QuadrantDepthSet::NotSet and currentDepthSet == depthSet2)
+				or (depthSet3 != QuadTree::QuadrantDepthSet::NotSet and currentDepthSet == depthSet3)
+				))
+			num++;
+	}
+
+	//int numInitial = 0, numGrowing = 0, numCache = 0, numNotSet = 0;
+	//for (auto& item : m_worldQuadrantsMap)
+	//{
+	//	if (item.second->quadrantDepthSet() == QuadTree::QuadrantDepthSet::Initial)
+	//		numInitial++;
+	//	if (item.second->quadrantDepthSet() == QuadTree::QuadrantDepthSet::Growing)
+	//		numGrowing++;
+	//	if (item.second->quadrantDepthSet() == QuadTree::QuadrantDepthSet::Cache)
+	//		numCache++;
+	//	if (item.second->quadrantDepthSet() == QuadTree::QuadrantDepthSet::NotSet)
+	//		numNotSet++;
+	//}
+
+	return num;
+}
+
+int GDN_TheWorld_Viewer::getNumReadyQuadrant(void)
+{
+	return getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet::Initial, QuadTree::QuadrantDepthSet::Growing, QuadTree::QuadrantDepthSet::Cache);
 }
 
 int GDN_TheWorld_Viewer::getNumInitializedQuadrant2(bool recalcNow)

@@ -32,6 +32,7 @@
 #include <godot_cpp/classes/sphere_mesh.hpp>
 #include <godot_cpp/classes/line2d.hpp>
 #include <godot_cpp/classes/thread.hpp>
+#include <godot_cpp/classes/center_container.hpp>
 #include "warning_pop.h"
 //#pragma warning(pop)
 
@@ -477,24 +478,28 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	godot::Error e = m_mapViewport->connect("size_changed", Callable(this, "viewport_size_changed"));
 
 	constexpr int FONT_SIZE_MULTIPLIER = 2;
+	
 	m_northLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_northLabel);
 	m_northLabel->set_text("N");
 	m_northLabel->set_modulate(GDN_TheWorld_Globals::g_color_red);
 	int32_t sz = m_northLabel->get_theme_font_size("font_size");
 	m_northLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
+	
 	m_southLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_southLabel);
 	m_southLabel->set_text("S");
 	m_southLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_southLabel->get_theme_font_size("font_size");
 	m_southLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
+	
 	m_eastLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_eastLabel);
 	m_eastLabel->set_text("E");
 	m_eastLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_eastLabel->get_theme_font_size("font_size");
 	m_eastLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
+	
 	m_westLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_westLabel);
 	m_westLabel->set_text("W");
@@ -502,21 +507,38 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	sz = m_westLabel->get_theme_font_size("font_size");
 	m_westLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 
-	float MapRulerHLineSize = getQuadrantGlobalSize();
-	m_ruler = memnew(godot::Node2D);
-	mapViewportContainer->add_child(m_ruler);
-	m_ruler->set_name("MapRuler");
+	const float MapRulerHLineSize = getQuadrantGlobalSize();
+	const float MapRulerVLineSize = 10;
+	const double MapRulerLineWidth = 3;
+	const godot::Color MapRulerColor(GDN_TheWorld_Globals::g_color_red);
+	m_rulerGroup = memnew(godot::VBoxContainer);
+	mapViewportContainer->add_child(m_rulerGroup);
+	m_rulerGroup->set_name("MapRulerGroup");
+
+	godot::Label* rulerLabel = memnew(godot::Label);
+	m_rulerGroup->add_child(rulerLabel);
+	rulerLabel->set_name("MapRulerLabel");
+	rulerLabel->set_modulate(MapRulerColor);
+	//rulerLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_CENTER);
+	
+	godot::Container* ruler = memnew(godot::Container);
+	m_rulerGroup->add_child(ruler);
+	ruler->set_name("MapRuler");
 	godot::Line2D* rulerHorizontalLine = memnew(godot::Line2D);
-	m_ruler->add_child(rulerHorizontalLine);
+	ruler->add_child(rulerHorizontalLine);
 	rulerHorizontalLine->set_name("MapRulerHLine");
-	rulerHorizontalLine->set_default_color(GDN_TheWorld_Globals::g_color_red);
-	rulerHorizontalLine->set_width(3);
-	rulerHorizontalLine->add_point(godot::Vector2(0, 0));
-	rulerHorizontalLine->add_point(godot::Vector2(MapRulerHLineSize, 0));
-
-	//viewportResized(containerSize);
-
-	//setScale(m_scaleFactor);
+	rulerHorizontalLine->set_default_color(MapRulerColor);
+	rulerHorizontalLine->set_width(MapRulerLineWidth);
+	godot::Line2D* rulerVerticalLine1 = memnew(godot::Line2D);
+	ruler->add_child(rulerVerticalLine1);
+	rulerVerticalLine1->set_name("MapRulerVLine1");
+	rulerVerticalLine1->set_default_color(MapRulerColor);
+	rulerVerticalLine1->set_width(MapRulerLineWidth);
+	godot::Line2D* rulerVerticalLine2 = memnew(godot::Line2D);
+	ruler->add_child(rulerVerticalLine2);
+	rulerVerticalLine2->set_name("MapRulerVLine2");
+	rulerVerticalLine2->set_default_color(MapRulerColor);
+	rulerVerticalLine2->set_width(MapRulerLineWidth);
 }
 
 void GDN_TheWorld_Map::viewportSizeChanged(void)
@@ -563,7 +585,78 @@ void GDN_TheWorld_Map::viewportResized(godot::Vector2 newSize)
 		m_westLabel->set_offset(SIDE_TOP, newSize.y / 2);
 	}
 
+	resizeRuler(newSize);
+	
 	getMapViewer()->getViewer()->forceProcessNewMapQuadrants(true);
+}
+
+void GDN_TheWorld_Map::resizeRuler(void)
+{
+	if (m_mapViewport != nullptr)
+	{
+		godot::Vector2 newSize = m_mapViewport->get_size();
+		resizeRuler(newSize);
+	}
+}
+
+void GDN_TheWorld_Map::resizeRuler(godot::Vector2 newSize)
+{
+	if (m_rulerGroup != nullptr)
+	{
+		godot::Node* n = nullptr;
+
+		Camera2D* mapCamera = getMapViewer()->getViewer()->MapCamera();
+		GDN_TheWorld_MapCamera* cam = godot::Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
+
+		float zoomFactor = cam->getZoomFactor();
+
+		const float MapRulerHLineSize = getQuadrantGlobalSize() * zoomFactor;
+		const float MapRulerVLineSize = 10;
+		const double MapRulerLineWidth = 3;
+
+		n = m_rulerGroup->find_child("MapRulerLabel", true, false);
+		godot::Label* rulerLabel = godot::Object::cast_to<godot::Label>(n);
+		std::string labelText = std::to_string(int(getQuadrantWorldSize())) + " m";
+		rulerLabel->set_text(labelText.c_str());
+		int32_t fontSize = rulerLabel->get_theme_font_size("font_size");
+		godot::Vector2 minimumRulerLabelSize(real_t(labelText.size() * fontSize), real_t(fontSize));
+		//rulerLabel->set_size(minimumRulerLabelSize);
+
+		n = m_rulerGroup->find_child("MapRulerHLine", true, false);
+		godot::Line2D* rulerHorizontalLine = godot::Object::cast_to<godot::Line2D>(n);
+		rulerHorizontalLine->clear_points();
+		rulerHorizontalLine->add_point(godot::Vector2(0, 0));
+		rulerHorizontalLine->add_point(godot::Vector2(MapRulerHLineSize, 0));
+
+		n = m_rulerGroup->find_child("MapRulerVLine1", true, false);
+		godot::Line2D* rulerVerticalLine1 = godot::Object::cast_to<godot::Line2D>(n);
+		rulerVerticalLine1->clear_points();
+		rulerVerticalLine1->add_point(godot::Vector2(0, -MapRulerVLineSize / 2));
+		rulerVerticalLine1->add_point(godot::Vector2(0, MapRulerVLineSize / 2));
+
+		n = m_rulerGroup->find_child("MapRulerVLine2", true, false);
+		godot::Line2D* rulerVerticalLine2 = godot::Object::cast_to<godot::Line2D>(n);
+		rulerVerticalLine2->clear_points();
+		rulerVerticalLine2->add_point(godot::Vector2(MapRulerHLineSize, -MapRulerVLineSize / 2));
+		rulerVerticalLine2->add_point(godot::Vector2(MapRulerHLineSize, MapRulerVLineSize / 2));
+
+		godot::Vector2 minimumRulerSize(MapRulerHLineSize + float(MapRulerLineWidth), MapRulerVLineSize + fontSize);
+		m_rulerGroupCustomMinimumSize = godot::Vector2(TheWorld_Utils::Utils::max2(minimumRulerLabelSize.x, minimumRulerSize.x), TheWorld_Utils::Utils::max2(minimumRulerLabelSize.y, minimumRulerSize.y));
+
+		//godot::Vector2 rulerGroupSize = m_rulerGroup->get_size();
+		//if (rulerGroupSize == godot::Vector2())
+		//	rulerGroupSize = m_rulerGroupCustomMinimumSize;
+		godot::Vector2 rulerGroupSize = m_rulerGroupCustomMinimumSize;
+		m_rulerGroup->set_anchor(godot::Side::SIDE_LEFT, 0.8);
+		m_rulerGroup->set_offset(SIDE_LEFT, 0.0);
+		m_rulerGroup->set_anchor(godot::Side::SIDE_TOP, 1.0);
+		m_rulerGroup->set_offset(SIDE_TOP, -(rulerGroupSize.y + 20));
+		m_rulerGroup->set_size(rulerGroupSize);
+
+		//godot::Vector2 rulerLabelSize = rulerLabel->get_size();
+		//rulerLabelSize.y = rulerGroupSize.y;
+		//rulerLabel->set_size(rulerLabelSize);
+	}
 }
 
 void GDN_TheWorld_Map::_notification(int p_what)

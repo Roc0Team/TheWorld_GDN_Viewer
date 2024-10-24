@@ -241,6 +241,10 @@ void GDN_TheWorld_MapCamera::setZoom(float zoomFactor)
 			GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
 			if (viewer != nullptr)
 				viewer->forceProcessNewMapQuadrants(true);
+
+			GDN_TheWorld_Map* map = m_mapViewer->getMap();
+			if (map != nullptr)
+				map->resizeRuler();
 		}
 	}
 }

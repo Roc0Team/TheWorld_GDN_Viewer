@@ -416,6 +416,8 @@ namespace godot
 		}
 		void viewportSizeChanged(void);
 		void viewportResized(godot::Vector2 newSize);
+		void resizeRuler(void);
+		void resizeRuler(godot::Vector2 newSize);
 
 		//void setScale(float scaleFactor);
 		float getQuadrantWorldSize(void);
@@ -481,7 +483,8 @@ namespace godot
 		godot::Label* m_eastLabel = nullptr;
 		godot::Label* m_westLabel = nullptr;
 
-		godot::Node2D* m_ruler = nullptr;
+		godot::Vector2 m_rulerGroupCustomMinimumSize;
+		godot::VBoxContainer* m_rulerGroup = nullptr;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container

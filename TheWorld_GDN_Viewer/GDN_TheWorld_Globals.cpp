@@ -132,7 +132,6 @@ namespace godot
 
 	void GDN_TheWorld_Globals_Client::MapManagerSetLogMaxSeverity(plog::Severity sev)
 	{
-		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back((int)sev);
 		std::string ref;
@@ -146,7 +145,6 @@ namespace godot
 
 	void GDN_TheWorld_Globals_Client::ServerInitializeSession(bool isInEditor, plog::Severity sev)
 	{
-		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(isInEditor);
 		inputParams.push_back((int)sev);
@@ -161,7 +159,6 @@ namespace godot
 
 	void GDN_TheWorld_Globals_Client::MapManagerGetQuadrantVertices(bool isInEditor, float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, float lowerXGridVertex, float lowerZGridVertex, int anchorType, int numVerticesPerSize, float gridStepInWU, int level, bool setCamera, float cameraDistanceFromTerrainForced, std::string meshId)
 	{
-		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(cameraX);
 		inputParams.push_back(cameraZ);
@@ -188,9 +185,8 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::Sync(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& quadrants, std::string& mapTextureRects)
+	void GDN_TheWorld_Globals_Client::MapManagerSync(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& quadrants, std::string& mapTextureRects)
 	{
-		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(isInEditor);
 		inputParams.push_back(numVerticesPerSize);
@@ -215,7 +211,6 @@ namespace godot
 
 	void GDN_TheWorld_Globals_Client::MapManagerUploadBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepInWU, int level, std::string buffer, int32_t numQuadrantsPerSize, float quadrantGlobalSize, float quadrantWorldSize)
 	{
-		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(lowerXGridVertex);
 		inputParams.push_back(lowerZGridVertex);
@@ -239,7 +234,6 @@ namespace godot
 
 	void GDN_TheWorld_Globals_Client::MapManagerDeployLevel(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepInWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll)
 	{
-		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(level);
 		inputParams.push_back(numVerticesPerSize);
@@ -264,7 +258,6 @@ namespace godot
 
 	void GDN_TheWorld_Globals_Client::MapManagerDeployWorld(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepInWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll)
 	{
-		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(level);
 		inputParams.push_back(numVerticesPerSize);
@@ -289,7 +282,6 @@ namespace godot
 
 	void GDN_TheWorld_Globals_Client::MapManagerUndeployWorld(bool isInEditor)
 	{
-		std::vector<ClientServerVariant> replyParams;
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(isInEditor);
 		std::string ref;
@@ -297,6 +289,26 @@ namespace godot
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
 		{
 			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UNDEPLOYWORLD " error ") + std::to_string(rc);
+			throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", rc));
+		}
+	}
+
+	void GDN_TheWorld_Globals_Client::MapManagerUploadTextureRects(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& mapTextureRects)
+	{
+		std::vector<ClientServerVariant> inputParams;
+		inputParams.push_back(isInEditor);
+		inputParams.push_back(numVerticesPerSize);
+		inputParams.push_back(gridStepInWU);
+		inputParams.push_back(inGameEditMode);
+		std::vector<unsigned char> _mapTextureRects(mapTextureRects.begin(), mapTextureRects.end());
+		//l1 = mapTextureRects.size();		// DEBUG
+		//l2 = _mapTextureRects.size();		// DEBUG
+		inputParams.push_back(_mapTextureRects);
+		std::string ref;
+		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer()->Map());
+		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
+		{
+			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS " error ") + std::to_string(rc);
 			throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", rc));
 		}
 	}

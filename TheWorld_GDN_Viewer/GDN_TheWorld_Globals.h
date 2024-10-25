@@ -111,11 +111,12 @@ namespace godot
 		void MapManagerSetLogMaxSeverity(plog::Severity sev);
 		void ServerInitializeSession(bool isInEditor, plog::Severity sev);
 		void MapManagerGetQuadrantVertices(bool isInEditor, float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, float lowerXGridVertex, float lowerZGridVertex, int anchorType, int numVerticesPerSize, float gridStepInWU, int level, bool setCamera, float cameraDistanceFromTerrainForced, std::string meshId);
-		void Sync(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& quadrants, std::string& mapTextureRects);
+		void MapManagerSync(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& quadrants, std::string& mapTextureRects);
 		void MapManagerUploadBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepInWU, int level, std::string buffer, int32_t numQuadrantsPerSize, float quadrantGlobalSize, float quadrantWorldSize);
 		void MapManagerDeployLevel(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepInWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll);
 		void MapManagerDeployWorld(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepInWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll);
 		void MapManagerUndeployWorld(bool isInEditor);
+		void MapManagerUploadTextureRects(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& mapTextureRects);
 		virtual bool quitting(void);
 
 	private:

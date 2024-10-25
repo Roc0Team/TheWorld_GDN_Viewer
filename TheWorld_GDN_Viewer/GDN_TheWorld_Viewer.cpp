@@ -442,6 +442,8 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 		std::string _imagePath = imagePath.utf8().get_data();
 		m_FileTimeStr = TheWorld_Utils::last_write_time_utc_str(_imagePath);
 		
+		m_map->selectTextureRectForUpload(m_mapTextureRectPos, m_FileTimeStr, rectImage);
+
 		renderTexture(rectImage);
 
 		fullRectRendered = true;
@@ -643,19 +645,12 @@ void GDN_TheWorld_Map::resizeRuler(godot::Vector2 newSize)
 		godot::Vector2 minimumRulerSize(MapRulerHLineSize + float(MapRulerLineWidth), MapRulerVLineSize + fontSize);
 		m_rulerGroupCustomMinimumSize = godot::Vector2(TheWorld_Utils::Utils::max2(minimumRulerLabelSize.x, minimumRulerSize.x), TheWorld_Utils::Utils::max2(minimumRulerLabelSize.y, minimumRulerSize.y));
 
-		//godot::Vector2 rulerGroupSize = m_rulerGroup->get_size();
-		//if (rulerGroupSize == godot::Vector2())
-		//	rulerGroupSize = m_rulerGroupCustomMinimumSize;
 		godot::Vector2 rulerGroupSize = m_rulerGroupCustomMinimumSize;
 		m_rulerGroup->set_anchor(godot::Side::SIDE_LEFT, 0.8);
 		m_rulerGroup->set_offset(SIDE_LEFT, 0.0);
 		m_rulerGroup->set_anchor(godot::Side::SIDE_TOP, 1.0);
 		m_rulerGroup->set_offset(SIDE_TOP, -(rulerGroupSize.y + 20));
 		m_rulerGroup->set_size(rulerGroupSize);
-
-		//godot::Vector2 rulerLabelSize = rulerLabel->get_size();
-		//rulerLabelSize.y = rulerGroupSize.y;
-		//rulerLabel->set_size(rulerLabelSize);
 	}
 }
 
@@ -742,8 +737,14 @@ void GDN_TheWorld_Map::_process(double _delta)
 
 		m_mapViewer->getViewer()->forceProcessNewMapQuadrants(true);
 	}
-
 	m_mapTextureRectRefreshScheduled.clear();
+
+	std::vector<TheWorld_Utils::MapTextureRectPos> toErase;
+	for (auto& item : m_uploadingMapTextureRectContainer)
+		if (item.second->uploaded())
+			toErase.push_back(item.first);
+	for (auto& item : toErase)
+		m_uploadingMapTextureRectContainer.erase(item);
 }
 
 //void GDN_TheWorld_Map::setScale(float scaleFactor)
@@ -936,6 +937,217 @@ void GDN_TheWorld_Map::addMapTextureRectRefreshScheduled(TheWorld_Utils::MapText
 godot::String GDN_TheWorld_Map::getCacheDir(void)
 {
 	return m_mapViewer->getViewer()->Globals()->getCacheDir(m_mapViewer->getViewer()->getLevel());
+}
+
+void GDN_TheWorld_Map::selectTextureRectForUpload(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, std::string& utcFileTimeStr, godot::Ref<godot::Image> rectImage)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	m_uploadingMapTextureRectContainer[mapTextureRectPos] = make_unique<UploadingMapTextureRect>(this, mapTextureRectPos, utcFileTimeStr, rectImage);
+}
+
+bool GDN_TheWorld_Map::uploadSelectedTextureRect(void)
+{
+	bool uploadInProgress = false;
+	
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+
+	if (m_uploadingMapTextureRectContainer.size() == 0)
+		return uploadInProgress;
+
+	size_t size = 0;
+	size_t cursor = 0;
+	TheWorld_Utils::MemoryBuffer buffer;
+	//buffer.reserve(100000);		// preallocation for optimization purpose
+	//*buffer.ptr() = '0';
+	//cursor = 1;
+
+	buffer.reserve(100000);		// preallocation for optimization purpose
+	constexpr int32_t maxRectsInBuffer = 10;
+	size_t numSent = 0;
+	for (auto& item : m_uploadingMapTextureRectContainer)
+	{
+		if (item.second->uploadRequired())
+		{
+			TheWorld_Utils::MemoryBuffer textureRectPosBuffer;
+			item.second->pos().serialize(textureRectPosBuffer);
+
+			buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
+			TheWorld_Utils::serializeToByteStream<size_t>(textureRectPosBuffer.size(), buffer.ptr() + cursor, size);
+			cursor += size;
+			buffer.adjustSize(cursor);
+
+			buffer.reserve(cursor + textureRectPosBuffer.size());		// to avoid memory overflow
+			memcpy(buffer.ptr() + cursor, textureRectPosBuffer.ptr(), textureRectPosBuffer.size());
+			cursor += textureRectPosBuffer.size();
+			buffer.adjustSize(cursor);
+
+			std::string fileTime = item.second->utcFileTimeStr();
+
+			buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
+			TheWorld_Utils::serializeToByteStream<size_t>(fileTime.size(), buffer.ptr() + cursor, size);
+			cursor += size;
+			buffer.adjustSize(cursor);
+
+			buffer.reserve(cursor + fileTime.size());		// to avoid memory overflow
+			memcpy(buffer.ptr() + cursor, fileTime.c_str(), fileTime.size());
+			cursor += fileTime.size();
+			buffer.adjustSize(cursor);
+
+			godot::Ref<godot::Image> image = item.second->rectImage();
+			int32_t _imageSize = image->get_size().x * image->get_size().y;
+			size_t imageSize = image->get_data_size();
+			godot::PackedByteArray imageData = image->get_data();
+
+			buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
+			TheWorld_Utils::serializeToByteStream<size_t>(imageSize, buffer.ptr() + cursor, size);
+			cursor += size;
+			buffer.adjustSize(cursor);
+
+			buffer.reserve(cursor + imageSize);		// to avoid memory overflow
+			memcpy(buffer.ptr() + cursor, (char*)imageData.ptr(), imageSize);
+			cursor += imageSize;
+			buffer.adjustSize(cursor);
+
+			numSent++;
+			item.second->setStatus(UploadingMapTextureRect::Status::UploadInProgress);
+
+			if (numSent >= maxRectsInBuffer)
+				break;
+		}
+	}
+	std::string mapTextureRects;
+	buffer.toString(mapTextureRects);
+
+	if (numSent == 0)
+		return uploadInProgress;
+
+	//buffer.clear();
+	buffer.reserve(100000);		// preallocation for optimization purpose
+	*buffer.ptr() = '0';
+	cursor = 1;
+	buffer.adjustSize(cursor);
+
+	buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
+	TheWorld_Utils::serializeToByteStream<size_t>(numSent, buffer.ptr() + cursor, size);
+	cursor += size;
+	buffer.adjustSize(cursor);
+
+	buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
+	TheWorld_Utils::serializeToByteStream<size_t>(mapTextureRects.size(), buffer.ptr() + cursor, size);
+	cursor += size;
+	buffer.adjustSize(cursor);
+
+	buffer.reserve(cursor + mapTextureRects.size());		// to avoid memory overflow
+	memcpy(buffer.ptr() + cursor, mapTextureRects.c_str(), mapTextureRects.size());
+	cursor += mapTextureRects.size();
+	buffer.adjustSize(cursor);
+
+	buffer.toString(mapTextureRects);
+
+	Globals()->Client()->MapManagerUploadTextureRects(m_mapViewer->getViewer()->isInEditor(), m_mapViewer->getViewer()->isEditMode(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU(), mapTextureRects);
+
+	uploadInProgress = true;
+	return uploadInProgress;
+}
+
+void GDN_TheWorld_Map::replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply)
+{
+	std::string method = reply.getMethod();
+
+	if (reply.error())
+	{
+		//Globals()->setStatus(TheWorldStatus::error);
+		Globals()->errorPrint((std::string("GDN_TheWorld_Map::replyFromServer: error method ") + method + std::string(" rc=") + std::to_string(reply.getErrorCode()) + std::string(" ") + reply.getErrorMessage()).c_str());
+		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS)
+			m_mapViewer->getViewer()->uploadTextureRectInProgress(false);
+		return;
+	}
+
+	try
+	{
+		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS)
+		{
+			ClientServerVariant v = reply.getInputParam(1);
+			const auto _numVerticesPerSize(std::get_if<size_t>(&v));
+			if (_numVerticesPerSize == NULL)
+			{
+				std::string m = std::string("Reply MapManager::uploadTextureRects did not return a size_t as second input param");
+				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+			}
+			size_t numVerticesPerSize = *_numVerticesPerSize;
+
+			v = reply.getInputParam(2);
+			const auto _gridStepInWU(std::get_if<float>(&v));
+			if (_gridStepInWU == NULL)
+			{
+				std::string m = std::string("Reply MapManager::uploadTextureRects did not return a float as third input param");
+				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+			}
+			float gridStepInWU = *_gridStepInWU;
+
+			v = reply.getReplyParam(0);
+			std::vector<unsigned char>* _repliedTextureRects = std::get_if<std::vector<unsigned char>>(&v);
+			if (_repliedTextureRects == NULL)
+			{
+				std::string m = std::string("Reply MapManager::uploadTextureRects did not return a std::vector<unsigned char> as first return param");
+				throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+			}
+			std::string repliedTextureRects((*_repliedTextureRects).begin(), (*_repliedTextureRects).end());
+
+			if (repliedTextureRects.size() > 0)
+			{
+				size_t size = 0;
+				size_t replyCursor = 1;				// bypassing first byte '0'
+				size_t numRepliedTextureRects = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)repliedTextureRects.c_str() + replyCursor, size);
+				replyCursor += size;
+
+				if (numRepliedTextureRects == 0)
+				{
+					size_t repliedMapTextureRectsBufferSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)repliedTextureRects.c_str() + replyCursor, size);
+					replyCursor += size;
+
+					TheWorld_Utils::MemoryBuffer repliedMapTextureRectsBuffer((BYTE*)repliedTextureRects.c_str() + replyCursor, repliedMapTextureRectsBufferSize);
+					replyCursor += repliedMapTextureRectsBufferSize;
+
+					std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+
+					size_t repliedMapTextureRectsBufferCursor = 0;
+					for (int32_t idx = 0; idx < numRepliedTextureRects; idx++)
+					{
+						size_t mapTextureRectPosBufferSize = TheWorld_Utils::deserializeFromByteStream<size_t>(repliedMapTextureRectsBuffer.ptr() + repliedMapTextureRectsBufferCursor, size);
+						repliedMapTextureRectsBufferCursor += size;
+
+						TheWorld_Utils::MemoryBuffer mapTextureRectPosBuffer(repliedMapTextureRectsBuffer.ptr() + repliedMapTextureRectsBufferCursor, mapTextureRectPosBufferSize);
+						repliedMapTextureRectsBufferCursor += mapTextureRectPosBufferSize;
+						TheWorld_Utils::MapTextureRectPos mapTextureRectPos;
+						mapTextureRectPos.deserialize(mapTextureRectPosBuffer);
+
+						if (m_uploadingMapTextureRectContainer.contains(mapTextureRectPos) and m_uploadingMapTextureRectContainer[mapTextureRectPos]->uploadInProgress())
+						{
+							m_uploadingMapTextureRectContainer[mapTextureRectPos]->setStatus(UploadingMapTextureRect::Status::Uploaded);
+						}
+					}
+				}
+			}
+
+			m_mapViewer->getViewer()->uploadTextureRectInProgress(false);
+		}
+		else
+		{
+			Globals()->setStatus(TheWorldStatus::error);
+			Globals()->errorPrint((std::string("GDN_TheWorld_Map::replyFromServer: unknow method ") + method).c_str());
+		}
+	}
+	catch (GDN_TheWorld_Exception ex)
+	{
+		Globals()->setStatus(TheWorldStatus::error);
+		Globals()->errorPrint(String(ex.exceptionName()) + String(" caught - ") + ex.what());
+	}
+	catch (...)
+	{
+		Globals()->setStatus(TheWorldStatus::error);
+		Globals()->errorPrint("GDN_TheWorld_Map::replyFromServer: exception caught");
+	}
 }
 
 bool GDN_TheWorld_Map::destroyTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
@@ -3870,7 +4082,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			{
 				std::string clientQuadrants((*_clientQuadrants).begin(), (*_clientQuadrants).end());
 				if (clientQuadrants.length() > 0)
-					m_quadrantSyncRunning = false;
+					m_quadrantSyncInProgress = false;
 			}
 		}
 		return;
@@ -4669,7 +4881,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			}
 
 			if (clientQuadrants.length() > 0)
-				m_quadrantSyncRunning = false;
+				m_quadrantSyncInProgress = false;
 
 			{
 				GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
@@ -4765,7 +4977,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 	catch (...)
 	{
 		Globals()->setStatus(TheWorldStatus::error);
-		Globals()->errorPrint("GDN_TheWorld_Globals::replyFromServer: exception caught");
+		Globals()->errorPrint("GDN_TheWorld_Viewer::replyFromServer: exception caught");
 	}
 }
 
@@ -11780,6 +11992,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 		{
 			try
 			{
+				// Schedule quadrants to be erased in next _process
 				{
 					//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 					std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
@@ -11802,41 +12015,45 @@ void GDN_TheWorld_Viewer::streamer(void)
 				// Optimization: calc here getHeightsForCollider, getFloat16HeightsBuffer, getFloat32HeightsBuffer, getNormalsBuffer if they are empty and if we know they will be loaded in next _process
 				// with this optimization we want to do the work outside _process to have more fluidity
 				
-				size_t numNeededQuads = static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numVisibleQuadrantOnPerimeterOnSouthSide + 2 * getCacheQuadOnPerimeter())
-					* static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnWestSide + m_numVisibleQuadrantOnPerimeterOnEastSide + 2 * getCacheQuadOnPerimeter());
-				if ((int)Globals()->status() >= (int)TheWorldStatus::minimalWorldDeployed && m_worldQuadrantsMap.size() < numNeededQuads)
-					m_recalcQuadrantsInViewNeeded = true;
-
-				if (m_numVisibleQuadrantOnPerimeterOnNorthSideApplied != m_numVisibleQuadrantOnPerimeterOnNorthSide
-					|| m_numVisibleQuadrantOnPerimeterOnSouthSideApplied != m_numVisibleQuadrantOnPerimeterOnSouthSide
-					|| m_numVisibleQuadrantOnPerimeterOnWestSideApplied != m_numVisibleQuadrantOnPerimeterOnWestSide
-					|| m_numVisibleQuadrantOnPerimeterOnEastSideApplied != m_numVisibleQuadrantOnPerimeterOnEastSide
-					)
-					m_recalcQuadrantsInViewNeeded = true;
-				
+				// recalcQuadrantsInView
 				{
-					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+					size_t numNeededQuads = static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numVisibleQuadrantOnPerimeterOnSouthSide + 2 * getCacheQuadOnPerimeter())
+						* static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnWestSide + m_numVisibleQuadrantOnPerimeterOnEastSide + 2 * getCacheQuadOnPerimeter());
+					if ((int)Globals()->status() >= (int)TheWorldStatus::minimalWorldDeployed && m_worldQuadrantsMap.size() < numNeededQuads)
+						m_recalcQuadrantsInViewNeeded = true;
 
-					if (m_recalcQuadrantsInViewNeeded && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and !m_streamingInProgress)
+					if (m_numVisibleQuadrantOnPerimeterOnNorthSideApplied != m_numVisibleQuadrantOnPerimeterOnNorthSide
+						|| m_numVisibleQuadrantOnPerimeterOnSouthSideApplied != m_numVisibleQuadrantOnPerimeterOnSouthSide
+						|| m_numVisibleQuadrantOnPerimeterOnWestSideApplied != m_numVisibleQuadrantOnPerimeterOnWestSide
+						|| m_numVisibleQuadrantOnPerimeterOnEastSideApplied != m_numVisibleQuadrantOnPerimeterOnEastSide
+						)
+						m_recalcQuadrantsInViewNeeded = true;
+
 					{
-						bool newQuadAdded = recalcQuadrantsInView();
-						if (not newQuadAdded)
-							finishedResizingGrid(true);
-						m_recalcQuadrantsInViewNeeded = false;
+						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+						if (m_recalcQuadrantsInViewNeeded && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and !m_streamingInProgress)
+						{
+							bool newQuadAdded = recalcQuadrantsInView();
+							if (not newQuadAdded)
+								finishedResizingGrid(true);
+							m_recalcQuadrantsInViewNeeded = false;
+						}
 					}
 				}
 
+				// Sync with server
 				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 				if ((now - lastSyncTime).count() > STREAMER_SYNC_PERIOD_TIME)
 				{
 					std::string quadrants;
 					std::string mapTextureRects;
-					if (!m_quadrantSyncRunning && (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
+					if (!m_quadrantSyncInProgress && (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
 					{
 						std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 						if (lock.owns_lock())
 						{
-							m_quadrantSyncRunning = true;
+							m_quadrantSyncInProgress = true;
 
 							TheWorld_Utils::MemoryBuffer buffer;
 							buffer.reserve(100000);		// preallocation for optimization purpose
@@ -11933,11 +12150,47 @@ void GDN_TheWorld_Viewer::streamer(void)
 						}
 					}
 					
-					Globals()->Client()->Sync(isInEditor(), isEditMode(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU(), quadrants, mapTextureRects);
+					Globals()->Client()->MapManagerSync(isInEditor(), isEditMode(), Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU(), quadrants, mapTextureRects);
 					
 					lastSyncTime = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 				}
 
+				// Upload Built Texture Rect
+				{
+					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+					if (!m_uploadTextureRectInProgress)
+					{
+						m_uploadTextureRectInProgress = true;
+
+						try
+						{
+							bool uploadInProgress = false;
+
+							GDN_TheWorld_Map* map = Map();
+							if (map != nullptr)
+							{
+								uploadInProgress = map->uploadSelectedTextureRect();
+							}
+							
+							if (!uploadInProgress)
+								m_uploadTextureRectInProgress = false;
+						}
+						catch (std::exception& e)
+						{
+							m_uploadTextureRectInProgress = false;
+							Globals()->errorPrint((std::string("GDN_TheWorld_Viewer::streamer - Upload Built Texture Rect - std::exception caught - ") + e.what()).c_str());
+							//throw(e);
+						}
+						catch (...)
+						{
+							m_uploadTextureRectInProgress = false;
+							Globals()->errorPrint("GDN_TheWorld_Viewer::streamer - Upload Built Texture Rect - Exception caught");
+							//throw(new exception("exception caught"));
+						}
+					}
+				}
+				
 				if (m_dumpRequired)
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("streamer 1 ") + __FUNCTION__, "Dump stuff");

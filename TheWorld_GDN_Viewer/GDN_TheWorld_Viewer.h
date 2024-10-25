@@ -346,7 +346,7 @@ namespace godot
 		godot::GDN_TheWorld_Map* m_map = nullptr;
 	};
 
-	class GDN_TheWorld_Map : public godot::Node2D
+	class GDN_TheWorld_Map : public godot::Node2D, public TheWorld_ClientServer::ClientCallback, public TheWorld_Utils::ThreadInitDeinit
 	{
 		GDCLASS(GDN_TheWorld_Map, godot::Node2D)
 
@@ -396,6 +396,81 @@ namespace godot
 		{
 		};
 
+		class UploadingMapTextureRect
+		{
+		public:
+			enum class Status
+			{
+				NotSet = -1
+				, UploadRequired = 0
+				, UploadInProgress = 1
+				, Uploaded = 2
+
+			};
+			UploadingMapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, std::string& utcFileTimeStr, godot::Ref<godot::Image> rectImage)
+			{
+				m_status = Status::UploadRequired;
+				m_map = map;
+				m_mapTextureRectPos = mapTextureRectPos;
+				m_utcFileTimeStr = utcFileTimeStr;
+				m_rectImage = rectImage;
+			}
+			~UploadingMapTextureRect(void)
+			{
+			}
+
+			TheWorld_Utils::MapTextureRectPos pos(void) const
+			{
+				return m_mapTextureRectPos;
+			}
+			std::string utcFileTimeStr(void) const
+			{
+				return m_utcFileTimeStr;
+			}
+			godot::Ref<godot::Image> rectImage(void)
+			{
+				return m_rectImage;
+			}
+
+			bool uploadRequired(void)
+			{
+				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+				long long elapsedFromStatusChange = (now - m_lastStatusChange).count();
+				if (m_status == Status::UploadInProgress and elapsedFromStatusChange > 60000)
+					m_status = Status::UploadRequired;
+				return m_status == Status::UploadRequired;
+			}
+			bool uploadInProgress(void) const
+			{
+				return m_status == Status::UploadInProgress;
+			}
+			bool uploaded(void) const
+			{
+				return m_status == Status::Uploaded;
+			}
+			void setStatus(enum class Status status)
+			{
+				if (m_status != status)
+				{
+					TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+					m_lastStatusChange = now;
+					m_status = status;
+				}
+			}
+
+		private:
+			enum class Status m_status = Status::NotSet;
+			TheWorld_Viewer_Utils::MsTimePoint m_lastStatusChange;
+			GDN_TheWorld_Map* m_map;
+			TheWorld_Utils::MapTextureRectPos m_mapTextureRectPos;
+			std::string m_utcFileTimeStr;		// es: 2023-09-04 19:33:24.702639224
+			godot::Ref<godot::Image> m_rectImage;
+		};
+
+		class UploadingMapTextureRectContainer : public std::map<TheWorld_Utils::MapTextureRectPos, std::unique_ptr<UploadingMapTextureRect>>
+		{
+		};
+
 	public:
 		GDN_TheWorld_Map(void);
 		~GDN_TheWorld_Map(void);
@@ -410,6 +485,9 @@ namespace godot
 
 	public:
 		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
+		void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply);
+		virtual void threadInit(void) {}
+		virtual void threadDeinit(void) {}
 		GDN_TheWorld_MapViewer* getMapViewer(void) const
 		{
 			return m_mapViewer;
@@ -446,6 +524,9 @@ namespace godot
 		void setWorldFlag(godot::String name, godot::Color c, bool setCameraDir = false, bool visible = true);
 		godot::String getCacheDir(void);
 
+		void selectTextureRectForUpload(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, std::string& fileTimeStr, godot::Ref<godot::Image> rectImage);
+		bool uploadSelectedTextureRect(void);
+
 		//void zoom(int zoomRequired)
 		//{
 		//	m_zoomRequired = zoomRequired;
@@ -472,6 +553,7 @@ namespace godot
 		GDN_TheWorld_Globals* m_globals = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
 		MapTextureRectContainer m_mapTextureRectContainer;
+		UploadingMapTextureRectContainer m_uploadingMapTextureRectContainer;
 		std::map<TheWorld_Utils::MapTextureRectPos, bool> m_mapTextureRectRefreshScheduled;
 		godot::Dictionary m_worldFlagDict;
 		//int m_zoomRequired = 0;
@@ -1861,6 +1943,11 @@ namespace godot
 		bool isCameraQuadrantColliderSet(void);
 		bool worldStreamingTerminated(void);
 
+		void uploadTextureRectInProgress(bool b)
+		{
+			m_uploadTextureRectInProgress = b;
+		}
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -2187,7 +2274,8 @@ namespace godot
 
 		TheWorld_Utils::ThreadPool m_tpClientWorker;
 
-		bool m_quadrantSyncRunning = false;
+		bool m_quadrantSyncInProgress = false;
+		bool m_uploadTextureRectInProgress = false;
 
 		float m_shaderParamSeaFlatSeaHeightApplied = 0;
 		float m_shaderParamSeaNoiseScaleApplied = 0;

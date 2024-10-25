@@ -771,6 +771,58 @@ namespace TheWorld_ClientServer
 
 				reply->replyComplete();
 			}
+			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS)
+			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("Sync ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC);
+
+				bool* isInEditor = std::get_if<bool>(&reply->m_inputParams[0]);
+				if (isInEditor == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "First param must be a bool");
+					return;
+				}
+
+				size_t* numVerticesPerSize = std::get_if<size_t>(&reply->m_inputParams[1]);
+				if (numVerticesPerSize == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Second param must be a size_t");
+					return;
+				}
+
+				float* gridStepInWU = std::get_if<float>(&reply->m_inputParams[2]);
+				if (gridStepInWU == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Third param must be a float");
+					return;
+				}
+
+				bool* inGameEditMode = std::get_if<bool>(&reply->m_inputParams[3]);
+				if (inGameEditMode == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Fifth param must be a bool");
+					return;
+				}
+				std::vector<unsigned char>* _mapTextureRects = std::get_if<std::vector<unsigned char>>(&reply->m_inputParams[4]);
+				if (_mapTextureRects == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Sixth param must be a std::string");
+					return;
+				}
+				std::string mapTextureRects((*_mapTextureRects).begin(), (*_mapTextureRects).end());
+				//size_t l1 = clientQuadrants.size();	// DEBUG
+
+				std::string replyMapTextureRects;
+				m_threadContextPool->getCurrentContext()->getMapManager()->uploadTextureRects(*isInEditor, *inGameEditMode, *numVerticesPerSize, *gridStepInWU, mapTextureRects, replyMapTextureRects);
+
+				std::vector<unsigned char> _replyMapTextureRects(replyMapTextureRects.begin(), replyMapTextureRects.end());
+				reply->replyParam(_replyMapTextureRects);
+
+				reply->replyComplete();
+			}
+			else
+			{
+				reply->replyError(THEWORLD_CLIENTSERVER_RC_KO, std::string("Server method unknown: " + method));
+			}
 		}
 		catch (TheWorld_Viewer_Utils::GDN_TheWorld_Exception& e)
 		{

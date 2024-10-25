@@ -218,6 +218,8 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 			if (m_ctrlPressed)
 				sensitivity *= 2;
 			float zoomModifier = (1 - getZoomFactor()) * 2;
+			if (zoomModifier < 1)
+				zoomModifier = 1;
 			m_mouseRelativePosToShift *= sensitivity * zoomModifier;
 
 			//translate(godot::Vector2(-m_mouseRelativePosToShift.x, -m_mouseRelativePosToShift.y));

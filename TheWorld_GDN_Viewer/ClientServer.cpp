@@ -771,9 +771,9 @@ namespace TheWorld_ClientServer
 
 				reply->replyComplete();
 			}
-			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS)
+			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADMAPTEXTURERECTS)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("Sync ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC);
+				TheWorld_Utils::GuardProfiler profiler(std::string("uploadMapTextureRects ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADMAPTEXTURERECTS);
 
 				bool* isInEditor = std::get_if<bool>(&reply->m_inputParams[0]);
 				if (isInEditor == nullptr)
@@ -812,7 +812,7 @@ namespace TheWorld_ClientServer
 				//size_t l1 = clientQuadrants.size();	// DEBUG
 
 				std::string replyMapTextureRects;
-				m_threadContextPool->getCurrentContext()->getMapManager()->uploadTextureRects(*isInEditor, *inGameEditMode, *numVerticesPerSize, *gridStepInWU, mapTextureRects, replyMapTextureRects);
+				m_threadContextPool->getCurrentContext()->getMapManager()->uploadMapTextureRects(*isInEditor, *inGameEditMode, *numVerticesPerSize, *gridStepInWU, mapTextureRects, replyMapTextureRects);
 
 				std::vector<unsigned char> _replyMapTextureRects(replyMapTextureRects.begin(), replyMapTextureRects.end());
 				reply->replyParam(_replyMapTextureRects);

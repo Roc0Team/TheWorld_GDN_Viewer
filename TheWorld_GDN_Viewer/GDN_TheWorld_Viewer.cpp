@@ -741,10 +741,17 @@ void GDN_TheWorld_Map::_process(double _delta)
 
 	std::vector<TheWorld_Utils::MapTextureRectPos> toErase;
 	for (auto& item : m_uploadingMapTextureRectContainer)
+	{
 		if (item.second->uploaded())
+		{
 			toErase.push_back(item.first);
+		}
+	}
+
 	for (auto& item : toErase)
+	{
 		m_uploadingMapTextureRectContainer.erase(item);
+	}
 }
 
 //void GDN_TheWorld_Map::setScale(float scaleFactor)
@@ -957,9 +964,6 @@ bool GDN_TheWorld_Map::uploadSelectedTextureRect(void)
 	size_t size = 0;
 	size_t cursor = 0;
 	TheWorld_Utils::MemoryBuffer buffer;
-	//buffer.reserve(100000);		// preallocation for optimization purpose
-	//*buffer.ptr() = '0';
-	//cursor = 1;
 
 	buffer.reserve(100000);		// preallocation for optimization purpose
 	constexpr int32_t maxRectsInBuffer = 10;
@@ -973,25 +977,29 @@ bool GDN_TheWorld_Map::uploadSelectedTextureRect(void)
 
 			buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 			TheWorld_Utils::serializeToByteStream<size_t>(textureRectPosBuffer.size(), buffer.ptr() + cursor, size);
-			cursor += size;
-			buffer.adjustSize(cursor);
+			//cursor += size;
+			//buffer.adjustSize(cursor);
+			buffer.adjustCursorAndSize(cursor, size);
 
 			buffer.reserve(cursor + textureRectPosBuffer.size());		// to avoid memory overflow
 			memcpy(buffer.ptr() + cursor, textureRectPosBuffer.ptr(), textureRectPosBuffer.size());
-			cursor += textureRectPosBuffer.size();
-			buffer.adjustSize(cursor);
+			//cursor += textureRectPosBuffer.size();
+			//buffer.adjustSize(cursor);
+			buffer.adjustCursorAndSize(cursor, textureRectPosBuffer.size());
 
 			std::string fileTime = item.second->utcFileTimeStr();
 
 			buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 			TheWorld_Utils::serializeToByteStream<size_t>(fileTime.size(), buffer.ptr() + cursor, size);
-			cursor += size;
-			buffer.adjustSize(cursor);
+			//cursor += size;
+			//buffer.adjustSize(cursor);
+			buffer.adjustCursorAndSize(cursor, size);
 
 			buffer.reserve(cursor + fileTime.size());		// to avoid memory overflow
 			memcpy(buffer.ptr() + cursor, fileTime.c_str(), fileTime.size());
-			cursor += fileTime.size();
-			buffer.adjustSize(cursor);
+			//cursor += fileTime.size();
+			//buffer.adjustSize(cursor);
+			buffer.adjustCursorAndSize(cursor, fileTime.size());
 
 			godot::Ref<godot::Image> image = item.second->rectImage();
 			int32_t _imageSize = image->get_size().x * image->get_size().y;
@@ -1000,13 +1008,15 @@ bool GDN_TheWorld_Map::uploadSelectedTextureRect(void)
 
 			buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 			TheWorld_Utils::serializeToByteStream<size_t>(imageSize, buffer.ptr() + cursor, size);
-			cursor += size;
-			buffer.adjustSize(cursor);
+			//cursor += size;
+			//buffer.adjustSize(cursor);
+			buffer.adjustCursorAndSize(cursor, size);
 
 			buffer.reserve(cursor + imageSize);		// to avoid memory overflow
 			memcpy(buffer.ptr() + cursor, (char*)imageData.ptr(), imageSize);
-			cursor += imageSize;
-			buffer.adjustSize(cursor);
+			//cursor += imageSize;
+			//buffer.adjustSize(cursor);
+			buffer.adjustCursorAndSize(cursor, imageSize);
 
 			numSent++;
 			item.second->setStatus(UploadingMapTextureRect::Status::UploadInProgress);
@@ -1023,24 +1033,29 @@ bool GDN_TheWorld_Map::uploadSelectedTextureRect(void)
 
 	//buffer.clear();
 	buffer.reserve(100000);		// preallocation for optimization purpose
+	cursor = 0;
 	*buffer.ptr() = '0';
-	cursor = 1;
-	buffer.adjustSize(cursor);
+	//cursor = 1;
+	//buffer.adjustSize(cursor);
+	buffer.adjustCursorAndSize(cursor, 1);
 
 	buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 	TheWorld_Utils::serializeToByteStream<size_t>(numSent, buffer.ptr() + cursor, size);
-	cursor += size;
-	buffer.adjustSize(cursor);
+	//cursor += size;
+	//buffer.adjustSize(cursor);
+	buffer.adjustCursorAndSize(cursor, size);
 
 	buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 	TheWorld_Utils::serializeToByteStream<size_t>(mapTextureRects.size(), buffer.ptr() + cursor, size);
-	cursor += size;
-	buffer.adjustSize(cursor);
+	//cursor += size;
+	//buffer.adjustSize(cursor);
+	buffer.adjustCursorAndSize(cursor, size);
 
 	buffer.reserve(cursor + mapTextureRects.size());		// to avoid memory overflow
 	memcpy(buffer.ptr() + cursor, mapTextureRects.c_str(), mapTextureRects.size());
-	cursor += mapTextureRects.size();
-	buffer.adjustSize(cursor);
+	//cursor += mapTextureRects.size();
+	//buffer.adjustSize(cursor);
+	buffer.adjustCursorAndSize(cursor, mapTextureRects.size());
 
 	buffer.toString(mapTextureRects);
 
@@ -1058,14 +1073,14 @@ void GDN_TheWorld_Map::replyFromServer(TheWorld_ClientServer::ClientServerExecut
 	{
 		//Globals()->setStatus(TheWorldStatus::error);
 		Globals()->errorPrint((std::string("GDN_TheWorld_Map::replyFromServer: error method ") + method + std::string(" rc=") + std::to_string(reply.getErrorCode()) + std::string(" ") + reply.getErrorMessage()).c_str());
-		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS)
+		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADMAPTEXTURERECTS)
 			m_mapViewer->getViewer()->uploadTextureRectInProgress(false);
 		return;
 	}
 
 	try
 	{
-		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS)
+		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADMAPTEXTURERECTS)
 		{
 			ClientServerVariant v = reply.getInputParam(1);
 			const auto _numVerticesPerSize(std::get_if<size_t>(&v));
@@ -1101,7 +1116,7 @@ void GDN_TheWorld_Map::replyFromServer(TheWorld_ClientServer::ClientServerExecut
 				size_t numRepliedTextureRects = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)repliedTextureRects.c_str() + replyCursor, size);
 				replyCursor += size;
 
-				if (numRepliedTextureRects == 0)
+				if (numRepliedTextureRects > 0)
 				{
 					size_t repliedMapTextureRectsBufferSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)repliedTextureRects.c_str() + replyCursor, size);
 					replyCursor += size;
@@ -12060,10 +12075,12 @@ void GDN_TheWorld_Viewer::streamer(void)
 							
 							*buffer.ptr() = '0';
 							size_t cursor = 1;
+							buffer.adjustSize(cursor);
 
 							size_t size;
 							TheWorld_Utils::serializeToByteStream<size_t>(m_worldQuadrantsMap.size(), buffer.ptr() + cursor, size);
 							cursor += size;
+							buffer.adjustSize(cursor);
 							
 							for (auto& worldQuadrantsMapItem : m_worldQuadrantsMap)
 							{
@@ -12073,20 +12090,24 @@ void GDN_TheWorld_Viewer::streamer(void)
 								buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 								TheWorld_Utils::serializeToByteStream<size_t>(quadrantPosBuffer.size(), buffer.ptr() + cursor, size);
 								cursor += size;
+								buffer.adjustSize(cursor);
 
 								buffer.reserve(cursor + quadrantPosBuffer.size());		// to avoid memory overflow
 								memcpy(buffer.ptr() + cursor, quadrantPosBuffer.ptr(), quadrantPosBuffer.size());
 								cursor += quadrantPosBuffer.size();
+								buffer.adjustSize(cursor);
 
 								std::string meshId = worldQuadrantsMapItem.second->getQuadrant()->getMeshId();
 
 								buffer.reserve(cursor + 8);		// to avoid memory overflow
 								TheWorld_Utils::serializeToByteStream<size_t>(meshId.size(), buffer.ptr() + cursor, size);
 								cursor += size;
+								buffer.adjustSize(cursor);
 
 								buffer.reserve(cursor + meshId.size());		// to avoid memory overflow
 								memcpy(buffer.ptr() + cursor, meshId.c_str(), meshId.size());
 								cursor += meshId.size();
+								buffer.adjustSize(cursor);
 							}
 							
 							buffer.adjustSize(cursor);
@@ -12108,6 +12129,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 
 									TheWorld_Utils::serializeToByteStream<size_t>(rectsPos.size(), buffer.ptr() + cursor, size);
 									cursor += size;
+									buffer.adjustSize(cursor);
 
 									TheWorld_Utils::MapTextureRectPos nullMapTextureRectPos;
 									GDN_TheWorld_Map::MapTextureRect nullMapTextureRect(map, nullMapTextureRectPos);
@@ -12125,6 +12147,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 										buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 										TheWorld_Utils::serializeToByteStream<size_t>(textureRectPosBuffer.size(), buffer.ptr() + cursor, size);
 										cursor += size;
+										buffer.adjustSize(cursor);
 
 										buffer.reserve(cursor + textureRectPosBuffer.size());		// to avoid memory overflow
 										memcpy(buffer.ptr() + cursor, textureRectPosBuffer.ptr(), textureRectPosBuffer.size());
@@ -12135,6 +12158,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 										buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 										TheWorld_Utils::serializeToByteStream<size_t>(fileTime.size(), buffer.ptr() + cursor, size);
 										cursor += size;
+										buffer.adjustSize(cursor);
 
 										buffer.reserve(cursor + fileTime.size());		// to avoid memory overflow
 										memcpy(buffer.ptr() + cursor, fileTime.c_str(), fileTime.size());

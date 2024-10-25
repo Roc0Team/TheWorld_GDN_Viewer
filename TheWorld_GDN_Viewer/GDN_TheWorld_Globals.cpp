@@ -305,10 +305,10 @@ namespace godot
 		//l2 = _mapTextureRects.size();		// DEBUG
 		inputParams.push_back(_mapTextureRects);
 		std::string ref;
-		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer()->Map());
+		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADMAPTEXTURERECTS, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer()->Map());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
 		{
-			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADTEXTURERECTS " error ") + std::to_string(rc);
+			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADMAPTEXTURERECTS " error ") + std::to_string(rc);
 			throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", rc));
 		}
 	}

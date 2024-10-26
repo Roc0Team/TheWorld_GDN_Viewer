@@ -372,15 +372,15 @@ namespace godot
 			godot::String getImageCachePath(void);
 			std::string getFileTimeStr(void) const
 			{
-				return m_FileTimeStr;
+				return m_fileTimeStr;
 			}
 			bool canCheckForRefresh(void)
 			{
-				return m_FileTimeStr.size() > 0;
+				return m_fileTimeStr.size() > 0;
 			}
 			void checkForRefreshDisabled(void)
 			{
-				m_FileTimeStr.clear();
+				m_fileTimeStr.clear();
 			}
 
 		private:
@@ -388,7 +388,7 @@ namespace godot
 			TheWorld_Utils::MapTextureRectPos m_mapTextureRectPos;
 			std::vector<std::vector<godot::Ref<godot::Image>>> m_quadrantImages;	// bi-dimensional vector of Image references
 			//std::filesystem::file_time_type m_fileTime;
-			std::string m_FileTimeStr;		// es: 2023-09-04 19:33:24.702639224
+			std::string m_fileTimeStr;		// es: 2023-09-04 19:33:24.7026392
 			godot::TextureRect* m_textureRect = nullptr;
 		};
 
@@ -463,7 +463,7 @@ namespace godot
 			TheWorld_Viewer_Utils::MsTimePoint m_lastStatusChange;
 			GDN_TheWorld_Map* m_map;
 			TheWorld_Utils::MapTextureRectPos m_mapTextureRectPos;
-			std::string m_utcFileTimeStr;		// es: 2023-09-04 19:33:24.702639224
+			std::string m_utcFileTimeStr;		// es: 2023-09-04 19:33:24.7026392
 			godot::Ref<godot::Image> m_rectImage;
 		};
 

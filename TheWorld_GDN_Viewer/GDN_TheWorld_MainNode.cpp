@@ -108,6 +108,13 @@ void GDN_TheWorld_MainNode::_ready(void)
 	//std::string meshIdEmptyBuffer = TheWorld_Utils::MeshCacheBuffer::generateNewMeshIdForEmptyBuffer();
 	//bool b = TheWorld_Utils::MeshCacheBuffer::isEmptyBuffer(meshIdEmptyBuffer);
 
+	//std::string s = "2023-09-04 19:33:24.7026392";
+	//std::chrono::system_clock::time_point tp = TheWorld_Utils::str_time_to_time_point(s);
+	//std::string s1 = TheWorld_Utils::time_point_to_str_time(tp);
+	//std::chrono::system_clock::time_point tp1 = TheWorld_Utils::str_time_to_time_point(s1);
+	//assert(tp == tp1);
+	//assert(s == s1);
+
 	//// Test UTC Date/Time
 }
 

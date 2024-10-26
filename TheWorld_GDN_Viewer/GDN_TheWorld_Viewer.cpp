@@ -386,7 +386,7 @@ bool GDN_TheWorld_Map::MapTextureRect::renderCachedTexture(void)
 	else
 	{
 		renderTexture(image);
-		m_FileTimeStr = TheWorld_Utils::last_write_time_utc_str(_imagePath);
+		m_fileTimeStr = TheWorld_Utils::last_write_time_str_utc(_imagePath);
 
 		return true;
 	}
@@ -440,9 +440,9 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 		godot::String imagePath = getImageCachePath();
 		rectImage->save_png(imagePath);
 		std::string _imagePath = imagePath.utf8().get_data();
-		m_FileTimeStr = TheWorld_Utils::last_write_time_utc_str(_imagePath);
+		m_fileTimeStr = TheWorld_Utils::last_write_time_str_utc(_imagePath);
 		
-		m_map->selectTextureRectForUpload(m_mapTextureRectPos, m_FileTimeStr, rectImage);
+		m_map->selectTextureRectForUpload(m_mapTextureRectPos, m_fileTimeStr, rectImage);
 
 		renderTexture(rectImage);
 

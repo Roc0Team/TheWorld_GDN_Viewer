@@ -313,6 +313,26 @@ namespace godot
 		}
 	}
 
+	void GDN_TheWorld_Globals_Client::MapManagerCheckTextureRects(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& mapTextureRects)
+	{
+		std::vector<ClientServerVariant> inputParams;
+		inputParams.push_back(isInEditor);
+		inputParams.push_back(numVerticesPerSize);
+		inputParams.push_back(gridStepInWU);
+		inputParams.push_back(inGameEditMode);
+		std::vector<unsigned char> _mapTextureRects(mapTextureRects.begin(), mapTextureRects.end());
+		//l1 = mapTextureRects.size();		// DEBUG
+		//l2 = _mapTextureRects.size();		// DEBUG
+		inputParams.push_back(_mapTextureRects);
+		std::string ref;
+		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_CHECKMAPTEXTURERECTS, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer()->Map());
+		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
+		{
+			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_CHECKMAPTEXTURERECTS " error ") + std::to_string(rc);
+			throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", rc));
+		}
+	}
+
 	GDN_TheWorld_Globals::GDN_TheWorld_Globals()
 	{
 		m_startTime = godot::Time::get_singleton()->get_ticks_msec();

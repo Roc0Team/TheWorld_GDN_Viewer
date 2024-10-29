@@ -115,6 +115,22 @@ void GDN_TheWorld_MainNode::_ready(void)
 	//assert(tp == tp1);
 	//assert(s == s1);
 
+	//std::string s = "2023-09-04 19:33:24";
+	//std::chrono::system_clock::time_point tp = TheWorld_Utils::str_time_to_time_point(s);
+	//std::string s1 = TheWorld_Utils::time_point_to_str_time(tp);
+	//std::chrono::system_clock::duration d = tp.time_since_epoch();
+
+	//std::chrono::system_clock::time_point tp1;
+	//std::string s2 = TheWorld_Utils::time_point_to_str_time(tp1);
+	//std::chrono::system_clock::duration d1 = tp1.time_since_epoch();
+	//assert(TheWorld_Utils::time_point_zero(tp1));
+
+	//double d = ceil(0.1);
+	//d = 1000 / 100000;
+	//d = ceil(1000 / 100000);
+	//d = ceil(1000.0 / 100000.0);
+	//d = ceil(0.1);
+
 	//// Test UTC Date/Time
 }
 

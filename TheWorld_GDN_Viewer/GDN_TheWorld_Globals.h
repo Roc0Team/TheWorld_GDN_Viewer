@@ -117,6 +117,7 @@ namespace godot
 		void MapManagerDeployWorld(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepInWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll);
 		void MapManagerUndeployWorld(bool isInEditor);
 		void MapManagerUploadTextureRects(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& mapTextureRects);
+		void MapManagerCheckTextureRects(bool isInEditor, bool inGameEditMode, size_t numVerticesPerSize, float gridStepInWU, std::string& mapTextureRects);
 		virtual bool quitting(void);
 
 	private:

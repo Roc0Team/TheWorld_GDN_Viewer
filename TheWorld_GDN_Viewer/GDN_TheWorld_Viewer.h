@@ -358,8 +358,22 @@ namespace godot
 		class MapTextureRect
 		{
 		public:
+			enum class Status
+			{
+				NotSet = -1
+				, CheckFromServerNotDone = 0
+				, CheckFromServerRequired = 1
+				, CheckFromServerInProgress = 2
+				, CheckFromServerDone = 3
+			};
+			
 			MapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 			~MapTextureRect(void);
+
+			TheWorld_Utils::MapTextureRectPos pos(void) const
+			{
+				return m_mapTextureRectPos;
+			}
 
 			bool rectFull(void);
 			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
@@ -368,11 +382,20 @@ namespace godot
 			godot::TextureRect* getTextureRect(void);
 			bool eraseCachedTexture(void);
 			bool renderCachedTexture(void);
+			bool renderInternalTexture(void);
 			void renderTexture(godot::Ref<godot::Image> image);
 			godot::String getImageCachePath(void);
-			std::string getFileTimeStr(void) const
+			std::string fileTimeStr(void) const
 			{
 				return m_fileTimeStr;
+			}
+			//void fileTimeStr(std::string& _fileTimeStr)
+			//{
+			//	m_fileTimeStr = _fileTimeStr;
+			//}
+			void fileTimeStrFromFile(std::string& _pathFile)
+			{
+				m_fileTimeStr = TheWorld_Utils::last_write_time_str_utc(_pathFile);
 			}
 			bool canCheckForRefresh(void)
 			{
@@ -382,14 +405,57 @@ namespace godot
 			{
 				m_fileTimeStr.clear();
 			}
+			bool internalImageDataValid(void)
+			{
+				return m_internalImageData.size() > 0;
+			}
+			bool CheckFromServerNotDone()
+			{
+				//return false;
+				return getStatus() == Status::CheckFromServerNotDone;
+			}
+			bool CheckFromServerRequired()
+			{
+				//return false;
+				return getStatus() == Status::CheckFromServerRequired;
+			}
+			bool CheckFromServerInProgress()
+			{
+				return getStatus() == Status::CheckFromServerInProgress;
+			}
+			bool CheckFromServerDone()
+			{
+				return getStatus() == Status::CheckFromServerDone;
+			}
+			Status getStatus(void)
+			{
+				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+				long long elapsedFromStatusChange = (now - m_lastStatusChange).count();
+				if (m_status == Status::CheckFromServerInProgress and elapsedFromStatusChange > 60000)
+					m_status = Status::CheckFromServerRequired;
+				return m_status;
+			}
+			void setStatus(Status status)
+			{
+				if (m_status != status)
+				{
+					TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+					m_lastStatusChange = now;
+					m_status = status;
+				}
+			}
+			void setInternalImageData(TheWorld_Utils::MemoryBuffer& imageBuffer);
 
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
+			Status m_status = Status::NotSet;
+			TheWorld_Viewer_Utils::MsTimePoint m_lastStatusChange;
 			TheWorld_Utils::MapTextureRectPos m_mapTextureRectPos;
 			std::vector<std::vector<godot::Ref<godot::Image>>> m_quadrantImages;	// bi-dimensional vector of Image references
 			//std::filesystem::file_time_type m_fileTime;
 			std::string m_fileTimeStr;		// es: 2023-09-04 19:33:24.7026392
 			godot::TextureRect* m_textureRect = nullptr;
+			godot::PackedByteArray m_internalImageData;
 		};
 
 		class MapTextureRectContainer : public std::map<TheWorld_Utils::MapTextureRectPos, std::unique_ptr<MapTextureRect>>
@@ -520,12 +586,17 @@ namespace godot
 		bool isTextureRectRendered(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool eraseCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool renderCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool renderInternalTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool CheckFromServerNotDone(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool CheckFromServerDone(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		void setStatus(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, MapTextureRect::Status status);
 		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
 		void setWorldFlag(godot::String name, godot::Color c, bool setCameraDir = false, bool visible = true);
 		godot::String getCacheDir(void);
 
 		void selectTextureRectForUpload(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, std::string& fileTimeStr, godot::Ref<godot::Image> rectImage);
 		bool uploadSelectedTextureRect(void);
+		bool checkRequiredTextureRect(void);
 
 		//void zoom(int zoomRequired)
 		//{
@@ -1947,6 +2018,10 @@ namespace godot
 		{
 			m_uploadTextureRectInProgress = b;
 		}
+		void checkServerTextureRectInProgress(bool b)
+		{
+			m_checkServerTextureRectInProgress = b;
+		}
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -2276,6 +2351,7 @@ namespace godot
 
 		bool m_quadrantSyncInProgress = false;
 		bool m_uploadTextureRectInProgress = false;
+		bool m_checkServerTextureRectInProgress = false;
 
 		float m_shaderParamSeaFlatSeaHeightApplied = 0;
 		float m_shaderParamSeaNoiseScaleApplied = 0;

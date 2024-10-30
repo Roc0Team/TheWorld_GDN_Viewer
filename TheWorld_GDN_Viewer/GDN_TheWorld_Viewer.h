@@ -365,6 +365,9 @@ namespace godot
 				, CheckFromServerRequired = 1
 				, CheckFromServerInProgress = 2
 				, CheckFromServerDone = 3
+				, AcqQuadrantsNeeded = 4
+				, AcqQuadrantsInProgress = 5
+				, AcqQuadrantsDone = 6
 			};
 			
 			MapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
@@ -426,6 +429,18 @@ namespace godot
 			bool CheckFromServerDone()
 			{
 				return getStatus() == Status::CheckFromServerDone;
+			}
+			bool AcqQuadrantsNeeded()
+			{
+				return getStatus() == Status::AcqQuadrantsNeeded;
+			}
+			bool AcqQuadrantsInProgress()
+			{
+				return getStatus() == Status::AcqQuadrantsInProgress;
+			}
+			bool AcqQuadrantsDone()
+			{
+				return getStatus() == Status::AcqQuadrantsDone;
 			}
 			Status getStatus(void)
 			{
@@ -588,7 +603,11 @@ namespace godot
 		bool renderCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool renderInternalTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool CheckFromServerNotDone(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool CheckFromServerRequired(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool CheckFromServerInProgress(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool CheckFromServerDone(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool AcqQuadrantsNeeded(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		bool AcqQuadrantsInProgress(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		void setStatus(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, MapTextureRect::Status status);
 		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
 		void setWorldFlag(godot::String name, godot::Color c, bool setCameraDir = false, bool visible = true);

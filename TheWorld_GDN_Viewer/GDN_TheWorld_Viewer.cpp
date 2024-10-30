@@ -768,9 +768,10 @@ void GDN_TheWorld_Map::_process(double _delta)
 	{
 		TheWorld_Utils::MapTextureRectPos pos = item.first;
 
-		bool success = destroyTextureRect(pos);
-		success = eraseCachedTexture(pos);
-		success = eraseMapTextureRect(pos);
+		setStatus(pos, GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsNeeded);
+		//bool success = destroyTextureRect(pos);
+		//success = eraseCachedTexture(pos);
+		//success = eraseMapTextureRect(pos);
 
 		m_mapViewer->getViewer()->forceProcessNewMapQuadrants(true);
 	}
@@ -850,7 +851,7 @@ bool GDN_TheWorld_Map::eraseNotInScreenTextureRects(void)
 	{
 		if (not rectsPosMap.contains(item.first))
 			toDeleteRectsPos.push_back(item.first);
-		if (not item.second->isTextureRectRendered())
+		if (not item.second->isTextureRectRendered() or item.second->AcqQuadrantsNeeded() or item.second->AcqQuadrantsInProgress())
 			allTextureRendered = false;
 	}
 
@@ -1373,10 +1374,34 @@ bool GDN_TheWorld_Map::CheckFromServerNotDone(TheWorld_Utils::MapTextureRectPos&
 	return getMapTextureRect(mapTextureRectPos)->CheckFromServerNotDone();
 }
 
+bool GDN_TheWorld_Map::CheckFromServerRequired(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	return getMapTextureRect(mapTextureRectPos)->CheckFromServerRequired();
+}
+
+bool GDN_TheWorld_Map::CheckFromServerInProgress(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	return getMapTextureRect(mapTextureRectPos)->CheckFromServerInProgress();
+}
+
 bool GDN_TheWorld_Map::CheckFromServerDone(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
 	return getMapTextureRect(mapTextureRectPos)->CheckFromServerDone();
+}
+
+bool GDN_TheWorld_Map::AcqQuadrantsNeeded(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	return getMapTextureRect(mapTextureRectPos)->AcqQuadrantsNeeded();
+}
+
+bool GDN_TheWorld_Map::AcqQuadrantsInProgress(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
+	return getMapTextureRect(mapTextureRectPos)->AcqQuadrantsInProgress();
 }
 
 void GDN_TheWorld_Map::setStatus(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, MapTextureRect::Status status)
@@ -9801,39 +9826,40 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 							{
 								map->setStatus(itemRectsPos, GDN_TheWorld_Map::MapTextureRect::Status::CheckFromServerRequired);
 							}
+						}
+					}
+				}
+
+				if (not map->CheckFromServerInProgress(itemRectsPos) and not map->CheckFromServerRequired(itemRectsPos))
+				{
+					if (not map->isTextureRectRendered(itemRectsPos) or map->AcqQuadrantsNeeded(itemRectsPos) or map->AcqQuadrantsInProgress(itemRectsPos))
+					{
+						std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
+						itemRectsPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+						for (auto& pos : quadrantsPos)
+						{
+							if (m_mapQuadrantsMap.contains(pos))
+							{
+								MapQuadrant* mapQuadrant = m_mapQuadrantsMap[pos].get();
+								if (mapQuadrant->updated())
+								{
+									bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
+									if (b)
+										fullRectRendered = true;
+								}
+								else
+									if (m_mapQuadrantsMap.updateNeeded(pos))
+									{
+										bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+										if (scheduled)
+											breakLoop = true;
+									}
+							}
 							else
 							{
-								if (map->CheckFromServerDone(itemRectsPos))
-								{
-									std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
-									itemRectsPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
-									for (auto& pos : quadrantsPos)
-									{
-										if (m_mapQuadrantsMap.contains(pos))
-										{
-											MapQuadrant* mapQuadrant = m_mapQuadrantsMap[pos].get();
-											if (mapQuadrant->updated())
-											{
-												bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
-												if (b)
-													fullRectRendered = true;
-											}
-											else
-												if (m_mapQuadrantsMap.updateNeeded(pos))
-												{
-													bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
-													if (scheduled)
-														breakLoop = true;
-												}
-										}
-										else
-										{
-											bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
-											if (scheduled)
-												breakLoop = true;
-										}
-									}
-								}
+								bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+								if (scheduled)
+									breakLoop = true;
 							}
 						}
 					}
@@ -9843,6 +9869,8 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 				{
 					for (auto& pos : quadrantsPos)
 						m_mapQuadrantsMap.erase(pos);
+					if (map->AcqQuadrantsNeeded(itemRectsPos) or map->AcqQuadrantsInProgress(itemRectsPos))
+						map->setStatus(itemRectsPos, GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsDone);
 				}
 
 				if (breakLoop)

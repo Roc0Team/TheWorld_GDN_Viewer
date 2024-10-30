@@ -832,10 +832,12 @@ godot::Vector2 GDN_TheWorld_Map::getMousePosInGlobalCoord(void) const
 	return mousePosInGlobalCoord;
 }
 
-void GDN_TheWorld_Map::eraseNotInScreenTextureRects(void)
+bool GDN_TheWorld_Map::eraseNotInScreenTextureRects(void)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
 
+	bool allTextureRendered = true;
+	
 	std::vector<TheWorld_Utils::MapTextureRectPos> toDeleteRectsPos;
 	std::vector<TheWorld_Utils::MapTextureRectPos> rectsPos;
 	getScreenTextureRects(rectsPos);
@@ -848,10 +850,17 @@ void GDN_TheWorld_Map::eraseNotInScreenTextureRects(void)
 	{
 		if (not rectsPosMap.contains(item.first))
 			toDeleteRectsPos.push_back(item.first);
+		if (not item.second->isTextureRectRendered())
+			allTextureRendered = false;
 	}
 
 	for (auto& item : toDeleteRectsPos)
+	{
+		m_mapTextureRectContainer[item]->destroyTextureRect();
 		m_mapTextureRectContainer.erase(item);
+	}
+
+	return allTextureRendered;
 }
 
 void GDN_TheWorld_Map::getScreenTextureRects(std::vector<TheWorld_Utils::MapTextureRectPos>& rectsPos)
@@ -9673,51 +9682,55 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 	{
 		m_mapQuadrantsMap.lock();
 
-		// Erasing MapQuadrants with refreshTime less than textureRectRefreshTime (the updated time on disk of the texture png)
-		std::vector<TheWorld_Utils::QuadrantPos> quadrantsPosToErase;
-		for (auto& item : m_mapQuadrantsMap)
-		{
-			MapQuadrant* mapQuadrant = item.second.get();
-			std::time_t quadrantRefreshTime = mapQuadrant->getRefreshTime();
-			if (quadrantRefreshTime > 0)
-			{
-				std::time_t mapRectTextureRefreshTime = 0;
-				
-				TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
-				GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
-				if (mapTextureRect == nullptr)
-					quadrantsPosToErase.push_back(quadrantPos);	// if quadrant belongs to e texture rect not in map (texture rect no more in screen) we can delete it
-				if (mapTextureRect != nullptr and !mapTextureRect->fileTimeStr().empty())
-					mapRectTextureRefreshTime = TheWorld_Utils::str_time_to_time_t(mapTextureRect->fileTimeStr());
-
-				if (quadrantRefreshTime < mapRectTextureRefreshTime)
-					quadrantsPosToErase.push_back(quadrantPos);
-			}
-			else if (quadrantRefreshTime == 0)	// Empty quadrant
-			{
-				TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
-				GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
-				if (mapTextureRect == nullptr)
-					quadrantsPosToErase.push_back(quadrantPos);	// if empty quadrant and it's not in map (texture rect no more in screen) we can delete it
-				if (mapTextureRect != nullptr and !mapTextureRect->fileTimeStr().empty())
-					quadrantsPosToErase.push_back(quadrantPos);	// if empty quadrant and its map texture rect is rendered we can delete it
-			}
-		}
-		for (auto& pos : quadrantsPosToErase)
-			m_mapQuadrantsMap.erase(pos);
-
 		// Check quadrant update request timed out
 		constexpr int64_t  secondsBetweenCheck = 1;
 		int64_t timeElapsed = TIME()->get_ticks_msec();
 		if (timeElapsed - m_timeElapsedFromLastUpdatingQuadrantsCheck > secondsBetweenCheck * 1000)
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.2. ") + __FUNCTION__, "m_mapQuadrantsMap.checkUpdatingQuadrants");
+			TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.1. ") + __FUNCTION__, "Check All Rects Rendered");
+
+			// Erasing MapQuadrants with refreshTime less than textureRectRefreshTime (the updated time on disk of the texture png)
+			{
+				std::vector<TheWorld_Utils::QuadrantPos> quadrantsPosToErase;
+				for (auto& item : m_mapQuadrantsMap)
+				{
+					MapQuadrant* mapQuadrant = item.second.get();
+					std::time_t quadrantRefreshTime = mapQuadrant->getRefreshTime();
+					if (quadrantRefreshTime > 0)
+					{
+						std::time_t mapRectTextureRefreshTime = 0;
+
+						TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
+						GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
+						if (mapTextureRect == nullptr)
+							quadrantsPosToErase.push_back(quadrantPos);	// if quadrant belongs to e texture rect not in map (texture rect no more in screen) we can delete it
+						if (mapTextureRect != nullptr and !mapTextureRect->fileTimeStr().empty())
+							mapRectTextureRefreshTime = TheWorld_Utils::str_time_to_time_t(mapTextureRect->fileTimeStr());
+
+						if (quadrantRefreshTime < mapRectTextureRefreshTime)
+							quadrantsPosToErase.push_back(quadrantPos);
+					}
+					else if (quadrantRefreshTime == 0)	// Empty quadrant
+					{
+						TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
+						GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
+						if (mapTextureRect == nullptr)
+							quadrantsPosToErase.push_back(quadrantPos);	// if empty quadrant and it's not in map (texture rect no more in screen) we can delete it
+						if (mapTextureRect != nullptr and !mapTextureRect->fileTimeStr().empty())
+							quadrantsPosToErase.push_back(quadrantPos);	// if empty quadrant and its map texture rect is rendered we can delete it
+					}
+				}
+				for (auto& pos : quadrantsPosToErase)
+					m_mapQuadrantsMap.erase(pos);
+			}
 
 			bool statusChanged = m_mapQuadrantsMap.checkUpdatingQuadrants();
 			if (statusChanged)
 				forceProcessNewMapQuadrants(true);
 
-			map->eraseNotInScreenTextureRects();
+			bool allTextureRendered = map->eraseNotInScreenTextureRects();
+			if (not allTextureRendered)
+				forceProcessNewMapQuadrants(true);
 
 			m_timeElapsedFromLastUpdatingQuadrantsCheck = timeElapsed;
 		}
@@ -9728,9 +9741,9 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 			or m_lastProcessedCameraForMapQuadrants == godot::Vector2()
 			or (m_lastProcessedCameraForMapQuadrants != mapCameraWorldPos))
 		{
-			bool breakLoop = false;
+			TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.2. ") + __FUNCTION__, "Acq. and render texture");
 
-			TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3. ") + __FUNCTION__, "Loop m_mapQuadrantsMap.addUpdatingQuadrant");
+			bool breakLoop = false;
 
 			int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
 			float gridStepInWU = Globals()->gridStepInWU();
@@ -11146,7 +11159,7 @@ bool GDN_TheWorld_Viewer::terrainShiftPermitted(void)
 
 godot::Camera3D* GDN_TheWorld_Viewer::getWorldCamera(void)
 {
-	return getWorldCamera2();
+	return getWorldCamera2(true);
 }
 
 godot::Camera3D* GDN_TheWorld_Viewer::getWorldCamera2(bool force)

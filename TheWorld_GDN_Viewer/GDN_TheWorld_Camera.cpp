@@ -173,22 +173,22 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 		m_altPressed = false;
 
 #define MAPCAMERA_MOVE_INCREMENT	20.0
-	if (input->is_action_pressed("ui_left"))
+	if (input->is_action_pressed("ui_left") && !m_altPressed)
 	{
 		m_mouseRelativePosToShift += godot::Vector2(MAPCAMERA_MOVE_INCREMENT, 0);
 		m_updateCameraRequired = true;
 	}
-	if (input->is_action_pressed("ui_right"))
+	if (input->is_action_pressed("ui_right") && !m_altPressed)
 	{
 		m_mouseRelativePosToShift += godot::Vector2(-MAPCAMERA_MOVE_INCREMENT, 0);
 		m_updateCameraRequired = true;
 	}
-	if (input->is_action_pressed("ui_forward"))
+	if (input->is_action_pressed("ui_forward") && !m_altPressed)
 	{
 		m_mouseRelativePosToShift += godot::Vector2(0, MAPCAMERA_MOVE_INCREMENT);
 		m_updateCameraRequired = true;
 	}
-	if (input->is_action_pressed("ui_backward"))
+	if (input->is_action_pressed("ui_backward") && !m_altPressed)
 	{
 		m_mouseRelativePosToShift += godot::Vector2(0, -MAPCAMERA_MOVE_INCREMENT);
 		m_updateCameraRequired = true;
@@ -204,10 +204,7 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 			constexpr float ZOOM_INCREMENET = 0.02f;
 			float zoomFactor = getZoomFactor();
 			zoomFactor += ZOOM_INCREMENET * m_zoomRequired;
-			if (zoomFactor > 0 and zoomFactor <= 1)
-			{
-				setZoom(zoomFactor);
-			}
+			setZoom(zoomFactor);
 
 			m_zoomRequired = 0;
 		}
@@ -232,7 +229,7 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 
 void GDN_TheWorld_MapCamera::setZoom(float zoomFactor)
 {
-	if (zoomFactor > 0)
+	if (zoomFactor >= 0.09 /*zoomFactor > 0.03*/ and zoomFactor <= 1)
 	{
 		godot::Vector2 zoom(zoomFactor, zoomFactor);
 		set_zoom(zoom);

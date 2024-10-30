@@ -571,7 +571,7 @@ namespace godot
 		godot::Vector2i getTextureRectSize(void) const;
 		//godot::Vector2i getTextureRectIdxFromWorldPos(float x, float z, int level, int numVerticesPerSize, float gridStepInWU) const;
 		void getScreenTextureRects(std::vector<TheWorld_Utils::MapTextureRectPos>& rectsPos);
-		void eraseNotInScreenTextureRects(void);
+		bool eraseNotInScreenTextureRects(void);
 		godot::Rect2 getScreenRectInGlobalCoord(void) const;
 		godot::Size2 getScreenSizeInGlobalCoord(void) const;
 		godot::Vector2 getMousePosInGlobalCoord(void) const;

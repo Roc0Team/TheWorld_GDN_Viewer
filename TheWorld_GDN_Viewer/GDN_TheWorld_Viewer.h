@@ -112,7 +112,7 @@ namespace godot
 		};
 
 	public:
-		void init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLevel);
+		void init(GDN_TheWorld_Viewer* viewer);
 		//godot::Ref<godot::Image> getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId);
 		bool updated(void);
@@ -135,13 +135,13 @@ namespace godot
 		//	return m_mapImageSize;
 		//}
 
-		int32_t getOptimizationLevel(void) const
+		static int32_t getMapQuadrantOptimizationLevel(void)
 		{
 			return m_optimizationLevel;
 		}
-		int32_t getImageResolution(void) const
+		int32_t getImageNumPixelsPerSize(void) const
 		{
-			return m_imageResolution;
+			return m_imageNumPixelsPerSize;
 		}
 
 		size_t getNumUpdatingQuadrants(void) const
@@ -159,8 +159,8 @@ namespace godot
 		//godot::Vector2i m_mapImageSize;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_updatedQuadrants;
 		std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<UpdatingInfo>> m_updatingQuadrants;
-		int32_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
-		int32_t m_imageResolution = 0;
+		static constexpr int32_t m_optimizationLevel = 4;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
+		int32_t m_imageNumPixelsPerSize = 0;
 	};
 
 #define STREAMER_SLEEP_TIME			10
@@ -1936,9 +1936,9 @@ namespace godot
 		//	return Map();
 		//}
 
-		int32_t getImageMapResolution(void)
+		int32_t getImageNumPixelsPerSize(void)
 		{
-			return m_mapQuadrantsMap.getImageResolution();
+			return m_mapQuadrantsMap.getImageNumPixelsPerSize();
 		}
 
 		void eraseMapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos)

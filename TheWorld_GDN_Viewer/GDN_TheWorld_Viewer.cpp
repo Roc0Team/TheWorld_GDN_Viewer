@@ -52,18 +52,15 @@ using namespace godot;
 
 namespace fs = std::filesystem;
 
-constexpr int32_t MAP_QUADRANT_OTPIMIZATION_LEVEL=4;
-
 void WorldQuadrantsMap::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_viewer = viewer;
 }
 
-void MapQuadrantsMap::init(GDN_TheWorld_Viewer* viewer, int32_t optimizationLevel)
+void MapQuadrantsMap::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_viewer = viewer;
-	m_optimizationLevel = optimizationLevel;
-	m_imageResolution = (int32_t)m_viewer->Globals()->resolutionForOptimizationLevel((size_t)m_optimizationLevel);
+	m_imageNumPixelsPerSize = (int32_t)m_viewer->Globals()->resolutionForOptimizationLevel((size_t)MapQuadrantsMap::getMapQuadrantOptimizationLevel());
 }
 
 //godot::Ref<godot::Image> MapQuadrantsMap::getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos)
@@ -143,11 +140,11 @@ void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Uti
 	{
 		godot::Vector2i imageSize = mapImage->get_size();
 		my_assert(imageSize.x == imageSize.y);
-		my_assert(imageSize.x == getImageResolution());
+		my_assert(imageSize.x == getImageNumPixelsPerSize());
 	}
 	
 	if (not contains(quadrantPos))
-		(*this)[quadrantPos] = std::make_unique<MapQuadrant>(quadrantPos, m_viewer, getOptimizationLevel());
+		(*this)[quadrantPos] = std::make_unique<MapQuadrant>(quadrantPos, m_viewer, MapQuadrantsMap::getMapQuadrantOptimizationLevel());
 	(*this)[quadrantPos]->setMapData(mapImage);
 	(*this)[quadrantPos]->setMeshId(meshId);
 
@@ -212,7 +209,7 @@ bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos
 
 			if (not contains(pos))
 			{
-				(*this)[pos] = std::make_unique<MapQuadrant>(pos, m_viewer, getOptimizationLevel());
+				(*this)[pos] = std::make_unique<MapQuadrant>(pos, m_viewer, MapQuadrantsMap::getMapQuadrantOptimizationLevel());
 				updateFromServerNeeded = true;
 			}
 		}
@@ -461,7 +458,7 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 
 	if (rectFull())
 	{
-		godot::Ref<godot::Image> rectImage = godot::Image::create_empty(int32_t(m_mapTextureRectPos.getGlobalSize()), int32_t(m_mapTextureRectPos.getGlobalSize()), false, Image::FORMAT_RGB8);
+		godot::Ref<godot::Image> rectImage = godot::Image::create_empty(int32_t(m_mapTextureRectPos.getNumPixelsPerSize()), int32_t(m_mapTextureRectPos.getNumPixelsPerSize()), false, Image::FORMAT_RGB8);
 
 		for (int32_t y = 0; y < m_mapTextureRectPos.getNumQuadrantsPerSize(); y++)
 			for (int32_t x = 0; x < m_mapTextureRectPos.getNumQuadrantsPerSize(); x++)
@@ -953,7 +950,8 @@ float GDN_TheWorld_Map::getQuadrantWorldSize(void)
 
 float GDN_TheWorld_Map::getQuadrantGlobalSize(void) const
 {
-	return float(m_mapViewer->getViewer()->getImageMapResolution());
+	//return float(m_mapViewer->getViewer()->getImageNumPixelsPerSize());
+	return float(m_mapViewer->getViewer()->getImageNumPixelsPerSize() - 1);
 }
 
 int32_t GDN_TheWorld_Map::getNumQuadrantsPerSize(void) const
@@ -969,7 +967,8 @@ godot::Vector2i GDN_TheWorld_Map::getTextureRectSize(void) const
 
 godot::Vector2i GDN_TheWorld_Map::getImageSize(void) const
 {
-	return godot::Vector2i(m_mapViewer->getViewer()->getImageMapResolution(), m_mapViewer->getViewer()->getImageMapResolution());
+	//return godot::Vector2i(m_mapViewer->getViewer()->getImageMapResolution(), m_mapViewer->getViewer()->getImageMapResolution());
+	return godot::Vector2i((int32_t)getQuadrantGlobalSize(), (int32_t)getQuadrantGlobalSize());
 }
 
 godot::Vector2 GDN_TheWorld_Map::globalPosToWorldPos(godot::Vector2 global)
@@ -1834,9 +1833,6 @@ void GDN_TheWorld_HudControls::setLoadingProgress(float v)
 {
 	if (m_loadingProgressBar != nullptr)
 		m_loadingProgressBar->set_value(v);
-
-	if (v == 100)
-		assert(v == 100);
 }
 
 void GDN_TheWorld_HudControls::showLoadingBar(bool reset)
@@ -3979,7 +3975,7 @@ bool GDN_TheWorld_Viewer::init(void)
 	globals->addElementToInitialize();
 	
 	m_worldQuadrantsMap.init(this);
-	m_mapQuadrantsMap.init(this, MAP_QUADRANT_OTPIMIZATION_LEVEL);
+	m_mapQuadrantsMap.init(this);
 
 	// Shader Global Params
 	{
@@ -9882,12 +9878,14 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 										fullRectRendered = true;
 								}
 								else
+								{
 									if (m_mapQuadrantsMap.updateNeeded(pos))
 									{
 										bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
 										if (scheduled)
 											breakLoop = true;
 									}
+								}
 							}
 							else
 							{

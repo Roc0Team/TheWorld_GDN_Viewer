@@ -4977,8 +4977,8 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		}
 	}
 
-	size_t optimizationLevel = 4;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
-	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
+	size_t optimizationLevelForMapImage = (size_t)MapQuadrantsMap::getMapQuadrantOptimizationLevel();	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
+	size_t textureNumPixelsPerSize = globals->resolutionForOptimizationLevel(optimizationLevelForMapImage);
 
 	if (m_globalmapBuffer.size() > 0)
 	{
@@ -5003,7 +5003,9 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		}
 
 		std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
-		m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevel, cachedTextureResolution);
+		m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevelForMapImage, textureNumPixelsPerSize);
+		godot::Vector2i sz = m_mapImage->get_size();	// DEBUG
+		sz = m_mapImage->get_size();	// DEBUG
 		//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".map.png";
 		//m_mapImage->save_png(outFileName.c_str());
 	}

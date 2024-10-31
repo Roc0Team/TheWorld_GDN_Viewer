@@ -350,6 +350,7 @@ void GDN_TheWorld_Map::MapTextureRect::renderTexture(godot::Ref<godot::Image> im
 
 	godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
 	m_textureRect->set_texture(tex);
+	m_textureRect->set_material(m_map->getTextureRectMaterial());
 
 	//setStatus(Status::Rendered);
 }
@@ -507,6 +508,8 @@ GDN_TheWorld_Map::~GDN_TheWorld_Map(void)
 	}
 }
 
+#define SHADER_PARAM_FRAME_VISIBLE "u_frame_visible"
+
 void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize)
 {
 	m_mapViewer = mapViewer;
@@ -578,6 +581,24 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	rulerVerticalLine2->set_name("MapRulerVLine2");
 	rulerVerticalLine2->set_default_color(MapRulerColor);
 	rulerVerticalLine2->set_width(MapRulerLineWidth);
+
+	godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
+	String shaderPath = "res://addons/twviewer/shaders/frame.gdshader";
+	godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
+	godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
+	m_textureRectMaterial = mat;
+	m_textureRectMaterial->set_shader(shader);
+	frameVisible(false);
+}
+
+godot::Ref<godot::ShaderMaterial> GDN_TheWorld_Map::getTextureRectMaterial(void) const
+{
+	return m_textureRectMaterial;
+}
+
+void GDN_TheWorld_Map::frameVisible(bool b)
+{
+	m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_FRAME_VISIBLE, b);
 }
 
 void GDN_TheWorld_Map::viewportSizeChanged(void)
@@ -953,6 +974,7 @@ godot::Vector2i GDN_TheWorld_Map::getImageSize(void) const
 
 godot::Vector2 GDN_TheWorld_Map::globalPosToWorldPos(godot::Vector2 global)
 {
+	//godot::Vector2 worldPos = global / (getImageSize() - godot::Vector2(1, 1));
 	godot::Vector2 worldPos = global / getImageSize();
 	worldPos = worldPos * Globals()->heightmapSizeInWUs();
 	return worldPos;
@@ -961,6 +983,7 @@ godot::Vector2 GDN_TheWorld_Map::globalPosToWorldPos(godot::Vector2 global)
 godot::Vector2 GDN_TheWorld_Map::worldPosToGlobalPos(godot::Vector2 worldPos)
 {
 	godot::Vector2 globalPos = worldPos / Globals()->heightmapSizeInWUs();
+	//globalPos = globalPos * (getImageSize() - godot::Vector2(1, 1));
 	globalPos = globalPos * getImageSize();
 	return globalPos;
 }
@@ -1456,7 +1479,6 @@ bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImag
 		return false;
 	
 	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
-
 	return getMapTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos);
 }
 
@@ -5908,11 +5930,17 @@ void GDN_TheWorld_Viewer::toggleEditMode(void)
 	if (m_editMode)
 	{
 		trackMouse(true);
+		GDN_TheWorld_Map* map = Map();
+		if (map != nullptr)
+			map->frameVisible(true);
 	}
 	else
 	{
 		if (!positionVisible() && !normalVisible() && !gizmoVisible())
 			trackMouse(false);
+		GDN_TheWorld_Map* map = Map();
+		if (map != nullptr)
+			map->frameVisible(false);
 		//gridOn(false);
 	}
 }
@@ -5926,12 +5954,18 @@ void GDN_TheWorld_Viewer::setEditMode(bool editMode)
 		if (m_editMode)
 		{
 			trackMouse(true);
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr)
+				map->frameVisible(true);
 		}
 		else
 		{
 			if (!positionVisible() && !normalVisible() && !gizmoVisible())
 				trackMouse(false);
 			//gridOn(false);
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr)
+				map->frameVisible(false);
 		}
 	}
 }

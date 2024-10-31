@@ -566,6 +566,8 @@ namespace godot
 
 	public:
 		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
+		godot::Ref<godot::ShaderMaterial> getTextureRectMaterial(void) const;
+		void frameVisible(bool b);
 		void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply);
 		virtual void threadInit(void) {}
 		virtual void threadDeinit(void) {}
@@ -657,6 +659,8 @@ namespace godot
 
 		godot::Vector2 m_rulerGroupCustomMinimumSize;
 		godot::VBoxContainer* m_rulerGroup = nullptr;
+
+		godot::Ref<godot::ShaderMaterial> m_textureRectMaterial;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container

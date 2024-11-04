@@ -136,7 +136,7 @@ void GDN_TheWorld_MapCamera::_unhandled_input(const Ref<InputEvent>& event)
 
 void GDN_TheWorld_MapCamera::_ready(void)
 {
-	setZoom(m_zoomFactor);
+	//setZoom(m_zoomFactor);
 }
 
 void GDN_TheWorld_MapCamera::_physics_process(double _delta)
@@ -243,7 +243,10 @@ void GDN_TheWorld_MapCamera::setZoom(float zoomFactor)
 
 			GDN_TheWorld_Map* map = m_mapViewer->getMap();
 			if (map != nullptr)
+			{
+				map->setMapGridLineThickness(zoomFactor);
 				map->resizeRuler();
+			}
 		}
 	}
 }
@@ -537,6 +540,9 @@ void GDN_TheWorld_Camera::setWorldTransform(godot::Transform3D map)
 	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
 	//godot::Transform3D newCameraT = viewerT * t;
 	set_global_transform(newCameraT);
+
+	godot::Vector3 anchorPos = Globals()->Viewer()->getAnchorForOriginShift()->get_global_position();
+	PLOG_DEBUG << "Set camera transform - World pos=" << map.origin.x << "," << map.origin.y << "," << map.origin.z << " - Global pos=" << newCameraT.origin.x << "," << newCameraT.origin.y << "," << newCameraT.origin.z << " - Anchor=" << anchorPos.x << "," << anchorPos.z;
 }
 
 godot::Vector3 GDN_TheWorld_Camera::getWorldPos(void)
@@ -981,8 +987,8 @@ void GDN_TheWorld_Camera::set_cameraFar(void)
 		}
 		Camera3D::set_near(_near);
 
-		PLOG_DEBUG << "Camera znear=" << _near;
-		PLOG_DEBUG << "Camera zfar=" << _far;
+		//PLOG_DEBUG << "Camera znear=" << _near;
+		//PLOG_DEBUG << "Camera zfar=" << _far;
 
 		m_forceRecalcCameraFar = false;
 		m_savedCameraPosAfterSetFar = cameraGlobalPosition;
@@ -1007,6 +1013,9 @@ bool GDN_TheWorld_Camera::initCameraInWorld(godot::Vector3 cameraPos, godot::Vec
 	godot::Vector3 lookAtGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), lookAt)).origin;;
 	if (cameraPosGlobalCoord != lookAtGlobalCoord)
 		Camera3D::look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, godot::Vector3(0, 1, 0));
+
+	godot::Vector3 anchorPos = Globals()->Viewer()->getAnchorForOriginShift()->get_global_position();
+	PLOG_DEBUG << "Init camera in world - Camera world pos=" << cameraPos.x << "," << cameraPos.y << "," << cameraPos.z << " - Global pos=" << cameraPosGlobalCoord.x << "," << cameraPosGlobalCoord.y << "," << cameraPosGlobalCoord.z << " - Anchor=" << anchorPos.x << "," << anchorPos.z;
 
 	setYaw(cameraYaw, false);
 	setPitch(cameraPitch, false);

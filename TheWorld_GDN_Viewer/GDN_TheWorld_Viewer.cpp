@@ -506,6 +506,13 @@ GDN_TheWorld_Map::~GDN_TheWorld_Map(void)
 }
 
 #define SHADER_PARAM_FRAME_VISIBLE "u_frame_visible"
+#define SHADER_PARAM_LINE_THICKNESS "u_line_thickness"
+#define SHADER_PARAM_NUM_QUADRANTS "u_num_quadrants"
+
+int32_t GDN_TheWorld_Map::numImagesForTexture(void)
+{
+	return s_numImagesForTexture;
+}
 
 void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize)
 {
@@ -580,12 +587,23 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	rulerVerticalLine2->set_width(MapRulerLineWidth);
 
 	godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-	String shaderPath = "res://addons/twviewer/shaders/frame.gdshader";
+	String shaderPath = "res://addons/twviewer/shaders/MapGrid.gdshader";
 	godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
 	godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 	m_textureRectMaterial = mat;
 	m_textureRectMaterial->set_shader(shader);
+	m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_QUADRANTS, GDN_TheWorld_Map::numImagesForTextureRectSide());
 	frameVisible(false);
+}
+
+void GDN_TheWorld_Map::setMapGridLineThickness(float multiplier)
+{
+	constexpr float SHADER_PARAM_MAX_LINE_THICKNESS	= 0.016f;
+	if (m_textureRectMaterial != nullptr)
+	{
+		//m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_LINE_THICKNESS, SHADER_PARAM_MAX_LINE_THICKNESS * multiplier);
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_LINE_THICKNESS, 0.008);
+	}
 }
 
 godot::Ref<godot::ShaderMaterial> GDN_TheWorld_Map::getTextureRectMaterial(void) const
@@ -595,7 +613,8 @@ godot::Ref<godot::ShaderMaterial> GDN_TheWorld_Map::getTextureRectMaterial(void)
 
 void GDN_TheWorld_Map::frameVisible(bool b)
 {
-	m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_FRAME_VISIBLE, b);
+	if (m_textureRectMaterial != nullptr)
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_FRAME_VISIBLE, b);
 }
 
 void GDN_TheWorld_Map::viewportSizeChanged(void)
@@ -956,13 +975,13 @@ float GDN_TheWorld_Map::getQuadrantGlobalSize(void) const
 
 int32_t GDN_TheWorld_Map::getNumQuadrantsPerSize(void) const
 {
-	return getNumImagesForTextureRectSide();
+	return GDN_TheWorld_Map::numImagesForTextureRectSide();
 }
 
 godot::Vector2i GDN_TheWorld_Map::getTextureRectSize(void) const
 {
 	godot::Vector2 imageSize = getImageSize();
-	return (imageSize * godot::Vector2i(getNumImagesForTextureRectSide(), getNumImagesForTextureRectSide())) /* * getScaleFactor()*/;
+	return (imageSize * godot::Vector2i(GDN_TheWorld_Map::numImagesForTextureRectSide(), GDN_TheWorld_Map::numImagesForTextureRectSide())) /* * getScaleFactor()*/;
 }
 
 godot::Vector2i GDN_TheWorld_Map::getImageSize(void) const
@@ -3045,6 +3064,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("print", "p_msg"), &GDN_TheWorld_Viewer::print);
 
 	ClassDB::bind_method(D_METHOD("set_anchor_for_origin_shift", "p_anchor"), &GDN_TheWorld_Viewer::setAnchorForOriginShift);
+	ClassDB::bind_method(D_METHOD("get_anchor_for_origin_shift"), &GDN_TheWorld_Viewer::getAnchorForOriginShift);
 	ClassDB::bind_method(D_METHOD("set_editor_interface"), &GDN_TheWorld_Viewer::setEditorInterface);
 	ClassDB::bind_method(D_METHOD("set_editor_3d_overlay"), &GDN_TheWorld_Viewer::setEditor3dOverlay);
 	ClassDB::bind_method(D_METHOD("set_world_editor_camera"), &GDN_TheWorld_Viewer::setWorldEditorCamera);
@@ -3222,6 +3242,7 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_shaderParam_triplanar = false;
 	m_shaderParam_globalmapBlendStart = 0.0f;
 	m_shaderParam_globalmapBlendDistance = 0.0f;
+	m_anchorForOriginShift = this;
 
 	_init();
 }
@@ -3685,7 +3706,7 @@ void GDN_TheWorld_Viewer::createMapViewer(void)
 		if (mapCamera == nullptr)
 			mapCamera = memnew(GDN_TheWorld_MapCamera);
 		mapCamera->set_name(THEWORLD_MAP_CAMERA_NODE_NAME);
-		mapCamera->setMapViewer(mapViewer);
+		mapCamera->init(mapViewer);
 		mapCamera->set_enabled(false);
 
 		Node* parent = mapCamera->get_parent();
@@ -6369,6 +6390,8 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	TheWorld_Utils::GuardProfiler profiler(std::string("recalcQuadrantsInView 1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants");
 
 	bool newQuadAdded = false;
+	
+	PLOG_DEBUG << "Recalc quadrants in view - World camera quadrant pos: x=" << m_computedWorldCameraQuadrantPos.getLowerXGridVertex() << " z=" << m_computedWorldCameraQuadrantPos.getLowerZGridVertex();
 	
 	TheWorld_Utils::QuadrantPos cameraQuadrantPos = m_computedWorldCameraQuadrantPos;
 	if (!cameraQuadrantPos.isInitialized())
@@ -11329,6 +11352,8 @@ void GDN_TheWorld_Viewer::deployWorld(float cameraX, float cameraY, float camera
 	// World Node Local Coordinate System is the same as MapManager coordinate system
 	// Viewer Node origin is in the lower corner (X and Z) of the vertex bitmap at altitude 0
 	// Chunk and QuadTree coordinates are in Viewer Node local coordinate System
+
+	PLOG_DEBUG << "Deploy world - Camera world pos=" << cameraX << "," << cameraY << "," << cameraZ;
 
 	enum class TheWorldStatus status = Globals()->status();
 	if (status < TheWorldStatus::sessionInitialized)

@@ -42,9 +42,6 @@
 #define MAX_SETTABLE_DEPTH_ON_PERIMETER	25
 #define MAX_SETTABLE_CACHE_ON_PERIMETER	5
 
-//constexpr float MAP_INITIAL_SCALE_FACTOR = 1.0;	//  0.5;		// 1.0;
-constexpr int32_t MAP_NUM_IMAGES_FOR_TEXTURE = 5;
-
 namespace godot
 {
 	class MeshCache;
@@ -137,7 +134,7 @@ namespace godot
 
 		static int32_t getMapQuadrantOptimizationLevel(void)
 		{
-			return m_optimizationLevel;
+			return s_optimizationLevel;
 		}
 		int32_t getImageNumPixelsPerSize(void) const
 		{
@@ -159,7 +156,7 @@ namespace godot
 		//godot::Vector2i m_mapImageSize;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_updatedQuadrants;
 		std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<UpdatingInfo>> m_updatingQuadrants;
-		static constexpr int32_t m_optimizationLevel = 4;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
+		static constexpr int32_t s_optimizationLevel = 4;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
 		int32_t m_imageNumPixelsPerSize = 0;
 	};
 
@@ -565,8 +562,10 @@ namespace godot
 		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
 
 	public:
+		static int32_t numImagesForTexture(void);
 		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
 		godot::Ref<godot::ShaderMaterial> getTextureRectMaterial(void) const;
+		void setMapGridLineThickness(float thickness);
 		void frameVisible(bool b);
 		void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply);
 		virtual void threadInit(void) {}
@@ -628,9 +627,9 @@ namespace godot
 		//{
 		//	return m_scaleFactor;
 		//}
-		int32_t getNumImagesForTextureRectSide(void) const
+		int32_t numImagesForTextureRectSide(void) const
 		{
-			return m_numImagesForTexture;
+			return s_numImagesForTexture;
 		}
 
 		int32_t getNumTextureRects(void);
@@ -648,9 +647,7 @@ namespace godot
 		UploadingMapTextureRectContainer m_uploadingMapTextureRectContainer;
 		std::map<TheWorld_Utils::MapTextureRectPos, bool> m_mapTextureRectRefreshScheduled;
 		godot::Dictionary m_worldFlagDict;
-		//int m_zoomRequired = 0;
-		//float m_scaleFactor = MAP_INITIAL_SCALE_FACTOR;
-		int32_t m_numImagesForTexture = MAP_NUM_IMAGES_FOR_TEXTURE;
+		static constexpr int32_t s_numImagesForTexture = 5;
 
 		godot::Label* m_northLabel = nullptr;
 		godot::Label* m_southLabel = nullptr;
@@ -2045,6 +2042,7 @@ namespace godot
 		{
 			m_checkServerTextureRectInProgress = b;
 		}
+		godot::Node3D* getAnchorForOriginShift(void);
 
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
@@ -2068,7 +2066,6 @@ namespace godot
 		void process_updateHud(godot::Camera3D* activeWorldCamera);
 		void process_updateOriginShift(godot::Camera2D* activeMapCamera, godot::Camera3D* activeWorldCamera);
 		void setAnchorForOriginShift(godot::Node3D* anchorForOriginShift);
-		godot::Node3D* getAnchorForOriginShift(void);
 		void process_trackMouse(godot::Camera3D* activeWorldCamera);
 		void process_castRayFromCamera(godot::Camera3D* activeWorldCamera);
 		void process_updateLodInQuads(godot::Vector3& cameraPosInMap);

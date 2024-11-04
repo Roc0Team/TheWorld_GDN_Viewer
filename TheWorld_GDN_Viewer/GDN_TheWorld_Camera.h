@@ -50,9 +50,11 @@ namespace godot {
 		godot::Transform2D getCameraWorldTransform();
 		godot::Vector2 getCameraWorldPos();
 
-		void setMapViewer(GDN_TheWorld_MapViewer* mapViewer)
+		void init(GDN_TheWorld_MapViewer* mapViewer)
 		{
 			m_mapViewer = mapViewer;
+			setZoom(CAMERA_INITIAL_SCALE_FACTOR);
+			//setZoom(0.1f);
 		}
 
 		void pauseMouseMovement(void)
@@ -97,7 +99,7 @@ namespace godot {
 
 		float m_sensitivity = 1.0;	// 0.0 - 1.0
 
-		float m_zoomFactor = CAMERA_INITIAL_SCALE_FACTOR;
+		float m_zoomFactor = -1;
 	};
 
 	class GDN_TheWorld_Camera : public Camera3D

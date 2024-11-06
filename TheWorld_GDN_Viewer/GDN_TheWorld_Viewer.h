@@ -657,6 +657,8 @@ namespace godot
 		godot::Vector2 m_rulerGroupCustomMinimumSize;
 		godot::VBoxContainer* m_rulerGroup = nullptr;
 
+		godot::TextureRect* m_compassImage = nullptr;
+
 		godot::Ref<godot::ShaderMaterial> m_textureRectMaterial;
 	};
 

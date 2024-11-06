@@ -553,6 +553,13 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	sz = m_westLabel->get_theme_font_size("font_size");
 	m_westLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 
+	m_compassImage = memnew(godot::TextureRect);
+	mapViewportContainer->add_child(m_compassImage);
+	godot::Ref<godot::Texture2D> compassImage = godot::ResourceLoader::get_singleton()->load("res://addons/twviewer/assets/compass_image.png");
+	//godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(compassImage);
+
+	m_compassImage->set_texture(compassImage);
+
 	const float MapRulerHLineSize = getQuadrantGlobalSize();
 	const float MapRulerVLineSize = 10;
 	const double MapRulerLineWidth = 3;
@@ -659,6 +666,18 @@ void GDN_TheWorld_Map::viewportResized(godot::Vector2 newSize)
 		m_westLabel->set_offset(SIDE_LEFT, 0.0);
 		m_westLabel->set_anchor(godot::Side::SIDE_TOP, 0.0);
 		m_westLabel->set_offset(SIDE_TOP, newSize.y / 2);
+	}
+
+	if (m_compassImage != nullptr)
+	{
+		//m_compassImage->set_anchor(godot::Side::SIDE_LEFT, 0.01);
+		//m_compassImage->set_offset(SIDE_LEFT, 0.0);
+		//m_compassImage->set_anchor(godot::Side::SIDE_TOP, 0.03);
+		//m_compassImage->set_offset(SIDE_TOP, 0.0);
+		m_compassImage->set_anchor(godot::Side::SIDE_LEFT, 0.0);
+		m_compassImage->set_offset(SIDE_LEFT, 25.0);
+		m_compassImage->set_anchor(godot::Side::SIDE_TOP, 0.0);
+		m_compassImage->set_offset(SIDE_TOP, 25.0);
 	}
 
 	resizeRuler(newSize);

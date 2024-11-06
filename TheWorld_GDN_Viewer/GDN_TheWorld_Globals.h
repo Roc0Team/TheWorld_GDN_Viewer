@@ -150,6 +150,7 @@ namespace godot
 	public:
 		static std::string moduleLoadPath(void);
 		static std::string configFilePath(void);
+		static void printGlobalShaderParameters(void);
 
 	public:
 		const static Color g_color_white;

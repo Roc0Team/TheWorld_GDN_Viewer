@@ -705,6 +705,26 @@ namespace godot
 		PLOG_INFO << "TheWorld Globals Initialized!";
 	}
 
+	void GDN_TheWorld_Globals::printGlobalShaderParameters(void)
+	{
+		godot::TypedArray<godot::StringName> globalShaderParameters = godot::RenderingServer::get_singleton()->global_shader_parameter_get_list();
+		if (globalShaderParameters.size() > 0)
+		{
+			PLOG_INFO << "Global Shader Parameters - Num: " << globalShaderParameters.size();
+
+			for (int idx = 0; idx < globalShaderParameters.size(); idx++)
+			{
+				godot::Variant v = godot::RenderingServer::get_singleton()->global_shader_parameter_get(globalShaderParameters[idx]);
+				godot::String str = v.stringify();
+				std::string value = str.utf8().get_data();
+				std::string name = godot::String(globalShaderParameters[idx]).utf8().get_data();
+				PLOG_INFO << "   " << name << "=" << value;;
+			}
+		}
+		else
+			PLOG_INFO << "No Global Shader Parameter Set";
+	}
+
 	void GDN_TheWorld_Globals::preDeinit(void)
 	{
 	}

@@ -138,7 +138,7 @@ namespace godot
 		//const float c_splitScale = 1.5F;
 
 	public:
-		static const std::string c_groundTexturesDir;
+		//static const std::string c_groundTexturesDir;
 		static const std::string c_albedo_bump_file_ext;
 		static const std::string c_normal_roughness_file_ext;
 
@@ -146,6 +146,10 @@ namespace godot
 		static void _bind_methods();
 		void _notification(int p_what);
 		void _init(void);
+
+	public:
+		static std::string moduleLoadPath(void);
+		static std::string configFilePath(void);
 
 	public:
 		const static Color g_color_white;
@@ -825,6 +829,10 @@ namespace godot
 		//static size_t s_elapsed5;
 
 	private:
+		static std::string s_moduleLoadPath;
+		static std::string s_configFilePath;
+		static std::recursive_mutex s_internalMutex;
+
 		bool m_initialized;
 		bool m_quitting;
 		bool m_ready;

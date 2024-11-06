@@ -4047,7 +4047,8 @@ bool GDN_TheWorld_Viewer::init(void)
 		m_shaderParam_colormapOpacity.set_normal(godot::Vector3(1.0f, 1.0f, 1.0f));
 		m_shaderParam_colormapOpacity.d = 1.0f;
 
-		ShaderTerrainData::ShaderTerrainData::getGroundTextures(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()), this);
+		//ShaderTerrainData::getGroundTextures(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()), this);
+		ShaderTerrainData::getGroundTextures("", this);
 		std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
 		globals->addElementToInitialize((int)groundTextures.size());
 	}
@@ -6808,7 +6809,9 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 				if (!groundTexture.second->initialized)
 				{
 					std::string s(groundTexture.first);
-					ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + s.c_str(), groundTexture.second.get(), this);
+					std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+					//ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + s.c_str(), groundTexture.second.get(), this);
+					ShaderTerrainData::getGroundTexture(godot::String(groundTexturesDir.c_str()) + s.c_str(), groundTexture.second.get(), this);
 					globals->addNumElementInitialized();
 					resetgroundTexturesProcessing = false;
 					break;
@@ -12705,14 +12708,18 @@ godot::String GDN_TheWorld_Viewer::getGroundTextureName(int type)
 godot::Ref<godot::ImageTexture> GDN_TheWorld_Viewer::getGroundTextureAlbedoBump(godot::String texName)
 {
 	ShaderTerrainData::GroundTexture groundTexture;
-	ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + texName, &groundTexture);
+	std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+	//ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + texName, &groundTexture);
+	ShaderTerrainData::getGroundTexture(godot::String(groundTexturesDir.c_str()) + texName, &groundTexture);
 	return groundTexture.m_albedo_bump_tex;
 }
 
 godot::Ref<godot::ImageTexture> GDN_TheWorld_Viewer::getGroundTextureNormalRoughness(godot::String texName)
 {
 	ShaderTerrainData::GroundTexture groundTexture;
-	ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + texName, &groundTexture);
+	std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+	//ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + texName, &groundTexture);
+	ShaderTerrainData::getGroundTexture(godot::String(groundTexturesDir.c_str()) + texName, &groundTexture);
 	return groundTexture.m_normal_roughness_tex;
 }
 

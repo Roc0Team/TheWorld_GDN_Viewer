@@ -872,6 +872,7 @@ namespace godot
 		godot::Ref<godot::Material> getLookDevChunkLodMaterial(int lod, bool reload = false);
 		static void freeLookDevSubViewport(void);
 		static void releaseGlobals(void);
+		static std::string getGroundTexturesDir(void);
 		static void getGroundTextures(godot::String dirName, GDN_TheWorld_Viewer* viewer = nullptr);
 		static std::map<std::string, std::unique_ptr<GroundTexture>>& getGroundTextures(void)
 		{
@@ -990,6 +991,9 @@ namespace godot
 		//Color encodeNormal(Vector3 normal);
 
 	private:
+		static std::string s_groundTexturesDir;
+		static std::recursive_mutex s_internalMutex;
+
 		GDN_TheWorld_Viewer* m_viewer;
 		QuadTree* m_quadTree;
 

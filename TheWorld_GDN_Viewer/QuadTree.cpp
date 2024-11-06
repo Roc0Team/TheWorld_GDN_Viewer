@@ -1,6 +1,7 @@
 //#include "pch.h"
 #include "QuadTree.h"
 #include "Viewer_Utils.h"
+#include "json/json.h"
 
 #include "GDN_TheWorld_Globals.h"
 #include "GDN_TheWorld_Viewer.h"
@@ -13,6 +14,8 @@
 
 #include "assert.h"
 #include <filesystem>
+#include <iostream>
+#include <fstream>
 
 #pragma warning(push, 0)
 #include <godot_cpp/classes/node.hpp>
@@ -2404,6 +2407,28 @@ godot::Ref<godot::Image> ShaderTerrainData::readGroundTexture(godot::String file
 	return image;
 }
 
+std::string ShaderTerrainData::s_groundTexturesDir;
+std::recursive_mutex ShaderTerrainData::s_internalMutex;
+
+std::string ShaderTerrainData::getGroundTexturesDir(void)
+{
+	std::lock_guard<std::recursive_mutex> lock(s_internalMutex);
+	if (s_groundTexturesDir.size() == 0)
+	{
+		std::string configFilePath = GDN_TheWorld_Globals::configFilePath();
+		Json::Value root;
+		std::ifstream jsonFile(configFilePath);
+		jsonFile >> root;
+		s_groundTexturesDir = root["GroundTexturesDir"].asString();
+		if (s_groundTexturesDir.find(':') == std::string::npos)
+		{
+			// dir acquired from json not contains ":"
+			s_groundTexturesDir = GDN_TheWorld_Globals::moduleLoadPath() + "\\" + s_groundTexturesDir;
+		}
+	}
+	return s_groundTexturesDir;
+}
+
 void ShaderTerrainData::getGroundTextures(godot::String dirName, GDN_TheWorld_Viewer* viewer)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("getGroundTextures 1 ") + __FUNCTION__, "all");
@@ -2413,8 +2438,14 @@ void ShaderTerrainData::getGroundTextures(godot::String dirName, GDN_TheWorld_Vi
 	if (viewer != nullptr)
 		viewer->Globals()->debugPrint("Reading ground textures");
 
-	godot::String globalizedDirName = ProjectSettings::get_singleton()->globalize_path(dirName);
+	godot::String _dirName = dirName;
+	if (_dirName.length() == 0)
+	{
+		_dirName = ShaderTerrainData::getGroundTexturesDir().c_str();
+	}
 	
+	godot::String globalizedDirName = ProjectSettings::get_singleton()->globalize_path(_dirName);
+
 	std::map<std::string, bool> textures;
 
 	std::string dir = std::string(globalizedDirName.utf8().get_data());
@@ -2610,7 +2641,9 @@ godot::Ref<godot::ImageTexture> ShaderTerrainData::getAlbedoBumpTexture(std::str
 	{
 		s_groundTextures[textureName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 		ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[textureName].get();
-		getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
+		std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+		//getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
+		getGroundTexture(godot::String(groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
 	}
 
 	return s_groundTextures[textureName]->m_albedo_bump_tex;
@@ -2625,7 +2658,9 @@ godot::Ref<godot::ImageTexture> ShaderTerrainData::getNormalRoughnessTexture(std
 	{
 		s_groundTextures[textureName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 		ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[textureName].get();
-		getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
+		std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+		//getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
+		getGroundTexture(godot::String(groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
 	}
 
 	return s_groundTextures[textureName]->m_normal_roughness_tex;
@@ -3192,28 +3227,36 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 				{
 					s_groundTextures[lowElevationTexName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 					ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[lowElevationTexName].get();
-					getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + lowElevationTexName.c_str(), groundTexture, m_viewer);
+					std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+					//getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + lowElevationTexName.c_str(), groundTexture, m_viewer);
+					getGroundTexture(godot::String(groundTexturesDir.c_str()) + lowElevationTexName.c_str(), groundTexture, m_viewer);
 				}
 
 				if (!s_groundTextures.contains(highElevationTexName) || !s_groundTextures[highElevationTexName]->initialized)
 				{
 					s_groundTextures[highElevationTexName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 					ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[highElevationTexName].get();
-					getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + highElevationTexName.c_str(), groundTexture, m_viewer);
+					std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+					//getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + highElevationTexName.c_str(), groundTexture, m_viewer);
+					getGroundTexture(godot::String(groundTexturesDir.c_str()) + highElevationTexName.c_str(), groundTexture, m_viewer);
 				}
 
 				if (!s_groundTextures.contains(dirtTexName) || !s_groundTextures[dirtTexName]->initialized)
 				{
 					s_groundTextures[dirtTexName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 					ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[dirtTexName].get();
-					getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + dirtTexName.c_str(), groundTexture, m_viewer);
+					std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+					//getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + dirtTexName.c_str(), groundTexture, m_viewer);
+					getGroundTexture(godot::String(groundTexturesDir.c_str()) + dirtTexName.c_str(), groundTexture, m_viewer);
 				}
 
 				if (!s_groundTextures.contains(rocksTexName) || !s_groundTextures[rocksTexName]->initialized)
 				{
 					s_groundTextures[rocksTexName] = std::make_unique<ShaderTerrainData::GroundTexture>();
 					ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[rocksTexName].get();
-					getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + rocksTexName.c_str(), groundTexture, m_viewer);
+					std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
+					//getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + rocksTexName.c_str(), groundTexture, m_viewer);
+					getGroundTexture(godot::String(groundTexturesDir.c_str()) + rocksTexName.c_str(), groundTexture, m_viewer);
 				}
 			}
 

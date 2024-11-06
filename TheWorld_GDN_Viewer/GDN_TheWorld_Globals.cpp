@@ -51,7 +51,7 @@ const godot::Color godot::GDN_TheWorld_Globals::g_color_black = godot::Color(0.0
 //size_t godot::GDN_TheWorld_Globals::s_elapsed4 = 0;
 //size_t godot::GDN_TheWorld_Globals::s_elapsed5 = 0;
 
-const std::string godot::GDN_TheWorld_Globals::c_groundTexturesDir = "res://assets/textures/ground/";
+//const std::string godot::GDN_TheWorld_Globals::c_groundTexturesDir = "res://assets/textures/ground/";
 const std::string godot::GDN_TheWorld_Globals::c_albedo_bump_file_ext = "_albedo_bump.ground";
 const std::string godot::GDN_TheWorld_Globals::c_normal_roughness_file_ext = "_normal_roughness.ground";
 
@@ -362,6 +362,32 @@ namespace godot
 	GDN_TheWorld_Globals::~GDN_TheWorld_Globals()
 	{
 		deinit();
+	}
+
+	std::recursive_mutex GDN_TheWorld_Globals::s_internalMutex;
+
+	std::string GDN_TheWorld_Globals::s_moduleLoadPath;
+
+	std::string GDN_TheWorld_Globals::moduleLoadPath(void)
+	{
+		std::lock_guard<std::recursive_mutex> lock(s_internalMutex);
+		if (s_moduleLoadPath.size() == 0)
+		{
+			s_moduleLoadPath = TheWorld_Utils::getModuleLoadPath();
+		}
+		return s_moduleLoadPath;
+	}
+
+	std::string GDN_TheWorld_Globals::s_configFilePath;
+
+	std::string GDN_TheWorld_Globals::configFilePath(void)
+	{
+		std::lock_guard<std::recursive_mutex> lock(s_internalMutex);
+		if (s_configFilePath.size() == 0)
+		{
+			s_configFilePath = moduleLoadPath() += "\\TheWorld_GDN_Viewer.json";
+		}
+		return s_configFilePath;
 	}
 
 	void GDN_TheWorld_Globals::_bind_methods()

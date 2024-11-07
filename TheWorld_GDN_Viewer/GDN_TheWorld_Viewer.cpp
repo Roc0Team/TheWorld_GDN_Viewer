@@ -3124,7 +3124,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_joins"), &GDN_TheWorld_Viewer::getNumJoins);
 	ClassDB::bind_method(D_METHOD("get_num_chunks"), &GDN_TheWorld_Viewer::getNumChunks);
 	ClassDB::bind_method(D_METHOD("get_num_active_chunks"), &GDN_TheWorld_Viewer::getNumActiveChunks);
-	ClassDB::bind_method(D_METHOD("get_loading_progress"), &GDN_TheWorld_Viewer::getLoadingProgress);
+	//ClassDB::bind_method(D_METHOD("get_loading_progress"), &GDN_TheWorld_Viewer::getLoadingProgress);
 	ClassDB::bind_method(D_METHOD("get_max_num_quadrant"), &GDN_TheWorld_Viewer::getMaxNumQuadrant);
 	ClassDB::bind_method(D_METHOD("get_min_num_quadrant"), &GDN_TheWorld_Viewer::getMinNumQuadrant);
 	ClassDB::bind_method(D_METHOD("get_num_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrant);

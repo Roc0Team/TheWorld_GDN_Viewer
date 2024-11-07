@@ -3193,6 +3193,8 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("pause_mouse_movement"), &GDN_TheWorld_Viewer::pauseMouseMovement);
 	ClassDB::bind_method(D_METHOD("resume_mouse_movement"), &GDN_TheWorld_Viewer::resumeMouseMovement);
 
+	ClassDB::bind_method(D_METHOD("get_loading_progress"), &GDN_TheWorld_Viewer::getloadingProgressScript);
+
 	ClassDB::bind_method(D_METHOD("global_transform_to_world_transform", "p_transform"), &GDN_TheWorld_Viewer::globalToWorld3d);
 	ClassDB::bind_method(D_METHOD("global_pos_to_world_transform", "p_transform"), &GDN_TheWorld_Viewer::globalPosToWorldTransform);
 	ClassDB::bind_method(D_METHOD("global_pos_to_world_pos", "p_transform"), &GDN_TheWorld_Viewer::globalPosToWorldPos3d);
@@ -5345,6 +5347,23 @@ bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 			return false;
 	}
 
+}
+
+bool GDN_TheWorld_Viewer::worldStreamingTerminated(float& loadingProgress)
+{
+	bool b = worldStreamingTerminated();
+	if (b)
+		loadingProgress = 100;
+	else
+		loadingProgress = getLoadingProgress();
+	return b;
+}
+
+float GDN_TheWorld_Viewer::getloadingProgressScript(void)
+{
+	float loadingProgress;
+	worldStreamingTerminated(loadingProgress);
+	return loadingProgress;
 }
 
 bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)

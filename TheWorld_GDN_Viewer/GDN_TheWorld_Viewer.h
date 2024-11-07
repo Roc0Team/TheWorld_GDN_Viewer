@@ -1280,7 +1280,7 @@ namespace godot
 		int getUpdateMaterialParamsDuration(void) const;
 		int getMouseTrackHitDuration(void) const;
 		int getProcessNotOwnsLock(void) const;
-		float getLoadingProgress();
+		float getLoadingProgress(void);
 		int getMinNumQuadrant(void) const
 		{
 			return (int)pow((getMinDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1, 2);
@@ -2035,6 +2035,8 @@ namespace godot
 
 		bool isCameraQuadrantColliderSet(void);
 		bool worldStreamingTerminated(void);
+		bool worldStreamingTerminated(float& loadingProgress);
+		float getloadingProgressScript(void);
 
 		void uploadTextureRectInProgress(bool b)
 		{

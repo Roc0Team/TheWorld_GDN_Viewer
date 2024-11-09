@@ -5453,8 +5453,11 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 		godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
 		if (activeWorldCamera != nullptr)
 		{
+			godot::Transform3D oldCameraT = activeWorldCamera->get_global_transform();
 			activeWorldCamera->set_global_transform(worldCameraWorldTransform);
 			activeWorldCamera->set_global_position(godot::Vector3(globalPosGroundZero.x, cameraAltitude, globalPosGroundZero.z));
+			godot::Transform3D newCameraT = activeWorldCamera->get_global_transform();
+			checkNewVisibleQuadrantsRectSize(newCameraT, oldCameraT);
 			GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
 			if (cam != nullptr)
 			{
@@ -6376,6 +6379,148 @@ int GDN_TheWorld_Viewer::maxActualDepthQuadInAllDirections(void) const
 	if (m_numVisibleQuadrantOnPerimeterOnEastSide > ret)
 		ret = m_numVisibleQuadrantOnPerimeterOnEastSide;
 	return ret;
+}
+
+godot::Rect2 GDN_TheWorld_Viewer::getVisibleQuadrantsRect(TheWorld_Utils::QuadrantPos& cameraQuadrantPos, bool& valid)
+{
+	godot::Rect2 visibleQuadrantsRect;
+	valid = false;
+
+	float quadrantsSizeInWUs = Globals()->heightmapSizeInWUs();
+
+	if (!cameraQuadrantPos.isInitialized())
+		return visibleQuadrantsRect;
+
+	if (m_numVisibleQuadrantOnPerimeterOnWestSide == -1 or m_numVisibleQuadrantOnPerimeterOnEastSide == -1 or m_numVisibleQuadrantOnPerimeterOnNorthSide == -1 or m_numVisibleQuadrantOnPerimeterOnSouthSide == -1)
+		return visibleQuadrantsRect;
+
+	valid = true;
+
+	visibleQuadrantsRect = godot::Rect2(
+		cameraQuadrantPos.getLowerXGridVertex() - m_numVisibleQuadrantOnPerimeterOnWestSide * quadrantsSizeInWUs,
+		cameraQuadrantPos.getLowerZGridVertex() - m_numVisibleQuadrantOnPerimeterOnNorthSide * quadrantsSizeInWUs,
+		(m_numVisibleQuadrantOnPerimeterOnWestSide + m_numVisibleQuadrantOnPerimeterOnEastSide + 1) * quadrantsSizeInWUs,
+		(m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numVisibleQuadrantOnPerimeterOnSouthSide + 1) * quadrantsSizeInWUs
+	);
+	
+	return visibleQuadrantsRect;
+}
+
+void GDN_TheWorld_Viewer::checkNewVisibleQuadrantsRectSize(godot::Transform3D newCameraT, godot::Transform3D oldCameraT)
+{
+	godot::Vector3 newPos = newCameraT.origin;
+	godot::Vector3 oldPos = oldCameraT.origin;
+	float quadrantsSizeInWUs = Globals()->heightmapSizeInWUs();
+	TheWorld_Utils::QuadrantPos oldCameraQuadrantPos(oldPos.x, oldPos.z, m_worldViewerLevel, m_numWorldVerticesPerSize, Globals()->gridStepInWU());
+	TheWorld_Utils::QuadrantPos newCameraQuadrantPos(newPos.x, newPos.z, m_worldViewerLevel, m_numWorldVerticesPerSize, Globals()->gridStepInWU());
+
+	if (newCameraQuadrantPos != oldCameraQuadrantPos)	// if oldPos and newPos are in the same quadrant I don't need to modify visible quadrant size ...
+	{
+		// ... else
+		bool visibleQuadrantsRectValid = false;
+		godot::Rect2 oldPosVisibleQuadrantsRect = getVisibleQuadrantsRect(oldCameraQuadrantPos, visibleQuadrantsRectValid);
+		if (visibleQuadrantsRectValid)
+		{
+			godot::Rect2 newPosVisibleQuadrantsRect = getVisibleQuadrantsRect(newCameraQuadrantPos, visibleQuadrantsRectValid);
+			if (visibleQuadrantsRectValid)
+			{
+				if (newPosVisibleQuadrantsRect.intersects(oldPosVisibleQuadrantsRect))
+				{
+					godot::Rect2 intersection = newPosVisibleQuadrantsRect.intersection(oldPosVisibleQuadrantsRect);
+					if (not intersection.has_point(godot::Vector2(newPos.x, newPos.z)))	// if new and old visible quadrant intersect but newPos is contained in intersection better to not modify new visible quadrant size
+																						// because we surely have many shared quadrants and we don't want to re-acquire them from server ...
+					{
+						// else ...
+						// Check East Side
+						if (newPos.x > intersection.get_end().x)
+							m_numVisibleQuadrantOnPerimeterOnEastSide = -1;		// we force recalculation of visible quadrants in East direction
+						// Check North Side
+						if (newPos.z < intersection.get_position().y)
+							m_numVisibleQuadrantOnPerimeterOnNorthSide = -1;	// we force recalculation of visible quadrants in North direction
+						// Check West Side
+						if (newPos.x < intersection.get_position().x)
+							m_numVisibleQuadrantOnPerimeterOnWestSide = -1;		// we force recalculation of visible quadrants in West direction
+						// Check South Side
+						if (newPos.z > intersection.get_end().y)
+							m_numVisibleQuadrantOnPerimeterOnSouthSide = -1;	// we force recalculation of visible quadrants in South direction
+					}
+				}
+				else
+				{
+					// if new and old visible quadrant don't intersect we can't have shared quadrants so it is better to re-calculate visible quadrant size and re-acquire from server all quadrants
+					m_numVisibleQuadrantOnPerimeterOnWestSide = -1;		// we force recalculation of visible quadrants in West direction
+					m_numVisibleQuadrantOnPerimeterOnEastSide = -1;		// we force recalculation of visible quadrants in East direction
+					m_numVisibleQuadrantOnPerimeterOnNorthSide = -1;	// we force recalculation of visible quadrants in North direction
+					m_numVisibleQuadrantOnPerimeterOnSouthSide = -1;	// we force recalculation of visible quadrants in South direction
+				}
+			}
+		}
+		
+		
+		
+		//float roundedNumQuadrantsBetweenPositionsOnWestEastLine = floor(abs(newPos.x - oldPos.x) / quadrantsSizeInWUs) + 2;
+		//float roundedNumQuadrantsBetweenPositionsOnNorthSouthLine = floor(abs(newPos.z - oldPos.z) / quadrantsSizeInWUs) + 2;
+		//bool visibleQuadrantsRectValid = false;
+		//godot::Rect2 visibleQuadrantsRect = getVisibleQuadrantsRect(oldCameraQuadrantPos, visibleQuadrantsRectValid);
+		//if (visibleQuadrantsRectValid)
+		//{
+		//	if (newPos.x >= oldPos.x)		// new position on east side of old position
+		//	{
+		//		if (newPos.z >= oldPos.z)
+		//		{
+		//			// new position on south-east quadrant respect to old position
+
+		//			if (m_numVisibleQuadrantOnPerimeterOnWestSide < roundedNumQuadrantsBetweenPositionsOnWestEastLine / 2)
+		//				m_numVisibleQuadrantOnPerimeterOnWestSide = -1;
+		//			if (m_numVisibleQuadrantOnPerimeterOnNorthSide < roundedNumQuadrantsBetweenPositionsOnNorthSouthLine / 2)
+		//				m_numVisibleQuadrantOnPerimeterOnNorthSide = -1;
+		//			if (newPos.x > (oldCameraQuadrantPos.getIndexPosX() + m_numVisibleQuadrantOnPerimeterOnEastSide * quadrantsSizeInWUs))		// if 
+		//				m_numVisibleQuadrantOnPerimeterOnEastSide = -1;
+		//			if (newPos.z > (oldCameraQuadrantPos.getIndexPosZ() + m_numVisibleQuadrantOnPerimeterOnSouthSide * quadrantsSizeInWUs))
+		//				m_numVisibleQuadrantOnPerimeterOnSouthSide = -1;
+		//		}
+		//		else
+		//		{
+		//			// new position on north-east quadrant respect to old position
+
+		//			if (m_numVisibleQuadrantOnPerimeterOnWestSide < roundedNumQuadrantsBetweenPositionsOnWestEastLine / 2)
+		//				m_numVisibleQuadrantOnPerimeterOnWestSide = -1;
+		//			if (m_numVisibleQuadrantOnPerimeterOnSouthSide < roundedNumQuadrantsBetweenPositionsOnNorthSouthLine / 2)
+		//				m_numVisibleQuadrantOnPerimeterOnSouthSide = -1;
+		//			m_numVisibleQuadrantOnPerimeterOnEastSide = -1;
+		//			m_numVisibleQuadrantOnPerimeterOnNorthSide = -1;
+		//		}
+		//	}
+		//	else	// new position on west side of old position
+		//	{
+		//		if (newPos.z >= oldPos.z)
+		//		{
+		//			// new position on south-west quadrant respect to old position
+
+		//			if (m_numVisibleQuadrantOnPerimeterOnEastSide < roundedNumQuadrantsBetweenPositionsOnWestEastLine / 2)
+		//				m_numVisibleQuadrantOnPerimeterOnEastSide = -1;
+		//			if (m_numVisibleQuadrantOnPerimeterOnNorthSide < roundedNumQuadrantsBetweenPositionsOnNorthSouthLine / 2)
+		//				m_numVisibleQuadrantOnPerimeterOnNorthSide = -1;
+		//			m_numVisibleQuadrantOnPerimeterOnWestSide = -1;
+		//			m_numVisibleQuadrantOnPerimeterOnSouthSide = -1;
+		//		}
+		//		else
+		//		{
+		//			// new position on north-west quadrant respect to old position
+
+		//			if (m_numVisibleQuadrantOnPerimeterOnEastSide < roundedNumQuadrantsBetweenPositionsOnWestEastLine / 2)
+		//				m_numVisibleQuadrantOnPerimeterOnEastSide = -1;
+		//			if (m_numVisibleQuadrantOnPerimeterOnSouthSide < roundedNumQuadrantsBetweenPositionsOnNorthSouthLine / 2)
+		//				m_numVisibleQuadrantOnPerimeterOnSouthSide = -1;
+		//			m_numVisibleQuadrantOnPerimeterOnWestSide = -1;
+		//			m_numVisibleQuadrantOnPerimeterOnNorthSide = -1;
+		//		}
+		//	}
+		//}
+	}
+	
+	m_recalcQuadrantsInViewNeeded = true;
+	finishedResizingGrid(false);
 }
 
 void GDN_TheWorld_Viewer::setForceShaderElevation0(bool elevation0)
@@ -7329,7 +7474,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	//if (worldMode())
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.11 ") + __FUNCTION__, "Update Grid Dimension");
-		if (processCameraPosForChunks || !finishedResizingGrid())
+		int64_t elapsedFromLastUpdateGridDimension = TIME()->get_ticks_msec() - m_timeElapsedFromLastUpdateGridDimension;
+		if (processCameraPosForChunks || !finishedResizingGrid() || elapsedFromLastUpdateGridDimension  > TIME_INTERVAL_BETWEEN_RECALC_QUADRANT)
 		{
 			process_updateGridDimension(globals, activeWorldCamera);
 			if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateGridDimension))
@@ -7468,7 +7614,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 								editModeUIControl->setQuadrantHit(nullptr);
 						numErased = m_worldQuadrantsMap.erase(pos);
 						toErase.push_back(pos);
-						break;
+						//break;
 					}
 					else
 						m_worldQuadrantsMap[pos]->getQuadrant()->unlockInternalData();
@@ -7477,7 +7623,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 				{
 					numErased = m_worldQuadrantsMap.erase(pos);
 					toErase.push_back(pos);
-					break;
+					//break;
 				}
 			}
 		}
@@ -7599,7 +7745,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 	if (globals == nullptr)
 		return processed;
 
-	int64_t elapsedFromLastRecalc = TIME()->get_ticks_msec() - m_timeElapsedFromLastRecalc;
+	//int64_t elapsedFromLastUpdateGridDimension = TIME()->get_ticks_msec() - m_timeElapsedFromLastUpdateGridDimension;
 	if ((Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed)
 		&& !m_recalcQuadrantsInViewNeeded
 		&& allCollidersReady()
@@ -8163,7 +8309,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 				cam->forceRecalcCameraFar();
 		}
 
-		m_timeElapsedFromLastRecalc = TIME()->get_ticks_msec();
+		m_timeElapsedFromLastUpdateGridDimension = TIME()->get_ticks_msec();
 	}
 
 	return processed;

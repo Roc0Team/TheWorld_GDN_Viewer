@@ -1214,6 +1214,8 @@ namespace godot
 		void setMaxDepthQuadOnPerimeter(int depth);
 		int getMaxDepthQuadOnPerimeter(void) const;
 		int maxActualDepthQuadInAllDirections(void) const;
+		void checkNewVisibleQuadrantsRectSize(godot::Transform3D newCameraT, godot::Transform3D oldCameraT);
+		godot::Rect2 getVisibleQuadrantsRect(TheWorld_Utils::QuadrantPos& cameraQuadrantPos, bool& valid);
 		void setForceShaderElevation0(bool elevation0);
 		bool getForceShaderElevation0(void) const;
 		String getInfoCamera(void);
@@ -2200,7 +2202,7 @@ namespace godot
 		bool m_trackMouse = false;
 		bool m_editMode = false;
 		int64_t m_timeElapsedFromLastQuadrandtInit = 0;
-		int64_t m_timeElapsedFromLastRecalc = 0;
+		int64_t m_timeElapsedFromLastUpdateGridDimension = 0;
 		int64_t m_timeElapsedFromLastMouseTrack = 0;
 		godot::Vector3 m_trackedMouseHitGlobal;
 		godot::Vector3 m_trackedMouseHitInMap;

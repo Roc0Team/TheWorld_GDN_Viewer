@@ -539,7 +539,10 @@ void GDN_TheWorld_Camera::setWorldTransform(godot::Transform3D map)
 	godot::Transform3D newCameraT = viewer->worldToGlobal(map);
 	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
 	//godot::Transform3D newCameraT = viewerT * t;
+	godot::Transform3D oldCameraT = get_global_transform();
 	set_global_transform(newCameraT);
+	
+	viewer->checkNewVisibleQuadrantsRectSize(newCameraT, oldCameraT);
 
 	godot::Vector3 anchorPos = Globals()->Viewer()->getAnchorForOriginShift()->get_global_position();
 	PLOG_DEBUG << "Set camera transform - World pos=" << map.origin.x << "," << map.origin.y << "," << map.origin.z << " - Global pos=" << newCameraT.origin.x << "," << newCameraT.origin.y << "," << newCameraT.origin.z << " - Anchor=" << anchorPos.x << "," << anchorPos.z;

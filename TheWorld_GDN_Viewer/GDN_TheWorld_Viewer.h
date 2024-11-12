@@ -27,6 +27,7 @@
 #include <godot_cpp/classes/texture_rect.hpp>
 #include <godot_cpp/classes/v_box_container.hpp>
 #include <godot_cpp/classes/progress_bar.hpp>
+#include <godot_cpp/classes/color_rect.hpp>
 //#include <godot_cpp/classes/dictionary.hpp>
 #pragma warning(pop)
 
@@ -66,7 +67,7 @@ namespace godot
 		GDN_TheWorld_Viewer* m_viewer;
 	};
 
-	class MapQuadrantsMap : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrant>>
+	class MapQuadrantImagesMap : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantImage>>
 	{
 	public:
 		enum class UpdateStatus
@@ -457,6 +458,14 @@ namespace godot
 				}
 			}
 			void setInternalImageData(TheWorld_Utils::MemoryBuffer& imageBuffer);
+			void quadrantReady(TheWorld_Utils::QuadrantPos& pos)
+			{
+			}
+
+			void quadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos)
+			{
+			}
+
 
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
@@ -549,6 +558,99 @@ namespace godot
 		{
 		};
 
+		class MapQuadrantImageOverride
+		{
+		public:
+			class MapQuadrantImageOverrideTex : public godot::TextureRect
+			{
+				GDCLASS(MapQuadrantImageOverrideTex, godot::TextureRect)
+
+			protected:
+				static void _bind_methods(void);
+				void _notification(int p_what);
+
+			public:
+				//
+				// Godot Standard Functions
+				//
+				virtual void _ready(void) override;
+				virtual void _process(double _delta) override;
+				virtual void _input(const Ref<InputEvent>& event) override;
+				virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+				MapQuadrantImageOverrideTex(void);
+				~MapQuadrantImageOverrideTex(void);
+
+				void init(MapQuadrantImageOverride* mapQuadrantImageOverride);
+				void freeResource(void);
+
+			private:
+				MapQuadrantImageOverride* m_mapQuadrantImageOverride = nullptr;
+			};
+
+			class MapQuadrantImageOverrideColor : public godot::ColorRect
+			{
+				GDCLASS(MapQuadrantImageOverrideColor, godot::ColorRect)
+
+			protected:
+				static void _bind_methods(void);
+				void _notification(int p_what);
+
+			public:
+				//
+				// Godot Standard Functions
+				//
+				virtual void _ready(void) override;
+				virtual void _process(double _delta) override;
+				virtual void _input(const Ref<InputEvent>& event) override;
+				virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+				MapQuadrantImageOverrideColor(void);
+				~MapQuadrantImageOverrideColor(void);
+
+				void init(MapQuadrantImageOverride* mapQuadrantImageOverride);
+				void freeResource(void);
+
+			private:
+				MapQuadrantImageOverride* m_mapQuadrantImageOverride = nullptr;
+			};
+
+		public:
+			enum class Status
+			{
+				NotSet = -1
+			};
+
+			MapQuadrantImageOverride(GDN_TheWorld_Map* map, TheWorld_Utils::QuadrantPos& quadrantPos);
+			~MapQuadrantImageOverride(void);
+			void detachTextureResource(void);
+			void detachColorResource(void);
+
+			void internalSetName(void);
+			std::string getName(void) const
+			{
+				return  m_name;
+			}
+			void render(void);
+			void destroyNode(void);
+			void setVisible(bool b);
+			void quadrantDepthSet(enum class QuadTree::QuadrantDepthSet quadrantDepthSet);
+			void quadrantReady(void);
+			void quadrantWorkInProgress(void);
+
+		private:
+			GDN_TheWorld_Map* m_map = nullptr;
+			TheWorld_Utils::QuadrantPos m_quadrantPos;
+			godot::Ref<godot::ShaderMaterial> m_colorMaterial;
+			MapQuadrantImageOverrideTex* m_textureRect = nullptr;
+			MapQuadrantImageOverrideColor* m_colorRect = nullptr;
+			std::string m_name;
+		};
+		
+		class MapQuadrantImageOverrideContainer : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantImageOverride>>
+		{
+		};
+
 	public:
 		GDN_TheWorld_Map(void);
 		~GDN_TheWorld_Map(void);
@@ -565,8 +667,19 @@ namespace godot
 		static int32_t numImagesForTexture(void);
 		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
 		godot::Ref<godot::ShaderMaterial> getTextureRectMaterial(void) const;
+		godot::Ref<godot::ShaderMaterial> getQuadrantRectMaterial(void) const;
+		void setMapGridWorldCameraQuadrantPos(godot::Vector2 pos);
+		void setMapGridNumVisibleQuadrantsOnNorthSide(int num);
+		void setMapGridNumVisibleQuadrantsOnSouthSide(int num);
+		void setMapGridNumVisibleQuadrantsOnWestSide(int num);
+		void setMapGridNumVisibleQuadrantsOnEastSide(int num);
+		void setMapGridNumCacheQuadrants(int num);
 		void setMapGridLineThickness(float thickness);
-		void frameVisible(bool b);
+		bool mapGridOn(void) const
+		{
+			return m_mapGridOn;
+		}
+		void mapGridOn(bool b);
 		void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply);
 		virtual void threadInit(void) {}
 		virtual void threadDeinit(void) {}
@@ -636,6 +749,11 @@ namespace godot
 
 		void addMapTextureRectRefreshScheduled(TheWorld_Utils::MapTextureRectPos& pos);
 
+		void worldQuadrantMapReset(void);
+
+		void quadrantReady(TheWorld_Utils::QuadrantPos& pos);
+		void quadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos);
+
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 
@@ -644,6 +762,7 @@ namespace godot
 		GDN_TheWorld_Globals* m_globals = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
 		MapTextureRectContainer m_mapTextureRectContainer;
+		MapQuadrantImageOverrideContainer m_mapQuadrantImageOverrideContainer;
 		UploadingMapTextureRectContainer m_uploadingMapTextureRectContainer;
 		std::map<TheWorld_Utils::MapTextureRectPos, bool> m_mapTextureRectRefreshScheduled;
 		godot::Dictionary m_worldFlagDict;
@@ -660,6 +779,9 @@ namespace godot
 		godot::TextureRect* m_compassImage = nullptr;
 
 		godot::Ref<godot::ShaderMaterial> m_textureRectMaterial;
+		//godot::Ref<godot::ShaderMaterial> m_quadrantRectMaterial;
+
+		bool m_mapGridOn = false;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -1168,6 +1290,8 @@ namespace godot
 			m_editorInterface = (godot::EditorInterface*)editorInterface;
 		}
 		void setEditor3dOverlay(godot::Object* editor3dOverlay);
+		bool mapGridOn(void);
+		void mapGridOn(bool b);
 		bool trackMouse(void) const;
 		void trackMouse(bool b);
 		bool _mapMode(void) const
@@ -1187,6 +1311,7 @@ namespace godot
 		bool worldMode(void) const;
 		void toggleMapView(void);
 		void adjustWorldCamera(godot::Vector2 desideredCameraGlobalPos);
+		void toggleMapGrid(void);
 		void toggleTrackMouse(void);
 		void toggleEditMode(void);
 		void setEditMode(bool editMode);
@@ -1344,26 +1469,26 @@ namespace godot
 		Chunk* getActiveChunkAt(TheWorld_Utils::QuadrantPos& pos, Chunk::ChunkPos chunkPos, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
 		Chunk* getActiveChunkAt(Chunk* chunk, enum class Chunk::DirectionSlot dir, Chunk::LookForChunk filter, enum class QuadType type);
 		bool terrainShiftPermitted(void);
-		godot::Vector3 getMouseHitGlobal(void) const
+		godot::Vector3 getMouseHitGlobalPos(void) const
 		{
 			if (mapMode())
-				return m_trackedMouseHitGlobal;
+				return m_trackedMouseHitGlobalPos;
 			else
 			{
 				if (m_mouseTrackedOnSomething)
-					return m_trackedMouseHitGlobal;
+					return m_trackedMouseHitGlobalPos;
 				else
 					return godot::Vector3();
 			}
 		}
-		godot::Vector3 getMouseHitInMap(void) const
+		godot::Vector3 getMouseHitWorldPos(void) const
 		{
 			if (mapMode())
-				return m_trackedMouseHitInMap;
+				return m_trackedMouseHitWorldPos;
 			else
 			{
 				if (m_mouseTrackedOnSomething)
-					return m_trackedMouseHitInMap;
+					return m_trackedMouseHitWorldPos;
 				else
 					return godot::Vector3();
 			}
@@ -1376,7 +1501,7 @@ namespace godot
 				if (camera == nullptr)
 					return 0.0f;
 				else
-					return (float)camera->get_global_transform().origin.distance_to(m_trackedMouseHitGlobal);
+					return (float)camera->get_global_transform().origin.distance_to(m_trackedMouseHitGlobalPos);
 			}
 			else
 				return 0.0f;
@@ -1746,13 +1871,28 @@ namespace godot
 				return false;
 		}
 
+		bool recalcQuadrantsInViewJustExecuted(void) const
+		{
+			return m_recalcQuadrantsInViewJustExecuted;
+		}
+		void recalcQuadrantsInViewJustExecuted(bool b)
+		{
+			if (b)
+				m_recalcQuadrantsInViewJustExecuted = b;
+			else
+				m_recalcQuadrantsInViewJustExecuted = b;
+		}
+
 		bool recalcQuadrantsInViewNeeded(void) const
 		{
 			return m_recalcQuadrantsInViewNeeded;
 		}
 		void recalcQuadrantsInViewNeeded(bool b)
 		{
-			m_recalcQuadrantsInViewNeeded = b;
+			if (b)
+				m_recalcQuadrantsInViewNeeded = b;
+			else
+				m_recalcQuadrantsInViewNeeded = b;
 		}
 
 		bool loadQuadrantData(float posX, float posZ, int level);
@@ -1800,6 +1940,10 @@ namespace godot
 		bool worldQuadrantsMapValid(void) const
 		{
 			return m_worldQuadrantsMapValid;
+		}
+		WorldQuadrantsMap& worldQuadrantsMapReference(void)
+		{
+			return m_worldQuadrantsMap;
 		}
 
 		bool finishedResizingGrid(void) const
@@ -1912,9 +2056,15 @@ namespace godot
 		}
 		void shaderParamCameraUnderWaterApplied(bool b)
 		{
-			if (b != m_shaderParamCameraUnderWaterApplied)
+			//if (b)
+			//	assert(b);
+			//else
+			//	assert(!b);
+
+			if (!m_shaderParamCameraUnderWaterSet or b != m_shaderParamCameraUnderWaterApplied)
 			{
 				m_shaderParamCameraUnderWaterApplied = b;
+				m_shaderParamCameraUnderWaterSet = true;
 				float f = b ? 1.0f : 0.0f;
 				godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_UNDER_WATER, f);
 			}
@@ -2050,6 +2200,9 @@ namespace godot
 		}
 		godot::Node3D* getAnchorForOriginShift(void);
 
+		void worldQuadrantReady(TheWorld_Utils::QuadrantPos& pos);
+		void worldQuadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos);
+
 	private:
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
@@ -2090,6 +2243,14 @@ namespace godot
 		bool isQuadrantSelectedForEdit(void);
 		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized);
 		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea);
+		bool gridDimensionChanged(void) const
+		{
+			return m_gridDimensionChanged;
+		}
+		void gridDimensionChanged(bool b)
+		{
+			m_gridDimensionChanged = b;
+		}
 
 	private:
 		bool m_initialized;
@@ -2199,13 +2360,14 @@ namespace godot
 		std::map<enum class TrackedInputEvent, bool> m_trackedInputEventsForTrackMouse;
 		std::list<enum class TrackedInputEvent> m_trackedInputEvents;
 
+		//bool m_mapGridOn = false;
 		bool m_trackMouse = false;
 		bool m_editMode = false;
 		int64_t m_timeElapsedFromLastQuadrandtInit = 0;
 		int64_t m_timeElapsedFromLastUpdateGridDimension = 0;
 		int64_t m_timeElapsedFromLastMouseTrack = 0;
-		godot::Vector3 m_trackedMouseHitGlobal;
-		godot::Vector3 m_trackedMouseHitInMap;
+		godot::Vector3 m_trackedMouseHitGlobalPos;
+		godot::Vector3 m_trackedMouseHitWorldPos;
 		godot::Vector3 m_previousTrackedMouseHitInMap;
 		bool m_mouseTrackedOnSomething = false;
 		bool m_mouseTrackedOnTerrain = false;
@@ -2305,17 +2467,19 @@ namespace godot
 		bool m_worldQuadrantsMapValid = false;
 		WorldQuadrantsMap m_worldQuadrantsMap;
 		WorldQuadrantsMap m_extraQuadsMap;
-		MapQuadrantsMap m_mapQuadrantsMap;
+		MapQuadrantImagesMap m_mapQuadrantsMap;
 		std::recursive_mutex m_mtxQuadrantsAndMainProcessing;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
 		TheWorld_Utils::QuadrantPos m_computedWorldCameraQuadrantPos;
 		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;
 		godot::Vector3 m_lastOriginShiftCameraPosInMap;
+		bool m_recalcQuadrantsInViewJustExecuted = false;
 		bool m_recalcQuadrantsInViewNeeded = false;
 		bool m_finishedResizingGrid = true;
 		bool m_refreshQuadTreeMap = false;
 		int m_numWorldVerticesPerSize;
 		int m_worldViewerLevel;		// actually world viewer manage one level at the time, otherwise we should have multiple quadtrees
+		bool m_gridDimensionChanged = true;
 		int m_minVisibleQuadrantOnPerimeter = -1;
 		int m_numVisibleQuadrantOnPerimeterOnNorthSide = -1;
 		int m_numVisibleQuadrantOnPerimeterOnNorthSideApplied = -1;
@@ -2325,7 +2489,7 @@ namespace godot
 		int m_numVisibleQuadrantOnPerimeterOnWestSideApplied = -1;
 		int m_numVisibleQuadrantOnPerimeterOnEastSide = -1;
 		int m_numVisibleQuadrantOnPerimeterOnEastSideApplied = -1;
-		size_t m_numCacheQuadrantOnPerimeter = 0;
+		int m_numCacheQuadrantOnPerimeter = -1;
 		// Node cache
 		GDN_TheWorld_Globals* m_globals = nullptr;
 		GDN_TheWorld_Edit* m_editModeUIControl;
@@ -2389,6 +2553,7 @@ namespace godot
 		float m_shaderParamSeaStartTerrDepthForWavesAttenuationApplied = 0;
 		float m_shaderParamSeaScaleOffsetThresholdApplied = 0;
 		bool m_shaderParamCameraUnderWaterApplied = false;
+		bool m_shaderParamCameraUnderWaterSet = false;
 
 		GDN_TheWorld_HudControls* m_hudControls = nullptr;
 		godot::HBoxContainer* m_hudMessageContainer = nullptr;
@@ -2427,6 +2592,8 @@ namespace godot
 		bool mapCameraGlobalPositionSet = false;
 		godot::Vector2 m_mapCameraGlobalPos;
 
+		godot::CanvasItem* m_postProcessingUnderWaterEffectNode = nullptr;
+		
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;
 		TheWorld_Utils::TerrainEdit m_tempTerrainEdit;

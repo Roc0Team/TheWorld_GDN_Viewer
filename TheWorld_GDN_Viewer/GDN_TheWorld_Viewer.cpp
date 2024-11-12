@@ -57,13 +57,13 @@ void WorldQuadrantsMap::init(GDN_TheWorld_Viewer* viewer)
 	m_viewer = viewer;
 }
 
-void MapQuadrantsMap::init(GDN_TheWorld_Viewer* viewer)
+void MapQuadrantImagesMap::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_viewer = viewer;
-	m_imageNumPixelsPerSize = (int32_t)m_viewer->Globals()->resolutionForOptimizationLevel((size_t)MapQuadrantsMap::getMapQuadrantOptimizationLevel());
+	m_imageNumPixelsPerSize = (int32_t)m_viewer->Globals()->resolutionForOptimizationLevel((size_t)MapQuadrantImagesMap::getMapQuadrantOptimizationLevel());
 }
 
-//godot::Ref<godot::Image> MapQuadrantsMap::getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos)
+//godot::Ref<godot::Image> MapQuadrantImagesMap::getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos)
 //{
 //	std::recursive_mutex& m = m_viewer->getMainProcessingMutex();
 //	std::lock_guard<std::recursive_mutex> lock(m);
@@ -74,7 +74,7 @@ void MapQuadrantsMap::init(GDN_TheWorld_Viewer* viewer)
 //		return nullptr;
 //}
 
-void MapQuadrantsMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
+void MapQuadrantImagesMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
@@ -85,7 +85,7 @@ void MapQuadrantsMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		m_updatingQuadrants.erase(pos);
 }
 
-TheWorld_Utils::QuadrantPos MapQuadrantsMap::fetchUpdatedQuadrant(void)
+TheWorld_Utils::QuadrantPos MapQuadrantImagesMap::fetchUpdatedQuadrant(void)
 {
 	TheWorld_Utils::QuadrantPos pos;
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
@@ -97,41 +97,41 @@ TheWorld_Utils::QuadrantPos MapQuadrantsMap::fetchUpdatedQuadrant(void)
 	}
 	return pos;
 }
-void MapQuadrantsMap::fetchUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
+void MapQuadrantImagesMap::fetchUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 	m_updatedQuadrants.erase(pos);
 }
-void MapQuadrantsMap::fetchUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos)
+void MapQuadrantImagesMap::fetchUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 	m_updatingQuadrants.erase(pos);
 }
 
-void MapQuadrantsMap::erase(TheWorld_Utils::QuadrantPos& pos)
+void MapQuadrantImagesMap::erase(TheWorld_Utils::QuadrantPos& pos)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
-	std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrant>>::erase(pos);
+	std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantImage>>::erase(pos);
 	fetchUpdatedQuadrant(pos);
 	fetchUpdatingQuadrant(pos);
 }
 
-void MapQuadrantsMap::lock(void)
+void MapQuadrantImagesMap::lock(void)
 {
 	//m_internalMutex.lock();
 	m_viewer->getMainProcessingMutex().lock();
 }
-void MapQuadrantsMap::unlock(void)
+void MapQuadrantImagesMap::unlock(void)
 {
 	//#pragma warning(suppress: 26110)
 				//m_internalMutex.unlock();
 	m_viewer->getMainProcessingMutex().unlock();
 }
 
-void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId)
+void MapQuadrantImagesMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
@@ -144,21 +144,21 @@ void MapQuadrantsMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Uti
 	}
 	
 	if (not contains(quadrantPos))
-		(*this)[quadrantPos] = std::make_unique<MapQuadrant>(quadrantPos, m_viewer, MapQuadrantsMap::getMapQuadrantOptimizationLevel());
+		(*this)[quadrantPos] = std::make_unique<MapQuadrantImage>(quadrantPos, m_viewer, MapQuadrantImagesMap::getMapQuadrantOptimizationLevel());
 	(*this)[quadrantPos]->setMapData(mapImage);
 	(*this)[quadrantPos]->setMeshId(meshId);
 
 	addUpdatedQuadrant(quadrantPos);
 }
 
-bool MapQuadrantsMap::updated(void)
+bool MapQuadrantImagesMap::updated(void)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 	return (m_updatedQuadrants.size() > 0);
 }
 
-bool MapQuadrantsMap::checkUpdatingQuadrants(void)
+bool MapQuadrantImagesMap::checkUpdatingQuadrants(void)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
@@ -177,7 +177,7 @@ bool MapQuadrantsMap::checkUpdatingQuadrants(void)
 	return statusChanged;
 }
 
-bool MapQuadrantsMap::updateNeeded(TheWorld_Utils::QuadrantPos& pos)
+bool MapQuadrantImagesMap::updateNeeded(TheWorld_Utils::QuadrantPos& pos)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
@@ -188,16 +188,16 @@ bool MapQuadrantsMap::updateNeeded(TheWorld_Utils::QuadrantPos& pos)
 		return false;
 }
 
-bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos)
+bool MapQuadrantImagesMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos)
 {
-	//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "ALL");
+	//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1. MapQuadrantImagesMap::addUpdatingQuadrant") + __FUNCTION__, "ALL");
 
 	bool scheduled = false;
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 
 	{
-		//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "Inside mutex");
+		//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1. MapQuadrantImagesMap::addUpdatingQuadrant") + __FUNCTION__, "Inside mutex");
 
 		//if (pos.getIndexPosX() == 1 and pos.getIndexPosZ() == 1)	// DEBUG ONLY
 		//	1;														// DEBUG ONLY
@@ -205,17 +205,17 @@ bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos
 		bool updateFromServerNeeded = false;
 		
 		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.1. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "Check and create MapQuadrant");
+			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.1. MapQuadrantImagesMap::addUpdatingQuadrant") + __FUNCTION__, "Check and create MapQuadrant");
 
 			if (not contains(pos))
 			{
-				(*this)[pos] = std::make_unique<MapQuadrant>(pos, m_viewer, MapQuadrantsMap::getMapQuadrantOptimizationLevel());
+				(*this)[pos] = std::make_unique<MapQuadrantImage>(pos, m_viewer, MapQuadrantImagesMap::getMapQuadrantOptimizationLevel());
 				updateFromServerNeeded = true;
 			}
 		}
 
 		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.2. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "Check and change status");
+			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.2. MapQuadrantImagesMap::addUpdatingQuadrant") + __FUNCTION__, "Check and change status");
 
 			if (not updateFromServerNeeded and (m_updatingQuadrants.contains(pos) and m_updatingQuadrants[pos]->status() == UpdateStatus::UpdateNeeded))
 			{
@@ -225,7 +225,7 @@ bool MapQuadrantsMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos
 
 		if (updateFromServerNeeded)
 		{
-			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.3. MapQuadrantsMap::addUpdatingQuadrant") + __FUNCTION__, "m_viewer->Globals()->Client()->MapManagerGetQuadrantVertices");
+			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapQuadrants 1.3.1.1.3. MapQuadrantImagesMap::addUpdatingQuadrant") + __FUNCTION__, "m_viewer->Globals()->Client()->MapManagerGetQuadrantVertices");
 
 			if (not m_updatingQuadrants.contains(pos))
 				m_updatingQuadrants[pos] = std::make_unique<UpdatingInfo>();
@@ -289,6 +289,9 @@ bool GDN_TheWorld_Map::MapTextureRect::destroyTextureRect(void)
 
 	if (m_textureRect != nullptr)
 	{
+		godot::Node* parent = m_textureRect->get_parent();
+		if (parent != nullptr)
+			parent->call_deferred("remove_child", m_textureRect);
 		m_textureRect->queue_free();
 		m_textureRect = nullptr;
 	}
@@ -487,6 +490,283 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 	return fullRectRendered;
 }
 
+GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::MapQuadrantImageOverrideTex(void)
+{
+}
+
+GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::~MapQuadrantImageOverrideTex(void)
+{
+	if (m_mapQuadrantImageOverride != nullptr)
+	{
+		m_mapQuadrantImageOverride->detachTextureResource();
+	}
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::init(MapQuadrantImageOverride* mapQuadrantImageOverride)
+{
+	m_mapQuadrantImageOverride = mapQuadrantImageOverride;
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::freeResource(void)
+{
+	m_mapQuadrantImageOverride = nullptr;
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::_bind_methods(void)
+{
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::_notification(int p_what)
+{
+	switch (p_what)
+	{
+	case NOTIFICATION_ENTER_TREE:
+	{
+	}
+	break;
+	case NOTIFICATION_WM_CLOSE_REQUEST:
+	{
+	}
+	break;
+	case NOTIFICATION_PREDELETE:
+	{
+	}
+	break;
+	}
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::_ready(void)
+{
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::_process(double _delta)
+{
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::_input(const Ref<InputEvent>& event)
+{
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideTex::_unhandled_input(const Ref<InputEvent>& event)
+{
+}
+
+GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::MapQuadrantImageOverrideColor(void)
+{
+}
+
+GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::~MapQuadrantImageOverrideColor(void)
+{
+	if (m_mapQuadrantImageOverride != nullptr)
+	{
+		m_mapQuadrantImageOverride->detachColorResource();
+	}
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::init(MapQuadrantImageOverride* mapQuadrantImageOverride)
+{
+	m_mapQuadrantImageOverride = mapQuadrantImageOverride;
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::freeResource(void)
+{
+	m_mapQuadrantImageOverride = nullptr;
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::_bind_methods(void)
+{
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::_notification(int p_what)
+{
+	switch (p_what)
+	{
+	case NOTIFICATION_ENTER_TREE:
+	{
+	}
+	break;
+	case NOTIFICATION_WM_CLOSE_REQUEST:
+	{
+	}
+	break;
+	case NOTIFICATION_PREDELETE:
+	{
+	}
+	break;
+	}
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::_ready(void)
+{
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::_process(double _delta)
+{
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::_input(const Ref<InputEvent>& event)
+{
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverrideColor::_unhandled_input(const Ref<InputEvent>& event)
+{
+}
+
+GDN_TheWorld_Map::MapQuadrantImageOverride::MapQuadrantImageOverride(GDN_TheWorld_Map* map, TheWorld_Utils::QuadrantPos& quadrantPos)
+{
+	m_map = map;
+	m_quadrantPos = quadrantPos;
+	internalSetName();
+}
+
+GDN_TheWorld_Map::MapQuadrantImageOverride::~MapQuadrantImageOverride(void)
+{
+	destroyNode();
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::detachTextureResource(void)
+{
+	m_textureRect = nullptr;
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::detachColorResource(void)
+{
+	m_colorRect = nullptr;
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::destroyNode(void)
+{
+	if (m_textureRect != nullptr)
+	{
+		godot::Node* parent = m_textureRect->get_parent();
+		if (parent != nullptr)
+			parent->call_deferred("remove_child", m_textureRect);
+		m_textureRect->freeResource();
+		m_textureRect->set_name("erasing");
+		m_textureRect->queue_free();
+		m_textureRect = nullptr;
+	}
+
+	if (m_colorRect != nullptr)
+	{
+		godot::Node* parent = m_colorRect->get_parent();
+		if (parent != nullptr)
+			parent->call_deferred("remove_child", m_colorRect);
+		m_colorRect->freeResource();
+		m_colorRect->set_name("erasing");
+		m_colorRect->queue_free();
+		m_colorRect = nullptr;
+	}
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::setVisible(bool b)
+{
+	if (m_textureRect != nullptr)
+		m_textureRect->set_visible(b);
+	if (m_colorRect != nullptr)
+		m_colorRect->set_visible(b);
+}
+
+#define SHADER_PARAM_MAP_RECT_COLOR		"u_color"
+#define SHADER_PARAM_MAP_RECT_ALPHA		"u_alpha"
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::quadrantDepthSet(enum class QuadTree::QuadrantDepthSet quadrantDepthSet)
+{
+	if (m_colorMaterial != nullptr)
+	{
+		if (quadrantDepthSet == QuadTree::QuadrantDepthSet::Initial)
+		{
+			m_colorMaterial->set_shader_parameter(SHADER_PARAM_MAP_RECT_COLOR, godot::Color(0.0f, 0.0f, 1.0f));
+		}
+		else if (quadrantDepthSet == QuadTree::QuadrantDepthSet::Growing)
+		{
+			m_colorMaterial->set_shader_parameter(SHADER_PARAM_MAP_RECT_COLOR, godot::Color(1.0f, 0.0f, 0.0f));
+		}
+		else if (quadrantDepthSet == QuadTree::QuadrantDepthSet::Cache)
+		{
+			m_colorMaterial->set_shader_parameter(SHADER_PARAM_MAP_RECT_COLOR, godot::Color(1.0f, 1.0f, 1.0f));
+		}
+	}
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::quadrantReady(void)
+{
+	if (m_colorMaterial != nullptr)
+	{
+		m_colorMaterial->set_shader_parameter(SHADER_PARAM_MAP_RECT_ALPHA, 0.1);
+	}
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::quadrantWorkInProgress(void)
+{
+	if (m_colorMaterial != nullptr)
+	{
+		m_colorMaterial->set_shader_parameter(SHADER_PARAM_MAP_RECT_ALPHA, 0.05);
+	}
+}
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::internalSetName(void)
+{
+	constexpr size_t NUM_PADDING_ZEROES = 12;
+	std::string strPosX, strPosZ, strLevel;
+	int32_t posX = int32_t(m_quadrantPos.getLowerXGridVertex()), posZ = int32_t(m_quadrantPos.getLowerZGridVertex()), level = int32_t(m_quadrantPos.getLevel());
+	if (posX < 0)
+		strPosX = "-" + TheWorld_Utils::padIntValueTo(-posX, NUM_PADDING_ZEROES);
+	else
+		strPosX = TheWorld_Utils::padIntValueTo(posX, NUM_PADDING_ZEROES);
+	if (posZ < 0)
+		strPosZ = "-" + TheWorld_Utils::padIntValueTo(-posZ, NUM_PADDING_ZEROES);
+	else
+		strPosZ = TheWorld_Utils::padIntValueTo(posZ, NUM_PADDING_ZEROES);
+	if (level < 0)
+		strLevel = "-" + TheWorld_Utils::padIntValueTo(-level, 2);
+	else
+		strLevel = TheWorld_Utils::padIntValueTo(level, 2);
+	m_name = "MapQuadrant_" + strLevel + "_" + strPosX + "_" + strPosZ;
+}
+
+
+void GDN_TheWorld_Map::MapQuadrantImageOverride::render(void)
+{
+	destroyNode();
+
+	godot::Vector2 rectSize(m_map->getQuadrantGlobalSize(), m_map->getQuadrantGlobalSize());
+	godot::Vector2 globalQuadrantPos = m_map->worldPosToGlobalPos(godot::Vector2(m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex()));
+
+	m_textureRect = memnew(MapQuadrantImageOverrideTex);
+	m_map->add_child(m_textureRect);
+	m_textureRect->init(this);
+	m_textureRect->set_name(("Texture_" + getName()).c_str());
+	m_textureRect->add_to_group("MapQuadrantTextureRect");
+	m_textureRect->set_size(rectSize);
+	m_textureRect->set_position(globalQuadrantPos);
+	m_textureRect->set_z_index(1);
+	m_textureRect->set_visible(m_map->mapGridOn());
+
+	//m_textureRect->set_material(m_map->getQuadrantRectMaterial());
+
+	godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
+	godot::String shaderPath = "res://addons/twviewer/shaders/MapQuadrantColor.gdshader";
+	godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
+	godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
+	mat->set_shader(shader);
+	m_colorMaterial = mat;
+
+	m_colorRect = memnew(MapQuadrantImageOverrideColor);
+	m_map->add_child(m_colorRect);
+	m_colorRect->init(this);
+	m_colorRect->set_name(("Texture_" + getName()).c_str());
+	m_colorRect->add_to_group("MapQuadrantColorRect");
+	m_colorRect->set_material(m_colorMaterial);
+	m_colorRect->set_size(rectSize);
+	m_colorRect->set_position(globalQuadrantPos);
+	m_colorRect->set_z_index(2);
+	m_colorRect->set_visible(m_map->mapGridOn());
+
+	//godot::Ref<godot::Texture2D> testTex = resLoader->load("res://icon.svg");
+	//m_textureRect->set_texture(testTex);
+}
+
 void GDN_TheWorld_Map::_bind_methods(void)
 {
 	ClassDB::bind_method(D_METHOD("viewport_size_changed"), &GDN_TheWorld_Map::viewportSizeChanged);
@@ -505,9 +785,16 @@ GDN_TheWorld_Map::~GDN_TheWorld_Map(void)
 	}
 }
 
-#define SHADER_PARAM_FRAME_VISIBLE "u_frame_visible"
-#define SHADER_PARAM_LINE_THICKNESS "u_line_thickness"
-#define SHADER_PARAM_NUM_QUADRANTS "u_num_quadrants"
+#define SHADER_PARAM_FRAME_VISIBLE							"u_frame_visible"
+#define SHADER_PARAM_LINE_THICKNESS							"u_line_thickness"
+#define SHADER_PARAM_NUM_QUADRANTS							"u_num_quadrants"
+#define SHADER_PARAM_QUADRANT_SIZE							"u_quadrant_size"
+#define SHADER_PARAM_CAMERA_QUADRANT_POS					"u_world_camera_quadrant_pos"
+#define SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_NORTH_SIDE	"u_num_visible_quadrants_on_north_side"
+#define SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_SOUTH_SIDE	"u_num_visible_quadrants_on_south_side"
+#define SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_WEST_SIDE		"u_num_visible_quadrants_on_west_side"
+#define SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_EAST_SIDE		"u_num_visible_quadrants_on_east_side"
+#define SHADER_PARAM_NUM_CACHE_QUADRANTS					"u_num_cache_quadrants"
 
 int32_t GDN_TheWorld_Map::numImagesForTexture(void)
 {
@@ -527,6 +814,7 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	
 	m_northLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_northLabel);
+	m_northLabel->set_name("MapNorthLabel");
 	m_northLabel->set_text("N");
 	m_northLabel->set_modulate(GDN_TheWorld_Globals::g_color_red);
 	int32_t sz = m_northLabel->get_theme_font_size("font_size");
@@ -534,6 +822,7 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	
 	m_southLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_southLabel);
+	m_southLabel->set_name("MapSouthLabel");
 	m_southLabel->set_text("S");
 	m_southLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_southLabel->get_theme_font_size("font_size");
@@ -541,6 +830,7 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	
 	m_eastLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_eastLabel);
+	m_eastLabel->set_name("MapEastLabel");
 	m_eastLabel->set_text("E");
 	m_eastLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_eastLabel->get_theme_font_size("font_size");
@@ -548,6 +838,7 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	
 	m_westLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_westLabel);
+	m_westLabel->set_name("MapWestLabel");
 	m_westLabel->set_text("W");
 	m_westLabel->set_modulate(GDN_TheWorld_Globals::g_color_black);
 	sz = m_westLabel->get_theme_font_size("font_size");
@@ -555,6 +846,7 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 
 	m_compassImage = memnew(godot::TextureRect);
 	mapViewportContainer->add_child(m_compassImage);
+	m_compassImage->set_name("MapCompassImage");
 	godot::Ref<godot::Texture2D> compassImage = godot::ResourceLoader::get_singleton()->load("res://addons/twviewer/assets/compass_image.png");
 	//godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(compassImage);
 
@@ -594,13 +886,69 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	rulerVerticalLine2->set_width(MapRulerLineWidth);
 
 	godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-	String shaderPath = "res://addons/twviewer/shaders/MapGrid.gdshader";
+	
+	godot::String shaderPath = "res://addons/twviewer/shaders/MapGrid.gdshader";
 	godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
 	godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 	m_textureRectMaterial = mat;
 	m_textureRectMaterial->set_shader(shader);
 	m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_QUADRANTS, GDN_TheWorld_Map::numImagesForTextureRectSide());
-	frameVisible(false);
+	m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, getQuadrantGlobalSize());
+	mapGridOn(false);
+
+	//shaderPath = "res://addons/twviewer/shaders/MapQuadrantRect.gdshader";
+	//shader = resLoader->load(shaderPath);
+	//godot::Ref<godot::ShaderMaterial> mat1 = memnew(godot::ShaderMaterial);
+	//m_quadrantRectMaterial = mat1;
+	//m_quadrantRectMaterial->set_shader(shader);
+}
+
+void GDN_TheWorld_Map::setMapGridWorldCameraQuadrantPos(godot::Vector2 pos)
+{
+	if (m_textureRectMaterial != nullptr)
+	{
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_CAMERA_QUADRANT_POS, pos);
+	}
+}
+
+void GDN_TheWorld_Map::setMapGridNumVisibleQuadrantsOnNorthSide(int num)
+{
+	if (m_textureRectMaterial != nullptr)
+	{
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_NORTH_SIDE, num);
+	}
+}
+
+void GDN_TheWorld_Map::setMapGridNumVisibleQuadrantsOnSouthSide(int num)
+{
+	if (m_textureRectMaterial != nullptr)
+	{
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_SOUTH_SIDE, num);
+	}
+}
+
+void GDN_TheWorld_Map::setMapGridNumVisibleQuadrantsOnWestSide(int num)
+{
+	if (m_textureRectMaterial != nullptr)
+	{
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_WEST_SIDE, num);
+	}
+}
+
+void GDN_TheWorld_Map::setMapGridNumVisibleQuadrantsOnEastSide(int num)
+{
+	if (m_textureRectMaterial != nullptr)
+	{
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_EAST_SIDE, num);
+	}
+}
+
+void GDN_TheWorld_Map::setMapGridNumCacheQuadrants(int num)
+{
+	if (m_textureRectMaterial != nullptr)
+	{
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_CACHE_QUADRANTS, num);
+	}
 }
 
 void GDN_TheWorld_Map::setMapGridLineThickness(float multiplier)
@@ -608,7 +956,6 @@ void GDN_TheWorld_Map::setMapGridLineThickness(float multiplier)
 	constexpr float SHADER_PARAM_MAX_LINE_THICKNESS	= 0.016f;
 	if (m_textureRectMaterial != nullptr)
 	{
-		//m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_LINE_THICKNESS, SHADER_PARAM_MAX_LINE_THICKNESS * multiplier);
 		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_LINE_THICKNESS, 0.008);
 	}
 }
@@ -618,10 +965,22 @@ godot::Ref<godot::ShaderMaterial> GDN_TheWorld_Map::getTextureRectMaterial(void)
 	return m_textureRectMaterial;
 }
 
-void GDN_TheWorld_Map::frameVisible(bool b)
+//godot::Ref<godot::ShaderMaterial> GDN_TheWorld_Map::getQuadrantRectMaterial(void) const
+//{
+//	return m_quadrantRectMaterial;
+//}
+
+void GDN_TheWorld_Map::mapGridOn(bool b)
 {
+	m_mapGridOn = b;
+
 	if (m_textureRectMaterial != nullptr)
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_FRAME_VISIBLE, b);
+		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_FRAME_VISIBLE, m_mapGridOn);
+
+	for (auto& item : m_mapQuadrantImageOverrideContainer)
+	{
+		item.second->setVisible(m_mapGridOn);
+	}
 }
 
 void GDN_TheWorld_Map::viewportSizeChanged(void)
@@ -1046,6 +1405,76 @@ void GDN_TheWorld_Map::addMapTextureRectRefreshScheduled(TheWorld_Utils::MapText
 	m_mapTextureRectRefreshScheduled[pos] = true;
 	if (m_mapTextureRectContainer.contains(pos))
 		m_mapTextureRectContainer[pos]->checkForRefreshDisabled();
+}
+
+void GDN_TheWorld_Map::quadrantReady(TheWorld_Utils::QuadrantPos& pos)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+
+	if (m_mapQuadrantImageOverrideContainer.contains(pos))
+	{
+		m_mapQuadrantImageOverrideContainer[pos]->quadrantReady();
+	}
+}
+
+void GDN_TheWorld_Map::quadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+
+	if (m_mapQuadrantImageOverrideContainer.contains(pos))
+	{
+		m_mapQuadrantImageOverrideContainer[pos]->quadrantWorkInProgress();
+	}
+}
+
+void GDN_TheWorld_Map::worldQuadrantMapReset(void)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+
+	WorldQuadrantsMap& worldQuadrantsMap = m_mapViewer->getViewer()->worldQuadrantsMapReference();
+
+	std::map<TheWorld_Utils::QuadrantPos, bool> quadrantsValid;
+	for (auto& item : m_mapQuadrantImageOverrideContainer)
+		quadrantsValid[item.first] = false;
+	for (auto& worldQuadrantItem : worldQuadrantsMap)
+		if (not worldQuadrantItem.second->statusToErase())
+			quadrantsValid[worldQuadrantItem.first] = true;
+
+	size_t numAdded = 0, numErased = 0, numMainteined = 0;
+	for (auto& item : quadrantsValid)
+	{
+		if (item.second)
+		{
+			TheWorld_Utils::QuadrantPos quadrantPos = item.first;
+			if (not m_mapQuadrantImageOverrideContainer.contains(item.first))
+			{
+				m_mapQuadrantImageOverrideContainer[quadrantPos] = std::make_unique<MapQuadrantImageOverride>(this, quadrantPos);
+				m_mapQuadrantImageOverrideContainer[quadrantPos]->render();
+				numAdded++;
+			}
+			else
+				numMainteined++;
+			MapQuadrantImageOverride* mapQuadrantImageOverride = m_mapQuadrantImageOverrideContainer[quadrantPos].get();
+			mapQuadrantImageOverride->quadrantDepthSet(worldQuadrantsMap[quadrantPos]->quadrantDepthSet());
+		}
+		else
+		{
+			m_mapQuadrantImageOverrideContainer.erase(item.first);
+			numErased++;
+		}
+	}
+
+	assert(numAdded >= 0);
+	assert(numMainteined >= 0);
+	assert(numErased >= 0);
+
+	//m_mapQuadrantImageOverrideContainer.clear();
+	//for (auto& worldQuadrantItem : worldQuadrantsMap)
+	//{
+	//	TheWorld_Utils::QuadrantPos quadrantPos = worldQuadrantItem.first;
+	//	m_mapQuadrantImageOverrideContainer[quadrantPos] = std::make_unique<MapQuadrantImageOverride>(this, quadrantPos);
+	//	m_mapQuadrantImageOverrideContainer[quadrantPos]->render();
+	//}
 }
 
 godot::String GDN_TheWorld_Map::getCacheDir(void)
@@ -3155,8 +3584,8 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_mouse_track_hit_duration"), &GDN_TheWorld_Viewer::getMouseTrackHitDuration);
 	ClassDB::bind_method(D_METHOD("get_debug_draw_mode"), &GDN_TheWorld_Viewer::getDebugDrawMode);
 	ClassDB::bind_method(D_METHOD("get_chunk_debug_mode"), &GDN_TheWorld_Viewer::getChunkDebugModeStr);
-	ClassDB::bind_method(D_METHOD("get_mouse_hit_global"), &GDN_TheWorld_Viewer::getMouseHitGlobal);
-	ClassDB::bind_method(D_METHOD("get_mouse_hit_in_map"), &GDN_TheWorld_Viewer::getMouseHitInMap);
+	ClassDB::bind_method(D_METHOD("get_mouse_hit_global"), &GDN_TheWorld_Viewer::getMouseHitGlobalPos);
+	ClassDB::bind_method(D_METHOD("get_mouse_hit_in_map"), &GDN_TheWorld_Viewer::getMouseHitWorldPos);
 	ClassDB::bind_method(D_METHOD("get_mouse_hit_distance_from_camera"), &GDN_TheWorld_Viewer::getMouseHitDistanceFromCamera);
 	ClassDB::bind_method(D_METHOD("get_mouse_quadrant_hit_name"), &GDN_TheWorld_Viewer::_getMouseQuadrantHitName);
 	ClassDB::bind_method(D_METHOD("get_mouse_quadrant_hit_tag"), &GDN_TheWorld_Viewer::_getMouseQuadrantHitTag);
@@ -3281,6 +3710,24 @@ void GDN_TheWorld_Viewer::setAnchorForOriginShift(godot::Node3D* anchorForOrigin
 godot::Node3D* GDN_TheWorld_Viewer::getAnchorForOriginShift(void)
 {
 	return m_anchorForOriginShift;
+}
+
+void GDN_TheWorld_Viewer::worldQuadrantReady(TheWorld_Utils::QuadrantPos& pos)
+{
+	GDN_TheWorld_Map* map = Map();
+	if (map != nullptr)
+	{
+		map->quadrantReady(pos);
+	}
+}
+
+void GDN_TheWorld_Viewer::worldQuadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos)
+{
+	GDN_TheWorld_Map* map = Map();
+	if (map != nullptr)
+	{
+		map->quadrantWorkInProgress(pos);
+	}
 }
 
 void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, float z, int32_t num_vertices_per_side, int32_t level, float grid_step)
@@ -4016,6 +4463,17 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	globals->addElementToInitialize();
 	
+	SceneTree* scene = get_tree();
+	if (scene != nullptr)
+	{
+		Viewport* root = scene->get_root();
+		if (root != nullptr)
+		{
+			godot::Node* n = root->find_child(THEWORLD_POST_PROCESSING_UNDER_WATER_EFFECT_NODE, true, false);
+			m_postProcessingUnderWaterEffectNode = godot::Object::cast_to<godot::CanvasItem>(n);
+		}
+	}
+	
 	m_worldQuadrantsMap.init(this);
 	m_mapQuadrantsMap.init(this);
 
@@ -4702,7 +5160,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 					if (m_mapQuadrantsMap.contains(quadrantPos))
 					{
-						MapQuadrant* mapQuadrant = m_mapQuadrantsMap[quadrantPos].get();
+						MapQuadrantImage* mapQuadrant = m_mapQuadrantsMap[quadrantPos].get();
 
 						std::string outMeshIdFromBuffer;
 						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
@@ -5310,14 +5768,14 @@ bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 			and finishedResizingGrid()
 			and !worldStreamingInProgress()
 			and allCollidersReady()
-			and m_recalcQuadrantsInViewNeeded == false
+			and recalcQuadrantsInViewNeeded() == false
 			and isCameraQuadrantColliderSet()
 			and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
 		{
 			//godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
 			//if (process_updateGridDimension(globals, activeWorldCamera))
 			//{
-			//	if (m_recalcQuadrantsInViewNeeded == false)
+			//	if (recalcQuadrantsInViewNeeded() == false)
 			//		return true;
 			//	else
 			//		return false;
@@ -5335,7 +5793,7 @@ bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 			//and finishedResizingGrid()
 			//and !worldStreamingInProgress()
 			//and allCollidersReady()
-			and m_recalcQuadrantsInViewNeeded == false
+			and recalcQuadrantsInViewNeeded() == false
 			and isCameraQuadrantColliderSet()
 			and (getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet::Initial, QuadTree::QuadrantDepthSet::Cache)) >= getMinNumQuadrant())
 			//and getNumInitializedQuadrant2(true) >= getMinNumQuadrant())
@@ -5673,6 +6131,11 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 		toggleTrackMouse();
 	}
 
+	if (event->is_action_pressed("ui_toggle_map_grid"))
+	{
+		toggleMapGrid();
+	}
+
 	if (event->is_action_pressed("ui_toggle_edit_mode"))
 	{
 		toggleEditMode();
@@ -5848,7 +6311,7 @@ void GDN_TheWorld_Viewer::delayedWorldMode(bool b)
 			m_delayedWorldMode = b;
 			finishedResizingGrid(false);
 			//recalcQuadrantsInView();
-			m_recalcQuadrantsInViewNeeded = true;
+			recalcQuadrantsInViewNeeded(true);
 		}
 	}
 	else
@@ -5898,6 +6361,9 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 					//setPosHud(windowSize);
 				}
 			}
+
+			if (m_postProcessingUnderWaterEffectNode != nullptr)
+				m_postProcessingUnderWaterEffectNode->set_visible(false);
 		}
 		else
 		{
@@ -5926,6 +6392,10 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 				//godot::Size2 windowSize = getViewportSize();
 				//setPosHud(windowSize);
 			}
+
+			if (m_postProcessingUnderWaterEffectNode != nullptr)
+				m_postProcessingUnderWaterEffectNode->set_visible(true);
+
 		}
 	}
 }
@@ -5949,6 +6419,49 @@ void GDN_TheWorld_Viewer::toggleTrackMouse(void)
 
 	if (trackMouse())
 		m_mouseQuadrantHitName = "";
+}
+
+void GDN_TheWorld_Viewer::toggleMapGrid(void)
+{
+	if (!m_editMode)
+	{
+		if (mapGridOn())
+			mapGridOn(false);
+		else
+			mapGridOn(true);
+	}
+}
+
+bool GDN_TheWorld_Viewer::mapGridOn(void)
+{
+	//return m_mapGridOn;
+
+	GDN_TheWorld_Map* map = Map();
+	if (map != nullptr)
+		return map->mapGridOn();
+	else
+		return false;
+}
+
+void GDN_TheWorld_Viewer::mapGridOn(bool b)
+{
+	GDN_TheWorld_Map* map = Map();
+	if (map != nullptr)
+		map->mapGridOn(b);
+
+	//m_mapGridOn = b;
+	//if (m_mapGridOn)
+	//{
+	//	GDN_TheWorld_Map* map = Map();
+	//	if (map != nullptr)
+	//		map->mapGridOn(true);
+	//}
+	//else
+	//{
+	//	GDN_TheWorld_Map* map = Map();
+	//	if (map != nullptr)
+	//		map->mapGridOn(false);
+	//}
 }
 
 bool GDN_TheWorld_Viewer::trackMouse(void) const
@@ -5989,17 +6502,13 @@ void GDN_TheWorld_Viewer::toggleEditMode(void)
 	if (m_editMode)
 	{
 		trackMouse(true);
-		GDN_TheWorld_Map* map = Map();
-		if (map != nullptr)
-			map->frameVisible(true);
+		mapGridOn(true);
 	}
 	else
 	{
 		if (!positionVisible() && !normalVisible() && !gizmoVisible())
 			trackMouse(false);
-		GDN_TheWorld_Map* map = Map();
-		if (map != nullptr)
-			map->frameVisible(false);
+		mapGridOn(false);
 		//gridOn(false);
 	}
 }
@@ -6015,7 +6524,7 @@ void GDN_TheWorld_Viewer::setEditMode(bool editMode)
 			trackMouse(true);
 			GDN_TheWorld_Map* map = Map();
 			if (map != nullptr)
-				map->frameVisible(true);
+				map->mapGridOn(true);
 		}
 		else
 		{
@@ -6024,7 +6533,7 @@ void GDN_TheWorld_Viewer::setEditMode(bool editMode)
 			//gridOn(false);
 			GDN_TheWorld_Map* map = Map();
 			if (map != nullptr)
-				map->frameVisible(false);
+				map->mapGridOn(false);
 		}
 	}
 }
@@ -6321,7 +6830,7 @@ void GDN_TheWorld_Viewer::setMinDepthQuadOnPerimeter(int depth)
 		m_lastProcessedWorldCameraPosForQuadrants = godot::Vector3();
 		m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
-			m_recalcQuadrantsInViewNeeded = true;
+			recalcQuadrantsInViewNeeded(true);
 	}
 }
 
@@ -6338,7 +6847,7 @@ void GDN_TheWorld_Viewer::setCacheQuadOnPerimeter(int cache)
 		m_lastProcessedWorldCameraPosForQuadrants = godot::Vector3();
 		m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
-			m_recalcQuadrantsInViewNeeded = true;
+			recalcQuadrantsInViewNeeded(true);
 	}
 }
 
@@ -6357,7 +6866,7 @@ void GDN_TheWorld_Viewer::setMaxDepthQuadOnPerimeter(int depth)
 		m_lastProcessedWorldCameraPosForQuadrants = godot::Vector3();
 		m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
-			m_recalcQuadrantsInViewNeeded = true;
+			recalcQuadrantsInViewNeeded(true);
 	}
 }
 
@@ -6519,7 +7028,7 @@ void GDN_TheWorld_Viewer::checkNewVisibleQuadrantsRectSize(godot::Transform3D ne
 		//}
 	}
 	
-	m_recalcQuadrantsInViewNeeded = true;
+	recalcQuadrantsInViewNeeded(true);
 	finishedResizingGrid(false);
 }
 
@@ -6589,43 +7098,84 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	numQuadrantsFromCameraQuadrant.push_back(0);
 
 	m_minVisibleQuadrantOnPerimeter = getMinDepthQuadOnPerimeter();
-	m_numCacheQuadrantOnPerimeter = getCacheQuadOnPerimeter();
+
+	if (m_numCacheQuadrantOnPerimeter != getCacheQuadOnPerimeter())
+	{
+		m_numCacheQuadrantOnPerimeter = getCacheQuadOnPerimeter();
+		gridDimensionChanged(true);
+	}
 
 	if (m_numVisibleQuadrantOnPerimeterOnNorthSide == -1)
+	{
 		m_numVisibleQuadrantOnPerimeterOnNorthSide = m_minVisibleQuadrantOnPerimeter;
+		gridDimensionChanged(true);
+	}
 	else 
 	{
 		if (m_numVisibleQuadrantOnPerimeterOnNorthSide < m_minVisibleQuadrantOnPerimeter)
+		{
 			m_numVisibleQuadrantOnPerimeterOnNorthSide = m_minVisibleQuadrantOnPerimeter;
+			gridDimensionChanged(true);
+		}
 		if (m_numVisibleQuadrantOnPerimeterOnNorthSide > getMaxDepthQuadOnPerimeter())
+		{
 			m_numVisibleQuadrantOnPerimeterOnNorthSide = getMaxDepthQuadOnPerimeter();
+			gridDimensionChanged(true);
+		}
 	}
 	if (m_numVisibleQuadrantOnPerimeterOnSouthSide == -1)
+	{
 		m_numVisibleQuadrantOnPerimeterOnSouthSide = m_minVisibleQuadrantOnPerimeter;
+		gridDimensionChanged(true);
+	}
 	else
 	{
 		if (m_numVisibleQuadrantOnPerimeterOnSouthSide < m_minVisibleQuadrantOnPerimeter)
+		{
 			m_numVisibleQuadrantOnPerimeterOnSouthSide = m_minVisibleQuadrantOnPerimeter;
+			gridDimensionChanged(true);
+		}
 		if (m_numVisibleQuadrantOnPerimeterOnSouthSide > getMaxDepthQuadOnPerimeter())
+		{
 			m_numVisibleQuadrantOnPerimeterOnSouthSide = getMaxDepthQuadOnPerimeter();
+			gridDimensionChanged(true);
+		}
 	}
 	if (m_numVisibleQuadrantOnPerimeterOnWestSide == -1)
+	{
 		m_numVisibleQuadrantOnPerimeterOnWestSide = m_minVisibleQuadrantOnPerimeter;
+		gridDimensionChanged(true);
+	}
 	else
 	{
 		if (m_numVisibleQuadrantOnPerimeterOnWestSide < m_minVisibleQuadrantOnPerimeter)
+		{
 			m_numVisibleQuadrantOnPerimeterOnWestSide = m_minVisibleQuadrantOnPerimeter;
+			gridDimensionChanged(true);
+		}
 		if (m_numVisibleQuadrantOnPerimeterOnWestSide > getMaxDepthQuadOnPerimeter())
+		{
 			m_numVisibleQuadrantOnPerimeterOnWestSide = getMaxDepthQuadOnPerimeter();
+			gridDimensionChanged(true);
+		}
 	}
 	if (m_numVisibleQuadrantOnPerimeterOnEastSide == -1)
+	{
 		m_numVisibleQuadrantOnPerimeterOnEastSide = m_minVisibleQuadrantOnPerimeter;
+		gridDimensionChanged(true);
+	}
 	else
 	{
 		if (m_numVisibleQuadrantOnPerimeterOnEastSide < m_minVisibleQuadrantOnPerimeter)
+		{
 			m_numVisibleQuadrantOnPerimeterOnEastSide = m_minVisibleQuadrantOnPerimeter;
+			gridDimensionChanged(true);
+		}
 		if (m_numVisibleQuadrantOnPerimeterOnEastSide > getMaxDepthQuadOnPerimeter())
+		{
 			m_numVisibleQuadrantOnPerimeterOnEastSide = getMaxDepthQuadOnPerimeter();
+			gridDimensionChanged(true);
+		}
 	}
 
 	// add horizontal (X axis) quadrants on the left
@@ -6895,6 +7445,8 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	m_numVisibleQuadrantOnPerimeterOnWestSideApplied = m_numVisibleQuadrantOnPerimeterOnWestSide;
 	m_numVisibleQuadrantOnPerimeterOnEastSideApplied = m_numVisibleQuadrantOnPerimeterOnEastSide;
 
+	recalcQuadrantsInViewJustExecuted(true);
+	
 	return newQuadAdded;
 }
 
@@ -7284,6 +7836,16 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 					//}
 				}
 			}
+		}
+	}
+
+	GDN_TheWorld_Map*map = Map();
+	if (map != nullptr)
+	{
+		if (recalcQuadrantsInViewJustExecuted())
+		{
+			map->worldQuadrantMapReset();
+			recalcQuadrantsInViewJustExecuted(false);
 		}
 	}
 	
@@ -7747,7 +8309,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 
 	//int64_t elapsedFromLastUpdateGridDimension = TIME()->get_ticks_msec() - m_timeElapsedFromLastUpdateGridDimension;
 	if ((Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed)
-		&& !m_recalcQuadrantsInViewNeeded
+		&& !recalcQuadrantsInViewNeeded()
 		&& allCollidersReady()
 		&& !m_streamingInProgress
 		//&& elapsedFromLastRecalc > TIME_INTERVAL_BETWEEN_RECALC_QUADRANT
@@ -7885,24 +8447,27 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 			{
 				if (m_numVisibleQuadrantOnPerimeterOnNorthSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnNorthSide - 1) * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
-					m_numVisibleQuadrantOnPerimeterOnNorthSide--;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnNorthSide--;
+					gridDimensionChanged(true);
 				}
 				else if (m_numVisibleQuadrantOnPerimeterOnNorthSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnNorthSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
-					m_numVisibleQuadrantOnPerimeterOnNorthSide++;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnNorthSide++;
+					gridDimensionChanged(true);
 				}
 			}
 			else
 			{
 				if (m_numVisibleQuadrantOnPerimeterOnNorthSide < getMaxDepthQuadOnPerimeter())
 				{
-					m_numVisibleQuadrantOnPerimeterOnNorthSide++;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnNorthSide++;
+					gridDimensionChanged(true);
 				}
 			}
 			
@@ -8018,24 +8583,27 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 			{
 				if (m_numVisibleQuadrantOnPerimeterOnSouthSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnSouthSide - 1) * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
-					m_numVisibleQuadrantOnPerimeterOnSouthSide--;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnSouthSide--;
+					gridDimensionChanged(true);
 				}
 				else if (m_numVisibleQuadrantOnPerimeterOnSouthSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnSouthSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
-					m_numVisibleQuadrantOnPerimeterOnSouthSide++;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnSouthSide++;
+					gridDimensionChanged(true);
 				}
 			}
 			else
 			{
 				if (m_numVisibleQuadrantOnPerimeterOnSouthSide < getMaxDepthQuadOnPerimeter())
 				{
-					m_numVisibleQuadrantOnPerimeterOnSouthSide++;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnSouthSide++;
+					gridDimensionChanged(true);
 				}
 			}
 		}
@@ -8149,24 +8717,27 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 			{
 				if (m_numVisibleQuadrantOnPerimeterOnWestSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnWestSide - 1) * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
-					m_numVisibleQuadrantOnPerimeterOnWestSide--;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnWestSide--;
+					gridDimensionChanged(true);
 				}
 				else if (m_numVisibleQuadrantOnPerimeterOnWestSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnWestSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
-					m_numVisibleQuadrantOnPerimeterOnWestSide++;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnWestSide++;
+					gridDimensionChanged(true);
 				}
 			}
 			else
 			{
 				if (m_numVisibleQuadrantOnPerimeterOnWestSide < getMaxDepthQuadOnPerimeter())
 				{
-					m_numVisibleQuadrantOnPerimeterOnWestSide++;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnWestSide++;
+					gridDimensionChanged(true);
 				}
 			}
 		}
@@ -8280,29 +8851,32 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 			{
 				if (m_numVisibleQuadrantOnPerimeterOnEastSide > m_minVisibleQuadrantOnPerimeter && maxDistanceFromCamera < (m_numVisibleQuadrantOnPerimeterOnEastSide - 1) * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
-					m_numVisibleQuadrantOnPerimeterOnEastSide--;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnEastSide--;
+					gridDimensionChanged(true);
 				}
 				else if (m_numVisibleQuadrantOnPerimeterOnEastSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnEastSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
-					m_numVisibleQuadrantOnPerimeterOnEastSide++;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnEastSide++;
+					gridDimensionChanged(true);
 				}
 			}
 			else
 			{
 				if (m_numVisibleQuadrantOnPerimeterOnEastSide < getMaxDepthQuadOnPerimeter())
 				{
-					m_numVisibleQuadrantOnPerimeterOnEastSide++;
-					m_recalcQuadrantsInViewNeeded = true;
+					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
+					m_numVisibleQuadrantOnPerimeterOnEastSide++;
+					gridDimensionChanged(true);
 				}
 			}
 		}
 
-		if (m_recalcQuadrantsInViewNeeded)
+		if (recalcQuadrantsInViewNeeded())
 		{
 			GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
 			if (cam != nullptr)
@@ -8328,21 +8902,22 @@ void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals
 
 	TheWorld_Utils::QuadrantPos worldCameraQuadrantPos;
 
-	// Look for Camera QuadTree: it will be used as first element of quadrantPosNeeded
-	for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
-	{
-		if (itQuadTree->second->statusToErase())
-			continue;
+	// WARNING
+	// Look for Camera QuadTree: it will be used as first element of quadrantPosNeeded -- We try not to look for it in world quadrants map so its pos will be created from camera coords
+	//for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
+	//{
+	//	if (itQuadTree->second->statusToErase())
+	//		continue;
 
-		float quadrantSizeInWU = itQuadTree->second->getQuadrant()->getPos().getSizeInWU();
-		if (cameraWorldPos.x >= itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex() && cameraWorldPos.x < (itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex() + quadrantSizeInWU)
-			&& cameraWorldPos.z >= itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex() && cameraWorldPos.z < (itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex() + quadrantSizeInWU))
-		{
-			worldCameraQuadrantPos = itQuadTree->second->getQuadrant()->getPos();
-			worldCameraQuadrantPos.setTag("Camera");
-			break;
-		}
-	}
+	//	float quadrantSizeInWU = itQuadTree->second->getQuadrant()->getPos().getSizeInWU();
+	//	if (cameraWorldPos.x >= itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex() && cameraWorldPos.x < (itQuadTree->second->getQuadrant()->getPos().getLowerXGridVertex() + quadrantSizeInWU)
+	//		&& cameraWorldPos.z >= itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex() && cameraWorldPos.z < (itQuadTree->second->getQuadrant()->getPos().getLowerZGridVertex() + quadrantSizeInWU))
+	//	{
+	//		worldCameraQuadrantPos = itQuadTree->second->getQuadrant()->getPos();
+	//		worldCameraQuadrantPos.setTag("Camera");
+	//		break;
+	//	}
+	//}
 
 	if (worldCameraQuadrantPos.empty())	// not found camera-quad-tree ...
 	{
@@ -8355,12 +8930,12 @@ void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals
 	}
 
 	//
-	// now quadrantPosNeeded has 1 element and quadrantPosNeeded[0] is the camera 
+	// now quadrantPosNeeded has 1 element and quadrantPosNeeded[0] is the camera
 	//
 
 	// if forced or the camera has changed quadrant the cache is repopulated
 	//m_computedWorldCameraQuadrantPos = quadrantPosNeeded[0];	// DEBUG
-	if ((m_refreshQuadTreeMap || m_computedWorldCameraQuadrantPos != worldCameraQuadrantPos) && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
+	if ((m_refreshQuadTreeMap || !m_computedWorldCameraQuadrantPos.isInitialized() || m_computedWorldCameraQuadrantPos != worldCameraQuadrantPos) && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants");
 
@@ -8376,8 +8951,15 @@ void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals
 		m_refreshQuadTreeMap = false;
 		m_computedWorldCameraQuadrantPos = worldCameraQuadrantPos;
 
+		GDN_TheWorld_Map* map = Map();
+		if (map != nullptr)
+		{
+			godot::Vector2 worldCameraQuadrantPosInMap = map->worldPosToGlobalPos(godot::Vector2(m_computedWorldCameraQuadrantPos.getLowerXGridVertex(), m_computedWorldCameraQuadrantPos.getLowerZGridVertex()));
+			map->setMapGridWorldCameraQuadrantPos(worldCameraQuadrantPosInMap);
+		}
+
 		if ((Globals()->status() != TheWorldStatus::worldDeployed and Globals()->status() != TheWorldStatus::minimalWorldDeployed) || Globals()->getStreamWorld())
-			m_recalcQuadrantsInViewNeeded = true;
+			recalcQuadrantsInViewNeeded(true);
 	}
 
 	for (auto& itQuadTree : m_worldQuadrantsMap)
@@ -8881,6 +9463,17 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 
 	GDN_TheWorld_Globals* globals = Globals();
 	
+	GDN_TheWorld_Map* map = Map();
+	if (map != nullptr and gridDimensionChanged())
+	{
+		map->setMapGridNumVisibleQuadrantsOnNorthSide(m_numVisibleQuadrantOnPerimeterOnNorthSide);
+		map->setMapGridNumVisibleQuadrantsOnSouthSide(m_numVisibleQuadrantOnPerimeterOnSouthSide);
+		map->setMapGridNumVisibleQuadrantsOnWestSide(m_numVisibleQuadrantOnPerimeterOnWestSide);
+		map->setMapGridNumVisibleQuadrantsOnEastSide(m_numVisibleQuadrantOnPerimeterOnEastSide);
+		map->setMapGridNumCacheQuadrants(m_numCacheQuadrantOnPerimeter);
+		gridDimensionChanged(false);
+	}
+	
 	if (globals->status() != TheWorldStatus::worldDeployed and globals->status() != TheWorldStatus::minimalWorldDeployed)
 		return;
 
@@ -8989,17 +9582,25 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 			GDN_TheWorld_Map* map = Map();
 			if (map != nullptr)
 			{
-				godot::Vector2 mousePosGlobal = map->getMousePosInGlobalCoord();
-				m_trackedMouseHitGlobal = godot::Vector3(mousePosGlobal.x, 0, mousePosGlobal.y);
+				godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
+				m_trackedMouseHitGlobalPos = godot::Vector3(mouseGlobalPos.x, 0, mouseGlobalPos.y);
 
-				godot::Vector2 mousePosInMap = map->globalPosToWorldPos(mousePosGlobal);
-				m_trackedMouseHitInMap = godot::Vector3(mousePosInMap.x, 0, mousePosInMap.y);
+				godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+				m_trackedMouseHitWorldPos = godot::Vector3(mouseWorldPos.x, 0, mouseWorldPos.y);
 
 				int numVerticesPerQuadrantSize = (int)Globals()->numVerticesPerQuadrantSize();
 				float gridStepInWU = Globals()->gridStepInWU();
-				TheWorld_Utils::QuadrantPos pos(mousePosInMap.x, mousePosInMap.y, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+				TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
 				m_mouseQuadrantHitName = pos.getName();
 				m_mouseQuadrantHitPos = godot::Vector3(pos.getLowerXGridVertex(), 0, pos.getLowerZGridVertex());
+
+				GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+				if (m_editMode && editModeUIControl && editModeUIControl->initialized())
+				{
+					editModeUIControl->setMouseHitLabelText(std::string("X=") + std::format("{:.2f}", m_trackedMouseHitWorldPos.x) + " Y=" + std::format("{:.2f}", m_trackedMouseHitWorldPos.y) + " Z=" + std::format("{:.2f}", m_trackedMouseHitWorldPos.z));
+					editModeUIControl->setMouseQuadHitLabelText(m_mouseQuadrantHitName);
+					editModeUIControl->setMouseQuadHitPosLabelText(std::string("X=") + std::format("{:.2f}", m_mouseQuadrantHitPos.x) + " Z=" + std::format("{:.2f}", m_mouseQuadrantHitPos.z) + " " + std::format("{:.2f}", pos.getSizeInWU()));
+				}
 			}
 		}
 	}
@@ -9036,9 +9637,9 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 				m_mouseTrackedOnTerrain = false;
 				if (rayArray.has("position"))
 				{
-					m_trackedMouseHitGlobal = rayArray["position"];
-					godot::Transform3D t(godot::Basis(), m_trackedMouseHitGlobal);
-					m_trackedMouseHitInMap = globalToWorld(t).origin;
+					m_trackedMouseHitGlobalPos = rayArray["position"];
+					godot::Transform3D t(godot::Basis(), m_trackedMouseHitGlobalPos);
+					m_trackedMouseHitWorldPos = globalToWorld(t).origin;
 					m_mouseTrackedOnSomething = true;
 				}
 				else
@@ -9047,7 +9648,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 				if (m_mouseTrackedOnSomething)
 				{
 					if (m_editMode && editModeUIControl && editModeUIControl->initialized())
-						editModeUIControl->setMouseHitLabelText(std::string("X=") + std::format("{:.2f}", m_trackedMouseHitInMap.x) + " Y=" + std::format("{:.2f}", m_trackedMouseHitInMap.y) + " Z=" + std::format("{:.2f}", m_trackedMouseHitInMap.z));
+						editModeUIControl->setMouseHitLabelText(std::string("X=") + std::format("{:.2f}", m_trackedMouseHitWorldPos.x) + " Y=" + std::format("{:.2f}", m_trackedMouseHitWorldPos.y) + " Z=" + std::format("{:.2f}", m_trackedMouseHitWorldPos.z));
 
 					godot::Vector3 normalHit = Vector3Zero;
 					if (rayArray.has("normal"))
@@ -9091,7 +9692,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 
 									quadrantHit = it->second.get();
 									quadrantHit->getAdjacentQuadrants(adjacentQuadrantsHit);
-									trackedMouseHitChanged(activeWorldCamera, quadrantHit, adjacentQuadrantsHit, true, m_trackedMouseHitInMap, normalHit);
+									trackedMouseHitChanged(activeWorldCamera, quadrantHit, adjacentQuadrantsHit, true, m_trackedMouseHitWorldPos, normalHit);
 								}
 
 								if (m_editMode && editModeUIControl && editModeUIControl->initialized())
@@ -9131,12 +9732,12 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 							}
 							else
 							{
-								trackedMouseHitChanged(activeWorldCamera, m_quadrantHit, m_adjacentQuadrantsHit, true, m_trackedMouseHitInMap, normalHit);
+								trackedMouseHitChanged(activeWorldCamera, m_quadrantHit, m_adjacentQuadrantsHit, true, m_trackedMouseHitWorldPos, normalHit);
 							}
 						}
 						else
 						{
-							trackedMouseHitChanged(activeWorldCamera, m_quadrantHit, m_adjacentQuadrantsHit, true, m_trackedMouseHitInMap, normalHit);
+							trackedMouseHitChanged(activeWorldCamera, m_quadrantHit, m_adjacentQuadrantsHit, true, m_trackedMouseHitWorldPos, normalHit);
 						}
 					}
 				}
@@ -9959,7 +10560,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 				std::vector<TheWorld_Utils::QuadrantPos> quadrantsPosToErase;
 				for (auto& item : m_mapQuadrantsMap)
 				{
-					MapQuadrant* mapQuadrant = item.second.get();
+					MapQuadrantImage* mapQuadrant = item.second.get();
 					std::time_t quadrantRefreshTime = mapQuadrant->getRefreshTime();
 					if (quadrantRefreshTime > 0)
 					{
@@ -10080,7 +10681,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 						{
 							if (m_mapQuadrantsMap.contains(pos))
 							{
-								MapQuadrant* mapQuadrant = m_mapQuadrantsMap[pos].get();
+								MapQuadrantImage* mapQuadrant = m_mapQuadrantsMap[pos].get();
 								if (mapQuadrant->updated())
 								{
 									bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
@@ -12507,24 +13108,24 @@ void GDN_TheWorld_Viewer::streamer(void)
 					size_t numNeededQuads = static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numVisibleQuadrantOnPerimeterOnSouthSide + 2 * getCacheQuadOnPerimeter())
 						* static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnWestSide + m_numVisibleQuadrantOnPerimeterOnEastSide + 2 * getCacheQuadOnPerimeter());
 					if ((int)Globals()->status() >= (int)TheWorldStatus::minimalWorldDeployed && m_worldQuadrantsMap.size() < numNeededQuads)
-						m_recalcQuadrantsInViewNeeded = true;
+						recalcQuadrantsInViewNeeded(true);
 
 					if (m_numVisibleQuadrantOnPerimeterOnNorthSideApplied != m_numVisibleQuadrantOnPerimeterOnNorthSide
 						|| m_numVisibleQuadrantOnPerimeterOnSouthSideApplied != m_numVisibleQuadrantOnPerimeterOnSouthSide
 						|| m_numVisibleQuadrantOnPerimeterOnWestSideApplied != m_numVisibleQuadrantOnPerimeterOnWestSide
 						|| m_numVisibleQuadrantOnPerimeterOnEastSideApplied != m_numVisibleQuadrantOnPerimeterOnEastSide
 						)
-						m_recalcQuadrantsInViewNeeded = true;
+						recalcQuadrantsInViewNeeded(true);
 
 					{
 						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
-						if (m_recalcQuadrantsInViewNeeded && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and !m_streamingInProgress)
+						if (recalcQuadrantsInViewNeeded() && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and !m_streamingInProgress)
 						{
 							bool newQuadAdded = recalcQuadrantsInView();
 							if (not newQuadAdded)
 								finishedResizingGrid(true);
-							m_recalcQuadrantsInViewNeeded = false;
+							recalcQuadrantsInViewNeeded(false);
 						}
 					}
 				}

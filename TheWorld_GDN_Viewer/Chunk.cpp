@@ -751,7 +751,7 @@ void Chunk::checkMouseHit(void)
 {
 	if (m_chunkType == ChunkType::Terrain)
 	{
-		godot::Vector3 mouseHit = m_viewer->getMouseHitInMap();
+		godot::Vector3 mouseHit = m_viewer->getMouseHitWorldPos();
 		if (checkHit(mouseHit))
 		{
 			//m_viewer->setMouseHitQuadTree(m_quadTree);

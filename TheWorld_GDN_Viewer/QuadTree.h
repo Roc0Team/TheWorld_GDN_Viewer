@@ -25,11 +25,11 @@ namespace godot
 	class GDN_TheWorld_Quadrant;
 	class GDN_TheWorld_MapModder;
 
-	class MapQuadrant
+	class MapQuadrantImage
 	{
 	public:
-		MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, size_t optimizationLevel);
-		~MapQuadrant();
+		MapQuadrantImage(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, size_t optimizationLevel);
+		~MapQuadrantImage();
 
 		godot::Ref<godot::Image> getMapImage(void);
 		

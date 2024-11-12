@@ -380,8 +380,8 @@ namespace godot {
 		godot::Ref<godot::Image> m_seaWaveMapImage;
 		godot::Ref<godot::NoiseTexture2D> m_seaWaveMapTexture;
 		bool m_cameraUnderWater = false;
-		godot::MeshInstance3D* m_postProcessingUnderWaterNode = nullptr;
-		godot::MeshInstance3D* m_postProcessingUnderWaterOverrideNode = nullptr;
+		//godot::MeshInstance3D* m_postProcessingUnderWaterNode = nullptr;
+		//godot::MeshInstance3D* m_postProcessingUnderWaterOverrideNode = nullptr;
 
 		// Node cache
 		GDN_TheWorld_Globals* m_globals;

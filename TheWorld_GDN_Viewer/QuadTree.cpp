@@ -40,7 +40,7 @@ GDN_TheWorld_ShaderTexture* ShaderTerrainData::g_lookDevShaderTexture = nullptr;
 
 // QuadTree coordinates are local to Viewer Node which contains the grid of quads: the first chunk (posX = posZ = 0) has its lower vertex in the origin of the Viwer Node
 
-MapQuadrant::MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, size_t optimizationLevel)
+MapQuadrantImage::MapQuadrantImage(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, size_t optimizationLevel)
 {
 	m_quadrantPos = quadrantPos;
 	m_viewer = viewer;
@@ -51,16 +51,16 @@ MapQuadrant::MapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_
 	m_cache = TheWorld_Utils::MeshCacheBuffer(dir, mapName, m_quadrantPos.getGridStepInWU(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getLevel(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex());
 }
 
-MapQuadrant::~MapQuadrant()
+MapQuadrantImage::~MapQuadrantImage()
 {
 }
 
-TheWorld_Utils::MeshCacheBuffer& MapQuadrant::getMeshCacheBuffer(void)
+TheWorld_Utils::MeshCacheBuffer& MapQuadrantImage::getMeshCacheBuffer(void)
 {
 	return m_cache;
 }
 
-std::time_t MapQuadrant::getRefreshTime(void)
+std::time_t MapQuadrantImage::getRefreshTime(void)
 {
 	std::time_t ret = -1;
 
@@ -74,7 +74,7 @@ std::time_t MapQuadrant::getRefreshTime(void)
 	return ret;		// -1 quadrant not intialized, 0 = empty quadrant, >0 = quadrant last refresh time
 }
 
-godot::Ref<godot::Image> MapQuadrant::getMapImage(void)
+godot::Ref<godot::Image> MapQuadrantImage::getMapImage(void)
 {
 	if (m_mapImage == nullptr)
 	{
@@ -88,14 +88,14 @@ godot::Ref<godot::Image> MapQuadrant::getMapImage(void)
 	return m_mapImage;
 }
 
-void MapQuadrant::setMapData(godot::Ref<godot::Image> mapImage)
+void MapQuadrantImage::setMapData(godot::Ref<godot::Image> mapImage)
 {
 	m_mapImage = mapImage;
 	m_lastUpdateTime = TIME()->get_ticks_msec();
 	updated(true);
 }
 
-void MapQuadrant::refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer, bool updateCache)
+void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer, bool updateCache)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1 ") + __FUNCTION__, "Global");
 
@@ -617,6 +617,26 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 		//}
 
 		refreshSeaInfo();
+	}
+
+	switch (m_status)
+	{
+		case QuadrantStatus::initialized:
+		{
+			TheWorld_Utils::QuadrantPos pos = getQuadrant()->getPos();
+			m_viewer->worldQuadrantReady(pos);
+		}
+		break;
+		case QuadrantStatus::loadTerrainDataFromCacheNeeded:
+		case QuadrantStatus::loadTerrainDataFromCacheInProgress:
+		case QuadrantStatus::refreshTerrainDataNeeded:
+		case QuadrantStatus::refreshTerrainDataInProgress:
+		case QuadrantStatus::getTerrainDataInProgress:
+		{
+			TheWorld_Utils::QuadrantPos pos = getQuadrant()->getPos();
+			m_viewer->worldQuadrantWorkInProgress(pos);
+		}
+		break;
 	}
 }
 
@@ -5020,7 +5040,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		}
 	}
 
-	size_t optimizationLevelForMapImage = (size_t)MapQuadrantsMap::getMapQuadrantOptimizationLevel();	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
+	size_t optimizationLevelForMapImage = (size_t)MapQuadrantImagesMap::getMapQuadrantOptimizationLevel();	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
 	size_t textureNumPixelsPerSize = globals->resolutionForOptimizationLevel(optimizationLevelForMapImage);
 
 	if (m_globalmapBuffer.size() > 0)

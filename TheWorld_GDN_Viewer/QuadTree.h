@@ -1181,7 +1181,7 @@ namespace godot
 		};
 
 	public:
-		enum class QuadrantDepthSet
+		enum class QuadrantDepth
 		{
 			NotSet = -1
 			, Initial = 0		// Quadrant included in the minimum depth of quadrants
@@ -1190,6 +1190,7 @@ namespace godot
 		};
 
 		static std::string statusToString(enum class QuadrantStatus status);
+		static std::string quadrantDepthToString(enum class QuadrantDepth depth);
 
 		QuadTree(GDN_TheWorld_Viewer* viewer, TheWorld_Utils::QuadrantPos quadrantId);
 		~QuadTree();
@@ -1540,13 +1541,13 @@ namespace godot
 			return containsQuadOfType(QuadType::Sea);
 		}
 
-		enum class QuadrantDepthSet quadrantDepthSet(void) const
+		enum class QuadrantDepth quadrantDepth(void) const
 		{
-			return m_quadrantDepthSet;
+			return m_quadrantDepth;
 		}
-		void quadrantDepthSet(enum class QuadrantDepthSet p)
+		void quadrantDepth(enum class QuadrantDepth p)
 		{
-			m_quadrantDepthSet = p;
+			m_quadrantDepth = p;
 		}
 		size_t numQuadrantsFromCameraQuadrant(void) const
 		{
@@ -1592,11 +1593,21 @@ namespace godot
 		}
 		void forceUpdateForAllChunks(enum class QuadType type);
 
+		bool quadrantReady(void) const
+		{
+			return m_quadrantReady;
+		}
+		void quadrantReady(bool b)
+		{
+			m_quadrantReady = b;
+		}
+
 	private:
 		void internalUpdate(Vector3 cameraPosInMap, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired, enum class QuadType type);
 
 	private:
 		enum class QuadrantStatus m_status;
+		bool m_quadrantReady = false;
 		enum class QuadrantStatus m_prevStatus = QuadrantStatus::uninitialized;
 		TheWorld_Viewer_Utils::MsTimePoint m_lastStatusChange;
 		bool m_isVisible;
@@ -1608,7 +1619,7 @@ namespace godot
 		bool m_editModeQuadrantSelected = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
 		int m_canContainSea = QUADRANT_SEA_INFO_SET_NOTSET;
-		QuadrantDepthSet m_quadrantDepthSet = QuadrantDepthSet::NotSet;
+		QuadrantDepth m_quadrantDepth = QuadrantDepth::NotSet;
 		int m_numQuadrantsFromCameraQuadrant = -1;
 
 		std::map<enum class QuadType, std::unique_ptr<Quads>> m_quads;

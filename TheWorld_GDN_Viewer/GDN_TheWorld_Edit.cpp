@@ -1978,7 +1978,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	
 	if (m_infoLabelTextChanged && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::minimalWorldDeployed || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) /* && m_innerData->m_quadTreeHit != nullptr*/)
 	{
-		std::string quadHitOptimizationLevelInfoStr, quadHitColliderInfoStr, quadHitCanContainSeaStr;
+		std::string quadHitOptimizationLevelInfoStr, quadHitColliderInfoStr, quadHitCanContainSeaStr, quadHitTerrainTypeStr, quadHitMinHeightStr, quadHitMaxHeightStr, needToUploadStr, needToSaveStr, DepthStr, quadsFromCameraQuadStr;
 		enum class TheWorld_Utils::TerrainEdit::TerrainType quadHitTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 		float quadHitMinHeight = 0, quadHitMaxHeight = 0;
 		if (m_innerData->m_quadTreeHit != nullptr)
@@ -1990,6 +1990,26 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			quadHitTerrainType = m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->terrainType;
 			quadHitMinHeight = m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->minHeight;
 			quadHitMaxHeight = m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->maxHeight;
+			quadHitTerrainTypeStr = TheWorld_Utils::TerrainEdit::terrainTypeString(quadHitTerrainType);
+			quadHitMinHeightStr = std::format("{:.2f}", quadHitMinHeight);
+			quadHitMaxHeightStr = std::format("{:.2f}", quadHitMaxHeight);
+			needToUploadStr = (m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False");
+			needToSaveStr = (m_mapQuadToSave.contains(m_innerData->m_quadTreeHit->getQuadrant()->getPos()) ? "True" : "False");
+			DepthStr = QuadTree::quadrantDepthToString(m_innerData->m_quadTreeHit->quadrantDepth());
+			quadsFromCameraQuadStr = std::to_string(m_innerData->m_quadTreeHit->numQuadrantsFromCameraQuadrant());
+		}
+		else
+		{
+			quadHitOptimizationLevelInfoStr = "-";
+			quadHitColliderInfoStr = "-";
+			quadHitCanContainSeaStr = "-";
+			quadHitTerrainTypeStr = "-";
+			quadHitMinHeightStr = "-";
+			quadHitMaxHeightStr = "-";
+			needToUploadStr = "-";
+			needToSaveStr = "-";
+			DepthStr = "-";
+			quadsFromCameraQuadStr = "-";
 		}
 
 		std::string quadSelOptimizationLevelInfoStr, quadSelColliderInfoStr, quadSelCanContainSeaStr;
@@ -2006,48 +2026,30 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		std::string mouseHitInfoLabelText = "Hit: " + m_innerData->m_mouseHitStr;
 		m_innerData->m_mouseHitInfoLabel->set_text(mouseHitInfoLabelText.c_str());
 
-		std::string quadHitMinHeightStr = std::format("{:.2f}", quadHitMinHeight);
-		std::string quadHitMaxHeightStr = std::format("{:.2f}", quadHitMaxHeight);
-		std::string quadHitTerrainTypeStr = TheWorld_Utils::TerrainEdit::terrainTypeString(quadHitTerrainType);
-		std::string needToUploadStr = "-";
-		std::string needToSaveStr = "-";
 
-		if (m_innerData->m_quadTreeHit != nullptr)
-		{
-			needToUploadStr = (m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False");
-			needToSaveStr = (m_mapQuadToSave.contains(m_innerData->m_quadTreeHit->getQuadrant()->getPos()) ? "True" : "False");
-		}
-
-		if (m_viewer->mapMode())
-		{
-			quadHitCanContainSeaStr = "-";
-			quadHitMinHeightStr = "-";
-			quadHitMaxHeightStr = "-";
-			quadHitTerrainTypeStr = "-";
-			quadHitOptimizationLevelInfoStr = "-";
-			quadHitColliderInfoStr = "-";
-			needToUploadStr = "-";
-			needToSaveStr = "-";
-		}
-		
 		std::string hitQuadInfoLabelText;
-		//if (m_innerData->m_quadTreeHit != nullptr)
-			hitQuadInfoLabelText =
-			+ "Quad Hit: " + m_innerData->m_mouseQuadHitStr + " Sea: " + quadHitCanContainSeaStr + "\n"
+
+		//if (m_viewer->mapMode())
+		hitQuadInfoLabelText =
+			"Quad Hit: " + m_innerData->m_mouseQuadHitStr + " Sea: " + quadHitCanContainSeaStr + "\n"
 			+ "Pos: " + m_innerData->m_mouseQuadHitPosStr + "\n"
 			+ "Type: " + quadHitTerrainTypeStr + " Min: " + quadHitMinHeightStr + " Max: " + quadHitMaxHeightStr + "\n"
 			+ "Opt. Level: " + quadHitOptimizationLevelInfoStr + " Collider: " + quadHitColliderInfoStr + "\n"
-			+ "To Upload: " + needToUploadStr + " To Save: " + needToSaveStr;
+			+ "To Upload: " + needToUploadStr + " To Save: " + needToSaveStr + "\n"
+			+ "Depth: " + DepthStr + " Quads from Camera quad: " + quadsFromCameraQuadStr;
+
 		m_innerData->m_hitQuadInfoLabel->set_text(hitQuadInfoLabelText.c_str());
 
 		std::string selQuadInfoLabelText;
 		if (quadTreeSel != nullptr)
+		{
 			selQuadInfoLabelText =
-			"Quad Sel: " + m_innerData->m_mouseQuadSelStr + " Sea: " + quadSelCanContainSeaStr + "\n"
-			+ "Pos: " + m_innerData->m_mouseQuadSelPosStr + "\n"
-			+ "Type: " + TheWorld_Utils::TerrainEdit::terrainTypeString(m_innerData->m_selectedTerrainType) + " Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
-			+ "Opt. Level: " + quadSelOptimizationLevelInfoStr + " Collider: " + quadSelColliderInfoStr + "\n"
-			+ "To Upload: " + (quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False") + " To Save: " + (m_mapQuadToSave.contains(quadTreeSel->getQuadrant()->getPos()) ? "True" : "False");
+				"Quad Sel: " + m_innerData->m_mouseQuadSelStr + " Sea: " + quadSelCanContainSeaStr + "\n"
+				+ "Pos: " + m_innerData->m_mouseQuadSelPosStr + "\n"
+				+ "Type: " + TheWorld_Utils::TerrainEdit::terrainTypeString(m_innerData->m_selectedTerrainType) + " Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
+				+ "Opt. Level: " + quadSelOptimizationLevelInfoStr + " Collider: " + quadSelColliderInfoStr + "\n"
+				+ "To Upload: " + (quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False") + " To Save: " + (m_mapQuadToSave.contains(quadTreeSel->getQuadrant()->getPos()) ? "True" : "False");
+		}
 		m_innerData->m_selQuadInfoLabel->set_text(selQuadInfoLabelText.c_str());
 		
 		if (quadSelCanContainSea && !m_innerData->m_selQuadSeaCheckBox->is_pressed())	

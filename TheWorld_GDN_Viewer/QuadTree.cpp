@@ -381,6 +381,23 @@ std::string QuadTree::statusToString(enum class QuadrantStatus status)
 	}
 }
 
+std::string QuadTree::quadrantDepthToString(enum class QuadrantDepth depth)
+{
+	switch (depth)
+	{
+	case QuadrantDepth::NotSet:
+		return "NotSet";
+	case QuadrantDepth::Initial:
+		return "Initial";
+	case QuadrantDepth::Growing:
+		return "Growing";
+	case QuadrantDepth::Cache:
+		return "Cache";
+	default:
+		return "";
+	}
+}
+
 QuadTree::QuadTree(GDN_TheWorld_Viewer* viewer, TheWorld_Utils::QuadrantPos quadrantPos)
 {
 	setStatus(QuadrantStatus::uninitialized);
@@ -624,6 +641,7 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 		case QuadrantStatus::initialized:
 		{
 			TheWorld_Utils::QuadrantPos pos = getQuadrant()->getPos();
+			quadrantReady(true);
 			m_viewer->worldQuadrantReady(pos);
 		}
 		break;
@@ -634,6 +652,7 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 		case QuadrantStatus::getTerrainDataInProgress:
 		{
 			TheWorld_Utils::QuadrantPos pos = getQuadrant()->getPos();
+			quadrantReady(false);
 			m_viewer->worldQuadrantWorkInProgress(pos);
 		}
 		break;

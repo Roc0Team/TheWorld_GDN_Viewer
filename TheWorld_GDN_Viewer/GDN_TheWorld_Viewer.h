@@ -634,7 +634,7 @@ namespace godot
 			void render(void);
 			void destroyNode(void);
 			void setVisible(bool b);
-			void quadrantDepthSet(enum class QuadTree::QuadrantDepthSet quadrantDepthSet);
+			void quadrantDepth(enum class QuadTree::QuadrantDepth quadrantDepth, size_t numQuadrantsFromCameraQuadrant);
 			void quadrantReady(void);
 			void quadrantWorkInProgress(void);
 
@@ -1425,9 +1425,9 @@ namespace godot
 		{
 			return getNumInitializedQuadrant2(false);
 		}
-		int getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1);
-		int getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1, QuadTree::QuadrantDepthSet depthSet2);
-		int getNumReadyQuadrantAtDepthSet(QuadTree::QuadrantDepthSet depthSet1, QuadTree::QuadrantDepthSet depthSet2, QuadTree::QuadrantDepthSet depthSet3);
+		int getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1);
+		int getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2);
+		int getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2, QuadTree::QuadrantDepth depth3);
 		int getNumReadyQuadrant(void);
 		int getNumInitializedQuadrant2(bool recalcNow);
 		int getNumToEraseQuadrant(void) const;

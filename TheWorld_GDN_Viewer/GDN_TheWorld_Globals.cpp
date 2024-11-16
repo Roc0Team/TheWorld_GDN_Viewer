@@ -696,6 +696,24 @@ namespace godot
 		PLOG(plog::get()->getMaxSeverity()) << "Log initialized!";
 		PLOG(plog::get()->getMaxSeverity()) << "***************";
 
+		PLOG_INFO << "Performance Parameter - Profiler: " << (m_profilerActivated == -1 ? "default" : (m_profilerActivated == 0 ? "deactivated" : "activated")) << "(" << m_profilerActivated << ") - Active: " << (TheWorld_Utils::Profiler::isActive() ? "true" : "false");
+		PLOG_INFO << "Performance Parameter - Stream World: " << (m_streamWorld ? "true" : "false");
+		PLOG_INFO << "Performance Parameter - Threshold Cache Heights: " << m_paramThresholdCacheHeights;
+		PLOG_INFO << "Performance Parameter - Force Hires Collision Info: " << (m_paramForceHiResCollisionInfo ? "true" : "false");
+		PLOG_INFO << "Performance Parameter - Disable Terrain Collisions: " << (m_paramDisableTerrainCollisions ? "true" : "false");
+		PLOG_INFO << "Performance Parameter - Refresh Quadrants Factor: " << m_paramRefreshQuadrantsFactor;
+		PLOG_INFO << "Performance Parameter - Refresh Quadrants Threshold: " << getRefreshQuadrantTreeThreshold();
+		PLOG_INFO << "Performance Parameter - Refresh Chunks Factor: " << m_paramRefreshChunksFactor;
+		PLOG_INFO << "Performance Parameter - Refresh Chunk LOD Threshold: " << getRefreshChunkLodThreshold();
+		PLOG_INFO << "Performance Parameter - Threshold Globalmap: " << m_paramThresholdForGlobalmap;
+		PLOG_INFO << "Performance Parameter - Tex Opt Increment Factor: " << m_paramTextureOptimizationIncrementFactor;
+		PLOG_INFO << "Performance Parameter - Tex Opt Resolution Increment: " << m_paramTextureOptimizationResolutionIncrement;
+		PLOG_INFO << "Performance Parameter - Origin Shift Factor: " << m_paramOriginShiftFactor;
+		PLOG_INFO << "View Parameter - Show Terrain: " << (m_paramShowTerrain ? "true" : "false");
+		PLOG_INFO << "View Parameter - Show Sea: " << (m_paramShowSea ? "true" : "false");
+		PLOG_INFO << "View Parameter - Show Chunks: " << (m_paramShowChunks ? "true" : "false");
+		PLOG_INFO << "View Parameter - Elevation Zero: " << (m_paramElevationZero ? "true" : "false");
+
 		PLOG_INFO << "TheWorld Globals Initializing...";
 
 		//setDebugEnabled(m_isDebugEnabled);
@@ -938,14 +956,22 @@ namespace godot
 			if (m_streamWorld && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 				Viewer()->recalcQuadrantsInViewNeeded(true);
 		}
+		PLOG_INFO << "Performance Parameter - Stream World: " << (m_streamWorld ? "true" : "false");
 	}
 
 	void GDN_TheWorld_Globals::setParamProfilerActive(bool b)
 	{
 		if (b)
+		{
+			m_profilerActivated = 1;
 			TheWorld_Utils::Profiler::activate();
+		}
 		else
+		{
+			m_profilerActivated = 0;
 			TheWorld_Utils::Profiler::deactivate();
+		}
+		PLOG_INFO << "Performance Parameter - Profiler: " << (m_profilerActivated == -1 ? "default" : (m_profilerActivated == 0 ? "deactivated" : "activated")) << "(" << m_profilerActivated << ") - Active: " << (TheWorld_Utils::Profiler::isActive() ? "true" : "false");
 	}
 
 	//void GDN_TheWorld_Globals::setParamCacheTerrainImages(bool b)
@@ -980,6 +1006,7 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Performance Parameter - Threshold Cache Heights: " << m_paramThresholdCacheHeights;
 	}
 
 	void GDN_TheWorld_Globals::setParamForceHiResCollisionInfo(bool b)
@@ -988,6 +1015,7 @@ namespace godot
 		//GDN_TheWorld_Viewer* viewer = Viewer();
 		//if (viewer != nullptr)
 		//	viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Performance Parameter - Force Hires Collision Info: " << (m_paramForceHiResCollisionInfo ? "true" : "false");
 	}
 
 	void GDN_TheWorld_Globals::setParamDisableTerrainCollisions(bool b)
@@ -996,6 +1024,7 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Performance Parameter - Disable Terrain Collisions: " << (m_paramDisableTerrainCollisions ? "true" : "false");
 	}
 
 	void GDN_TheWorld_Globals::setParamRefreshQuadrantsFactor(float f)
@@ -1006,6 +1035,7 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Performance Parameter - Refresh Quadrants Factor: " << m_paramRefreshQuadrantsFactor;
 	}
 
 	void GDN_TheWorld_Globals::setParamRefreshChunksFactor(float f)
@@ -1016,6 +1046,7 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Performance Parameter - Refresh Chunks Factor: " << m_paramRefreshChunksFactor;
 	}
 
 	void GDN_TheWorld_Globals::setParamThresholdForGlobalmap(float f)
@@ -1024,6 +1055,7 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Performance Parameter - Threshold Globalmap: " << m_paramThresholdForGlobalmap;
 	}
 
 	void GDN_TheWorld_Globals::setParamThresholdForMapTextureOptimization(float f)
@@ -1032,6 +1064,7 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Threshold Tex Opt: " << m_paramThresholdForMapTextureOptimization;
 	}
 
 	void GDN_TheWorld_Globals::setParamTextureOptimizationIncrementFactor(float f)
@@ -1040,6 +1073,7 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Performance Parameter - Tex Opt Increment Factor: " << m_paramTextureOptimizationIncrementFactor;
 	}
 
 	void GDN_TheWorld_Globals::setParamTextureOptimizationResolutionIncrement(int64_t f)
@@ -1048,11 +1082,13 @@ namespace godot
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)
 			viewer->resetMaterialParamsForEveryQuadrant();
+		PLOG_INFO << "Performance Parameter - Tex Opt Resolution Increment: " << m_paramTextureOptimizationResolutionIncrement;
 	}
 
 	void GDN_TheWorld_Globals::setParamOriginShiftFactor(int64_t f)
 	{
 		m_paramOriginShiftFactor = f;
+		PLOG_INFO << "Performance Parameter - Origin Shift Factor: " << m_paramOriginShiftFactor;
 	}
 
 	void GDN_TheWorld_Globals::setParamShowSea(bool b)
@@ -1063,7 +1099,7 @@ namespace godot
 			//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
 			m_paramShowSeaChanged = true;
 		}
-
+		PLOG_INFO << "View Parameter - Show Sea: " << (m_paramShowSea ? "true" : "false");
 	}
 	
 	void GDN_TheWorld_Globals::setParamShowSeaChanged(bool b)
@@ -1079,7 +1115,7 @@ namespace godot
 			//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_TERRAIN, m_paramShowSea);
 			m_paramShowTerrainChanged = true;
 		}
-
+		PLOG_INFO << "View Parameter - Show Terrain: " << (m_paramShowTerrain ? "true" : "false");
 	}
 
 	void GDN_TheWorld_Globals::setParamShowTerrainChanged(bool b)
@@ -1091,6 +1127,7 @@ namespace godot
 	{
 		m_paramShowChunks = b;
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, m_paramShowChunks);
+		PLOG_INFO << "View Parameter - Show Chunks: " << (m_paramShowChunks ? "true" : "false");
 	}
 
 	void GDN_TheWorld_Globals::setParamElevationZero(bool b)
@@ -1099,6 +1136,7 @@ namespace godot
 		int paramElevationZero = b ? 1 : 0;
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_FORCE_ELEVATION_0, paramElevationZero);
 		Viewer()->terrainHeightsChangedEvent();
+		PLOG_INFO << "View Parameter - Elevation Zero: " << (m_paramElevationZero ? "true" : "false");
 	}
 
 	//void GDN_TheWorld_Globals::setParamDepthQuadWithCollisionInfo(int64_t f)

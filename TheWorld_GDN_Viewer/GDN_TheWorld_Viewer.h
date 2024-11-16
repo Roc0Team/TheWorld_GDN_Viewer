@@ -1408,40 +1408,49 @@ namespace godot
 		int getMouseTrackHitDuration(void) const;
 		int getProcessNotOwnsLock(void) const;
 		float getLoadingProgress(void);
-		int getMinNumQuadrant(void) const
+		int getMinNumQuadrants(void) const
 		{
 			return (int)pow((getMinDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1, 2);
 		}
-		int getMaxNumQuadrant(void) const
+		int getMinNumVisibleQuadrants(void) const
+		{
+			return (int)pow((getMinDepthQuadOnPerimeter()) * 2 + 1, 2);
+		}
+		int getMaxNumQuadrants(void) const
 		{
 			return (int)pow((getMaxDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1, 2);
 		}
-		int getNumQuadrant(void)
+		int getMaxNumVisibleQuadrants(void) const
 		{
-			return getNumQuadrant2(false);
+			return (int)pow(getMaxDepthQuadOnPerimeter() * 2 + 1, 2);
 		}
-		int getNumQuadrant2(bool recalcNow);
-		int getNumInitializedQuadrant(void)
+		int getNumQuadrants(void)
 		{
-			return getNumInitializedQuadrant2(false);
+			return getNumQuadrants2(false);
 		}
-		int getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1);
-		int getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2);
-		int getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2, QuadTree::QuadrantDepth depth3);
-		int getNumReadyQuadrant(void);
-		int getNumInitializedQuadrant2(bool recalcNow);
-		int getNumToEraseQuadrant(void) const;
-		int getNumVisibleQuadrant(void) const;
-		int getNumInitializedVisibleQuadrant(void) const;
-		int getNumNeedShaderResetQuadrant(void) const;
-		int getNumEmptyQuadrant(void) const;
-		int getNumQuadrantReloadingFromCache(void) const;
-		int getNumFlushedQuadrant(void) const;
+		int getNumQuadrants2(bool recalcNow);
+		int getNumInitializedQuadrants(void)
+		{
+			return getNumInitializedQuadrants2(false);
+		}
+		int getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1);
+		int getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2);
+		int getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2, QuadTree::QuadrantDepth depth3);
+		int getNumReadyQuadrants(void);
+		int getNumInitializedQuadrants2(bool recalcNow);
+		int getNumToEraseQuadrants(void) const;
+		int getNumVisibleQuadrants(void) const;
+		int getNumInitializedVisibleQuadrants(void) const;
+		int getNumNeedShaderResetQuadrants(void) const;
+		int getNumEmptyQuadrants(void) const;
+		int getNumQuadrantsReloadingFromCache(void) const;
+		int getNumFlushedQuadrants(void) const;
 		int getQuadrantNumWithCollider(void) const;
 		int getQuadrantNumWithEnabledCollider(void) const;
 		int getQuadrantNumWithHiResCollider(void) const;
 		int getQuadrantNumWithLowResCollider(void) const;
-		void refreshQuadrantStatistics(void);
+		bool allVisibleQuadrantsInitialized(void);
+		void refreshQuadrantsStatistics(void);
 		void resetMaterialParamsForEveryQuadrant(void);
 		void updateMaterialParamsForEveryQuadrant(void);
 		void setColliderNeedUpdateForEveryQuadrant(void);
@@ -1935,6 +1944,7 @@ namespace godot
 		void mouseHitTerrainChunk(Chunk* c);
 		Chunk* mouseHitTerrainChunk(void);
 
+		bool allVisibleCollidersReady(void);
 		bool allCollidersReady(void) const;
 		void allCollidersReady(bool b);
 		bool worldQuadrantsMapValid(void) const

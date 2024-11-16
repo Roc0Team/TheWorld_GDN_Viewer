@@ -895,6 +895,7 @@ namespace godot
 		bool m_loadingScreen = true;
 		bool m_loadingScreenExitOnFullWorldDeploy = true;
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
+		int m_profilerActivated = -1;
 	};
 }
 

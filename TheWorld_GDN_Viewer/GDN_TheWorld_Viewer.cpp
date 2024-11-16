@@ -759,7 +759,7 @@ void GDN_TheWorld_Map::MapQuadrantImageOverride::render(void)
 	m_colorRect = memnew(MapQuadrantImageOverrideColor);
 	m_map->add_child(m_colorRect);
 	m_colorRect->init(this);
-	m_colorRect->set_name(("Texture_" + getName()).c_str());
+	m_colorRect->set_name(("Color_" + getName()).c_str());
 	m_colorRect->add_to_group("MapQuadrantColorRect");
 	m_colorRect->set_material(m_colorMaterial);
 	m_colorRect->set_size(rectSize);
@@ -3566,17 +3566,17 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_chunks"), &GDN_TheWorld_Viewer::getNumChunks);
 	ClassDB::bind_method(D_METHOD("get_num_active_chunks"), &GDN_TheWorld_Viewer::getNumActiveChunks);
 	//ClassDB::bind_method(D_METHOD("get_loading_progress"), &GDN_TheWorld_Viewer::getLoadingProgress);
-	ClassDB::bind_method(D_METHOD("get_max_num_quadrant"), &GDN_TheWorld_Viewer::getMaxNumQuadrant);
-	ClassDB::bind_method(D_METHOD("get_min_num_quadrant"), &GDN_TheWorld_Viewer::getMinNumQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_initialized_quadrant"), &GDN_TheWorld_Viewer::getNumInitializedQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_toerase_quadrant"), &GDN_TheWorld_Viewer::getNumToEraseQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_visible_quadrant"), &GDN_TheWorld_Viewer::getNumVisibleQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_initialized_visible_quadrant"), &GDN_TheWorld_Viewer::getNumInitializedVisibleQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_need_shader_reset_quadrant"), &GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_empty_quadrant"), &GDN_TheWorld_Viewer::getNumEmptyQuadrant);
-	ClassDB::bind_method(D_METHOD("get_num_reloading_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrantReloadingFromCache);
-	ClassDB::bind_method(D_METHOD("get_num_flushed_quadrant"), &GDN_TheWorld_Viewer::getNumFlushedQuadrant);
+	ClassDB::bind_method(D_METHOD("get_max_num_quadrant"), &GDN_TheWorld_Viewer::getMaxNumQuadrants);
+	ClassDB::bind_method(D_METHOD("get_min_num_quadrant"), &GDN_TheWorld_Viewer::getMinNumQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_initialized_quadrant"), &GDN_TheWorld_Viewer::getNumInitializedQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_toerase_quadrant"), &GDN_TheWorld_Viewer::getNumToEraseQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_visible_quadrant"), &GDN_TheWorld_Viewer::getNumVisibleQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_initialized_visible_quadrant"), &GDN_TheWorld_Viewer::getNumInitializedVisibleQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_need_shader_reset_quadrant"), &GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_empty_quadrant"), &GDN_TheWorld_Viewer::getNumEmptyQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_reloading_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrantsReloadingFromCache);
+	ClassDB::bind_method(D_METHOD("get_num_flushed_quadrant"), &GDN_TheWorld_Viewer::getNumFlushedQuadrants);
 	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithCollider);
 	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_enabled_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithEnabledCollider);
 	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_hires_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithHiResCollider);
@@ -5778,11 +5778,12 @@ bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 	{
 		if ((globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed)
 			and finishedResizingGrid()
-			and !worldStreamingInProgress()
-			and allCollidersReady()
+			//and !worldStreamingInProgress()	// *** WARNING ***
+			and allVisibleCollidersReady()
 			and recalcQuadrantsInViewNeeded() == false
 			and isCameraQuadrantColliderSet()
-			and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
+			and allVisibleQuadrantsInitialized()	//and getNumInitializedQuadrant2(true) == getNumQuadrant2(true)		// *** WARNING ***
+			)
 		{
 			//godot::Camera3D* activeWorldCamera = getWorldCamera2(true);
 			//if (process_updateGridDimension(globals, activeWorldCamera))
@@ -5807,9 +5808,10 @@ bool GDN_TheWorld_Viewer::worldStreamingTerminated(void)
 			//and allCollidersReady()
 			and recalcQuadrantsInViewNeeded() == false
 			and isCameraQuadrantColliderSet()
-			and (getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth::Initial, QuadTree::QuadrantDepth::Cache)) >= getMinNumQuadrant())
+			and (getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth::Initial) >= getMinNumVisibleQuadrants())	//and (getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth::Initial, QuadTree::QuadrantDepth::Cache)) >= getMinNumQuadrants()
 			//and getNumInitializedQuadrant2(true) >= getMinNumQuadrant())
 			//and getNumInitializedQuadrant2(true) == getNumQuadrant2(true))
+			)
 		{
 			return true;
 		}
@@ -7421,11 +7423,12 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 				else
 				{
 					// Quadrant too far from camera: need to be deleted
-					if (itQuadTree->second->statusInitialized() || itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded() || itQuadTree->second->statusLoadTerrainDataFromCacheNeeded())
-					{
+					//if (itQuadTree->second->statusInitialized() || itQuadTree->second->statusUninitialized() || itQuadTree->second->statusRefreshTerrainDataNeeded() || itQuadTree->second->statusLoadTerrainDataFromCacheNeeded())
+					//{
 						itQuadTree->second->setVisible(false);
 						quadrantToDelete.push_back(itQuadTree->first);
-					}
+					//}
+
 					//if (m_cameraQuadTree != nullptr && itQuadTree->first == m_cameraQuadTree->getQuadrant()->getPos())
 					//{
 					//	// if we delete the ones containing old camera chunk we invalidate it
@@ -8328,8 +8331,8 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 	//int64_t elapsedFromLastUpdateGridDimension = TIME()->get_ticks_msec() - m_timeElapsedFromLastUpdateGridDimension;
 	if ((Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed)
 		&& !recalcQuadrantsInViewNeeded()
-		&& allCollidersReady()
-		&& !m_streamingInProgress
+		&& allVisibleCollidersReady()
+		//&& !m_streamingInProgress		// *** WARNING ***
 		//&& elapsedFromLastRecalc > TIME_INTERVAL_BETWEEN_RECALC_QUADRANT
 		&& m_computedWorldCameraQuadrantPos.isInitialized()
 		&& Globals()->getStreamWorld())
@@ -9077,8 +9080,11 @@ bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQu
 						itQuadTree->second->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
 						Globals()->debugPrint((std::string("Refreshing quadrant ") + itQuadTree->second->getQuadrant()->getPos().getIdStr() + " " + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(itQuadTree->second->getQuadrant()->getMeshId())).c_str());
 					}
-					exitForNow = true;
-					break;
+					//if (itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
+					{
+						exitForNow = true;
+						break;
+					}
 				}
 			}
 		}
@@ -9092,6 +9098,29 @@ bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQu
 	}
 
 	return exitForNow;
+}
+
+bool GDN_TheWorld_Viewer::allVisibleCollidersReady(void)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+	bool ready = true;
+	for (auto& item : m_worldQuadrantsMap)
+	{
+		if (item.second->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
+			continue;
+
+		if (item.second->statusToErase())
+			continue;
+
+		if (item.second->colliderNeedReset(QuadType::NotSet))
+		{
+			ready = false;
+			break;
+		}
+	}
+
+	return ready;
 }
 
 bool GDN_TheWorld_Viewer::allCollidersReady(void) const
@@ -9402,9 +9431,9 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 	if (m_hudStreamingInfoLabel != nullptr)
 	{
 		std::string hudStreaming;
-		int numInitializedQuadrant = getNumInitializedQuadrant();
-		int numQuadrant = getNumQuadrant();
-		int maxNumQuadrant = getMaxNumQuadrant();
+		int numInitializedQuadrant = getNumInitializedQuadrants();
+		int numQuadrant = getNumQuadrants();
+		int maxNumQuadrant = getMaxNumQuadrants();
 		if (numQuadrant == 0 or numInitializedQuadrant == numQuadrant)
 			hudStreaming = "";
 		else
@@ -10834,15 +10863,19 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosInMap, 
 		std::string lastProcessStepExecuted;
 		size_t elapsed = 0;
 		
+		int32_t numMaterialParamReset = 0;
+		int32_t numMaterialParamUpdate = 0;
+		int32_t numColliderUpdate = 0;
+
 		bool loopCompleted = true;
 		for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 		{
 			if (processCameraPosForChunks || itQuadTree->second->forceRecalcOptimizationLevel() || !finishedResizingGrid())	// occhio!!!
 				itQuadTree->second->setQuadrantOptimizations(cameraPosInMap);
 			
-			bool materialParamsReset = false;		int32_t numMaterialParamReset = 0;
-			bool materialParamsUpdated = false;		int32_t numMaterialParamUpdate = 0;
-			bool colliderUpdated = false;			int32_t numColliderUpdate = 0;
+			bool materialParamsReset = false;
+			bool materialParamsUpdated = false;
+			bool colliderUpdated = false;
 
 			bool locked = itQuadTree->second->getQuadrant()->lockInternalData();
 			if (locked)
@@ -10922,8 +10955,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& cameraPosInMap, 
 
 			if ((materialParamsReset || materialParamsUpdated || colliderUpdated) && !m_desideredLookDevChanged && itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
 			{
-				if (numMaterialParamReset > 0 or numMaterialParamUpdate > 0 or numColliderUpdate > 0)
-					PLOG_DEBUG << "Quadrants Updated: params set for quadrant = " << numMaterialParamReset << ", shaders updated = " << numMaterialParamUpdate << ", collider set = " << numColliderUpdate;
+				//if (numMaterialParamReset > 0 or numMaterialParamUpdate > 0 or numColliderUpdate > 0)
+				//	PLOG_DEBUG << "Quadrants Updated: params set for quadrant = " << numMaterialParamReset << ", shaders updated = " << numMaterialParamUpdate << ", collider set = " << numColliderUpdate;
 				loopCompleted = false;
 				break;
 			}
@@ -11077,7 +11110,7 @@ void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 				m_notStreamingTime.tick();
 			}
 
-			refreshQuadrantStatistics();
+			refreshQuadrantsStatistics();
 
 			if (m_numProcessExecution > 0)
 			{
@@ -12498,7 +12531,7 @@ String GDN_TheWorld_Viewer::getWorldCameraTerrainQuadrantName(void)
 		return "";
 }
 
-void GDN_TheWorld_Viewer::refreshQuadrantStatistics()
+void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
@@ -12680,18 +12713,22 @@ int GDN_TheWorld_Viewer::getNumJoins(void) const
 
 float GDN_TheWorld_Viewer::getLoadingProgress()
 {
+	// escludere cache quadrants
 	GDN_TheWorld_Globals* globals = Globals();
 	float numQuadrants = 0, numInitializedQuadrants = 0;
 	if (globals->loadingScreenExitOnFullWorldDeploy())
 	{
-		numQuadrants = float(getMaxNumQuadrant());
-		//numInitializedQuadrants = float(getNumInitializedQuadrant2(true));
-		numInitializedQuadrants = float(getNumReadyQuadrant());
+		//numQuadrants = float(getMaxNumQuadrants());
+		//numInitializedQuadrants = float(getNumReadyQuadrants());
+		numQuadrants = float(getMaxNumVisibleQuadrants());
+		numInitializedQuadrants = float(getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth::Initial, QuadTree::QuadrantDepth::Growing));
 	}
 	else
 	{
-		numQuadrants = float(getMinNumQuadrant());
-		numInitializedQuadrants = float(getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth::Initial, QuadTree::QuadrantDepth::Cache));
+		//numQuadrants = float(getMinNumQuadrants());
+		//numInitializedQuadrants = float(getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth::Initial, QuadTree::QuadrantDepth::Cache));
+		numQuadrants = float(getMinNumVisibleQuadrants());
+		numInitializedQuadrants = float(getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth::Initial));
 	}
 	if (numQuadrants > 1 and numInitializedQuadrants > 0 and numInitializedQuadrants <= numQuadrants)
 		return (numInitializedQuadrants / numQuadrants) * 100;
@@ -12699,7 +12736,7 @@ float GDN_TheWorld_Viewer::getLoadingProgress()
 		return 0;
 }
 
-int GDN_TheWorld_Viewer::getNumQuadrant2(bool recalcNow)
+int GDN_TheWorld_Viewer::getNumQuadrants2(bool recalcNow)
 {
 	if (recalcNow)
 	{
@@ -12710,17 +12747,17 @@ int GDN_TheWorld_Viewer::getNumQuadrant2(bool recalcNow)
 	return m_numQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1)
+int GDN_TheWorld_Viewer::getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1)
 {
-	return getNumReadyQuadrantAtDepth(depth1, QuadTree::QuadrantDepth::NotSet, QuadTree::QuadrantDepth::NotSet);
+	return getNumReadyQuadrantsAtDepth(depth1, QuadTree::QuadrantDepth::NotSet, QuadTree::QuadrantDepth::NotSet);
 }
 
-int GDN_TheWorld_Viewer::getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2)
+int GDN_TheWorld_Viewer::getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2)
 {
-	return getNumReadyQuadrantAtDepth(depth1, depth2, QuadTree::QuadrantDepth::NotSet);
+	return getNumReadyQuadrantsAtDepth(depth1, depth2, QuadTree::QuadrantDepth::NotSet);
 }
 
-int GDN_TheWorld_Viewer::getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2, QuadTree::QuadrantDepth depth3)
+int GDN_TheWorld_Viewer::getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2, QuadTree::QuadrantDepth depth3)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
@@ -12754,12 +12791,12 @@ int GDN_TheWorld_Viewer::getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth dept
 	return num;
 }
 
-int GDN_TheWorld_Viewer::getNumReadyQuadrant(void)
+int GDN_TheWorld_Viewer::getNumReadyQuadrants(void)
 {
-	return getNumReadyQuadrantAtDepth(QuadTree::QuadrantDepth::Initial, QuadTree::QuadrantDepth::Growing, QuadTree::QuadrantDepth::Cache);
+	return getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth::Initial, QuadTree::QuadrantDepth::Growing, QuadTree::QuadrantDepth::Cache);
 }
 
-int GDN_TheWorld_Viewer::getNumInitializedQuadrant2(bool recalcNow)
+int GDN_TheWorld_Viewer::getNumInitializedQuadrants2(bool recalcNow)
 {
 	if (recalcNow)
 	{
@@ -12773,27 +12810,46 @@ int GDN_TheWorld_Viewer::getNumInitializedQuadrant2(bool recalcNow)
 	return m_numInitializedQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumToEraseQuadrant(void) const
+bool GDN_TheWorld_Viewer::allVisibleQuadrantsInitialized(void)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+	bool allInitialized = true;
+	for (auto& itQuadrantMapItem : m_worldQuadrantsMap)
+	{
+		if (itQuadrantMapItem.second->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
+			continue;
+		if (itQuadrantMapItem.second->statusToErase())
+			continue;
+		if (not itQuadrantMapItem.second->statusInitialized())
+		{
+			allInitialized = false;
+			break;
+		}
+	}
+	return allInitialized;
+}
+
+int GDN_TheWorld_Viewer::getNumToEraseQuadrants(void) const
 {
 	return m_numToEraseQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumVisibleQuadrant(void) const
+int GDN_TheWorld_Viewer::getNumVisibleQuadrants(void) const
 {
 	return m_numVisibleQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumEmptyQuadrant(void) const
+int GDN_TheWorld_Viewer::getNumEmptyQuadrants(void) const
 {
 	return m_numEmptyQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumQuadrantReloadingFromCache(void) const
+int GDN_TheWorld_Viewer::getNumQuadrantsReloadingFromCache(void) const
 {
 	return m_numQuadrantReloadingFromCache;
 }
 
-int GDN_TheWorld_Viewer::getNumFlushedQuadrant(void) const
+int GDN_TheWorld_Viewer::getNumFlushedQuadrants(void) const
 {
 	return m_numFlushedQuadrant;
 }
@@ -12814,12 +12870,12 @@ int GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider(void) const
 {
 	return m_numQuadrantWithLowResCollider;
 }
-int GDN_TheWorld_Viewer::getNumInitializedVisibleQuadrant(void) const
+int GDN_TheWorld_Viewer::getNumInitializedVisibleQuadrants(void) const
 {
 	return m_numInitializedVisibleQuadrant;
 }
 
-int GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrant(void) const
+int GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrants(void) const
 {
 	return m_numQuadrantNeedResetMaterialParam;
 }
@@ -13150,7 +13206,8 @@ void GDN_TheWorld_Viewer::streamer(void)
 					{
 						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
-						if (recalcQuadrantsInViewNeeded() && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and !m_streamingInProgress)
+						bool _allVisibleQuadrantInitialized = allVisibleQuadrantsInitialized();
+						if (recalcQuadrantsInViewNeeded() && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and _allVisibleQuadrantInitialized /* *** WARNING *** and !m_streamingInProgress*/)
 						{
 							bool newQuadAdded = recalcQuadrantsInView();
 							if (not newQuadAdded)

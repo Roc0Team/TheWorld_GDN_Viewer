@@ -835,10 +835,7 @@ namespace godot
 		{
 			return m_materialParamsNeedReset;
 		}
-		void materialParamsNeedReset(bool b)
-		{
-			m_materialParamsNeedReset = b;
-		}
+		void materialParamsNeedReset(bool b);
 		void resetMaterialParams(enum class QuadType type, bool& lastProcessExecutionInterrupted, LookDev lookdev);
 		bool materialParamsNeedUpdateTransformChanged(void) const
 		{
@@ -1340,7 +1337,7 @@ namespace godot
 		void setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, enum class QuadType type, bool reload = false);
 		void setRegularMaterial(enum class QuadType type, bool reload = false);
 		void reloadCurrentMaterial(enum class QuadType type);
-		void setQuadrantOptimizations(godot::Vector3& cameraPosInMap);
+		void setQuadrantOptimizations(godot::Vector3& worldCameraWorldPos);
 		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, bool force = false);
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);

@@ -199,7 +199,7 @@ namespace godot
 
 	protected:
 		static void _bind_methods(void);
-		void _notification(int p_what);
+		//void _notification(int p_what);
 
 	public:
 		GDN_TheWorld_MapViewer(void);
@@ -208,10 +208,10 @@ namespace godot
 		//
 		// Godot Standard Functions
 		//
-		virtual void _ready(void) override;
-		virtual void _process(double _delta) override;
-		virtual void _input(const Ref<InputEvent>& event) override;
-		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+		//virtual void _ready(void) override;
+		//virtual void _process(double _delta) override;
+		//virtual void _input(const Ref<InputEvent>& event) override;
+		//virtual void _unhandled_input(const Ref<InputEvent>& event) override;
 
 	public:
 		void setViewer(GDN_TheWorld_Viewer* viewer)
@@ -316,10 +316,10 @@ namespace godot
 		//
 		// Godot Standard Functions
 		//
-		virtual void _ready(void) override;
-		virtual void _process(double _delta) override;
-		virtual void _input(const Ref<InputEvent>& event) override;
-		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+		//virtual void _ready(void) override;
+		//virtual void _process(double _delta) override;
+		//virtual void _input(const Ref<InputEvent>& event) override;
+		//virtual void _unhandled_input(const Ref<InputEvent>& event) override;
 
 	public:
 		void setMapViewportContainer(GDN_TheWorld_MapViewportContainer* mapViewportContainer)
@@ -353,8 +353,147 @@ namespace godot
 		void _notification(int p_what);
 
 	public:
+		class MapQuadrantOverride
+		{
+		public:
+			enum class Status
+			{
+				NotSet = -1
+			};
+
+			MapQuadrantOverride(GDN_TheWorld_Map* map, TheWorld_Utils::QuadrantPos& quadrantPos);
+			~MapQuadrantOverride(void);
+
+			void internalSetName(void);
+			std::string getName(void) const
+			{
+				return  m_name;
+			}
+			//void render(void);
+			void setVisible(bool b);
+			enum class QuadTree::QuadrantDepth quadrantDepth(void) const
+			{
+				return m_quadrantDepth;
+			}
+			int numQuadrantsFromCameraQuadrant(void) const
+			{
+				return m_numQuadrantsFromCameraQuadrant;
+			}
+			void quadrantDepth(enum class QuadTree::QuadrantDepth quadrantDepth, int numQuadrantsFromCameraQuadrant);
+			bool isQuadrantReady(void) const
+			{
+				return m_quadrantReady;
+			}
+			void quadrantReady(void);
+			void quadrantWorkInProgress(void);
+			bool quadrantActuallyInWorld(void) const
+			{
+				return m_quadrantActuallyInWorld;
+			}
+			void quadrantActuallyInWorld(bool b)
+			{
+				m_quadrantActuallyInWorld = b;
+			}
+
+			bool overrideTerrainTypeNull(void) const
+			{
+				return m_overrideTerrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset;
+			}
+			bool overrideTerrainTypeSet(void) const
+			{
+				return !overrideTerrainTypeNull();
+			}
+			bool overrideNull(void) const
+			{
+				if (overrideTerrainTypeNull() and not quadrantActuallyInWorld())
+					return true;
+				else
+					return false;
+			}
+
+			void applyColor(void);
+			void applyTexture(void);
+
+		private:
+			GDN_TheWorld_Map* m_map = nullptr;
+			TheWorld_Utils::QuadrantPos m_quadrantPos;
+			std::string m_name;
+
+			bool m_quadrantActuallyInWorld = false;
+			enum class QuadTree::QuadrantDepth m_quadrantDepth;
+			int m_numQuadrantsFromCameraQuadrant = -1;
+			bool m_quadrantReady = false;
+
+			TheWorld_Utils::TerrainEdit::TerrainType m_overrideTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
+		};
+
+		class MapQuadrantOverrideContainer : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantOverride>>
+		{
+		};
+
 		class MapTextureRect
 		{
+		public:
+			class MapQuadrantTextureOverride : public godot::TextureRect
+			{
+				GDCLASS(MapQuadrantTextureOverride, godot::TextureRect)
+
+			protected:
+				static void _bind_methods(void);
+				//void _notification(int p_what);
+
+			public:
+				//
+				// Godot Standard Functions
+				//
+				//virtual void _ready(void) override;
+				//virtual void _process(double _delta) override;
+				//virtual void _input(const Ref<InputEvent>& event) override;
+				//virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+				MapQuadrantTextureOverride(void);
+				~MapQuadrantTextureOverride(void);
+
+				void init(MapTextureRect* mapTextureRect, TheWorld_Utils::QuadrantPos& quadrantPos);
+				void freeResource(void);
+				void apply(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride);
+				void applyOverride(void);
+
+			private:
+				MapTextureRect* m_mapTextureRect = nullptr;
+				TheWorld_Utils::QuadrantPos m_quadrantPos;
+			};
+
+			class MapQuadrantColorOverride : public godot::ColorRect
+			{
+				GDCLASS(MapQuadrantColorOverride, godot::ColorRect)
+
+			protected:
+				static void _bind_methods(void);
+				//void _notification(int p_what);
+
+			public:
+				//
+				// Godot Standard Functions
+				//
+				//virtual void _ready(void) override;
+				//virtual void _process(double _delta) override;
+				//virtual void _input(const Ref<InputEvent>& event) override;
+				//virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+				MapQuadrantColorOverride(void);
+				~MapQuadrantColorOverride(void);
+
+				void init(MapTextureRect* mapTextureRect, TheWorld_Utils::QuadrantPos& quadrantPos);
+				void freeResource(void);
+				void apply(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride);
+				void applyOverride(void);
+
+			private:
+				MapTextureRect* m_mapTextureRect = nullptr;
+				TheWorld_Utils::QuadrantPos m_quadrantPos;
+			};
+
 		public:
 			enum class Status
 			{
@@ -371,6 +510,9 @@ namespace godot
 			MapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 			~MapTextureRect(void);
 
+			void detachTextureResource(TheWorld_Utils::QuadrantPos& quadrantPos);
+			void detachColorResource(TheWorld_Utils::QuadrantPos& quadrantPos);
+
 			TheWorld_Utils::MapTextureRectPos pos(void) const
 			{
 				return m_mapTextureRectPos;
@@ -378,13 +520,13 @@ namespace godot
 
 			bool rectFull(void);
 			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
-			bool destroyTextureRect(void);
+			bool destroyInternalTextureRect(void);
 			bool isTextureRectRendered(void);
-			godot::TextureRect* getTextureRect(void);
+			godot::TextureRect* getInternalTextureRect(void);
 			bool eraseCachedTexture(void);
 			bool renderCachedTexture(void);
 			bool renderInternalTexture(void);
-			void renderTexture(godot::Ref<godot::Image> image);
+			void renderImage(godot::Ref<godot::Image> image);
 			godot::String getImageCachePath(void);
 			std::string fileTimeStr(void) const
 			{
@@ -458,14 +600,16 @@ namespace godot
 				}
 			}
 			void setInternalImageData(TheWorld_Utils::MemoryBuffer& imageBuffer);
-			void quadrantReady(TheWorld_Utils::QuadrantPos& pos)
-			{
-			}
 
-			void quadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos)
-			{
-			}
+			MapQuadrantColorOverride* getQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing = false);
+			MapQuadrantTextureOverride* getQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing = false);
+			void releaseQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+			void releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 
+			GDN_TheWorld_Map* getMap(void) const
+			{
+				return m_map;
+			}
 
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
@@ -475,8 +619,10 @@ namespace godot
 			std::vector<std::vector<godot::Ref<godot::Image>>> m_quadrantImages;	// bi-dimensional vector of Image references
 			//std::filesystem::file_time_type m_fileTime;
 			std::string m_fileTimeStr;		// es: 2023-09-04 19:33:24.7026392
-			godot::TextureRect* m_textureRect = nullptr;
+			godot::TextureRect* m_internalTextureRect = nullptr;
 			godot::PackedByteArray m_internalImageData;
+			std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantColorOverride>> m_quadrantColorOverrideContainer;
+			std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantTextureOverride>> m_quadrantTextureOverrideContainer;
 		};
 
 		class MapTextureRectContainer : public std::map<TheWorld_Utils::MapTextureRectPos, std::unique_ptr<MapTextureRect>>
@@ -558,99 +704,6 @@ namespace godot
 		{
 		};
 
-		class MapQuadrantImageOverride
-		{
-		public:
-			class MapQuadrantImageOverrideTex : public godot::TextureRect
-			{
-				GDCLASS(MapQuadrantImageOverrideTex, godot::TextureRect)
-
-			protected:
-				static void _bind_methods(void);
-				void _notification(int p_what);
-
-			public:
-				//
-				// Godot Standard Functions
-				//
-				virtual void _ready(void) override;
-				virtual void _process(double _delta) override;
-				virtual void _input(const Ref<InputEvent>& event) override;
-				virtual void _unhandled_input(const Ref<InputEvent>& event) override;
-
-				MapQuadrantImageOverrideTex(void);
-				~MapQuadrantImageOverrideTex(void);
-
-				void init(MapQuadrantImageOverride* mapQuadrantImageOverride);
-				void freeResource(void);
-
-			private:
-				MapQuadrantImageOverride* m_mapQuadrantImageOverride = nullptr;
-			};
-
-			class MapQuadrantImageOverrideColor : public godot::ColorRect
-			{
-				GDCLASS(MapQuadrantImageOverrideColor, godot::ColorRect)
-
-			protected:
-				static void _bind_methods(void);
-				void _notification(int p_what);
-
-			public:
-				//
-				// Godot Standard Functions
-				//
-				virtual void _ready(void) override;
-				virtual void _process(double _delta) override;
-				virtual void _input(const Ref<InputEvent>& event) override;
-				virtual void _unhandled_input(const Ref<InputEvent>& event) override;
-
-				MapQuadrantImageOverrideColor(void);
-				~MapQuadrantImageOverrideColor(void);
-
-				void init(MapQuadrantImageOverride* mapQuadrantImageOverride);
-				void freeResource(void);
-
-			private:
-				MapQuadrantImageOverride* m_mapQuadrantImageOverride = nullptr;
-			};
-
-		public:
-			enum class Status
-			{
-				NotSet = -1
-			};
-
-			MapQuadrantImageOverride(GDN_TheWorld_Map* map, TheWorld_Utils::QuadrantPos& quadrantPos);
-			~MapQuadrantImageOverride(void);
-			void detachTextureResource(void);
-			void detachColorResource(void);
-
-			void internalSetName(void);
-			std::string getName(void) const
-			{
-				return  m_name;
-			}
-			void render(void);
-			void destroyNode(void);
-			void setVisible(bool b);
-			void quadrantDepth(enum class QuadTree::QuadrantDepth quadrantDepth, size_t numQuadrantsFromCameraQuadrant);
-			void quadrantReady(void);
-			void quadrantWorkInProgress(void);
-
-		private:
-			GDN_TheWorld_Map* m_map = nullptr;
-			TheWorld_Utils::QuadrantPos m_quadrantPos;
-			godot::Ref<godot::ShaderMaterial> m_colorMaterial;
-			MapQuadrantImageOverrideTex* m_textureRect = nullptr;
-			MapQuadrantImageOverrideColor* m_colorRect = nullptr;
-			std::string m_name;
-		};
-		
-		class MapQuadrantImageOverrideContainer : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantImageOverride>>
-		{
-		};
-
 	public:
 		GDN_TheWorld_Map(void);
 		~GDN_TheWorld_Map(void);
@@ -667,7 +720,6 @@ namespace godot
 		static int32_t numImagesForTexture(void);
 		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
 		godot::Ref<godot::ShaderMaterial> getTextureRectMaterial(void) const;
-		godot::Ref<godot::ShaderMaterial> getQuadrantRectMaterial(void) const;
 		void setMapGridWorldCameraQuadrantPos(godot::Vector2 pos);
 		void setMapGridNumVisibleQuadrantsOnNorthSide(int num);
 		void setMapGridNumVisibleQuadrantsOnSouthSide(int num);
@@ -754,6 +806,12 @@ namespace godot
 		void quadrantReady(TheWorld_Utils::QuadrantPos& pos);
 		void quadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos);
 
+		MapTextureRect::MapQuadrantColorOverride* getQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing = false);
+		MapTextureRect::MapQuadrantTextureOverride* getQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing = false);
+		void releaseQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+		void releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+		MapQuadrantOverride* getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 
@@ -762,7 +820,7 @@ namespace godot
 		GDN_TheWorld_Globals* m_globals = nullptr;
 		GDN_TheWorld_MapViewport* m_mapViewport = nullptr;
 		MapTextureRectContainer m_mapTextureRectContainer;
-		MapQuadrantImageOverrideContainer m_mapQuadrantImageOverrideContainer;
+		MapQuadrantOverrideContainer m_mapQuadrantOverrideContainer;
 		UploadingMapTextureRectContainer m_uploadingMapTextureRectContainer;
 		std::map<TheWorld_Utils::MapTextureRectPos, bool> m_mapTextureRectRefreshScheduled;
 		godot::Dictionary m_worldFlagDict;
@@ -806,16 +864,17 @@ namespace godot
 		//
 		// Godot Standard Functions
 		//
-		virtual void _ready(void) override {};
-		virtual void _process(double _delta) override {};
-		virtual void _input(const Ref<InputEvent>& event) override;
-		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+		//virtual void _ready(void) override {};
+		//virtual void _process(double _delta) override {};
+		//virtual void _input(const Ref<InputEvent>& event) override;
+		//virtual void _unhandled_input(const Ref<InputEvent>& event) override;
 
 	private:
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		godot::VBoxContainer* m_loadingVBox = nullptr;
 		godot::Label* m_loadingLabel = nullptr;
 		godot::ProgressBar* m_loadingProgressBar = nullptr;
+		float m_loadingProgress = 0;
 	};
 
 	class GDN_TheWorld_MapModder : public godot::Node
@@ -1433,9 +1492,9 @@ namespace godot
 		{
 			return getNumInitializedQuadrants2(false);
 		}
-		int getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1);
-		int getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2);
-		int getNumReadyQuadrantsAtDepth(QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2, QuadTree::QuadrantDepth depth3);
+		int getNumReadyQuadrantsAtDepth(int& numEvaluated, float& numReady, QuadTree::QuadrantDepth depth1);
+		int getNumReadyQuadrantsAtDepth(int& numEvaluated, float& numReady, QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2);
+		int getNumReadyQuadrantsAtDepth(int& numEvaluated, float& numReady, QuadTree::QuadrantDepth depth1, QuadTree::QuadrantDepth depth2, QuadTree::QuadrantDepth depth3);
 		int getNumReadyQuadrants(void);
 		int getNumInitializedQuadrants2(bool recalcNow);
 		int getNumToEraseQuadrants(void) const;
@@ -2242,7 +2301,7 @@ namespace godot
 		void process_updateMeshForUpdatedChunks(void);
 		void process_updateMeshForUpdatedChunks(enum class QuadType type);
 		void process_lookDev(void);
-		void process_materialParam(godot::Vector3& cameraPosInMap, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
+		void process_materialParam(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_neighbourQuadrantData(QuadTree* quadTree);
 		void process_mapQuadrants(godot::Vector2 cameraWorldPos);
 		void process_dump(GDN_TheWorld_Globals* globals);
@@ -2251,7 +2310,7 @@ namespace godot
 		void writeStatisticsNewQuadrants(void);
 		TheWorld_Utils::QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isQuadrantSelectedForEdit(void);
-		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized);
+		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized, bool& allVisibleQuadrantInitialized);
 		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea);
 		bool gridDimensionChanged(void) const
 		{
@@ -2603,7 +2662,7 @@ namespace godot
 		godot::Vector2 m_mapCameraGlobalPos;
 
 		godot::CanvasItem* m_postProcessingUnderWaterEffectNode = nullptr;
-		
+
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;
 		TheWorld_Utils::TerrainEdit m_tempTerrainEdit;

@@ -1521,11 +1521,11 @@ void QuadTree::reloadCurrentMaterial(enum class QuadType type)
 	}
 }
 
-void QuadTree::setQuadrantOptimizations(godot::Vector3& cameraPosInMap)
+void QuadTree::setQuadrantOptimizations(godot::Vector3& worldCameraWorldPos)
 {
 	godot::Vector3 quadrantCenter  = getQuadrant()->getCenter();
 	quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
-	m_lastComputedQuadrantDistanceFromCamera = (float)abs((cameraPosInMap - quadrantCenter).length());
+	m_lastComputedQuadrantDistanceFromCamera = (float)abs((worldCameraWorldPos - quadrantCenter).length());
 
 	{
 		if (m_viewer->Globals()->getParamThresholdForGlobalmap() > 0 && m_lastComputedQuadrantDistanceFromCamera > m_viewer->Globals()->getParamThresholdForGlobalmap())
@@ -1551,16 +1551,16 @@ void QuadTree::setQuadrantOptimizations(godot::Vector3& cameraPosInMap)
 		if (getQuadrant()->quadrantAtMinLod(typeForOptimizations))	// optimization > 0 only for quadrant with a unique chunk coincident with the root
 		{
 			newOptimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
-			float thresHoldForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
-			if (m_forceRecalcOptimizationLevel || (m_lastComputedQuadrantDistanceFromCamera > thresHoldForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT_FOR_TEXTURE_OPTIMIZATIONS))
+			float thresholdForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
+			if (m_forceRecalcOptimizationLevel || (m_lastComputedQuadrantDistanceFromCamera > thresholdForTextureOptimization && m_viewer->Globals()->heightmapResolutionShift() > MIN_RESOLUTION_SHIFT_FOR_TEXTURE_OPTIMIZATIONS))
 			{
 				//newOptimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
 				size_t maxOptimizationLevel = m_viewer->Globals()->getMaxTextureOptimizationLevel();
 				float increment = m_viewer->Globals()->heightmapSizeInWUs() * m_viewer->Globals()->getParamTextureOptimizationIncrementFactor();
-				thresHoldForTextureOptimization += increment;
-				while (thresHoldForTextureOptimization < m_lastComputedQuadrantDistanceFromCamera && newOptimizationLevel < maxOptimizationLevel)
+				thresholdForTextureOptimization += increment;
+				while (thresholdForTextureOptimization < m_lastComputedQuadrantDistanceFromCamera && newOptimizationLevel < maxOptimizationLevel)
 				{
-					thresHoldForTextureOptimization += increment;
+					thresholdForTextureOptimization += increment;
 					newOptimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
 				}
 			}
@@ -1602,6 +1602,7 @@ bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, bool f
 	
 	if (materialParamsNeedReset() /* && !getQuadrant()->internalDataLocked()*/)
 	{
+		//TimerMs clock;	clock.tick();
 		if (status() != QuadrantStatus::initialized)
 		{
 		}
@@ -1613,6 +1614,7 @@ bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, bool f
 				getQuadrant()->terrainDataJustLoaded(false);
 				materialParamsNeedReset(false);
 				reset = true;
+				//clock.tock();	size_t elapsed = clock.duration().count();	PLOG_DEBUG << "resetMaterialParams duration = " << elapsed;
 			}
 		}
 	}
@@ -1629,7 +1631,10 @@ bool QuadTree::materialParamsNeedReset(void)
 
 void QuadTree::materialParamsNeedReset(bool b)
 {
-	getQuadrant()->getShaderTerrainData()->materialParamsNeedReset(b);
+	if (b)
+		getQuadrant()->getShaderTerrainData()->materialParamsNeedReset(b);
+	else
+		getQuadrant()->getShaderTerrainData()->materialParamsNeedReset(b);
 }
 
 bool QuadTree::updateCollider(enum class QuadType type)
@@ -3198,6 +3203,18 @@ void ShaderTerrainData::materialParamsNeedUpdate(bool b, bool transformChanged)
 	//{
 	//	m_materialParamsNeedUpdateTransformChanged = transformChanged;
 	//}	// DEBUG
+}
+
+void ShaderTerrainData::materialParamsNeedReset(bool b)
+{
+	if (b)
+	{
+		m_materialParamsNeedReset = b;
+		//if (!m_quadTree->statusInitialized())	// DEBUG ONLY
+		//	assert(!m_quadTree->statusInitialized());
+	}
+	else
+		m_materialParamsNeedReset = b;
 }
 
 // it is expected that globals and World Datas are loaded

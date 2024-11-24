@@ -33,8 +33,8 @@ namespace godot
 		// Godot Standard Functions
 		//
 		virtual void _ready(void) override;
-		virtual void _process(double _delta) override;
-		virtual void _input(const Ref<InputEvent>& event) override;
+		//virtual void _process(double _delta) override;
+		//virtual void _input(const Ref<InputEvent>& event) override;
 
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
 		GDN_TheWorld_Viewer* Viewer(bool useCache = true);

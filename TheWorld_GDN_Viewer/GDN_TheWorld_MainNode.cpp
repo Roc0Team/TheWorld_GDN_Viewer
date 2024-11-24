@@ -160,48 +160,16 @@ void GDN_TheWorld_MainNode::_notification(int p_what)
 	}
 }
 
-void GDN_TheWorld_MainNode::_input(const Ref<InputEvent>& event)
-{
-	//Globals()->debugPrint("GDN_TheWorld_MainNode::_ready");
-}
+//void GDN_TheWorld_MainNode::_input(const Ref<InputEvent>& event)
+//{
+//	//Globals()->debugPrint("GDN_TheWorld_MainNode::_ready");
+//}
 
-void GDN_TheWorld_MainNode::_process(double _delta)
-{
-	// To activate _process method add this Node to a Godot Scene
-	//Globals()->debugPrint("GDN_TheWorld_MainNode::_process");
-
-	//if (!m_initialized && m_initInProgress)
-	//{
-	//	godot::Spatial* pWorldMainNode = (Spatial*)get_parent();
-	//	
-	//	GDN_TheWorld_Globals* globals = GDN_TheWorld_Globals::_new();
-	//	if (globals)
-	//	{
-	//		//Node* parent = globals->get_parent();
-	//		pWorldMainNode->add_child(globals);
-	//		globals->set_name(THEWORLD_GLOBALS_NODE_NAME);
-	//		globals->init();
-	//		//m_globals = globals;
-	//	}
-
-	//	PLOG_INFO << "TheWorld Main Node Initializing...";
-
-	//	GDN_TheWorld_Viewer* viewer = GDN_TheWorld_Viewer::_new();
-	//	if (viewer)
-	//	{
-	//		pWorldMainNode->add_child(viewer);
-	//		viewer->set_name(THEWORLD_WORLD_VIEWER_NODE_NAME);
-	//		Transform gt = pWorldMainNode->get_global_transform();
-	//		viewer->set_global_transform(gt);
-	//		//viewer->init();
-	//	}
-
-	//	m_initialized = true;
-	//	m_initInProgress = false;
-
-	//	PLOG_INFO << "TheWorld Main Node Initialized!";
-	//}
-}
+//void GDN_TheWorld_MainNode::_process(double _delta)
+//{
+//	// To activate _process method add this Node to a Godot Scene
+//	//Globals()->debugPrint("GDN_TheWorld_MainNode::_process");
+//}
 
 bool GDN_TheWorld_MainNode::init(Node3D* pWorldMainNode, bool isInEditor)
 {

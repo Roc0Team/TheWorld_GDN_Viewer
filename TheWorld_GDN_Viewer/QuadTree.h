@@ -1338,7 +1338,7 @@ namespace godot
 		void setRegularMaterial(enum class QuadType type, bool reload = false);
 		void reloadCurrentMaterial(enum class QuadType type);
 		void setQuadrantOptimizations(godot::Vector3& worldCameraWorldPos);
-		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, bool force = false);
+		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, godot::Vector3& worldCameraWorldPos, bool force = false);
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
 		bool updateCollider(enum class QuadType type);

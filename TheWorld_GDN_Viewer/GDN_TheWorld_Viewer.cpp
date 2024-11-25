@@ -5150,7 +5150,9 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 	{
 		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES)
 		{
-			TheWorld_Utils::Profiler::addElapsedMs(std::string("WorldDeploy 1 ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES, reply.duration());
+			std::string profilerFunction = std::string("WorldDeploy 1 ") + __FUNCTION__;
+			std::string profilerName = THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES;
+			TheWorld_Utils::Profiler::addElapsedMs(profilerFunction, profilerName, reply.duration());
 			
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2 ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES);
 
@@ -5380,12 +5382,12 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 								TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1 ") + __FUNCTION__, "quadTree->getQuadrant()->refreshGridVertices");
 								quadTree->getQuadrant()->refreshGridVerticesFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
 
-								if (worldQuadrant)
-								{
-									godot::Ref<godot::Image> mapImage = quadTree->getQuadrant()->getMapImage();
-									m_mapQuadrantsMap.setMapData(mapImage, quadrantPos, meshIdFromServer);
-									updateMapQuadrantMap = false;
-								}
+								//if (worldQuadrant)
+								//{
+								//	godot::Ref<godot::Image> mapImage = quadTree->getQuadrant()->getMapImage();
+								//	m_mapQuadrantsMap.setMapData(mapImage, quadrantPos, meshIdFromServer);
+								//	updateMapQuadrantMap = false;
+								//}
 							}
 
 							if (setCamera)
@@ -9283,10 +9285,10 @@ void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals
 			recalcQuadrantsInViewNeeded(true);
 	}
 
-	for (auto& itQuadTree : m_worldQuadrantsMap)
-	{
-		itQuadTree.second->setQuadrantOptimizations(worldCameraWorldPos);
-	}
+	//for (auto& itQuadTree : m_worldQuadrantsMap)
+	//{
+	//	itQuadTree.second->setQuadrantOptimizations(worldCameraWorldPos);
+	//}
 }
 
 void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants)
@@ -11188,15 +11190,15 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 		std::string lastProcessStepExecuted;
 		size_t elapsed = 0;
 		
-		int32_t numMaterialParamReset = 0;
-		int32_t numMaterialParamUpdate = 0;
-		int32_t numColliderUpdate = 0;
+		//int32_t numMaterialParamReset = 0;
+		//int32_t numMaterialParamUpdate = 0;
+		//int32_t numColliderUpdate = 0;
 
 		bool loopCompleted = true;
 		for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 		{
-			if (processCameraPosForChunks || itQuadTree->second->forceRecalcOptimizationLevel() || !finishedResizingGrid())	// occhio!!!
-				itQuadTree->second->setQuadrantOptimizations(worldCameraWorldPos);
+			//if (processCameraPosForChunks || itQuadTree->second->forceRecalcOptimizationLevel() || !finishedResizingGrid())	// occhio!!!
+			//	itQuadTree->second->setQuadrantOptimizations(worldCameraWorldPos);
 			
 			bool materialParamsReset = false;
 			bool materialParamsUpdated = false;
@@ -11211,9 +11213,9 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.1 ") + __FUNCTION__, "resetMaterialParams");
-					materialParamsReset = itQuadTree->second->resetMaterialParams(m_lastProcessExecutionInterrupted);
-					if (materialParamsReset)
-						numMaterialParamReset++;
+					materialParamsReset = itQuadTree->second->resetMaterialParams(m_lastProcessExecutionInterrupted, worldCameraWorldPos);
+					//if (materialParamsReset)
+					//	numMaterialParamReset++;
 					if (m_lastProcessExecutionInterrupted)
 					{
 						itQuadTree->second->getQuadrant()->unlockInternalData();
@@ -11227,8 +11229,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.2 ") + __FUNCTION__, "updateMaterialParams");
 					materialParamsUpdated = itQuadTree->second->updateMaterialParams();
-					if (materialParamsUpdated)
-						numMaterialParamUpdate++;
+					//if (materialParamsUpdated)
+					//	numMaterialParamUpdate++;
 					if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_updateMaterialParams))
 					{
 						m_lastProcessExecutionInterrupted = true;
@@ -11249,8 +11251,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1.3 ") + __FUNCTION__, "updateCollider");
 					colliderUpdated = itQuadTree->second->updateCollider(QuadType::NotSet);
-					if (colliderUpdated)
-						numColliderUpdate++;
+					//if (colliderUpdated)
+					//	numColliderUpdate++;
 					if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_updateCollider))
 					{
 						m_lastProcessExecutionInterrupted = true;
@@ -11278,7 +11280,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 			if (materialParamsUpdated)
 				m_previousTrackedMouseHitInMap = godot::Vector3();
 
-			if ((materialParamsReset || materialParamsUpdated || colliderUpdated) && !m_desideredLookDevChanged && itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
+			if ((materialParamsReset || materialParamsUpdated || colliderUpdated) && !m_desideredLookDevChanged /* && itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
 			{
 				//if (numMaterialParamReset > 0 or numMaterialParamUpdate > 0 or numColliderUpdate > 0)
 				//	PLOG_DEBUG << "Quadrants Updated: params set for quadrant = " << numMaterialParamReset << ", shaders updated = " << numMaterialParamUpdate << ", collider set = " << numColliderUpdate;

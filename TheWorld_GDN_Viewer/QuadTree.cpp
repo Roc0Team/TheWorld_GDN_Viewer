@@ -1585,7 +1585,7 @@ void QuadTree::setQuadrantOptimizations(godot::Vector3& worldCameraWorldPos)
 	}
 }
 
-bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, bool force)
+bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, godot::Vector3& worldCameraWorldPos, bool force)
 {
 	bool reset = false;
 
@@ -1608,6 +1608,7 @@ bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, bool f
 		}
 		else
 		{
+			setQuadrantOptimizations(worldCameraWorldPos);
 			getQuadrant()->getShaderTerrainData()->resetMaterialParams(QuadType::NotSet, lastProcessExecutionInterrupted, m_lookDev);
 			if (!lastProcessExecutionInterrupted)
 			{

@@ -1,8 +1,9 @@
-* exporting jobs
+* project exporting jobs
 * loading screen
 * map view
 
 * fix bug in under water view
+* profiler should aliment a que dequeued by a dedicated thread
 
 * ottimizzazione: eliminare cache heightmap 32 precalcolando min max height per ogni chunk e salvandolo insieme alle heightmap
 * globalmap deve comprendere tutto quello che si vede: mare etc.

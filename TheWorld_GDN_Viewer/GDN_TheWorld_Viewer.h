@@ -2535,6 +2535,7 @@ namespace godot
 		// World Data
 		bool m_worldQuadrantsMapValid = false;
 		WorldQuadrantsMap m_worldQuadrantsMap;
+		std::map <enum class QuadTree::QuadrantDepth, std::map<TheWorld_Utils::QuadrantPos, QuadTree*>> m_worldQuadrantsMapByDepth;
 		WorldQuadrantsMap m_extraQuadsMap;
 		MapQuadrantImagesMap m_mapQuadrantsMap;
 		std::recursive_mutex m_mtxQuadrantsAndMainProcessing;

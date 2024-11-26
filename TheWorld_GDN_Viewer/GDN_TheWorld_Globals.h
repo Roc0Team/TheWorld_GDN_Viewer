@@ -215,6 +215,7 @@ namespace godot
 		{
 			return m_initialized;
 		}
+		void printParameterInfo(void);
 		void connectToServer(void);
 		bool connectedToServer(void);
 		void prepareDisconnectFromServer(void);

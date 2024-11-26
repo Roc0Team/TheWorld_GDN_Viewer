@@ -6902,30 +6902,42 @@ void GDN_TheWorld_Viewer::printKeyboardMapping(void)
 	Globals()->print("");
 	Globals()->print("KEYBOARD MAPPING");
 	Globals()->print("");
-	Globals()->print("LEFT						==> A	MOUSE BUTTON LEFT");
-	Globals()->print("RIGHT						==> D	MOUSE BUTTON LEFT");
-	Globals()->print("FORWARD					==>	W	MOUSE BUTTON MID	MOUSE WHEEL UP (WITH ALT MOVE ON MAP, WITHOUT MOVE FORWARD IN THE DIRECTION OF CAMERA)");
-	Globals()->print("BACKWARD					==>	S	MOUSE BUTTON MID	MOUSE WHEEL DOWN (WITH ALT MOVE ON MAP, WITHOUT MOVE BACKWARD IN THE DIRECTION OF CAMERA)");
-	Globals()->print("UP						==>	Q");
-	Globals()->print("DOWN						==>	E");
+	Globals()->print("LEFT							==> A	MOUSE BUTTON LEFT");
+	Globals()->print("RIGHT							==> D	MOUSE BUTTON LEFT");
+	Globals()->print("FORWARD						==>	W	MOUSE BUTTON MID	MOUSE WHEEL UP (WITH ALT MOVE ON MAP, WITHOUT MOVE FORWARD IN THE DIRECTION OF CAMERA)");
+	Globals()->print("BACKWARD						==>	S	MOUSE BUTTON MID	MOUSE WHEEL DOWN (WITH ALT MOVE ON MAP, WITHOUT MOVE BACKWARD IN THE DIRECTION OF CAMERA)");
+	Globals()->print("UP							==>	Q");
+	Globals()->print("DOWN							==>	E");
 	Globals()->print("");
-	Globals()->print("SHIFT						==>	LOW MOVEMENT");
-	Globals()->print("CTRL						==> FAST MOVEMENT");
+	Globals()->print("SHIFT							==>	LOW MOVEMENT");
+	Globals()->print("CTRL							==> FAST MOVEMENT");
 	Globals()->print("");
-	Globals()->print("ROTATE CAMERA				==>	MOUSE BUTTON RIGHT");
-	Globals()->print("SHIFT ORI CAMERA			==>	MOUSE BUTTON LEFT");
-	Globals()->print("SHIFT VERT CAMERA			==>	MOUSE BUTTON MID");
+	Globals()->print("ROTATE CAMERA					==>	MOUSE BUTTON RIGHT");
+	Globals()->print("SHIFT ORI CAMERA				==>	MOUSE BUTTON LEFT");
+	Globals()->print("SHIFT VERT CAMERA				==>	MOUSE BUTTON MID");
 	Globals()->print("");
-	Globals()->print("TOGGLE DEBUG STATS		==>	CTRL-ALT-D");
-	Globals()->print("TOGGLE EDIT				==>	ALT-E");
-	Globals()->print("DUMP						==>	ALT-D");
+	Globals()->print("TOGGLE MAP VIEW				==>	M");
+	Globals()->print("TOGGLE TRACK PLAYER			==>	SHIFT-F");
+	Globals()->print("DROP PLAYER					==>	P");
+	Globals()->print("TOGGLE BACK MIRROR			==>	B");
+	Globals()->print("TOGGLE SATELLITE VIEW			==>	Y");
+	Globals()->print("CTRL-1/0						==>	SAVE VIEWPOINT 1/0");
+	Globals()->print("ALT-1/0						==>	LOAD VIEWPOINT 1/0");
+	Globals()->print("TOGGLE DEBUG STATS			==>	CTRL-ALT-D");
+	Globals()->print("TOGGLE EDIT					==>	ALT-E");
+	Globals()->print("TOGGLE TRACK MOUSE			==>	ALT-T");
+	Globals()->print("TOGGLE MAP GRID (MAP VIEW)	==>	ALT-G");
+	Globals()->print("DUMP							==>	ALT-D");
+	Globals()->print("TOGGLE FULL SCREEN			==>	ALT-ENTER");
+	Globals()->print("PRINT SCREEN					==>	ALT-C");
 	Globals()->print("");
-	Globals()->print("TOGGLE DEBUG VISIBILITY	==>	F1");
-	Globals()->print("ROTATE CHUNK DEBUG MODE	==>	F2");
-	Globals()->print("ROTATE DRAWING MODE		==>	F3");
-	Globals()->print("REFRESH VIEW				==>	F4");
+	Globals()->print("TOGGLE DEBUG VISIBILITY		==>	F1");
+	Globals()->print("ROTATE CHUNK DEBUG MODE		==>	F2");
+	Globals()->print("ROTATE DRAWING MODE			==>	F3");
+	Globals()->print("REFRESH VIEW					==>	F4");
+	Globals()->print("TOGGLE WIREFRAME				==>	F5");
 	Globals()->print("");
-	Globals()->print("EXIT						==>	ESC");
+	Globals()->print("EXIT							==>	ESC");
 	Globals()->print("");
 	Globals()->print("===========================================================================");
 	Globals()->print("");
@@ -8074,6 +8086,15 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 
 		m_firstProcess = false;
 	}
+
+	//size_t d = 0;
+	//{
+	//	TimerMcs clock;	clock.tick();
+	//	m_worldQuadrantsMapByDepth.clear();
+	//	for (auto& item : m_worldQuadrantsMap)
+	//		m_worldQuadrantsMapByDepth[item.second->quadrantDepth()][item.first] = item.second.get();
+	//	clock.tock();	d = clock.duration().count();
+	//}
 
 	static size_t s_num = 0, s_loadingWorldRefresh = 0;
 	if (globals->status() == TheWorldStatus::worldDeployInProgress && s_loadingWorldRefresh < 10)
@@ -9285,10 +9306,10 @@ void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals
 			recalcQuadrantsInViewNeeded(true);
 	}
 
-	//for (auto& itQuadTree : m_worldQuadrantsMap)
-	//{
-	//	itQuadTree.second->setQuadrantOptimizations(worldCameraWorldPos);
-	//}
+	for (auto& itQuadTree : m_worldQuadrantsMap)
+	{
+		itQuadTree.second->setQuadrantOptimizations(worldCameraWorldPos);	// Occhio è stato commentato il 25/11/2024
+	}
 }
 
 void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants)
@@ -9307,6 +9328,8 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 	std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 	if (lock.owns_lock())
 	{
+		//size_t d = 0;
+		//TimerMcs clock;	clock.tick();
 		for (size_t numQuadrantsFromCameraQuadrant = 0; numQuadrantsFromCameraQuadrant <= getMaxDepthQuadOnPerimeter() + m_numCacheQuadrantOnPerimeter; numQuadrantsFromCameraQuadrant++)
 		{
 			bool exitForNow = initNewQuadsAtPriority(numQuadrantsFromCameraQuadrant, allQuadrantInitialized, allVisibleQuadrantInitialized);
@@ -9317,6 +9340,7 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 			if (exitForNow || allQuadrantInitialized)
 				break;
 		}
+		//clock.tock();	d = clock.duration().count();
 
 		lock.unlock();
 
@@ -11194,6 +11218,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 		//int32_t numMaterialParamUpdate = 0;
 		//int32_t numColliderUpdate = 0;
 
+		int32_t numLoop = 0;	 int32_t maxLoop = 10;
 		bool loopCompleted = true;
 		for (WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin(); itQuadTree != m_worldQuadrantsMap.end(); itQuadTree++)
 		{
@@ -11209,6 +11234,8 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 			{
 				//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1 ") + __FUNCTION__, "Quadrant locked");
 
+				numLoop++;
+				
 				process_neighbourQuadrantData(itQuadTree->second.get());
 
 				{
@@ -11280,7 +11307,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 			if (materialParamsUpdated)
 				m_previousTrackedMouseHitInMap = godot::Vector3();
 
-			if ((materialParamsReset || materialParamsUpdated || colliderUpdated) && !m_desideredLookDevChanged /* && itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
+			if ((materialParamsReset || materialParamsUpdated || colliderUpdated) and !m_desideredLookDevChanged and numLoop > 10 /* and itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
 			{
 				//if (numMaterialParamReset > 0 or numMaterialParamUpdate > 0 or numColliderUpdate > 0)
 				//	PLOG_DEBUG << "Quadrants Updated: params set for quadrant = " << numMaterialParamReset << ", shaders updated = " << numMaterialParamUpdate << ", collider set = " << numColliderUpdate;
@@ -13060,7 +13087,7 @@ float GDN_TheWorld_Viewer::getLoadingProgress()
 	}
 	float loadingProgress = 0;
 	if (numQuadrants > 1 and numReadyQuadrants > 0 and numReadyQuadrants <= numQuadrants)
-		loadingProgress = (numReadyQuadrants / numQuadrants) * 100;
+		loadingProgress = (float(_numReadyQuadrants) / numQuadrants) * 100;
 
 	return loadingProgress;
 }
@@ -13276,11 +13303,13 @@ int GDN_TheWorld_Viewer::getMouseTrackHitDuration(void) const
 
 void GDN_TheWorld_Viewer::dump()
 {
-	Globals()->debugPrint("*************");
-	Globals()->debugPrint("STARTING DUMP");
+	GDN_TheWorld_Globals* globals = Globals();
+
+	globals->debugPrint("*************");
+	globals->debugPrint("STARTING DUMP");
 
 	double f = Engine::get_singleton()->get_frames_per_second();
-	Globals()->debugPrint("FPS: " + String(std::to_string(f).c_str()));
+	globals->debugPrint("FPS: " + String(std::to_string(f).c_str()));
 
 	{
 		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
@@ -13341,106 +13370,108 @@ void GDN_TheWorld_Viewer::dump()
 
 		godot::Performance* perf = godot::Performance::get_singleton();
 
-		float thresholdCacheHeights = Globals()->getParamThresholdCacheHeights();
+		float thresholdCacheHeights = globals->getParamThresholdCacheHeights();
 		char _thresholdCacheHeights[24]; // dummy size, you should take care of the size!
 		sprintf_s(_thresholdCacheHeights, "%.2f", thresholdCacheHeights);
-		Globals()->debugPrint(String("Threshold value to cache maps and images : ") + std::string(_thresholdCacheHeights).c_str() + " m");
-		Globals()->debugPrint(String("Quadrants : ") + String(std::to_string(m_worldQuadrantsMap.size()).c_str()) + ", cached map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, cached image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB (resized cached image memory : " + String(std::to_string((float)resizedTexMemoryOccupation / (1024 * 1024 * 1024)).c_str())  + " GB)");
-		Globals()->debugPrint(String("   Heigthmap16 : ") + String(std::to_string((float)heightmap16MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
-		Globals()->debugPrint(String("   Heigthmap32 : ") + String(std::to_string((float)heightmap32MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
-		Globals()->debugPrint(String("   Normalmap : ") + String(std::to_string((float)normalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
-		Globals()->debugPrint(String("   Splatmap : ") + String(std::to_string((float)splatmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
-		Globals()->debugPrint(String("   Globalmap : ") + String(std::to_string((float)globalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
-		Globals()->debugPrint(String("   Colormap : ") + String(std::to_string((float)colormapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
-		Globals()->debugPrint(String("   TerrainEdit : ") + String(std::to_string((float)terrainEditMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
-		Globals()->debugPrint(String("   Collider Heights : ") + String(std::to_string((float)colliderHeightsMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
-		Globals()->debugPrint(String("Engine monitor : "));
-		Globals()->debugPrint(String("   Static memory in use : ") + std::to_string(perf->get_monitor(godot::Performance::Monitor::MEMORY_STATIC) / (1024 * 1024 * 1024)).c_str() + " GB");
-		Globals()->debugPrint(String("   Render video memory in use : ") + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_VIDEO_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB, for texture " + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_TEXTURE_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB, for buffers " + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_BUFFER_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB");
+		globals->debugPrint(String("Threshold value to cache maps and images : ") + std::string(_thresholdCacheHeights).c_str() + " m");
+		globals->debugPrint(String("Quadrants : ") + String(std::to_string(m_worldQuadrantsMap.size()).c_str()) + ", cached map memory : " + String(std::to_string((float)mapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB, cached image memory : " + String(std::to_string((float)texMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB (resized cached image memory : " + String(std::to_string((float)resizedTexMemoryOccupation / (1024 * 1024 * 1024)).c_str())  + " GB)");
+		globals->debugPrint(String("   Heigthmap16 : ") + String(std::to_string((float)heightmap16MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		globals->debugPrint(String("   Heigthmap32 : ") + String(std::to_string((float)heightmap32MemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		globals->debugPrint(String("   Normalmap : ") + String(std::to_string((float)normalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		globals->debugPrint(String("   Splatmap : ") + String(std::to_string((float)splatmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		globals->debugPrint(String("   Globalmap : ") + String(std::to_string((float)globalmapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		globals->debugPrint(String("   Colormap : ") + String(std::to_string((float)colormapMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		globals->debugPrint(String("   TerrainEdit : ") + String(std::to_string((float)terrainEditMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		globals->debugPrint(String("   Collider Heights : ") + String(std::to_string((float)colliderHeightsMemoryOccupation / (1024 * 1024 * 1024)).c_str()) + " GB");
+		globals->debugPrint(String("Engine monitor : "));
+		globals->debugPrint(String("   Static memory in use : ") + std::to_string(perf->get_monitor(godot::Performance::Monitor::MEMORY_STATIC) / (1024 * 1024 * 1024)).c_str() + " GB");
+		globals->debugPrint(String("   Render video memory in use : ") + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_VIDEO_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB, for texture " + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_TEXTURE_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB, for buffers " + std::to_string(perf->get_monitor(godot::Performance::Monitor::RENDER_BUFFER_MEM_USED) / (1024 * 1024 * 1024)).c_str() + " GB");
 
-		Globals()->debugPrint(String("Num. quadrants with sea = ") + std::to_string(numQuadrantsWithSea).c_str());
+		globals->printParameterInfo();
+		
+		globals->debugPrint(String("Num. quadrants with sea = ") + std::to_string(numQuadrantsWithSea).c_str());
 
-		Globals()->debugPrint(String("Min. num. visible quadrants on perimeter : ") + std::to_string(m_minVisibleQuadrantOnPerimeter).c_str());
-		Globals()->debugPrint(String("Max. num. visible quadrants on perimeter : ") + std::to_string(getMaxDepthQuadOnPerimeter()).c_str());
-		Globals()->debugPrint(String("Num. cache quadrants on perimeter : ") + std::to_string(m_numCacheQuadrantOnPerimeter).c_str());
-		Globals()->debugPrint(String("Actual num quadrants on perimeter on north side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnNorthSide).c_str());
-		Globals()->debugPrint(String("Actual num quadrants on perimeter on east side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnEastSide).c_str());
-		Globals()->debugPrint(String("Actual num quadrants on perimeter on south side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnSouthSide).c_str());
-		Globals()->debugPrint(String("Actual num quadrants on perimeter on west side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnWestSide).c_str());
+		globals->debugPrint(String("Min. num. visible quadrants on perimeter : ") + std::to_string(m_minVisibleQuadrantOnPerimeter).c_str());
+		globals->debugPrint(String("Max. num. visible quadrants on perimeter : ") + std::to_string(getMaxDepthQuadOnPerimeter()).c_str());
+		globals->debugPrint(String("Num. cache quadrants on perimeter : ") + std::to_string(m_numCacheQuadrantOnPerimeter).c_str());
+		globals->debugPrint(String("Actual num quadrants on perimeter on north side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnNorthSide).c_str());
+		globals->debugPrint(String("Actual num quadrants on perimeter on east side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnEastSide).c_str());
+		globals->debugPrint(String("Actual num quadrants on perimeter on south side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnSouthSide).c_str());
+		globals->debugPrint(String("Actual num quadrants on perimeter on west side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnWestSide).c_str());
 
 		for (auto& item : mapOptimizationLevels)
 		{
-			//size_t resizedMapSize = (Globals()->heightmapResolution() / (size_t)pow(2, item.first)) + 1;
-			size_t resizedMapSize = Globals()->resolutionForOptimizationLevel(item.first);
+			//size_t resizedMapSize = (globals->heightmapResolution() / (size_t)pow(2, item.first)) + 1;
+			size_t resizedMapSize = globals->resolutionForOptimizationLevel(item.first);
 			std::string msg = "Num quadrants with optimization level " + std::to_string(item.first) + " : " + std::to_string(item.second) + " - map size : " + std::to_string(resizedMapSize);
-			Globals()->debugPrint(msg.c_str());
+			globals->debugPrint(msg.c_str());
 		}
 
 		for (auto& item : mapQuadrantsToSaveTerrainType)
 		{
 			std::string msg = "Num quadrants to save with terrain type <" + TheWorld_Utils::TerrainEdit::terrainTypeString((TheWorld_Utils::TerrainEdit::TerrainType)item.first) + "> : " + std::to_string(item.second);
-			Globals()->debugPrint(msg.c_str());
+			globals->debugPrint(msg.c_str());
 		}
 		for (auto& item : mapQuadrantsToUploadTerrainType)
 		{
 			std::string msg = "Num quadrants to upload with terrain type <" + TheWorld_Utils::TerrainEdit::terrainTypeString((TheWorld_Utils::TerrainEdit::TerrainType)item.first) + "> : " + std::to_string(item.second);
-			Globals()->debugPrint(msg.c_str());
+			globals->debugPrint(msg.c_str());
 		}
 
 		for (auto& item : m_mapNumActiveChunksPerLod)
 		{
 			int lod = item.first;
-			int numChunksPerSide = Globals()->numChunksPerHeightmapSide(lod);
-			int numVerticesPerSide = Globals()->numVerticesPerChuckSide() * numChunksPerSide;
+			int numChunksPerSide = globals->numChunksPerHeightmapSide(lod);
+			int numVerticesPerSide = globals->numVerticesPerChuckSide() * numChunksPerSide;
 			std::string msg = "Num chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
 				+ " - Num chunks per quadrant side = " + std::to_string(numChunksPerSide)
-				+ " - Grid step in WUs = " + std::to_string(Globals()->gridStepInHeightmapWUs(lod))
+				+ " - Grid step in WUs = " + std::to_string(globals->gridStepInHeightmapWUs(lod))
 				+ " - Num vertices per quadrant side = " + std::to_string(numVerticesPerSide)
-				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * Globals()->gridStepInHeightmapWUs(lod));
+				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * globals->gridStepInHeightmapWUs(lod));
 
-				Globals()->debugPrint(msg.c_str());
+			globals->debugPrint(msg.c_str());
 		}
-		Globals()->debugPrint("Terrain Chunks");
+		globals->debugPrint("Terrain Chunks");
 		for (auto& item : m_mapNumActiveTerrainChunksPerLod)
 		{
 			int lod = item.first;
-			int numChunksPerSide = Globals()->numChunksPerHeightmapSide(lod);
-			int numVerticesPerSide = Globals()->numVerticesPerChuckSide() * numChunksPerSide;
+			int numChunksPerSide = globals->numChunksPerHeightmapSide(lod);
+			int numVerticesPerSide = globals->numVerticesPerChuckSide() * numChunksPerSide;
 			std::string msg = "Num chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
 				+ " - Num chunks per quadrant side = " + std::to_string(numChunksPerSide)
-				+ " - Grid step in WUs = " + std::to_string(Globals()->gridStepInHeightmapWUs(lod))
+				+ " - Grid step in WUs = " + std::to_string(globals->gridStepInHeightmapWUs(lod))
 				+ " - Num vertices per quadrant side = " + std::to_string(numVerticesPerSide)
-				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * Globals()->gridStepInHeightmapWUs(lod));
+				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * globals->gridStepInHeightmapWUs(lod));
 
-			Globals()->debugPrint(msg.c_str());
+			globals->debugPrint(msg.c_str());
 		}
-		Globals()->debugPrint("Sea Chunks");
+		globals->debugPrint("Sea Chunks");
 		for (auto& item : m_mapNumActiveSeaChunksPerLod)
 		{
 			int lod = item.first;
-			int numChunksPerSide = Globals()->numChunksPerHeightmapSide(lod);
-			int numVerticesPerSide = Globals()->numVerticesPerChuckSide() * numChunksPerSide;
+			int numChunksPerSide = globals->numChunksPerHeightmapSide(lod);
+			int numVerticesPerSide = globals->numVerticesPerChuckSide() * numChunksPerSide;
 			std::string msg = "Num chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
 				+ " - Num chunks per quadrant side = " + std::to_string(numChunksPerSide)
-				+ " - Grid step in WUs = " + std::to_string(Globals()->gridStepInHeightmapWUs(lod))
+				+ " - Grid step in WUs = " + std::to_string(globals->gridStepInHeightmapWUs(lod))
 				+ " - Num vertices per quadrant side = " + std::to_string(numVerticesPerSide)
-				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * Globals()->gridStepInHeightmapWUs(lod));
+				+ " - Quadrant size in WUs = " + std::to_string(numVerticesPerSide * globals->gridStepInHeightmapWUs(lod));
 
-			Globals()->debugPrint(msg.c_str());
+			globals->debugPrint(msg.c_str());
 		}
 	}
 
 	//Node* node = get_node(NodePath("/root"));
 	//if (node != nullptr)
 	//{
-	//	Globals()->debugPrint("=== NODES ===========================================");
-	//	Globals()->debugPrint("");
-	//	Globals()->debugPrint("@@2 = res://native/GDN_TheWorld_Viewer.gdns");
-	//	Globals()->debugPrint("");
-	//	Globals()->debugPrint(node->get_name());
+	//	globals->debugPrint("=== NODES ===========================================");
+	//	globals->debugPrint("");
+	//	globals->debugPrint("@@2 = res://native/GDN_TheWorld_Viewer.gdns");
+	//	globals->debugPrint("");
+	//	globals->debugPrint(node->get_name());
 	//	Array nodes = node->get_children();
 	//	dumpRecurseIntoChildrenNodes(nodes, 1);
-	//	Globals()->debugPrint("=== NODES ===========================================");
+	//	globals->debugPrint("=== NODES ===========================================");
 	//}
 	
 	{
@@ -13454,25 +13485,25 @@ void GDN_TheWorld_Viewer::dump()
 	std::vector<std::string> names = TheWorld_Utils::Profiler::names("");
 	if (names.size() > 0)
 	{
-		Globals()->debugPrint("== PROFILE DATA ==========================================");
+		globals->debugPrint("== PROFILE DATA ==========================================");
 		for (auto& name : names)
 		{
 			size_t num = 0;
-			size_t elapsed = TheWorld_Utils::Profiler::elapsedMs("", name, num);
-			size_t avgElapsed = TheWorld_Utils::Profiler::averageElapsedMs("", name, num);
-			size_t minElapsed = TheWorld_Utils::Profiler::minElapsedMs("", name);
-			size_t maxElapsed = TheWorld_Utils::Profiler::maxElapsedMs("", name);
+			size_t elapsed = TheWorld_Utils::Profiler::elapsedMcs("", name, num);
+			size_t avgElapsed = TheWorld_Utils::Profiler::averageElapsedMcs("", name, num);
+			size_t minElapsed = TheWorld_Utils::Profiler::minElapsedMcs("", name);
+			size_t maxElapsed = TheWorld_Utils::Profiler::maxElapsedMcs("", name);
 			if (num > 0)
 			{
-				Globals()->debugPrint(String(name.c_str()) + " num=" + std::to_string(num).c_str() + " Elapsed=" + std::to_string(elapsed).c_str() + " MinElapsed=" + std::to_string(minElapsed).c_str() + " MaxElapsed=" + std::to_string(maxElapsed).c_str() + " AvgElapsed=" + std::to_string(avgElapsed).c_str());
+				globals->debugPrint(String(name.c_str()) + " num=" + std::to_string(num).c_str() + " Elapsed=" + std::to_string(elapsed).c_str() + " MinElapsed=" + std::to_string(minElapsed).c_str() + " MaxElapsed=" + std::to_string(maxElapsed).c_str() + " AvgElapsed=" + std::to_string(avgElapsed).c_str());
 				TheWorld_Utils::Profiler::reset("", name);
 			}
 		}
-		Globals()->debugPrint("== PROFILE DATA ==========================================");
+		globals->debugPrint("== PROFILE DATA ==========================================");
 	}
 
-	Globals()->debugPrint("DUMP COMPLETE");
-	Globals()->debugPrint("*************");
+	globals->debugPrint("DUMP COMPLETE");
+	globals->debugPrint("*************");
 
 	//godot::Viewport* vp = get_viewport();
 	//godot::Ref<godot::ViewportTexture> vpt = vp->get_texture();

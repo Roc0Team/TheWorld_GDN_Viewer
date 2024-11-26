@@ -674,6 +674,27 @@ namespace godot
 		return true;
 	}
 
+	void GDN_TheWorld_Globals::printParameterInfo(void)
+	{
+		PLOG_INFO << "Performance Parameter - Profiler: " << (m_profilerActivated == -1 ? "default" : (m_profilerActivated == 0 ? "deactivated" : "activated")) << "(" << m_profilerActivated << ") - Active: " << (TheWorld_Utils::Profiler::isActive() ? "true" : "false");
+		PLOG_INFO << "Performance Parameter - Stream World: " << (m_streamWorld ? "true" : "false");
+		PLOG_INFO << "Performance Parameter - Threshold Cache Heights: " << m_paramThresholdCacheHeights;
+		PLOG_INFO << "Performance Parameter - Force Hires Collision Info: " << (m_paramForceHiResCollisionInfo ? "true" : "false");
+		PLOG_INFO << "Performance Parameter - Disable Terrain Collisions: " << (m_paramDisableTerrainCollisions ? "true" : "false");
+		PLOG_INFO << "Performance Parameter - Refresh Quadrants Factor: " << m_paramRefreshQuadrantsFactor;
+		PLOG_INFO << "Performance Parameter - Refresh Quadrants Threshold: " << getRefreshQuadrantTreeThreshold();
+		PLOG_INFO << "Performance Parameter - Refresh Chunks Factor: " << m_paramRefreshChunksFactor;
+		PLOG_INFO << "Performance Parameter - Refresh Chunk LOD Threshold: " << getRefreshChunkLodThreshold();
+		PLOG_INFO << "Performance Parameter - Threshold Globalmap: " << m_paramThresholdForGlobalmap;
+		PLOG_INFO << "Performance Parameter - Tex Opt Increment Factor: " << m_paramTextureOptimizationIncrementFactor;
+		PLOG_INFO << "Performance Parameter - Tex Opt Resolution Increment: " << m_paramTextureOptimizationResolutionIncrement;
+		PLOG_INFO << "Performance Parameter - Origin Shift Factor: " << m_paramOriginShiftFactor;
+		PLOG_INFO << "View Parameter - Show Terrain: " << (m_paramShowTerrain ? "true" : "false");
+		PLOG_INFO << "View Parameter - Show Sea: " << (m_paramShowSea ? "true" : "false");
+		PLOG_INFO << "View Parameter - Show Chunks: " << (m_paramShowChunks ? "true" : "false");
+		PLOG_INFO << "View Parameter - Elevation Zero: " << (m_paramElevationZero ? "true" : "false");
+	}
+
 	void GDN_TheWorld_Globals::init(bool isInEditor)
 	{
 		m_isInEditor = isInEditor;
@@ -696,23 +717,7 @@ namespace godot
 		PLOG(plog::get()->getMaxSeverity()) << "Log initialized!";
 		PLOG(plog::get()->getMaxSeverity()) << "***************";
 
-		PLOG_INFO << "Performance Parameter - Profiler: " << (m_profilerActivated == -1 ? "default" : (m_profilerActivated == 0 ? "deactivated" : "activated")) << "(" << m_profilerActivated << ") - Active: " << (TheWorld_Utils::Profiler::isActive() ? "true" : "false");
-		PLOG_INFO << "Performance Parameter - Stream World: " << (m_streamWorld ? "true" : "false");
-		PLOG_INFO << "Performance Parameter - Threshold Cache Heights: " << m_paramThresholdCacheHeights;
-		PLOG_INFO << "Performance Parameter - Force Hires Collision Info: " << (m_paramForceHiResCollisionInfo ? "true" : "false");
-		PLOG_INFO << "Performance Parameter - Disable Terrain Collisions: " << (m_paramDisableTerrainCollisions ? "true" : "false");
-		PLOG_INFO << "Performance Parameter - Refresh Quadrants Factor: " << m_paramRefreshQuadrantsFactor;
-		PLOG_INFO << "Performance Parameter - Refresh Quadrants Threshold: " << getRefreshQuadrantTreeThreshold();
-		PLOG_INFO << "Performance Parameter - Refresh Chunks Factor: " << m_paramRefreshChunksFactor;
-		PLOG_INFO << "Performance Parameter - Refresh Chunk LOD Threshold: " << getRefreshChunkLodThreshold();
-		PLOG_INFO << "Performance Parameter - Threshold Globalmap: " << m_paramThresholdForGlobalmap;
-		PLOG_INFO << "Performance Parameter - Tex Opt Increment Factor: " << m_paramTextureOptimizationIncrementFactor;
-		PLOG_INFO << "Performance Parameter - Tex Opt Resolution Increment: " << m_paramTextureOptimizationResolutionIncrement;
-		PLOG_INFO << "Performance Parameter - Origin Shift Factor: " << m_paramOriginShiftFactor;
-		PLOG_INFO << "View Parameter - Show Terrain: " << (m_paramShowTerrain ? "true" : "false");
-		PLOG_INFO << "View Parameter - Show Sea: " << (m_paramShowSea ? "true" : "false");
-		PLOG_INFO << "View Parameter - Show Chunks: " << (m_paramShowChunks ? "true" : "false");
-		PLOG_INFO << "View Parameter - Elevation Zero: " << (m_paramElevationZero ? "true" : "false");
+		printParameterInfo();
 
 		PLOG_INFO << "TheWorld Globals Initializing...";
 

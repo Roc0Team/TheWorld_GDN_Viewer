@@ -4225,14 +4225,14 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 {
 	//return;
 
-	// i buffers durante il caricamento devono essere distrutti appena lavorati perché fanno esaurire la memoria di sistema rallentando notevolmente il caricamento
 	bool manualSave;
 	if (!m_quadTree->isValid() || needUploadToServer() || needSaveToCache(manualSave) || internalDataLockedUntilCompleteProcessExecution())
 		return;
 
 	if (m_quadTree->materialParamsNeedReset() || m_quadTree->materialParamsNeedUpdate() || m_quadTree->colliderNeedReset(QuadType::Terrain) || terrainDataJustLoaded())
 		return;
-
+	
+	// i buffers durante il caricamento devono essere distrutti appena lavorati perché fanno esaurire la memoria di sistema rallentando notevolmente il caricamento
 	if (!canCacheHeigthBuffers())
 	{
 		// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass form optimizatrion level > 0 (used cached resize images) to optimization level = 0
@@ -4624,6 +4624,8 @@ godot::AABB Quadrant::getGlobalAABB(void)
 
 bool Quadrant::needSaveToCache(bool& manual)
 {
+	//TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant::needSaveToCache ") + __FUNCTION__, "needSaveToCache");
+
 	bool needToSave = false;
 	manual = true;
 

@@ -11,6 +11,7 @@
 #include <godot_cpp/classes/line_Edit.hpp>
 #include <godot_cpp/classes/check_box.hpp>
 #include <godot_cpp/classes/option_button.hpp>
+#include <godot_cpp/classes/check_button.hpp>
 #include <godot_cpp/classes/texture_rect.hpp>
 #include <godot_cpp/classes/input_event.hpp>
 #include <godot_cpp/classes/ref.hpp>
@@ -79,7 +80,7 @@ namespace godot
 				std::string m_newTexSlotName;
 				std::string m_newTexName;
 				godot::Window* m_wnd;
-				map<std::string, std::unique_ptr<TextureItemPanel>> m_textureItems;
+				std::map<std::string, std::unique_ptr<TextureItemPanel>> m_textureItems;
 			};
 
 		public:
@@ -164,6 +165,7 @@ namespace godot
 			godot::CheckBox* m_collisonHiResGridCheckBox = nullptr;
 			godot::CheckBox* m_collisonLowResGridCheckBox = nullptr;
 			godot::OptionButton* m_terrTypeOptionButton;
+			godot::CheckButton* m_terrTypeButton = nullptr;
 			godot::OptionButton* m_lookDevOptionButton;
 
 			godot::Button* m_serverInfoButton = nullptr;
@@ -264,6 +266,8 @@ namespace godot
 			bool m_serverProceGenStatusMapChanged = false;
 
 			enum class TheWorld_Utils::TerrainEdit::TerrainType m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
+
+			std::map<TheWorld_Utils::TerrainEdit::TerrainType, godot::Ref<godot::Texture2D>> m_terrainTypeIcons;
 		};
 
 		enum class Margin {
@@ -322,6 +326,7 @@ namespace godot
 		void setSizeUI(void);
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
+		void editModeSetGenerateCursor(void);
 		void editModeBlendAction(void);
 		bool hiResCollisionGridEnabled(void);
 		bool lowResCollisionGridEnabled(void);
@@ -520,11 +525,15 @@ namespace godot
 		void setServerProcGenStatus(TheWorld_Utils::MapManagerProceduralGenerationStatus& s);
 		void resetServerProcGenStatus(void);
 
+		void mapMode(bool b);
+
+		bool editingMap(void);
+
 	private:
 		bool m_initialized;
 		bool m_quitting;
 		bool m_ready;
-		GDN_TheWorld_Viewer* m_viewer;
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		std::recursive_mutex m_mtxUI;
 
 		map<TheWorld_Utils::WorldModifierPos, std::unique_ptr<TheWorld_Utils::WorldModifier>> m_wms;

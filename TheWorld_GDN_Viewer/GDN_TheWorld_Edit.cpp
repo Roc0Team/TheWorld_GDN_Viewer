@@ -56,6 +56,7 @@ const std::string c_rocksEditTextureName = "Rocks Texture";
 void GDN_TheWorld_Edit::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("edit_mode_generate"), &GDN_TheWorld_Edit::editModeGenerateAction);
+	ClassDB::bind_method(D_METHOD("edit_mode_set_generate_cursor"), &GDN_TheWorld_Edit::editModeSetGenerateCursor);
 	ClassDB::bind_method(D_METHOD("edit_mode_blend"), &GDN_TheWorld_Edit::editModeBlendAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_reset_normals_splatmap"), &GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction);
 	//ClassDB::bind_method(D_METHOD("edit_mode_gen_normals"), &GDN_TheWorld_Edit::editModeGenNormalsAction);
@@ -82,7 +83,6 @@ GDN_TheWorld_Edit::GDN_TheWorld_Edit()
 	m_actionInProgress = false;
 	m_actionStopRequested = false;
 	m_onGoingElapsedLabel = false;
-	m_viewer = nullptr;
 	m_controlNeedResize = false;
 	m_scrollPanelsNeedResize = false;
 	m_infoLabelTextChanged = false;
@@ -286,6 +286,33 @@ void GDN_TheWorld_Edit::resetServerProcGenStatus(void)
 	m_innerData->m_serverProceGenStatusMapChanged = true;
 }
 
+void GDN_TheWorld_Edit::mapMode(bool b)
+{
+	if (b)
+	{
+		if (m_innerData->m_terrTypeButton != nullptr)
+			m_innerData->m_terrTypeButton->set_visible(true);
+	}
+	else
+	{
+		if (m_innerData->m_terrTypeButton != nullptr)
+			m_innerData->m_terrTypeButton->set_visible(false);
+	}
+
+	if (m_innerData->m_terrTypeButton != nullptr)
+		m_innerData->m_terrTypeButton->set_pressed(false);
+}
+
+bool GDN_TheWorld_Edit::editingMap(void)
+{
+	if (m_innerData->m_terrTypeButton != nullptr)
+	{
+		return m_innerData->m_terrTypeButton->is_pressed();
+	}
+	else
+		return false;
+}
+
 void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_innerData = std::make_unique<InnerData>();
@@ -297,6 +324,21 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 
+	{
+		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
+		for (int terrainTypeInt = minTerrainTypeValue; terrainTypeInt <= maxTerrainTypeValue; terrainTypeInt++)
+		{
+			TheWorld_Utils::TerrainEdit::TerrainType terrainType = static_cast<TheWorld_Utils::TerrainEdit::TerrainType>(terrainTypeInt);
+			std::string iconName = TheWorld_Utils::TerrainEdit::getIconNameForTerrainType(terrainType);
+			if (iconName.size() > 0)
+			{
+				std::string path = "res://addons/twviewer/assets/terrain_icons/" + iconName;
+				m_innerData->m_terrainTypeIcons[terrainType] = resLoader->load(path.c_str());
+			}
+
+		}
+	}
+	
 	int32_t border_size = 2;
 	{
 		godot::Ref<godot::StyleBoxFlat> styleBox = memnew(godot::StyleBoxFlat);
@@ -533,6 +575,14 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);
 		
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", " ");
+		godot::Vector2 size(140, 140);
+		m_innerData->m_terrTypeButton = createControl<godot::CheckButton>(hBoxContainer, "", "Set Cursor", "pressed", this, "edit_mode_set_generate_cursor");
+		m_innerData->m_terrTypeButton->set_custom_minimum_size(size);
+		m_innerData->m_terrTypeButton->set_expand_icon(true);
+		m_innerData->m_terrTypeButton->set_visible(false);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		m_innerData->m_terrTypeOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_terr_type");
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::notset).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset);
 		m_innerData->m_terrTypeOptionButton->add_separator();
@@ -558,6 +608,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_3).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_3);
 		m_innerData->m_terrTypeOptionButton->add_separator();
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::noise_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::noise_1);
+
 		separator = createControl<godot::VSeparator>(hBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Generate", "pressed", this, "edit_mode_generate");
 		button->set_self_modulate(BUTTON_COLOR);
@@ -894,6 +945,8 @@ void GDN_TheWorld_Edit::setSizeUI(void)
 void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 {
 	m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset));
+	godot::Ref<godot::Texture2D> emptyTexture;
+	m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
 	m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 
 	m_infoLabelTextChanged = true;
@@ -929,7 +982,6 @@ void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 	m_innerData->m_highElevationTexName->set_text("");
 	m_innerData->m_dirtTexName->set_text("");
 	m_innerData->m_rocksTexName->set_text("");
-	godot::Ref<godot::Texture2D> emptyTexture;
 	m_innerData->m_lowElevationTex->set_texture(emptyTexture);
 	m_innerData->m_highElevationTex->set_texture(emptyTexture);
 	m_innerData->m_dirtTex->set_texture(emptyTexture);
@@ -952,7 +1004,13 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 			m_innerData->m_selectedTerrainType = terrainEdit.terrainType;
 		}
 	}
-	
+
+	godot::Ref<godot::Texture2D> emptyTexture;
+	if (m_innerData->m_terrainTypeIcons.contains(terrainEdit.terrainType))
+		m_innerData->m_terrTypeButton->set_button_icon(m_innerData->m_terrainTypeIcons[terrainEdit.terrainType]);
+	else
+		m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
+
 	m_infoLabelTextChanged = true;
 
 	setSeed(terrainEdit.noise.noiseSeed);
@@ -2959,6 +3017,11 @@ void GDN_TheWorld_Edit::editModeGenerateAction(void)
 
 	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeGenerate, this);
 	m_tp.QueueJob(f);
+}
+
+void GDN_TheWorld_Edit::editModeSetGenerateCursor(void)
+{
+	// signal "pressed"
 }
 
 void GDN_TheWorld_Edit::editModeGenerate(void)

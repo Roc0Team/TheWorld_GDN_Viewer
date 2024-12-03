@@ -424,6 +424,9 @@ namespace godot
 			int m_numQuadrantsFromCameraQuadrant = -1;
 			bool m_quadrantReady = false;
 
+			bool m_quadrantEdited = false;
+			TheWorld_Utils::TerrainEdit m_terrainEdit;
+
 			TheWorld_Utils::TerrainEdit::TerrainType m_overrideTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 		};
 

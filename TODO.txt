@@ -1,4 +1,4 @@
-* removed fps cap at 75 (disabling V-Sync Mode in Project settings / Display / Window)
+								* removed fps cap at 75 (disabling V-Sync Mode in Project settings / Display / Window)
 * project exporting jobs
 * loading screen
 * map view

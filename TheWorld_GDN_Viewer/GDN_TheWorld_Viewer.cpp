@@ -6407,24 +6407,57 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 	{
 		// mapMode()
 
-		const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-		if (eventMouseButton != nullptr)
+		if (editMode())
 		{
-			if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
+			const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+			if (eventMouseButton != nullptr)
 			{
-				godot::Vector2 mouseScreenPos = eventMouseButton->get_global_position();
-				godot::Vector2 screenCenter = getViewportSize() / 2;
-				godot::Vector2 mouseOffsetFromScreencenter = mouseScreenPos - screenCenter;
-				Camera2D* mapCamera = MapCamera();
-				if (mapCamera != nullptr)
+
+				GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+				if (editModeUIControl != nullptr && editModeUIControl->initialized())
 				{
-					GDN_TheWorld_MapCamera* cam = godot::Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
-					mouseOffsetFromScreencenter *= (1 / cam->getZoomFactor());
-					godot::Vector2 globalCameraScreencenterPos = mapCamera->get_screen_center_position();
-					godot::Vector2 desideredCameraGlobalPos = globalCameraScreencenterPos + mouseOffsetFromScreencenter;
-					godot::Vector2 desideredCameraWorldPos = globalPosToWorldPos(desideredCameraGlobalPos);
-					adjustWorldCameraRequired(true, desideredCameraWorldPos);
-					//adjustWorldCamera(desideredCameraWorldPos);
+					if (editModeUIControl->editingMap())
+					{
+						if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_pressed())
+						{
+							assert(eventMouseButton->is_pressed());
+						}
+						if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_pressed())
+						{
+							assert(eventMouseButton->is_pressed());
+						}
+					}
+					else
+					{
+						if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
+						{
+							// edit quad
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+			if (eventMouseButton != nullptr)
+			{
+				if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
+				{
+					godot::Vector2 mouseScreenPos = eventMouseButton->get_global_position();
+					godot::Vector2 screenCenter = getViewportSize() / 2;
+					godot::Vector2 mouseOffsetFromScreencenter = mouseScreenPos - screenCenter;
+					Camera2D* mapCamera = MapCamera();
+					if (mapCamera != nullptr)
+					{
+						GDN_TheWorld_MapCamera* cam = godot::Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
+						mouseOffsetFromScreencenter *= (1 / cam->getZoomFactor());
+						godot::Vector2 globalCameraScreencenterPos = mapCamera->get_screen_center_position();
+						godot::Vector2 desideredCameraGlobalPos = globalCameraScreencenterPos + mouseOffsetFromScreencenter;
+						godot::Vector2 desideredCameraWorldPos = globalPosToWorldPos(desideredCameraGlobalPos);
+						adjustWorldCameraRequired(true, desideredCameraWorldPos);
+						//adjustWorldCamera(desideredCameraWorldPos);
+					}
 				}
 			}
 		}
@@ -6713,6 +6746,10 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 				m_postProcessingUnderWaterEffectNode->set_visible(true);
 
 		}
+
+		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+		if (editModeUIControl != nullptr && editModeUIControl->initialized())
+			editModeUIControl->mapMode(b);
 	}
 }
 

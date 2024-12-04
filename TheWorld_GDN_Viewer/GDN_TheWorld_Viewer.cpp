@@ -469,12 +469,10 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride* GDN_TheWorld_Map::
 			textureRect->set_global_position(globalQuadrantPos);
 			textureRect->set_z_index(1);
 			textureRect->set_visible(m_map->mapGridOn());
+			textureRect->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
+			textureRect->set_stretch_mode(godot::TextureRect::StretchMode::STRETCH_SCALE);
 
 			m_quadrantTextureOverrideContainer.insert({ quadrantPos , std::unique_ptr<MapQuadrantTextureOverride>(textureRect) });
-
-			//godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-			//godot::Ref<godot::Texture2D> testTex = resLoader->load("res://icon.svg");
-			//m_quadrantTextureOverrideContainer[quadrantPos]->set_texture(testTex);
 
 			rect = m_quadrantTextureOverrideContainer[quadrantPos].get();
 		}
@@ -661,7 +659,19 @@ void GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::freeResource(
 
 void GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::apply(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride)
 {
-	// TODO
+	godot::Ref<godot::Texture2D> tex = nullptr;
+	
+	if (not mapQuadrantOverride->overrideTerrainTypeNull())
+	{
+		GDN_TheWorld_Edit* editModeUIControl = m_mapTextureRect->getMap()->getMapViewer()->getViewer()->EditModeUIControl();
+		if (editModeUIControl != nullptr and editModeUIControl->initialized())
+		{
+			tex = editModeUIControl->getTextureByTerrainType(mapQuadrantOverride->getTerrainType());
+			//tex = godot::ResourceLoader::get_singleton()->load("res://icon.svg");
+		}
+	}
+
+	set_texture(tex);
 }
 
 void GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::applyOverride()
@@ -835,6 +845,7 @@ GDN_TheWorld_Map::MapQuadrantOverride::MapQuadrantOverride(GDN_TheWorld_Map* map
 	m_map = map;
 	m_quadrantPos = quadrantPos;
 	internalSetName();
+	m_terrainEdit = TheWorld_Utils::TerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
 }
 
 GDN_TheWorld_Map::MapQuadrantOverride::~MapQuadrantOverride(void)
@@ -1690,10 +1701,44 @@ void GDN_TheWorld_Map::releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPo
 
 GDN_TheWorld_Map::MapQuadrantOverride* GDN_TheWorld_Map::getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos)
 {
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
 	if (m_mapQuadrantOverrideContainer.contains(quadrantPos))
 		return m_mapQuadrantOverrideContainer[quadrantPos].get();
 	else
 		return nullptr;
+}
+
+void GDN_TheWorld_Map::addEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::TerrainEdit& terrainEdit)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+	if (m_mapQuadrantOverrideContainer.contains(quadrantPos))
+	{
+		m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(terrainEdit);
+	}
+	else
+	{
+		m_mapQuadrantOverrideContainer[quadrantPos] = std::make_unique<MapQuadrantOverride>(this, quadrantPos);
+		m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(terrainEdit);
+	}
+	m_mapQuadrantOverrideContainer[quadrantPos]->applyTexture();
+}
+
+void GDN_TheWorld_Map::removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+	if (m_mapQuadrantOverrideContainer.contains(quadrantPos))
+	{
+		//if (m_mapQuadrantOverrideContainer[quadrantPos]->quadrantActuallyInWorld())
+		//{
+		//	TheWorld_Utils::TerrainEdit nullTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+		//	m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(nullTerrainEdit);
+		//}
+		//else
+		//	m_mapQuadrantOverrideContainer.erase(quadrantPos);
+		TheWorld_Utils::TerrainEdit nullTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+		m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(nullTerrainEdit);
+		m_mapQuadrantOverrideContainer[quadrantPos]->applyTexture();
+	}
 }
 
 void GDN_TheWorld_Map::worldQuadrantMapReset(void)
@@ -1736,11 +1781,11 @@ void GDN_TheWorld_Map::worldQuadrantMapReset(void)
 		}
 	}
 
-	assert(numAddedInWorld >= 0);
-	assert(numMainteinedInWorld >= 0);
-	assert(numErasedInWorld >= 0);
+	//assert(numAddedInWorld >= 0);
+	//assert(numMainteinedInWorld >= 0);
+	//assert(numErasedInWorld >= 0);
 
-	std::vector<TheWorld_Utils::QuadrantPos> overrideNull;
+	std::vector<TheWorld_Utils::QuadrantPos> canBeErased;
 
 	for (auto& quadrantOverrideItem : m_mapQuadrantOverrideContainer)
 	{
@@ -1760,11 +1805,11 @@ void GDN_TheWorld_Map::worldQuadrantMapReset(void)
 		}
 		mapQuadrantOverride->applyColor();
 
-		if (mapQuadrantOverride->overrideNull())
-			overrideNull.push_back(quadrantOverrideItem.first);
+		if (mapQuadrantOverride->canBeErased())
+			canBeErased.push_back(quadrantOverrideItem.first);
 	}
 
-	for (auto& item : overrideNull)
+	for (auto& item : canBeErased)
 	{
 		m_mapQuadrantOverrideContainer.erase(item);
 	}
@@ -6407,6 +6452,8 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 	{
 		// mapMode()
 
+		GDN_TheWorld_Map* map = Map();
+			
 		if (editMode())
 		{
 			const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
@@ -6414,22 +6461,32 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 			{
 
 				GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-				if (editModeUIControl != nullptr && editModeUIControl->initialized())
+				if (editModeUIControl != nullptr and editModeUIControl->initialized() and map != nullptr)
 				{
 					if (editModeUIControl->editingMap())
 					{
-						if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_pressed())
+						if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT and eventMouseButton->is_pressed())
 						{
-							assert(eventMouseButton->is_pressed());
+							TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+							if (editModeUIControl->editingMap(terrainEdit))
+							{
+								godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
+								godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+								TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+								map->addEditedMapQuadrantOverride(pos, terrainEdit);
+							}
 						}
-						if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_pressed())
+						if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT and eventMouseButton->is_pressed())
 						{
-							assert(eventMouseButton->is_pressed());
+							godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
+							godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+							TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+							map->removeEditedMapQuadrantOverride(pos);
 						}
 					}
 					else
 					{
-						if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
+						if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT and eventMouseButton->is_double_click())
 						{
 							// edit quad
 						}

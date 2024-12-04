@@ -305,10 +305,16 @@ void GDN_TheWorld_Edit::mapMode(bool b)
 
 bool GDN_TheWorld_Edit::editingMap(void)
 {
-	if (m_innerData->m_terrTypeButton != nullptr)
-	{
-		return m_innerData->m_terrTypeButton->is_pressed();
-	}
+	if (m_innerData->m_terrTypeButton != nullptr and m_innerData->m_terrTypeButton->is_pressed())
+		return true;
+	else
+		return false;
+}
+
+bool GDN_TheWorld_Edit::editingMap(TheWorld_Utils::TerrainEdit& terrainEdit)
+{
+	if (editingMap() and getEditedTerrainEditValues(terrainEdit))
+		return true;
 	else
 		return false;
 }
@@ -577,7 +583,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", " ");
 		godot::Vector2 size(140, 140);
-		m_innerData->m_terrTypeButton = createControl<godot::CheckButton>(hBoxContainer, "", "Set Cursor", "pressed", this, "edit_mode_set_generate_cursor");
+		m_innerData->m_terrTypeButton = createControl<godot::CheckButton>(hBoxContainer, "", "", "pressed", this, "edit_mode_set_generate_cursor");
 		m_innerData->m_terrTypeButton->set_custom_minimum_size(size);
 		m_innerData->m_terrTypeButton->set_expand_icon(true);
 		m_innerData->m_terrTypeButton->set_visible(false);
@@ -853,7 +859,7 @@ T* GDN_TheWorld_Edit::createControl(godot::Node* parent, std::string name, godot
 		control->set_h_size_flags(godot::VBoxContainer::SizeFlags::SIZE_EXPAND_FILL);
 		control->set_v_size_flags(godot::VBoxContainer::SizeFlags::SIZE_EXPAND_FILL);
 	}
-	else if constexpr (std::is_same_v<T, godot::Button> || std::is_same_v<T, godot::OptionButton>)
+	else if constexpr (std::is_same_v<T, godot::Button> || std::is_same_v<T, godot::OptionButton> || std::is_same_v<T, godot::CheckButton>)
 	{
 		if (text.length() > 0)
 			control->set_text(text);
@@ -940,6 +946,42 @@ void GDN_TheWorld_Edit::setSizeUI(void)
 
 	m_scrollPanelsNeedResize = true;
 	m_infoLabelTextChanged = true;
+}
+
+bool GDN_TheWorld_Edit::getEditedTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit)
+{
+	int64_t id = m_innerData->m_terrTypeOptionButton->get_selected_id();
+	if (id == -1)
+		return false;
+
+	TheWorld_Utils::TerrainEdit::TerrainType selectedTerrainType = (TheWorld_Utils::TerrainEdit::TerrainType)id;
+	if (selectedTerrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset)
+		return false;
+
+	TheWorld_Utils::TerrainEdit t(selectedTerrainType);
+	t.noise.noiseSeed = seed();
+	t.noise.frequency = frequency();
+	t.noise.fractalOctaves = octaves();
+	t.noise.fractalLacunarity = lacunarity();
+	t.noise.fractalGain = gain();
+	t.noise.fractalWeightedStrength = weightedStrength();
+	t.noise.fractalPingPongStrength = pingPongStrength();
+	t.noise.heightsAmplitude = amplitude();
+	t.noise.scaleFactor_JagIntensity = scaleFactor();
+	t.noise.desideredMinHeight = desideredMinHeight();
+	t.extraValues.ignoreDesideredMinHeight = ignoreDesideredMinHeight();
+	t.extraValues.postGenerateElevation = postGenerateElevation();
+	
+	terrainEdit = t;
+	return true;
+}
+
+godot::Ref<godot::Texture2D> GDN_TheWorld_Edit::getTextureByTerrainType(TheWorld_Utils::TerrainEdit::TerrainType terrainType)
+{
+	if (m_innerData->m_terrainTypeIcons.contains(terrainType))
+		return m_innerData->m_terrainTypeIcons[terrainType];
+	else
+		return nullptr;
 }
 
 void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
@@ -3022,6 +3064,13 @@ void GDN_TheWorld_Edit::editModeGenerateAction(void)
 void GDN_TheWorld_Edit::editModeSetGenerateCursor(void)
 {
 	// signal "pressed"
+	int64_t id = m_innerData->m_terrTypeOptionButton->get_selected_id();
+	if (id != -1)
+	{
+		TheWorld_Utils::TerrainEdit::TerrainType selectedTerrainType = (TheWorld_Utils::TerrainEdit::TerrainType)id;
+		if (selectedTerrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset)
+			m_innerData->m_terrTypeButton->set_pressed(false);
+	}
 }
 
 void GDN_TheWorld_Edit::editModeGenerate(void)

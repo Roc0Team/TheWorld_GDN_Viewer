@@ -371,6 +371,8 @@ namespace godot
 		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
 		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
 
+		godot::Ref<godot::Texture2D> getTextureByTerrainType(TheWorld_Utils::TerrainEdit::TerrainType terrainType);
+
 		void setEmptyTerrainEditValues(void);
 		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
 
@@ -528,6 +530,8 @@ namespace godot
 		void mapMode(bool b);
 
 		bool editingMap(void);
+		bool editingMap(TheWorld_Utils::TerrainEdit& terrainEdit);
+		bool getEditedTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
 
 	private:
 		bool m_initialized;

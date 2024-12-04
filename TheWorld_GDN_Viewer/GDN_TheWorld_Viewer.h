@@ -397,13 +397,13 @@ namespace godot
 
 			bool overrideTerrainTypeNull(void) const
 			{
-				return m_overrideTerrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset;
+				return m_terrainEdit.terrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset;
 			}
 			bool overrideTerrainTypeSet(void) const
 			{
 				return !overrideTerrainTypeNull();
 			}
-			bool overrideNull(void) const
+			bool canBeErased(void) const
 			{
 				if (overrideTerrainTypeNull() and not quadrantActuallyInWorld())
 					return true;
@@ -413,6 +413,14 @@ namespace godot
 
 			void applyColor(void);
 			void applyTexture(void);
+			void terrainEdit(TheWorld_Utils::TerrainEdit& terrainEdit)
+			{
+				m_terrainEdit = terrainEdit;
+			}
+			TheWorld_Utils::TerrainEdit::TerrainType getTerrainType(void)
+			{
+				return m_terrainEdit.terrainType;
+			}
 
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
@@ -420,14 +428,11 @@ namespace godot
 			std::string m_name;
 
 			bool m_quadrantActuallyInWorld = false;
-			enum class QuadTree::QuadrantDepth m_quadrantDepth;
+			enum class QuadTree::QuadrantDepth m_quadrantDepth = QuadTree::QuadrantDepth::NotSet;
 			int m_numQuadrantsFromCameraQuadrant = -1;
 			bool m_quadrantReady = false;
 
-			bool m_quadrantEdited = false;
 			TheWorld_Utils::TerrainEdit m_terrainEdit;
-
-			TheWorld_Utils::TerrainEdit::TerrainType m_overrideTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 		};
 
 		class MapQuadrantOverrideContainer : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantOverride>>
@@ -814,6 +819,8 @@ namespace godot
 		void releaseQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		MapQuadrantOverride* getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+		void addEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::TerrainEdit& terrainEdit);
+		void removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);

@@ -989,6 +989,7 @@ void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 	m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset));
 	godot::Ref<godot::Texture2D> emptyTexture;
 	m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
+	m_innerData->m_terrTypeButton->set_pressed(false);
 	m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 
 	m_infoLabelTextChanged = true;
@@ -1049,9 +1050,15 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 
 	godot::Ref<godot::Texture2D> emptyTexture;
 	if (m_innerData->m_terrainTypeIcons.contains(terrainEdit.terrainType))
+	{
 		m_innerData->m_terrTypeButton->set_button_icon(m_innerData->m_terrainTypeIcons[terrainEdit.terrainType]);
+		m_innerData->m_terrTypeButton->set_pressed(true);
+	}
 	else
+	{
 		m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
+		m_innerData->m_terrTypeButton->set_pressed(false);
+	}
 
 	m_infoLabelTextChanged = true;
 

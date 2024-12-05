@@ -764,6 +764,7 @@ namespace godot
 		godot::Rect2 getScreenRectInGlobalCoord(void) const;
 		godot::Size2 getScreenSizeInGlobalCoord(void) const;
 		godot::Vector2 getMousePosInGlobalCoord(void) const;
+		godot::Vector2 getMousePosInGlobalCoord(godot::Vector2 mousePosInViewport) const;
 
 		godot::Vector2 globalPosToWorldPos(godot::Vector2 global);
 		godot::Vector2 worldPosToGlobalPos(godot::Vector2 worldPos);
@@ -1045,14 +1046,216 @@ namespace godot
 	{
 		GDCLASS(GDN_TheWorld_Viewer, Node3D)
 
-		enum class TrackedInputEvent
+		class TrackedInputEvent
 		{
-			MOUSE_BUTTON_LEFT = 0
-			, MOUSE_BUTTON_RIGHT = 1
-			, MOUSE_DOUBLE_BUTTON_LEFT = 2
-			, MOUSE_DOUBLE_BUTTON_RIGHT = 3
+		public:
+			enum class TrackedInputEventType
+			{
+				NOT_SET = -1
+				, MOUSE_BUTTON_LEFT = 0
+				, MOUSE_BUTTON_RIGHT = 1
+				, MOUSE_DOUBLE_BUTTON_LEFT = 2
+				, MOUSE_DOUBLE_BUTTON_RIGHT = 3
+			};
+
+			TrackedInputEvent(GDN_TheWorld_Viewer* viewer, enum class TrackedInputEventType type = TrackedInputEventType::NOT_SET, int32_t delayToBeAvailable = -1)
+			{
+				m_type = type;
+				m_time = std::chrono::system_clock::time_point();
+				if (type != TrackedInputEventType::NOT_SET)
+					m_time = TheWorld_Utils::current_utc_time_point();
+				if (type == TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT or type == TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT)
+					m_delayToBeAvailable = 0;
+				if (delayToBeAvailable >= 0)
+					m_delayToBeAvailable = delayToBeAvailable;
+				m_viewer = viewer;
+				if (m_viewer != nullptr)
+					m_mousePosInViewport = m_viewer->getMousePosInViewport();
+			}
+
+			bool operator<(const TrackedInputEvent& event) const
+			{
+				if (m_type < event.m_type)
+					return true;
+				else
+					return false;
+			}
+			bool operator==(const TrackedInputEvent& event) const
+			{
+				return m_type == event.m_type;
+			}
+			void operator=(const TrackedInputEvent& event)
+			{
+				m_type = event.m_type;
+				m_time = event.m_time;
+				m_delayToBeAvailable = event.m_delayToBeAvailable;
+				m_viewer = event.m_viewer;
+				m_mousePosInViewport = event.m_mousePosInViewport;
+			}
+			enum class TrackedInputEventType type(void) const
+			{
+				return m_type;
+			}
+			std::chrono::system_clock::time_point time(void) const
+			{
+				return m_time;
+			}
+			std::string strTime(void) const
+			{
+				return TheWorld_Utils::time_point_to_str_time(m_time);
+			}
+			bool isAvailable(void) const
+			{
+				if (m_delayToBeAvailable == 0)
+					return true;
+				if (m_type == TrackedInputEventType::NOT_SET)
+					return false;
+				auto delay_in_queue = std::chrono::duration_cast<std::chrono::milliseconds>(TheWorld_Utils::current_utc_time_point() - m_time);
+				return delay_in_queue.count() > m_delayToBeAvailable;
+			}
+			void reset(void)
+			{
+				m_type = TrackedInputEventType::NOT_SET;
+			}
+			bool isReset(void) const
+			{
+				return m_type == TrackedInputEventType::NOT_SET;
+			}
+			GDN_TheWorld_Viewer* getViewer() const
+			{
+				return m_viewer;
+			}
+			godot::Vector2 mousePosInViewport(void) const
+			{
+				return m_mousePosInViewport;
+			}
+
+		private:
+			enum class TrackedInputEventType m_type = TrackedInputEventType::NOT_SET;
+			std::chrono::system_clock::time_point m_time;
+			int32_t m_delayToBeAvailable = 300;	// default value in ms
+			GDN_TheWorld_Viewer* m_viewer = nullptr;
+			godot::Vector2 m_mousePosInViewport;
 		};
 			
+		class TrackedInputEventContainer : public std::map<TrackedInputEvent, bool>
+		{
+		};
+
+		class TrackedInputEventQueue : public std::list<TrackedInputEvent>
+		{
+		public:
+			void push_back(const TrackedInputEvent& trackedInputEvent)
+			{
+				switch (trackedInputEvent.type())
+				{
+				case TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT:
+				{
+					// invalidating last single button left still not available
+					size_t _size = size();
+					int32_t num = 0;
+					for (reverse_iterator it = rbegin(); it != rend(); it++)
+					{
+						if (it->type() == TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT and !it->isAvailable() and !it->isReset())
+						{
+							it->reset();
+							num++;
+						}
+						if (num == 1)
+							break;
+					}
+					if (num == 0)
+					{
+						// Not found any single button left inside the availability delay (still not available): we can add single click
+						std::list<TrackedInputEvent>::push_back(trackedInputEvent);
+						//PLOG_DEBUG << "*** added SINGLE BUTTON_LEFT ***" << " " << trackedInputEvent.strTime() << " (" << size() << ")";
+					}
+					else
+					{
+						// Found a single button left inside the availability delay (still not available): we removed single click and transform this click in double click
+						TrackedInputEvent doubleClickEvent(trackedInputEvent.getViewer(), TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT);
+						std::list<TrackedInputEvent>::push_back(doubleClickEvent);
+						//PLOG_DEBUG << "*** removed last single BUTTON LEFT and added DOUBLE BUTTON_LEFT ***" << " " << doubleClickEvent.strTime() << " (" << size() << ")";
+					}
+				}
+				break;
+				case TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT:
+				{
+					// invalidating last 2 single button left still not available
+					size_t _size = size();
+					int32_t num = 0;
+					for (reverse_iterator it = rbegin(); it != rend(); it++)
+					{
+						if (it->type() == TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT and !it->isAvailable() and !it->isReset())
+						{
+							it->reset();
+							num++;
+						}
+						if (num == 2)
+							break;
+					}
+					// now can add double click
+					std::list<TrackedInputEvent>::push_back(trackedInputEvent);
+					//PLOG_DEBUG << "*** added DOUBLE BUTTON_LEFT ***" << " " << trackedInputEvent.strTime() << " (" << size() << ")";
+				}
+				break;
+				case TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT:
+				{
+					// invalidating last single button right still not available
+					size_t _size = size();
+					int32_t num = 0;
+					for (reverse_iterator it = rbegin(); it != rend(); it++)
+					{
+						if (it->type() == TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT and !it->isAvailable() and !it->isReset())
+						{
+							it->reset();
+							num++;
+						}
+						if (num == 1)
+							break;
+					}
+					if (num == 0)
+					{
+						// Not found any single button right inside the availability delay (still not available): we can add single click
+						std::list<TrackedInputEvent>::push_back(trackedInputEvent);
+						//PLOG_DEBUG << "*** added SINGLE BUTTON_RIGHT ***" << " " << trackedInputEvent.strTime() << " (" << size() << ")";
+					}
+					else
+					{
+						// Found a single button right inside the availability delay (still not available): we removed single click and transform this click in double click
+						TrackedInputEvent doubleClickEvent(trackedInputEvent.getViewer(), TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT);
+						std::list<TrackedInputEvent>::push_back(doubleClickEvent);
+						//PLOG_DEBUG << "*** removed last single BUTTON BUTTON_RIGHT and added DOUBLE BUTTON_RIGHT ***" << " " << doubleClickEvent.strTime() << " (" << size() << ")";
+					}
+				}
+				break;
+				case TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT:
+				{
+					// invalidating last 2 single button right still not available
+					size_t _size = size();
+					int32_t num = 0;
+					for (reverse_iterator it = rbegin(); it != rend(); it++)
+					{
+						if (it->type() == TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT and !it->isAvailable() and !it->isReset())
+						{
+							it->reset();
+							num++;
+						}
+						if (num == 2)
+							break;
+					}
+					// now can add double click
+					std::list<TrackedInputEvent>::push_back(trackedInputEvent);
+					//PLOG_DEBUG << "*** added DOUBLE BUTTON_RIGHT ***" << " " << trackedInputEvent.strTime() <<  " (" << size() << ")";
+				}
+				break;
+				default:
+					std::list<TrackedInputEvent>::push_back(trackedInputEvent);
+					break;
+				}
+			}
+		};
+
 		enum class Margin {
 			MARGIN_LEFT,
 			MARGIN_TOP,
@@ -1838,17 +2041,25 @@ namespace godot
 						m_positionDrawer->updateSphere(m_spherePositionEndIdx, godot::Vector3(), 0.0f);
 				}
 		}
-		bool isInputEventTracked(TrackedInputEvent event, std::map<enum class TrackedInputEvent, bool>* inputEvents = nullptr)
+		bool isInputEventTracked(TrackedInputEvent::TrackedInputEventType eventType, TrackedInputEvent* trackedInputEvent, TrackedInputEventContainer* inputEvents = nullptr)
 		{
 			if (inputEvents == nullptr)
 				inputEvents = &m_trackedInputEventsForProcess;
 
+			TrackedInputEvent event(nullptr, eventType);
 			if (inputEvents->contains(event))
-				return (*inputEvents)[event];
+			{
+				if (trackedInputEvent != nullptr)
+				{
+					TrackedInputEventContainer::iterator it = inputEvents->find(event);
+					*trackedInputEvent = it->first;
+				}
+				return true;
+			}
 			else
 				return false;
 		}
-		void compressTrackedInputEvents(std::map<enum class TrackedInputEvent, bool>* inputEvents = nullptr)
+		void compressTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr)
 		{
 			if (inputEvents == nullptr)
 				inputEvents = &m_trackedInputEventsForProcess;
@@ -1857,11 +2068,58 @@ namespace godot
 			{
 				for (auto& trackedInputEvent : m_trackedInputEvents)
 				{
-					(*inputEvents)[trackedInputEvent] = true;
+					if (trackedInputEvent.isAvailable())
+					{
+						(*inputEvents)[trackedInputEvent] = true;
+						trackedInputEvent.reset();
+					}
 				}
 			}
+			
+			// DEBUG
+			//{
+			//	bool printHeader = true;
+			//	TrackedInputEvent trackedInputEvent;
+			//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT, &trackedInputEvent))
+			//	{
+			//		if (printHeader)
+			//		{
+			//			PLOG_DEBUG << "===============";
+			//			printHeader = false;
+			//		}
+			//		PLOG_DEBUG << "Mouse button LEFT " << trackedInputEvent.strTime();
+			//	}
+			//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT, &trackedInputEvent))
+			//	{
+			//		if (printHeader)
+			//		{
+			//			PLOG_DEBUG << "===============";
+			//			printHeader = false;
+			//		}
+			//		PLOG_DEBUG << "Mouse button RIGHT " << trackedInputEvent.strTime();
+			//	}
+			//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, &trackedInputEvent))
+			//	{
+			//		if (printHeader)
+			//		{
+			//			PLOG_DEBUG << "===============";
+			//			printHeader = false;
+			//		}
+			//		PLOG_DEBUG << "Double mouse button LEFT " << trackedInputEvent.strTime();
+			//	}
+			//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, &trackedInputEvent))
+			//	{
+			//		if (printHeader)
+			//		{
+			//			PLOG_DEBUG << "===============";
+			//			printHeader = false;
+			//		}
+			//		PLOG_DEBUG << "Double mouse button RIGHT " << trackedInputEvent.strTime();
+			//	}
+			//}
+			// DEBUG
 		}
-		void resetTrackedInputEvents(std::map<enum class TrackedInputEvent, bool>* inputEvents = nullptr)
+		void resetTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr)
 		{
 			if (inputEvents == nullptr)
 				inputEvents = &m_trackedInputEventsForProcess;
@@ -1869,7 +2127,23 @@ namespace godot
 			if (!inputEvents->empty())
 				inputEvents->clear();
 			if (!m_trackedInputEvents.empty())
-				m_trackedInputEvents.clear();
+			{
+				bool allItemsReset = true;
+				for (auto& trackedInputEvent : m_trackedInputEvents)
+				{
+					//if (trackedInputEvent.isAvailable())		// trackedInputEvent was available to check so we can reset it now
+					//	trackedInputEvent.reset();
+					//else if (not trackedInputEvent.isReset())
+					//	allItemsReset = false;
+					if (not trackedInputEvent.isReset())
+						allItemsReset = false;
+				}
+
+				if (allItemsReset)
+					m_trackedInputEvents.clear();
+			}
+			else
+				assert(m_trackedInputEvents.empty());
 		}
 
 		bool mouseInsideMainEditPanel(void);
@@ -2295,6 +2569,7 @@ namespace godot
 		};
 		void printKeyboardMapping(void);
 		void streamer(void);
+		void process_mapModeInputEvents(void);
 		void process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl);
 		void process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(double _delta);
 		bool process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Camera3D* activeWorldCamera);
@@ -2435,9 +2710,9 @@ namespace godot
 		size_t m_updatedMapQuadrantsNum = 0;
 		// Statistics data
 
-		std::map<enum class TrackedInputEvent, bool> m_trackedInputEventsForProcess;
-		std::map<enum class TrackedInputEvent, bool> m_trackedInputEventsForTrackMouse;
-		std::list<enum class TrackedInputEvent> m_trackedInputEvents;
+		TrackedInputEventContainer m_trackedInputEventsForProcess;
+		TrackedInputEventContainer m_trackedInputEventsForTrackMouse;
+		TrackedInputEventQueue m_trackedInputEvents;
 
 		//bool m_mapGridOn = false;
 		bool m_trackMouse = false;

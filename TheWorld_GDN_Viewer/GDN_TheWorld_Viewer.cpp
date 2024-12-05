@@ -1453,9 +1453,16 @@ godot::Size2 GDN_TheWorld_Map::getScreenSizeInGlobalCoord(void) const
 godot::Vector2 GDN_TheWorld_Map::getMousePosInGlobalCoord(void) const
 {
 	GDN_TheWorld_Viewer* viewer = getMapViewer()->getViewer();
-	GDN_TheWorld_MapCamera* mapCamera = viewer->MapCamera();
 	
 	godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
+	return getMousePosInGlobalCoord(mousePosInViewport);
+}
+
+godot::Vector2 GDN_TheWorld_Map::getMousePosInGlobalCoord(godot::Vector2 mousePosInViewport) const
+{
+	GDN_TheWorld_Viewer* viewer = getMapViewer()->getViewer();
+	GDN_TheWorld_MapCamera* mapCamera = viewer->MapCamera();
+
 	godot::Vector2 distanceFromUpLeftScreenBorderInGlobalCoord = mousePosInViewport * (1 / mapCamera->getZoomFactor());
 	godot::Rect2 screenRectInGlobalCoord = getScreenRectInGlobalCoord();
 	godot::Vector2 mousePosInGlobalCoord(screenRectInGlobalCoord.position.x + distanceFromUpLeftScreenBorderInGlobalCoord.x, screenRectInGlobalCoord.position.y + distanceFromUpLeftScreenBorderInGlobalCoord.y);
@@ -6396,38 +6403,58 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 	if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
 		return;
 
-	bool mouseEvent = false;
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+	if (eventMouseButton != nullptr)
+	{
+		if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_pressed())
+		{
+			TrackedInputEvent event(this, TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT);
+			m_trackedInputEvents.push_back(event);
+		}
+		//if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
+		//{
+		//	TrackedInputEvent event(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT);
+		//	m_trackedInputEvents.push_back(event);
+		//}
+		if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_pressed())
+		{
+			TrackedInputEvent event(this, TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT);
+			m_trackedInputEvents.push_back(event);
+		}
+		//if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_double_click())
+		//{
+		//	TrackedInputEvent event(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT);
+		//	m_trackedInputEvents.push_back(event);
+		//}
+	}
+
+	/* DEBUG */
+	//{
+	//	bool mouseEvent = false;
+	//	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+	//	if (eventMouseButton != nullptr)
+	//	{
+	//		mouseEvent = true;
+	//	}
+	//	const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
+	//	if (eventMouseMotion != nullptr)
+	//	{
+	//		mouseEvent = true;
+	//	}
+	//	if (!mouseEvent)
+	//		mouseEvent = false;
+	//	const godot::InputEventKey* eventKey = godot::Object::cast_to<godot::InputEventKey>(event.ptr());
+	//	if (eventKey != nullptr)
+	//	{
+	//		bool b = true;
+	//	}
+	//}
+	/* DEBUG */
 
 	if (worldMode())
 	{
-		const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-		if (eventMouseButton != nullptr)
-		{
-			if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_pressed())
-				m_trackedInputEvents.push_back(TrackedInputEvent::MOUSE_BUTTON_LEFT);
-			if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
-				m_trackedInputEvents.push_back(TrackedInputEvent::MOUSE_DOUBLE_BUTTON_LEFT);
-			if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_pressed())
-				m_trackedInputEvents.push_back(TrackedInputEvent::MOUSE_BUTTON_RIGHT);
-			if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_double_click())
-				m_trackedInputEvents.push_back(TrackedInputEvent::MOUSE_DOUBLE_BUTTON_RIGHT);
-			mouseEvent = true;
-		}
-		/* DEBUG */
-		//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
-		//if (eventMouseMotion != nullptr)
-		//{
-		//	mouseEvent = true;
-		//}
-		//if (!mouseEvent)
-		//	mouseEvent = false;
-		//const godot::InputEventKey* eventKey = godot::Object::cast_to<godot::InputEventKey>(event.ptr());
-		//if (eventKey != nullptr)
-		//{
-		//	bool b = true;
-		//}
-		/* DEBUG */
-
 		if (event->is_action_pressed("ui_toggle_wireframe"))
 		{
 			toggleWireframe();
@@ -6452,72 +6479,72 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 	{
 		// mapMode()
 
-		GDN_TheWorld_Map* map = Map();
-			
-		if (editMode())
-		{
-			const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-			if (eventMouseButton != nullptr)
-			{
+		//GDN_TheWorld_Map* map = Map();
+		//	
+		//if (editMode())
+		//{
+		//	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+		//	if (eventMouseButton != nullptr)
+		//	{
 
-				GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-				if (editModeUIControl != nullptr and editModeUIControl->initialized() and map != nullptr)
-				{
-					if (editModeUIControl->editingMap())
-					{
-						if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT and eventMouseButton->is_pressed())
-						{
-							TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
-							if (editModeUIControl->editingMap(terrainEdit))
-							{
-								godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
-								godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
-								TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-								map->addEditedMapQuadrantOverride(pos, terrainEdit);
-							}
-						}
-						if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT and eventMouseButton->is_pressed())
-						{
-							godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
-							godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
-							TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-							map->removeEditedMapQuadrantOverride(pos);
-						}
-					}
-					else
-					{
-						if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT and eventMouseButton->is_double_click())
-						{
-							// edit quad
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-			if (eventMouseButton != nullptr)
-			{
-				if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
-				{
-					godot::Vector2 mouseScreenPos = eventMouseButton->get_global_position();
-					godot::Vector2 screenCenter = getViewportSize() / 2;
-					godot::Vector2 mouseOffsetFromScreencenter = mouseScreenPos - screenCenter;
-					Camera2D* mapCamera = MapCamera();
-					if (mapCamera != nullptr)
-					{
-						GDN_TheWorld_MapCamera* cam = godot::Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
-						mouseOffsetFromScreencenter *= (1 / cam->getZoomFactor());
-						godot::Vector2 globalCameraScreencenterPos = mapCamera->get_screen_center_position();
-						godot::Vector2 desideredCameraGlobalPos = globalCameraScreencenterPos + mouseOffsetFromScreencenter;
-						godot::Vector2 desideredCameraWorldPos = globalPosToWorldPos(desideredCameraGlobalPos);
-						adjustWorldCameraRequired(true, desideredCameraWorldPos);
-						//adjustWorldCamera(desideredCameraWorldPos);
-					}
-				}
-			}
-		}
+		//		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+		//		if (editModeUIControl != nullptr and editModeUIControl->initialized() and map != nullptr)
+		//		{
+		//			if (editModeUIControl->editingMap())
+		//			{
+		//				if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT and eventMouseButton->is_pressed())
+		//				{
+		//					TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+		//					if (editModeUIControl->editingMap(terrainEdit))
+		//					{
+		//						godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
+		//						godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+		//						TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+		//						map->addEditedMapQuadrantOverride(pos, terrainEdit);
+		//					}
+		//				}
+		//				if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT and eventMouseButton->is_pressed())
+		//				{
+		//					godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
+		//					godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+		//					TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+		//					map->removeEditedMapQuadrantOverride(pos);
+		//				}
+		//			}
+		//			else
+		//			{
+		//				if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT and eventMouseButton->is_double_click())
+		//				{
+		//					// edit quad
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
+		//else
+		//{
+		//	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
+		//	if (eventMouseButton != nullptr)
+		//	{
+		//		if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
+		//		{
+		//			godot::Vector2 mouseScreenPos = eventMouseButton->get_global_position();
+		//			godot::Vector2 screenCenter = getViewportSize() / 2;
+		//			godot::Vector2 mouseOffsetFromScreencenter = mouseScreenPos - screenCenter;
+		//			Camera2D* mapCamera = MapCamera();
+		//			if (mapCamera != nullptr)
+		//			{
+		//				GDN_TheWorld_MapCamera* cam = godot::Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
+		//				mouseOffsetFromScreencenter *= (1 / cam->getZoomFactor());
+		//				godot::Vector2 globalCameraScreencenterPos = mapCamera->get_screen_center_position();
+		//				godot::Vector2 desideredCameraGlobalPos = globalCameraScreencenterPos + mouseOffsetFromScreencenter;
+		//				godot::Vector2 desideredCameraWorldPos = globalPosToWorldPos(desideredCameraGlobalPos);
+		//				adjustWorldCameraRequired(true, desideredCameraWorldPos);
+		//				//adjustWorldCamera(desideredCameraWorldPos);
+		//			}
+		//		}
+		//	}
+		//}
 	}
 
 
@@ -7890,6 +7917,23 @@ void GDN_TheWorld_Viewer::endInitializingStreamOfQuadrants(void)
 	finishedResizingGrid(false);
 }
 
+godot::Control* GDN_TheWorld_Viewer::getOrCreateEditModeUIControl(void)
+{
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl == nullptr || !editModeUIControl->initialized())
+	{
+		createEditModeUI();
+		editModeUIControl = EditModeUIControl();
+
+		if (m_editMode)
+			editModeUIControl->set_visible(true);
+		else
+			editModeUIControl->set_visible(false);
+	}
+
+	return editModeUIControl;
+}
+
 void GDN_TheWorld_Viewer::_process(double _delta)
 {
 	// To activate _process method add this Node to a Godot Scene
@@ -7945,8 +7989,6 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 
 		m_visibleInTree = is_visible_in_tree();
 
-		compressTrackedInputEvents();
-
 		if (initRequired())
 		{
 			init();
@@ -7961,6 +8003,8 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			m_numProcessNotOwnsLock++;
 			return;
 		}
+
+		compressTrackedInputEvents();
 
 		if (ShaderTerrainData::groundTexturesNeedProcessing())
 		{
@@ -8134,23 +8178,6 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	}
 }
 
-godot::Control* GDN_TheWorld_Viewer::getOrCreateEditModeUIControl(void)
-{
-	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-	if (editModeUIControl == nullptr || !editModeUIControl->initialized())
-	{
-		createEditModeUI();
-		editModeUIControl = EditModeUIControl();
-
-		if (m_editMode)
-			editModeUIControl->set_visible(true);
-		else
-			editModeUIControl->set_visible(false);
-	}
-
-	return editModeUIControl;
-}
-
 void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMapCamera, godot::Camera3D* activeWorldCamera)
 {
 	GDN_TheWorld_Globals* globals = Globals();
@@ -8223,6 +8250,9 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	
 	if (globals->statusMinimalWorldDeployed() and worldStreamingTerminated())
 		globals->setStatus(TheWorldStatus::worldDeployed);
+	
+	if (mapMode())
+		process_mapModeInputEvents();
 	
 	if (adjustWorldCameraRequired() and mapMode())
 	{
@@ -8572,6 +8602,69 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 
 	size_t elapsed = addProcessStep(ProcessStep::ProcessStepIdx::EndOfProcessExecution);
 	//m_desideredLookDevChanged = false;
+}
+
+void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
+{
+	if (editMode())
+	{
+		GDN_TheWorld_Map* map = Map();
+		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+		if (editModeUIControl != nullptr and editModeUIControl->initialized() and map != nullptr)
+		{
+			TrackedInputEvent trackedInputEvent(this);
+
+			if (editModeUIControl->editingMap())
+			{
+				if (!editModeUIControl->mouseInsideEditPanel() and isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT, &trackedInputEvent))
+				{
+					TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+					if (editModeUIControl->editingMap(terrainEdit))
+					{
+						godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
+						godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
+						godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+						TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+						map->addEditedMapQuadrantOverride(pos, terrainEdit);
+					}
+				}
+				
+				if (!editModeUIControl->mouseInsideEditPanel() and isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT, &trackedInputEvent))
+				{
+					godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
+					godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
+					godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+					TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+					map->removeEditedMapQuadrantOverride(pos);
+				}
+			}
+
+			if (!editModeUIControl->mouseInsideEditPanel() and isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, &trackedInputEvent))
+			{
+				// edit quad
+			}
+		}
+	}
+	else
+	{
+		if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, nullptr))
+		{
+			godot::Vector2 mouseScreenPos = getMousePosInViewport();
+			godot::Vector2 screenCenter = getViewportSize() / 2;
+			godot::Vector2 mouseOffsetFromScreencenter = mouseScreenPos - screenCenter;
+			Camera2D* mapCamera = MapCamera();
+			if (mapCamera != nullptr)
+			{
+				GDN_TheWorld_MapCamera* cam = godot::Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
+				mouseOffsetFromScreencenter *= (1 / cam->getZoomFactor());
+				godot::Vector2 globalCameraScreencenterPos = mapCamera->get_screen_center_position();
+				godot::Vector2 desideredCameraGlobalPos = globalCameraScreencenterPos + mouseOffsetFromScreencenter;
+				godot::Vector2 desideredCameraWorldPos = globalPosToWorldPos(desideredCameraGlobalPos);
+				adjustWorldCameraRequired(true, desideredCameraWorldPos);
+				//adjustWorldCamera(desideredCameraWorldPos);
+			}
+		}
+	}
 }
 
 void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editModeUIControl)
@@ -10275,9 +10368,9 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 		{
 			if (positionVisible())
 			{
-				if (isInputEventTracked(TrackedInputEvent::MOUSE_DOUBLE_BUTTON_LEFT, &m_trackedInputEventsForTrackMouse))
+				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, nullptr, &m_trackedInputEventsForTrackMouse))
 					trackingDistance(true, mouseHitInMap);
-				if (isInputEventTracked(TrackedInputEvent::MOUSE_DOUBLE_BUTTON_RIGHT, &m_trackedInputEventsForTrackMouse))
+				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, nullptr, &m_trackedInputEventsForTrackMouse))
 					trackingDistance(false);
 			}
 

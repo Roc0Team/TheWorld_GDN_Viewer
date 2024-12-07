@@ -950,13 +950,21 @@ void GDN_TheWorld_Edit::setSizeUI(void)
 
 bool GDN_TheWorld_Edit::getEditedTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit)
 {
+	TheWorld_Utils::TerrainEdit nullTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+
 	int64_t id = m_innerData->m_terrTypeOptionButton->get_selected_id();
 	if (id == -1)
+	{
+		terrainEdit = nullTerrainEdit;
 		return false;
+	}
 
 	TheWorld_Utils::TerrainEdit::TerrainType selectedTerrainType = (TheWorld_Utils::TerrainEdit::TerrainType)id;
 	if (selectedTerrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset)
+	{
+		terrainEdit = nullTerrainEdit;
 		return false;
+	}
 
 	TheWorld_Utils::TerrainEdit t(selectedTerrainType);
 	t.noise.noiseSeed = seed();

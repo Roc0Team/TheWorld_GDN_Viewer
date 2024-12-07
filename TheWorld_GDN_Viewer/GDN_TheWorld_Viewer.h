@@ -417,9 +417,21 @@ namespace godot
 			{
 				m_terrainEdit = terrainEdit;
 			}
+			TheWorld_Utils::TerrainEdit terrainEdit(void) const
+			{
+				return m_terrainEdit;
+			}
 			TheWorld_Utils::TerrainEdit::TerrainType getTerrainType(void)
 			{
 				return m_terrainEdit.terrainType;
+			}
+			bool editMode(void) const
+			{
+				return m_editMode;
+			}
+			void editMode(bool b)
+			{
+				m_editMode = b;
 			}
 
 		private:
@@ -433,6 +445,7 @@ namespace godot
 			bool m_quadrantReady = false;
 
 			TheWorld_Utils::TerrainEdit m_terrainEdit;
+			bool m_editMode = false;
 		};
 
 		class MapQuadrantOverrideContainer : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantOverride>>
@@ -820,8 +833,9 @@ namespace godot
 		void releaseQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		MapQuadrantOverride* getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
-		void addEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::TerrainEdit& terrainEdit);
+		MapQuadrantOverride* addEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::TerrainEdit& terrainEdit);
 		void removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+		void editMode(TheWorld_Utils::QuadrantPos& quadrantPos, bool b);
 
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
@@ -2848,6 +2862,7 @@ namespace godot
 		// Node cache
 		GDN_TheWorld_Globals* m_globals = nullptr;
 		GDN_TheWorld_Edit* m_editModeUIControl;
+		TheWorld_Utils::QuadrantPos m_selectedMapQuadrant;
 		//Ref<ShaderMaterial> m_regularMaterial;
 		//Ref<ShaderMaterial> m_lookDevMaterial;
 		

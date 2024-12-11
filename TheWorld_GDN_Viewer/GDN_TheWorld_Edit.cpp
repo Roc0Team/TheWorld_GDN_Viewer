@@ -32,6 +32,7 @@
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/classes/sprite2d.hpp>
 #include <godot_cpp/classes/plane_mesh.hpp>
+#include <godot_cpp/classes/input.hpp>
 #pragma warning (pop)
 
 #include <string>
@@ -42,7 +43,7 @@
 
 #define SERVER_INFO_BUTTON_TEXT L"Server Info"
 #define TERRAIN_INFO_BUTTON_TEXT L"Terrain Info"
-#define NOISE_BUTTON_TEXT L"Terrain Generation"
+#define TERRAIN_GENERATION_BUTTON_TEXT L"Terrain Generation"
 #define TERRAIN_EDIT_BUTTON_TEXT L"Quadrant Texture Edit"
 #define TERRAIN_BLENDING_BUTTON_TEXT L"Terrain Blending"
 
@@ -55,6 +56,7 @@ const std::string c_rocksEditTextureName = "Rocks Texture";
 
 void GDN_TheWorld_Edit::_bind_methods()
 {
+	ClassDB::bind_method(D_METHOD("expand_server_info_panel"), &GDN_TheWorld_Edit::expandServerInfoPanel);
 	ClassDB::bind_method(D_METHOD("edit_mode_generate"), &GDN_TheWorld_Edit::editModeGenerateAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_set_generate_cursor"), &GDN_TheWorld_Edit::editModeSetGenerateCursor);
 	ClassDB::bind_method(D_METHOD("edit_mode_blend"), &GDN_TheWorld_Edit::editModeBlendAction);
@@ -185,6 +187,10 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			m_lastElapsed = partialCount - m_elapsedCompleted;
 			m_elapsedCompleted = partialCount;
 		}
+		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES)
+		{
+			m_uploadQuadrantOverridesInProgress = false;
+		}
 		else
 		{
 			m_viewer->Globals()->setStatus(TheWorldStatus::error);
@@ -207,7 +213,10 @@ void GDN_TheWorld_Edit::editModeMouseEnteredEditPanel(void)
 {
 	m_requiredUIAcceptFocus = true;
 	//setUIAcceptFocus(true);
-	m_innerData->m_mouseInsideEditPanel = true;
+	if (m_innerData.get() != nullptr)
+	{
+		m_innerData->m_mouseInsideEditPanel = true;
+	}
 }
 
 void GDN_TheWorld_Edit::editModeMouseExitedEditPanel(void)
@@ -215,7 +224,9 @@ void GDN_TheWorld_Edit::editModeMouseExitedEditPanel(void)
 	m_requiredUIAcceptFocus = false;
 	//setUIAcceptFocus(false);
 	if (m_innerData.get() != nullptr)
+	{
 		m_innerData->m_mouseInsideEditPanel = false;
+	}
 }
 
 bool GDN_TheWorld_Edit::UIAcceptingFocus(void) const
@@ -299,8 +310,10 @@ void GDN_TheWorld_Edit::mapMode(bool b)
 			m_innerData->m_terrTypeButton->set_visible(false);
 	}
 
-	if (m_innerData->m_terrTypeButton != nullptr)
-		m_innerData->m_terrTypeButton->set_pressed(false);
+	//if (m_innerData->m_terrTypeButton != nullptr)
+	//{
+	//	editingMap(false);
+	//}
 }
 
 bool GDN_TheWorld_Edit::editingMap(void)
@@ -319,6 +332,34 @@ bool GDN_TheWorld_Edit::editingMap(TheWorld_Utils::TerrainEdit& terrainEdit)
 		return false;
 }
 
+void GDN_TheWorld_Edit::editingMap(bool b)
+{
+	if (m_innerData->m_terrTypeButton == nullptr)
+		return;
+
+	if (b)
+	{
+		m_innerData->m_terrTypeButton->set_pressed(true);
+	}
+	else
+	{
+		m_innerData->m_terrTypeButton->set_pressed(false);
+	}
+}
+
+void GDN_TheWorld_Edit::setEditingMapMouseShape(bool b)
+{
+	if (b)
+	{
+		if (m_innerData->m_dragCursorShape != nullptr)
+			godot::Input::get_singleton()->set_custom_mouse_cursor(m_innerData->m_dragCursorShape, godot::Input::CursorShape::CURSOR_ARROW, m_innerData->m_dragCursorShapeSize / 2);
+	}
+	else
+	{
+		godot::Input::get_singleton()->set_custom_mouse_cursor(nullptr);
+	}
+}
+
 void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_innerData = std::make_unique<InnerData>();
@@ -328,10 +369,28 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	//TheWorld_Utils::WorldModifierPos pos(0, 4096, 4096, TheWorld_Utils::WMType::elevator, 0);
 	//m_wms[pos] = std::make_unique<TheWorld_Utils::WorldModifier>(pos, TheWorld_Utils::WMFunctionType::ConsiderMinMax, 10000.0f, 0.0f, 200.0f, TheWorld_Utils::WMOrder::MaxEffectOnWM);
 
+	godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
+	
+	{
+		godot::Ref<godot::Texture2D> tex = resLoader->load("res://addons/twviewer/assets/cursors/grab.png");
+		if (tex != nullptr)
+		{
+			godot::Ref<godot::Image> image = tex->get_image();
+			image->resize(16, 16);
+			godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+			m_innerData->m_dragCursorShape = tex;
+			m_innerData->m_dragCursorShapeSize = m_innerData->m_dragCursorShape->get_size();
+		}
+		//m_innerData->m_dragCursorShape = resLoader->load("res://addons/twviewer/assets/cursors/grab.png");
+		//if (m_innerData->m_dragCursorShape != nullptr)
+		//{
+		//	m_innerData->m_dragCursorShapeSize = m_innerData->m_dragCursorShape->get_size();
+		//}
+	}
+
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 
 	{
-		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
 		for (int terrainTypeInt = minTerrainTypeValue; terrainTypeInt <= maxTerrainTypeValue; terrainTypeInt++)
 		{
 			TheWorld_Utils::TerrainEdit::TerrainType terrainType = static_cast<TheWorld_Utils::TerrainEdit::TerrainType>(terrainTypeInt);
@@ -571,16 +630,16 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	}
 
 	{
-		m_innerData->m_noiseButton = createControl<godot::Button>(m_innerData->m_mainScrolledVBoxContainer, "NoisePanelToggle", (std::wstring(RIGHT_ARROW) + L" " + NOISE_BUTTON_TEXT).c_str(), "pressed", this, "void_signal_manager");
-		m_innerData->m_noiseButton->set_text_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_LEFT);
-		m_innerData->m_noiseButton->set_self_modulate(SECTION_BUTTON_COLOR);
+		m_innerData->m_terrGenerationButton = createControl<godot::Button>(m_innerData->m_mainScrolledVBoxContainer, "NoisePanelToggle", (std::wstring(RIGHT_ARROW) + L" " + TERRAIN_GENERATION_BUTTON_TEXT).c_str(), "pressed", this, "void_signal_manager");
+		m_innerData->m_terrGenerationButton->set_text_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_LEFT);
+		m_innerData->m_terrGenerationButton->set_self_modulate(SECTION_BUTTON_COLOR);
 
-		m_innerData->m_noiseVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
-		m_innerData->m_noiseVBoxContainer->hide();
+		m_innerData->m_terrGenerationVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
+		m_innerData->m_terrGenerationVBoxContainer->hide();
 
-		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);
+		separator = createControl<HSeparator>(m_innerData->m_terrGenerationVBoxContainer);
 		
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", " ");
 		godot::Vector2 size(140, 140);
 		m_innerData->m_terrTypeButton = createControl<godot::CheckButton>(hBoxContainer, "", "", "pressed", this, "edit_mode_set_generate_cursor");
@@ -588,7 +647,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_terrTypeButton->set_expand_icon(true);
 		m_innerData->m_terrTypeButton->set_visible(false);
 
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		m_innerData->m_terrTypeOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_terr_type");
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::notset).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset);
 		m_innerData->m_terrTypeOptionButton->add_separator();
@@ -608,6 +667,12 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_3_grow).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_3_grow);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_4).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_4);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_4_grow).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::high_mountains_4_grow);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::desert_flat_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::desert_flat_1);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::desert_low_dunes).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::desert_low_dunes);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::desert_low_mountains).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::desert_low_mountains);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::desert_low_mountains_grow).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::desert_low_mountains_grow);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::desert_high_mountains_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::desert_high_mountains_1);
+		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::desert_high_mountains_1_grow).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::desert_high_mountains_1_grow);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::coastal).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::coastal);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_1);
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_2).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_2);
@@ -620,7 +685,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		button->set_self_modulate(BUTTON_COLOR);
 		separator = createControl<godot::VSeparator>(hBoxContainer);
 
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Seed");
 		m_innerData->m_seed = createControl<godot::LineEdit>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Frequency");
@@ -628,36 +693,36 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		label = createControl<godot::Label>(hBoxContainer, "", "Gain");
 		m_innerData->m_fractalGain = createControl<godot::LineEdit>(hBoxContainer);
 
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Octaves");
 		m_innerData->m_fractalOctaves = createControl<godot::LineEdit>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Lacunarity");
 		m_innerData->m_fractalLacunarity = createControl<godot::LineEdit>(hBoxContainer);
 
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Weighted Str.");
 		m_innerData->m_fractalWeightedStrength = createControl<godot::LineEdit>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Ping Pong Str.");
 		m_innerData->m_fractalPingPongStrength = createControl<godot::LineEdit>(hBoxContainer);
 
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Ampl.");
 		m_innerData->m_amplitudeLabel = createControl<godot::LineEdit>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Jag Int.");
 		m_innerData->m_scaleFactorLabel = createControl<godot::LineEdit>(hBoxContainer);
 
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Min Height");
 		m_innerData->m_desideredMinHeightLabel = createControl<godot::LineEdit>(hBoxContainer);
 		m_innerData->m_ignoreDesideredMinHeightLabel = createControl<godot::CheckBox>(hBoxContainer);
 		m_innerData->m_ignoreDesideredMinHeightLabel->set_text("Ignore Min Height");
 		m_innerData->m_ignoreDesideredMinHeightLabel->set_toggle_mode(true);
 
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_noiseVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Post Generate Elevation");
 		m_innerData->m_postGenerateElevationLabel = createControl<godot::LineEdit>(hBoxContainer);
 
-		separator = createControl<HSeparator>(m_innerData->m_noiseVBoxContainer);
+		separator = createControl<HSeparator>(m_innerData->m_terrGenerationVBoxContainer);
 	}
 
 	{
@@ -997,7 +1062,7 @@ void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 	m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset));
 	godot::Ref<godot::Texture2D> emptyTexture;
 	m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
-	m_innerData->m_terrTypeButton->set_pressed(false);
+	editingMap(false);
 	m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 
 	m_infoLabelTextChanged = true;
@@ -1041,7 +1106,7 @@ void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 	m_innerData->m_selQuadSeaCheckBox->set_disabled(true);
 }
 
-void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit)
+void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit, bool activateEditingMap)
 {
 	int64_t id = m_innerData->m_terrTypeOptionButton->get_selected_id();
 	if (id != -1)
@@ -1060,12 +1125,13 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	if (m_innerData->m_terrainTypeIcons.contains(terrainEdit.terrainType))
 	{
 		m_innerData->m_terrTypeButton->set_button_icon(m_innerData->m_terrainTypeIcons[terrainEdit.terrainType]);
-		m_innerData->m_terrTypeButton->set_pressed(true);
+		if (activateEditingMap)
+			editingMap(true);
 	}
 	else
 	{
 		m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
-		m_innerData->m_terrTypeButton->set_pressed(false);
+		editingMap(false);
 	}
 
 	m_infoLabelTextChanged = true;
@@ -1783,18 +1849,18 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	godot::Size2 scrollableContentSize = m_innerData->m_mainScrolledVBoxContainer->get_rect().size;
 
 	float lookdevOptionButtonHeight = (float)m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
-	float noiseButtonHeight = (float)m_innerData->m_noiseButton->get_rect().size.height + 3;
+	float noiseButtonHeight = (float)m_innerData->m_terrGenerationButton->get_rect().size.height + 3;
 	float terrBlendingButtonHeight = (float)m_innerData->m_terrBlendingButton->get_rect().size.height + 3;
 	float terrEditButtonHeight = (float)m_innerData->m_terrEditButton->get_rect().size.height + 3;
 	float dummyLabelHeight = (float)m_innerData->m_dummyLabel->get_rect().size.height + 3;
 
 	static float noiseVBoxCExpandedHeight = 0;
 	float noiseVBoxCHeight;
-	if (m_innerData->m_noiseVBoxContainer->is_visible())
+	if (m_innerData->m_terrGenerationVBoxContainer->is_visible())
 	{
 		if (noiseVBoxCExpandedHeight == 0)
 		{
-			noiseVBoxCExpandedHeight = (float)m_innerData->m_noiseVBoxContainer->get_rect().size.height + 4;
+			noiseVBoxCExpandedHeight = (float)m_innerData->m_terrGenerationVBoxContainer->get_rect().size.height + 4;
 		}
 		noiseVBoxCHeight = noiseVBoxCExpandedHeight;
 	}
@@ -1877,10 +1943,35 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		return;
 
 	if (not m_viewer->editMode())
+	{
+		setEditingMapMouseShape(false);
 		return;
+	}
+
+	if (m_viewer->worldMode())
+	{
+		setEditingMapMouseShape(false);
+	}
+	else
+	{
+		if (mouseInsideEditPanel())
+		{
+			setEditingMapMouseShape(false);
+		}
+		else
+		{
+			if (m_innerData->m_terrTypeButton != nullptr)
+			{
+				if (m_innerData->m_terrTypeButton->is_pressed())
+					setEditingMapMouseShape(true);
+				else
+					setEditingMapMouseShape(false);
+			}
+		}
+	}
 
 	QuadTree* quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
 	//if (m_innerData->m_mainScrolledVBoxContainer != nullptr)
 	//{
@@ -1888,8 +1979,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	//	float scrollableContentHeight2 = m_innerData->m_mainScrolledVBoxContainer->get_rect().size.height;
 	//	
 	//	float lookdevOptionButtonHeight = m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
-	//	float noiseButtonHeight = m_innerData->m_noiseButton->get_rect().size.height + 3;
-	//	float noiseVBoxCHeight = m_innerData->m_noiseVBoxContainer->is_visible() ? m_innerData->m_noiseVBoxContainer->get_rect().size.height + 4 : 0;
+	//	float noiseButtonHeight = m_innerData->m_terrGenerationButton->get_rect().size.height + 3;
+	//	float noiseVBoxCHeight = m_innerData->m_terrGenerationVBoxContainer->is_visible() ? m_innerData->m_terrGenerationVBoxContainer->get_rect().size.height + 4 : 0;
 	//	float terrEditButtonHeight = m_innerData->m_terrEditButton->get_rect().size.height + 3;
 	//	float terrEditVBoxcHeight = m_innerData->m_terrEditVBoxContainer->is_visible() ? m_innerData->m_terrEditVBoxContainer->get_rect().size.height + 4 : 0;
 	//	float dummyLabelHeight = m_innerData->m_dummyLabel->get_rect().size.height + 3;
@@ -2202,6 +2293,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		m_innerData->m_elapsedLabel->set_text(m_innerData->m_elapsed.c_str());
 		m_innerData->m_elapsed1Label->set_text((m_innerData->m_counterStr + " " + m_innerData->m_note1Str).c_str());
 		
+		m_scrollPanelsNeedResize = true;
+
 		m_infoLabelTextChanged = false;
 	}
 
@@ -2231,7 +2324,7 @@ void GDN_TheWorld_Edit::changeTextureAction()
 		return;
 
 	QuadTree* quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
 	if (quadTreeSel == nullptr)
 		return;
@@ -2353,6 +2446,47 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 	return wnd;
 }
 
+void GDN_TheWorld_Edit::expandServerInfoPanel(void)
+{
+	bool visible = m_innerData->m_serverInfoVBoxContainer->is_visible();
+	if (not visible)
+	{
+		m_innerData->m_serverInfoVBoxContainer->show();
+		m_innerData->m_serverInfoButton->set_text((std::wstring(DOWN_ARROW) + L" " + SERVER_INFO_BUTTON_TEXT).c_str());
+		m_scrollPanelsNeedResize = true;
+	}
+}
+
+void GDN_TheWorld_Edit::compressServerInfoPanel(void)
+{
+	if (m_innerData->m_serverInfoVBoxContainer->is_visible())
+	{
+		m_innerData->m_serverInfoVBoxContainer->hide();
+		m_innerData->m_serverInfoButton->set_text((std::wstring(RIGHT_ARROW) + L" " + SERVER_INFO_BUTTON_TEXT).c_str());
+		m_scrollPanelsNeedResize = true;
+	}
+}
+
+void GDN_TheWorld_Edit::expandTerrainGenerationPanel(void)
+{
+	if (not m_innerData->m_terrGenerationVBoxContainer->is_visible())
+	{
+		m_innerData->m_terrGenerationVBoxContainer->show();
+		m_innerData->m_terrGenerationButton->set_text((std::wstring(DOWN_ARROW) + L" " + TERRAIN_GENERATION_BUTTON_TEXT).c_str());
+		m_scrollPanelsNeedResize = true;
+	}
+}
+
+void GDN_TheWorld_Edit::compressTerrainGenerationPanel(void)
+{
+	if (m_innerData->m_terrGenerationVBoxContainer->is_visible())
+	{
+		m_innerData->m_terrGenerationVBoxContainer->hide();
+		m_innerData->m_terrGenerationButton->set_text((std::wstring(RIGHT_ARROW) + L" " + TERRAIN_GENERATION_BUTTON_TEXT).c_str());
+		m_scrollPanelsNeedResize = true;
+	}
+}
+
 void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
 {
 	//m_viewer->Globals()->debugPrint("GDN_TheWorld_Edit::voidSignalManager", true);
@@ -2365,15 +2499,15 @@ void GDN_TheWorld_Edit::voidSignalManager(godot::Object* obj, godot::String sign
 	{
 		if (_objectName == "NoisePanelToggle" && _className == "class godot::Button")
 		{
-			if (m_innerData->m_noiseVBoxContainer->is_visible())
+			if (m_innerData->m_terrGenerationVBoxContainer->is_visible())
 			{
-				m_innerData->m_noiseVBoxContainer->hide();
-				((godot::Button*)obj)->set_text((std::wstring(RIGHT_ARROW) + L" " + NOISE_BUTTON_TEXT).c_str());
+				m_innerData->m_terrGenerationVBoxContainer->hide();
+				((godot::Button*)obj)->set_text((std::wstring(RIGHT_ARROW) + L" " + TERRAIN_GENERATION_BUTTON_TEXT).c_str());
 			}
 			else
 			{
-				m_innerData->m_noiseVBoxContainer->show();
-				((godot::Button*)obj)->set_text((std::wstring(DOWN_ARROW) + L" " + NOISE_BUTTON_TEXT).c_str());
+				m_innerData->m_terrGenerationVBoxContainer->show();
+				((godot::Button*)obj)->set_text((std::wstring(DOWN_ARROW) + L" " + TERRAIN_GENERATION_BUTTON_TEXT).c_str());
 			}
 
 			m_scrollPanelsNeedResize = true;
@@ -2589,7 +2723,7 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 		
 		if ( (_objectName == "LowElevationTexPanel" || _objectName == "HighElevationTexPanel" || _objectName == "DirtTexPanel" || _objectName == "RocksTexPanel")
 			&& eventMouseButton != nullptr && eventMouseButton->is_double_click() && eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT
-			&& m_viewer->isQuadrantSelectedForEdit())
+			&& m_viewer->isWorldQuadrantSelectedForEdit())
 		{
 			//accept_event();
 			
@@ -2773,7 +2907,7 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 		if (!m_innerData->m_pressedViaCode)
 		{
 			QuadTree* quadTreeSel = nullptr;
-			TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+			TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 			if (quadTreeSel != nullptr)
 			{
 				TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
@@ -2966,7 +3100,7 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 		return;
 	}
 
-	setMessage(godot::String("Uploading..."));
+	setMessage(godot::String("Uploading world quadrants..."));
 
 	m_actionClock.tick();
 
@@ -2976,7 +3110,7 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 		std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 
 		QuadTree* quadTreeSel = nullptr;
-		TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+		TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 		bool allCheched = m_innerData->m_allCheckBox->is_pressed();
 		if (!allCheched && (quadrantSelPos.empty() or !quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer))
 		{
@@ -3044,7 +3178,75 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 	
 	while (!m_actionStopRequested && m_allItems > m_completedItems)
 		Sleep(10);
-	
+
+	m_uploadQuadrantOverridesInProgress = false;
+	std::list<TheWorld_Utils::QuadrantPos> list;
+	GDN_TheWorld_Map* map = m_viewer->Map();
+	map->getAllMapQuadrantOverridePos(list, true);
+	if (list.size() > 0)
+	{
+		setMessage(godot::String("Uploading map quadrants..."));
+
+		call_deferred("expand_server_info_panel");
+		
+		std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+
+		m_uploadQuadrantOverridesInProgress = true;
+
+		TheWorld_Utils::MemoryBuffer buffer;
+		buffer.reserve(10000);		// preallocation for optimization purpose
+
+		*buffer.ptr() = '0';
+		size_t cursor = 1;
+		buffer.adjustSize(cursor);
+
+		size_t size;
+		TheWorld_Utils::serializeToByteStream<size_t>(list.size(), buffer.ptr() + cursor, size);
+		buffer.adjustCursorAndSize(cursor, size);
+
+		for (auto& item : list)
+		{
+			{
+				// TheWorld_Utils::QuadrantPos
+
+				TheWorld_Utils::MemoryBuffer quadrantPosBuffer;
+				item.serialize(quadrantPosBuffer);
+				buffer.reserve(cursor + sizeof(size_t));				// to avoid memory overflow
+				TheWorld_Utils::serializeToByteStream<size_t>(quadrantPosBuffer.size(), buffer.ptr() + cursor, size);
+				buffer.adjustCursorAndSize(cursor, size);
+				buffer.reserve(cursor + quadrantPosBuffer.size());		// to avoid memory overflow
+				memcpy(buffer.ptr() + cursor, quadrantPosBuffer.ptr(), quadrantPosBuffer.size());
+				buffer.adjustCursorAndSize(cursor, quadrantPosBuffer.size());
+			}
+
+			GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride = map->getMapQuadrantOverride(item);
+			TheWorld_Utils::TerrainEdit terrainEdit = mapQuadrantOverride->terrainEdit();
+
+			{
+				// TheWorld_Utils::TerrainEdit
+
+				TheWorld_Utils::MemoryBuffer terrainEditBuffer;
+				terrainEdit.serialize(terrainEditBuffer);
+				buffer.reserve(cursor + sizeof(size_t));				// to avoid memory overflow
+				TheWorld_Utils::serializeToByteStream<size_t>(terrainEditBuffer.size(), buffer.ptr() + cursor, size);
+				buffer.adjustCursorAndSize(cursor, size);
+				buffer.reserve(cursor + terrainEditBuffer.size());		// to avoid memory overflow
+				memcpy(buffer.ptr() + cursor, terrainEditBuffer.ptr(), terrainEditBuffer.size());
+				buffer.adjustCursorAndSize(cursor, terrainEditBuffer.size());
+			}
+		}
+
+		int numVerticesPerSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
+		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+		int lvl = m_viewer->getLevel();
+		std::string strBuffer;
+		buffer.toString(strBuffer);
+		m_viewer->Globals()->Client()->MapManagerUploadQuadrantOverrides(m_viewer->isInEditor(), numVerticesPerSize, gridStepInWU, lvl, strBuffer);
+	}
+
+	while (m_uploadQuadrantOverridesInProgress)
+		Sleep(10);
+
 	m_actionClock.tock();
 
 	m_actionInProgress = false;
@@ -3086,6 +3288,15 @@ void GDN_TheWorld_Edit::editModeSetGenerateCursor(void)
 		if (selectedTerrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset)
 			m_innerData->m_terrTypeButton->set_pressed(false);
 	}
+
+	if (m_innerData->m_terrTypeButton->is_pressed())
+	{
+		editingMap(true);
+	}
+	else
+	{
+		editingMap(false);
+	}
 }
 
 void GDN_TheWorld_Edit::editModeGenerate(void)
@@ -3101,7 +3312,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	m_actionClock.tick();
 
 	QuadTree* quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
 	if (quadrantSelPos.empty())
 	{
@@ -3337,7 +3548,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 	bool allCheched = m_innerData->m_blendAllCheckBox->is_pressed();
 
 	QuadTree* quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
 	if (quadrantSelPos.empty())
 	{
@@ -3789,7 +4000,7 @@ void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 	m_actionClock.tick();
 
 	QuadTree* quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
 	if (!allCheched && quadrantSelPos.empty())
 	{
@@ -3875,7 +4086,7 @@ void GDN_TheWorld_Edit::editModeGenNormals_1(bool forceGenSelectedQuad, bool eva
 	m_actionClock.tick();
 
 	QuadTree* quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
 	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
 
@@ -4184,7 +4395,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 	m_actionClock.tick();
 
 	QuadTree* quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getQuadrantSelForEdit(&quadTreeSel);
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
 	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
 
@@ -4439,7 +4650,7 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 	TheWorld_Utils::TerrainEdit terrainEdit(terrainType);
 
 	QuadTree* selectedQuadTree = nullptr;
-	TheWorld_Utils::QuadrantPos selectedQuadrantPos = m_viewer->getQuadrantSelForEdit(&selectedQuadTree);
+	TheWorld_Utils::QuadrantPos selectedQuadrantPos = m_viewer->getWorldQuadrantSelForEdit(&selectedQuadTree);
 	if (!selectedQuadrantPos.empty() && selectedQuadTree != nullptr)
 	{
 		TheWorld_Utils::TerrainEdit* northSideTerrainEdit = nullptr;

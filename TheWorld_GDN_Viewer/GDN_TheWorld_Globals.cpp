@@ -232,6 +232,24 @@ namespace godot
 		}
 	}
 
+	void GDN_TheWorld_Globals_Client::MapManagerUploadQuadrantOverrides(bool isInEditor, int numVerticesPerSize, float gridStepInWU, int level, std::string& buffer)
+	{
+		std::vector<ClientServerVariant> inputParams;
+		inputParams.push_back(isInEditor);
+		inputParams.push_back(size_t(numVerticesPerSize));
+		inputParams.push_back(gridStepInWU);
+		inputParams.push_back(level);
+		std::vector<unsigned char> _buffer(buffer.begin(), buffer.end());
+		inputParams.push_back(_buffer);
+		std::string ref;
+		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES, ref, inputParams, THEWORLD_CLIENTSERVER_DEFAULT_TIME_TO_LIVE, m_globals->Viewer());
+		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
+		{
+			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES " error ") + std::to_string(rc);
+			throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", rc));
+		}
+	}
+
 	void GDN_TheWorld_Globals_Client::MapManagerDeployLevel(bool isInEditor, int level, size_t numVerticesPerSize, float gridStepInWU, bool setCamera, float cameraX, float cameraY, float cameraZ, float cameraDistanceFromTerrainForced, float cameraYaw, float cameraPitch, float cameraRoll)
 	{
 		std::vector<ClientServerVariant> inputParams;

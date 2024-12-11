@@ -412,6 +412,7 @@ namespace godot
 				if (!m_internalDataLocked)
 				{
 					m_internalDataLocked = true;
+					m_internalDataLockingTid = GetCurrentThreadId();
 					lockAcquired = true;
 				}
 			}
@@ -422,9 +423,14 @@ namespace godot
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
 			if (m_internalDataLocked)
+			{
 				m_internalDataLocked = false;
+			}
 			else
+			{
 				m_internalDataLocked = false;
+			}
+			m_internalDataLockingTid = 0;
 		}
 
 		bool internalDataLocked() const
@@ -623,6 +629,7 @@ namespace godot
 		std::unique_ptr<ShaderTerrainData> m_shaderTerrainData;
 		bool m_needUploadToServer;
 		bool m_internalDataLocked;
+		DWORD m_internalDataLockingTid = 0;
 		std::recursive_mutex m_mtxInternalData;
 		bool m_empty;
 

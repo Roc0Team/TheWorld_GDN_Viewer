@@ -658,6 +658,51 @@ namespace TheWorld_ClientServer
 
 				reply->replyComplete();
 			}
+			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES)
+			{
+				TheWorld_Utils::GuardProfiler profiler(std::string("Upload quadrant overrides ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES);
+			
+				bool* isInEditor = std::get_if<bool>(&reply->m_inputParams[0]);
+				if (isInEditor == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "First param must be a bool");
+					return;
+				}
+
+				size_t* numVerticesPerSize = std::get_if<size_t>(&reply->m_inputParams[1]);
+				if (numVerticesPerSize == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Second param must be a size_t");
+					return;
+				}
+
+				float* gridStepInWU = std::get_if<float>(&reply->m_inputParams[2]);
+				if (gridStepInWU == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Third param must be a float");
+					return;
+				}
+
+				int* level = std::get_if<int>(&reply->m_inputParams[3]);
+				if (level == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Forth param must be an int");
+					return;
+				}
+
+				std::vector<unsigned char>* _buffer = std::get_if<std::vector<unsigned char>>(&reply->m_inputParams[4]);
+				if (_buffer == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Fifth param must be an std::string");
+					return;
+				}
+				std::string buffer(_buffer->begin(), _buffer->end());
+
+				TheWorld_MapManager::MapManager* mapManager = m_threadContextPool->getCurrentContext()->getMapManager();
+				mapManager->uploadMapQuadrantOverrides(*isInEditor, (int)*numVerticesPerSize, *gridStepInWU, *level, buffer);
+
+				reply->replyComplete();
+			}
 			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_DEPLOYLEVEL)
 			{
 				TheWorld_Utils::GuardProfiler profiler(std::string("DeployLevel ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_DEPLOYLEVEL);

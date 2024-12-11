@@ -403,6 +403,19 @@ namespace godot
 			{
 				return !overrideTerrainTypeNull();
 			}
+			bool edited(void) const
+			{
+				return overrideTerrainTypeSet();
+			}
+			void resetEditedStatus(void)
+			{
+				if (edited())
+				{
+					TheWorld_Utils::TerrainEdit nullTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+					terrainEdit(nullTerrainEdit);
+					applyTexture();
+				}
+			}
 			bool canBeErased(void) const
 			{
 				if (overrideTerrainTypeNull() and not quadrantActuallyInWorld())
@@ -421,7 +434,7 @@ namespace godot
 			{
 				return m_terrainEdit;
 			}
-			TheWorld_Utils::TerrainEdit::TerrainType getTerrainType(void)
+			TheWorld_Utils::TerrainEdit::TerrainType getTerrainType(void) const
 			{
 				return m_terrainEdit.terrainType;
 			}
@@ -832,6 +845,7 @@ namespace godot
 		MapTextureRect::MapQuadrantTextureOverride* getQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing = false);
 		void releaseQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+		void getAllMapQuadrantOverridePos(std::list<TheWorld_Utils::QuadrantPos>& list, bool onlyEdited = false);
 		MapQuadrantOverride* getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		MapQuadrantOverride* addEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::TerrainEdit& terrainEdit);
 		void removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
@@ -882,6 +896,7 @@ namespace godot
 		void init(GDN_TheWorld_Viewer* viewer);
 		void setPos(godot::Size2& windowSize);
 		void setLoadingProgress(float v);
+		void resetLoadingProgress(void);
 		void showLoadingBar(bool reset = true);
 		void hideLoadingBar(void);
 		bool isLoadingBarVisibile(void);
@@ -1612,7 +1627,11 @@ namespace godot
 			return trackMouse();
 		}
 		//void toggleFullScreen(void);
-		void toggleQuadrantSelected(void);
+		void toggleWorldQuadrantSelected(void);
+		void selectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void deselectWorldQuadrant(void);
+		void selectMapQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void deselectMapQuadrant(void);
 		godot::Camera3D* getWorldCamera(void);
 		godot::Camera3D* getWorldCamera2(bool force = false);
 		godot::Camera2D* getMapCamera(void);
@@ -2014,10 +2033,10 @@ namespace godot
 		{
 			if (m_gridOn != b)
 			{
-				if (isQuadrantSelectedForEdit())
+				if (isWorldQuadrantSelectedForEdit())
 				{
 					QuadTree* quadTreeSelectedForEdit = nullptr;
-					TheWorld_Utils::QuadrantPos pos = getQuadrantSelForEdit(&quadTreeSelectedForEdit);
+					TheWorld_Utils::QuadrantPos pos = getWorldQuadrantSelForEdit(&quadTreeSelectedForEdit);
 					quadTreeSelectedForEdit->materialParamsNeedUpdate(true);
 				}
 
@@ -2055,110 +2074,10 @@ namespace godot
 						m_positionDrawer->updateSphere(m_spherePositionEndIdx, godot::Vector3(), 0.0f);
 				}
 		}
-		bool isInputEventTracked(TrackedInputEvent::TrackedInputEventType eventType, TrackedInputEvent* trackedInputEvent, TrackedInputEventContainer* inputEvents = nullptr)
-		{
-			if (inputEvents == nullptr)
-				inputEvents = &m_trackedInputEventsForProcess;
-
-			TrackedInputEvent event(nullptr, eventType);
-			if (inputEvents->contains(event))
-			{
-				if (trackedInputEvent != nullptr)
-				{
-					TrackedInputEventContainer::iterator it = inputEvents->find(event);
-					*trackedInputEvent = it->first;
-				}
-				return true;
-			}
-			else
-				return false;
-		}
-		void compressTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr)
-		{
-			if (inputEvents == nullptr)
-				inputEvents = &m_trackedInputEventsForProcess;
-
-			if (!m_trackedInputEvents.empty())
-			{
-				for (auto& trackedInputEvent : m_trackedInputEvents)
-				{
-					if (trackedInputEvent.isAvailable())
-					{
-						(*inputEvents)[trackedInputEvent] = true;
-						trackedInputEvent.reset();
-					}
-				}
-			}
-			
-			// DEBUG
-			//{
-			//	bool printHeader = true;
-			//	TrackedInputEvent trackedInputEvent;
-			//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT, &trackedInputEvent))
-			//	{
-			//		if (printHeader)
-			//		{
-			//			PLOG_DEBUG << "===============";
-			//			printHeader = false;
-			//		}
-			//		PLOG_DEBUG << "Mouse button LEFT " << trackedInputEvent.strTime();
-			//	}
-			//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT, &trackedInputEvent))
-			//	{
-			//		if (printHeader)
-			//		{
-			//			PLOG_DEBUG << "===============";
-			//			printHeader = false;
-			//		}
-			//		PLOG_DEBUG << "Mouse button RIGHT " << trackedInputEvent.strTime();
-			//	}
-			//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, &trackedInputEvent))
-			//	{
-			//		if (printHeader)
-			//		{
-			//			PLOG_DEBUG << "===============";
-			//			printHeader = false;
-			//		}
-			//		PLOG_DEBUG << "Double mouse button LEFT " << trackedInputEvent.strTime();
-			//	}
-			//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, &trackedInputEvent))
-			//	{
-			//		if (printHeader)
-			//		{
-			//			PLOG_DEBUG << "===============";
-			//			printHeader = false;
-			//		}
-			//		PLOG_DEBUG << "Double mouse button RIGHT " << trackedInputEvent.strTime();
-			//	}
-			//}
-			// DEBUG
-		}
-		void resetTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr)
-		{
-			if (inputEvents == nullptr)
-				inputEvents = &m_trackedInputEventsForProcess;
-
-			if (!inputEvents->empty())
-				inputEvents->clear();
-			if (!m_trackedInputEvents.empty())
-			{
-				bool allItemsReset = true;
-				for (auto& trackedInputEvent : m_trackedInputEvents)
-				{
-					//if (trackedInputEvent.isAvailable())		// trackedInputEvent was available to check so we can reset it now
-					//	trackedInputEvent.reset();
-					//else if (not trackedInputEvent.isReset())
-					//	allItemsReset = false;
-					if (not trackedInputEvent.isReset())
-						allItemsReset = false;
-				}
-
-				if (allItemsReset)
-					m_trackedInputEvents.clear();
-			}
-			else
-				assert(m_trackedInputEvents.empty());
-		}
+		
+		bool isInputEventTracked(TrackedInputEvent::TrackedInputEventType eventType, TrackedInputEvent* trackedInputEvent, TrackedInputEventContainer* inputEvents = nullptr);
+		void compressTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr);
+		void resetTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr);
 
 		bool mouseInsideMainEditPanel(void);
 
@@ -2571,6 +2490,10 @@ namespace godot
 		void worldQuadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos);
 
 	private:
+		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void doDeselectWorldQuadrant(void);
+		void doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void doDeselectMapQuadrant(void);
 		void _findChildNodes(godot::Array& foundNodes, godot::Array& searchNodes, String searchClass);
 		void onTransformChanged(void);
 		GDN_TheWorld_Camera* getCachedCustomWorldCamera(bool useCache = true)
@@ -2607,10 +2530,11 @@ namespace godot
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
 		void writeStatisticsNewQuadrants(void);
-		TheWorld_Utils::QuadrantPos getQuadrantSelForEdit(QuadTree** quadTreeSel);
-		bool isQuadrantSelectedForEdit(void);
+		TheWorld_Utils::QuadrantPos getWorldQuadrantSelForEdit(QuadTree** quadTreeSel);
+		bool isWorldQuadrantSelectedForEdit(void);
+		bool isMapQuadrantSelectedForEdit(void);
 		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized, bool& allVisibleQuadrantInitialized);
-		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea);
+		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea, bool adjustPositionOnTerrain = true);
 		bool gridDimensionChanged(void) const
 		{
 			return m_gridDimensionChanged;
@@ -2746,7 +2670,8 @@ namespace godot
 		TheWorld_Utils::QuadrantPos m_quadrantHitPos;
 		QuadTree* m_quadrantHit = nullptr;
 		std::list<QuadTree*> m_adjacentQuadrantsHit;
-		TheWorld_Utils::QuadrantPos m_quadrantSelPos;
+		TheWorld_Utils::QuadrantPos m_selectedMapQuadrantPos;
+		TheWorld_Utils::QuadrantPos m_selectedWorldQuadrantPos;
 		Chunk* m_mouseHitTerrainChunk = nullptr;
 		GDN_TheWorld_Drawer* m_normalDrawer = nullptr;
 		GDN_TheWorld_Drawer* m_positionDrawer = nullptr;
@@ -2862,7 +2787,6 @@ namespace godot
 		// Node cache
 		GDN_TheWorld_Globals* m_globals = nullptr;
 		GDN_TheWorld_Edit* m_editModeUIControl;
-		TheWorld_Utils::QuadrantPos m_selectedMapQuadrant;
 		//Ref<ShaderMaterial> m_regularMaterial;
 		//Ref<ShaderMaterial> m_lookDevMaterial;
 		

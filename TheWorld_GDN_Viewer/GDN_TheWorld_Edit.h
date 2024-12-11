@@ -90,8 +90,8 @@ namespace godot
 				m_mainPanelContainer = nullptr;
 				m_mainTabContainer = nullptr;
 				m_mainTerrainScrollContainer = nullptr;
-				m_noiseVBoxContainer = nullptr;
-				m_noiseButton = nullptr;
+				m_terrGenerationVBoxContainer = nullptr;
+				m_terrGenerationButton = nullptr;
 				m_terrEditVBoxContainer = nullptr;
 				m_terrEditButton = nullptr;
 				m_seed = nullptr;
@@ -192,8 +192,8 @@ namespace godot
 			godot::CheckBox* m_selQuadSeaCheckBox = nullptr;
 			bool m_pressedViaCode = false;
 
-			godot::Button* m_noiseButton;
-			godot::Control* m_noiseVBoxContainer;
+			godot::Button* m_terrGenerationButton;
+			godot::Control* m_terrGenerationVBoxContainer;
 			godot::LineEdit* m_seed;
 			godot::LineEdit* m_frequency;
 			godot::LineEdit* m_fractalOctaves;
@@ -268,6 +268,9 @@ namespace godot
 			enum class TheWorld_Utils::TerrainEdit::TerrainType m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 
 			std::map<TheWorld_Utils::TerrainEdit::TerrainType, godot::Ref<godot::Texture2D>> m_terrainTypeIcons;
+
+			godot::Ref<godot::ImageTexture> m_dragCursorShape;
+			godot::Vector2 m_dragCursorShapeSize;
 		};
 
 		enum class Margin {
@@ -316,6 +319,10 @@ namespace godot
 			return m_initialized;
 		}
 		godot::Window* initSelTexturePanel(void);
+		void expandServerInfoPanel(void);
+		void compressServerInfoPanel(void);
+		void expandTerrainGenerationPanel(void);
+		void compressTerrainGenerationPanel(void);
 		void voidSignalManager(godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
 		void guiInputEvent(const godot::Ref<godot::InputEvent>& event, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
 		void toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
@@ -374,7 +381,7 @@ namespace godot
 		godot::Ref<godot::Texture2D> getTextureByTerrainType(TheWorld_Utils::TerrainEdit::TerrainType terrainType);
 
 		void setEmptyTerrainEditValues(void);
-		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
+		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit, bool activateEditingMap = true);
 
 		void editModeMouseEnteredEditPanel(void);
 		void editModeMouseExitedEditPanel(void);
@@ -531,6 +538,8 @@ namespace godot
 
 		bool editingMap(void);
 		bool editingMap(TheWorld_Utils::TerrainEdit& terrainEdit);
+		void editingMap(bool b);
+		void setEditingMapMouseShape(bool b);
 		bool getEditedTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
 
 	private:
@@ -548,6 +557,7 @@ namespace godot
 		TimerMs m_refreshUI;
 		bool m_onGoingElapsedLabel;
 		//Color m_elapsedLabelNormalColor;
+		bool m_uploadQuadrantOverridesInProgress = false;;
 		size_t m_completedItems;
 		size_t m_elapsedCompleted;
 		size_t m_allItems;

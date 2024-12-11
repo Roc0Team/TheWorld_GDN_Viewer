@@ -1709,6 +1709,22 @@ void GDN_TheWorld_Map::releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPo
 	}
 }
 
+void GDN_TheWorld_Map::getAllMapQuadrantOverridePos(std::list<TheWorld_Utils::QuadrantPos>& list, bool onlyEdited)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+	list.clear();
+	for (auto& item : m_mapQuadrantOverrideContainer)
+	{
+		if (onlyEdited)
+		{
+			if (item.second->edited())
+				list.push_back(item.first);
+		}
+		else
+			list.push_back(item.first);
+	}
+}
+
 GDN_TheWorld_Map::MapQuadrantOverride* GDN_TheWorld_Map::getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos)
 {
 	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
@@ -1739,9 +1755,10 @@ void GDN_TheWorld_Map::removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantP
 	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
 	if (m_mapQuadrantOverrideContainer.contains(quadrantPos))
 	{
-		TheWorld_Utils::TerrainEdit nullTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
-		m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(nullTerrainEdit);
-		m_mapQuadrantOverrideContainer[quadrantPos]->applyTexture();
+		m_mapQuadrantOverrideContainer[quadrantPos]->resetEditedStatus();
+		//TheWorld_Utils::TerrainEdit nullTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+		//m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(nullTerrainEdit);
+		//m_mapQuadrantOverrideContainer[quadrantPos]->applyTexture();
 	}
 }
 
@@ -2650,16 +2667,27 @@ void GDN_TheWorld_HudControls::setPos(godot::Size2& windowSize)
 	}
 }
 
+void GDN_TheWorld_HudControls::resetLoadingProgress(void)
+{
+	m_loadingProgress = 0;
+}
+
 void GDN_TheWorld_HudControls::setLoadingProgress(float loadingProgress)
 {
 	if (m_loadingProgressBar != nullptr)
 	{
+		//if (m_loadingProgress == 100)
+		//	assert(m_loadingProgress == 100);
 		if (loadingProgress == 0)
 			m_loadingProgress = 0;
 		if (loadingProgress < m_loadingProgress)
-			loadingProgress = m_loadingProgress;
+		{
+			//loadingProgress = m_loadingProgress;
+		}
 		else
 			m_loadingProgress = loadingProgress;
+		//if (loadingProgress == 100)
+		//	assert(loadingProgress == 100);
 		m_loadingProgressBar->set_value(loadingProgress);
 	}
 }
@@ -3468,7 +3496,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				}
 				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
 				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
 				material->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, tex);
 			}
 
@@ -3499,7 +3527,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				}
 				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
 				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-				Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+				godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
 				material->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, tex);
 				//material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
 			}
@@ -3892,7 +3920,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_debug_visibility"), &GDN_TheWorld_Viewer::getDebugContentVisibility);
 	ClassDB::bind_method(D_METHOD("rotate_chunk_debug_mode"), &GDN_TheWorld_Viewer::rotateChunkDebugMode);
 	ClassDB::bind_method(D_METHOD("rotate_drawing_mode"), &GDN_TheWorld_Viewer::rotateDrawingMode);
-	ClassDB::bind_method(D_METHOD("toggle_quadrant_selected"), &GDN_TheWorld_Viewer::toggleQuadrantSelected);
+	ClassDB::bind_method(D_METHOD("toggle_quadrant_selected"), &GDN_TheWorld_Viewer::toggleWorldQuadrantSelected);
 	ClassDB::bind_method(D_METHOD("set_depth_quad"), &GDN_TheWorld_Viewer::setMinDepthQuadOnPerimeter);
 	ClassDB::bind_method(D_METHOD("get_depth_quad"), &GDN_TheWorld_Viewer::getMinDepthQuadOnPerimeter);
 	ClassDB::bind_method(D_METHOD("set_cache_quad"), &GDN_TheWorld_Viewer::setCacheQuadOnPerimeter);
@@ -5205,7 +5233,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 		return;
 	}
 
-	try
+	//try
 	{
 		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES)
 		{
@@ -5510,6 +5538,10 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 								quadTree->getQuadrant()->mapModderWorkDone(false);
 
+								GDN_TheWorld_Map* map = Map();
+								if (map != nullptr)
+									map->removeEditedMapQuadrantOverride(quadrantPos);
+
 								m_mtxQuadrantsAndMainProcessing.unlock();
 							}
 							
@@ -5524,28 +5556,50 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 				if (updateMapQuadrantMap)
 				{
-					m_mapQuadrantsMap.lock();
+					QuadTree* quadTree = nullptr;
+					m_mtxQuadrantsAndMainProcessing.lock();
+					if(m_worldQuadrantsMap.contains(quadrantPos))
+						quadTree = m_worldQuadrantsMap[quadrantPos].get();
+					m_mtxQuadrantsAndMainProcessing.unlock();
 
+					if (quadTree != nullptr)	// lock quadrant if is a world quadrant: to avoid concurrent acces to disk cache
+						while (quadTree->getQuadrant()->lockInternalData() == false)
+							Sleep(1);
+
+					MapQuadrantImage* mapQuadrant = nullptr;
+					m_mapQuadrantsMap.lock();
 					if (m_mapQuadrantsMap.contains(quadrantPos))
 					{
-						MapQuadrantImage* mapQuadrant = m_mapQuadrantsMap[quadrantPos].get();
-
-						std::string outMeshIdFromBuffer;
-						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
-						m_mapQuadrantsMap.addUpdatedQuadrant(quadrantPos);
+						mapQuadrant = m_mapQuadrantsMap[quadrantPos].get();
 					}
 					else
 					{
 						// clear everything
 						m_mapQuadrantsMap.erase(quadrantPos);
 					}
-
 #pragma warning(suppress: 26117)
 					m_mapQuadrantsMap.unlock();
+
+					if (mapQuadrant != nullptr)
+					{
+						std::string outMeshIdFromBuffer;
+						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
+						m_mapQuadrantsMap.addUpdatedQuadrant(quadrantPos);
+					}
+
+#pragma warning(suppress: 26117)
+					if (quadTree != nullptr)
+						quadTree->getQuadrant()->unlockInternalData();
 				}
 			}
 		}
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER)
+		{
+			GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+			if (editModeUIControl != nullptr && editModeUIControl->initialized())
+				editModeUIControl->replyFromServer(reply);
+		}
+		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES)
 		{
 			GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 			if (editModeUIControl != nullptr && editModeUIControl->initialized())
@@ -6094,16 +6148,16 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			Globals()->errorPrint((std::string("GDN_TheWorld_Viewer::replyFromServer: unknow method ") + method).c_str());
 		}
 	}
-	catch (GDN_TheWorld_Exception ex)
-	{
-		Globals()->setStatus(TheWorldStatus::error);
-		Globals()->errorPrint(String(ex.exceptionName()) + String(" caught - ") + ex.what());
-	}
-	catch (...)
-	{
-		Globals()->setStatus(TheWorldStatus::error);
-		Globals()->errorPrint("GDN_TheWorld_Viewer::replyFromServer: exception caught");
-	}
+	//catch (GDN_TheWorld_Exception ex)
+	//{
+	//	Globals()->setStatus(TheWorldStatus::error);
+	//	Globals()->errorPrint(String(ex.exceptionName()) + String(" caught - ") + ex.what());
+	//}
+	//catch (...)
+	//{
+	//	Globals()->setStatus(TheWorldStatus::error);
+	//	Globals()->errorPrint("GDN_TheWorld_Viewer::replyFromServer: exception caught");
+	//}
 }
 
 void GDN_TheWorld_Viewer::_init(void)
@@ -6219,7 +6273,7 @@ bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)
 	return ret;
 }
 
-bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea)
+bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea, bool adjustPositionOnTerrain)
 {
 	bool ret = false;
 	GDN_TheWorld_Globals* globals = Globals();
@@ -6291,10 +6345,13 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 			activeWorldCamera->set_global_position(godot::Vector3(globalPosGroundZero.x, cameraAltitude, globalPosGroundZero.z));
 			godot::Transform3D newCameraT = activeWorldCamera->get_global_transform();
 			checkNewVisibleQuadrantsRectSize(newCameraT, oldCameraT);
-			GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
-			if (cam != nullptr)
+			if (adjustPositionOnTerrain)
 			{
-				cam->adjustPositionOnTerrainRequired(true, overSea);
+				GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
+				if (cam != nullptr)
+				{
+					cam->adjustPositionOnTerrainRequired(true, overSea);
+				}
 			}
 		}
 	}
@@ -6306,99 +6363,141 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 //{
 //}
 
-void GDN_TheWorld_Viewer::toggleQuadrantSelected(void)
+void GDN_TheWorld_Viewer::selectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
-	if (trackMouse())
+	if (isWorldQuadrantSelectedForEdit())
+		deselectWorldQuadrant();
+
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+		WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(pos);
+		if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
+		{
+			doSelectWorldQuadrant(pos);
+		}
+	}
+}
+
+void GDN_TheWorld_Viewer::doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos)
+{
+	QuadTree* quadTreeSel = nullptr;
+
+	m_selectedWorldQuadrantPos = pos;
+
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+		WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(m_selectedWorldQuadrantPos);
+		if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
+		{
+			quadTreeSel = it->second.get();
+			it->second->setEditModeQuadrantSelected(true);
+			it->second->materialParamsNeedReset(true);
+			call_deferred("emit_signal", "tw_quadrant_selected_for_edit", true);
+		}
+	}
+
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl == nullptr || !editModeUIControl->initialized())
+	{
+		createEditModeUI();
+		editModeUIControl = EditModeUIControl();
+		editModeUIControl->set_visible(false);
+	}
+	if (editModeUIControl != nullptr /* && m_editMode*/)
+	{
+		editModeUIControl->setMouseQuadSelLabelText(m_selectedWorldQuadrantPos.getName() + " " + m_selectedWorldQuadrantPos.getTag());
+		editModeUIControl->setMouseQuadSelPosLabelText(std::string("X=") + std::format("{:.2f}", m_selectedWorldQuadrantPos.getLowerXGridVertex()) + " Z=" + std::format("{:.2f}", m_selectedWorldQuadrantPos.getLowerZGridVertex()) + " " + std::format("{:.2f}", m_selectedWorldQuadrantPos.getSizeInWU()));
+		if (quadTreeSel != nullptr)
+		{
+			TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
+
+			TheWorld_Utils::TerrainEdit* northSideTerrainEdit = nullptr;
+			TheWorld_Utils::QuadrantPos pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+			QuadTree* q = getQuadTree(pos);
+			if (q != nullptr && !q->getQuadrant()->empty())
+				northSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+			TheWorld_Utils::TerrainEdit* southSideTerrainEdit = nullptr;
+			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
+			q = getQuadTree(pos);
+			if (q != nullptr && !q->getQuadrant()->empty())
+				southSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+			TheWorld_Utils::TerrainEdit* westSideTerrainEdit = nullptr;
+			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
+			q = getQuadTree(pos);
+			if (q != nullptr && !q->getQuadrant()->empty())
+				westSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+			TheWorld_Utils::TerrainEdit* eastSideTerrainEdit = nullptr;
+			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
+			q = getQuadTree(pos);
+			if (q != nullptr && !q->getQuadrant()->empty())
+				eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+			terrainEdit->adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);
+
+			editModeUIControl->setTerrainEditValues(*terrainEdit);
+		}
+	}
+}
+
+void GDN_TheWorld_Viewer::deselectWorldQuadrant(void)
+{
+	doDeselectWorldQuadrant();
+}
+
+void GDN_TheWorld_Viewer::doDeselectWorldQuadrant(void)
+{
+	if (m_selectedWorldQuadrantPos.uninitialized())
+		return;
+	
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+		WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(m_selectedWorldQuadrantPos);
+		if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
+		{
+			it->second->setEditModeQuadrantSelected(false);
+			it->second->materialParamsNeedReset(true);
+			call_deferred("emit_signal", "tw_quadrant_selected_for_edit", false);
+		}
+	}
+
+	m_selectedWorldQuadrantPos.reset();
+	
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl == nullptr || !editModeUIControl->initialized())
+	{
+		createEditModeUI();
+		editModeUIControl = EditModeUIControl();
+		editModeUIControl->set_visible(false);
+	}
+	if (editModeUIControl != nullptr /* && m_editMode*/)
+	{
+		editModeUIControl->setMouseQuadSelLabelText("");
+		editModeUIControl->setMouseQuadSelPosLabelText("");
+		//editModeUIControl->setEmptyTerrainEditValues();
+		//editModeUIControl->setElapsed(0, false);
+	}
+}
+
+void GDN_TheWorld_Viewer::toggleWorldQuadrantSelected(void)
+{
+	if (trackMouse() and editMode())
 	{
 		m_mouseQuadrantHitName = "";
 
-		QuadTree* quadTreeSel = nullptr;
-		if (m_quadrantSelPos.empty())
+		if (isWorldQuadrantSelectedForEdit())
 		{
-			if (!m_quadrantHitPos.empty())
-			{
-				m_quadrantSelPos = m_quadrantHitPos;
-
-				{
-					std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
-					WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(m_quadrantSelPos);
-					if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
-					{
-						quadTreeSel = it->second.get();
-						it->second->setEditModeQuadrantSelected(true);
-						it->second->materialParamsNeedReset(true);
-						call_deferred("emit_signal", "tw_quadrant_selected_for_edit", true);
-					}
-				}
-			}
+			deselectWorldQuadrant();
+			deselectMapQuadrant();
 		}
 		else
 		{
+			if (!m_quadrantHitPos.empty())
 			{
-				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
-				WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(m_quadrantSelPos);
-				if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
-				{
-					it->second->setEditModeQuadrantSelected(false);
-					it->second->materialParamsNeedReset(true);
-					call_deferred("emit_signal", "tw_quadrant_selected_for_edit", false);
-				}
-			}
-
-			m_quadrantSelPos.reset();
-		}
-
-		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-		if (editModeUIControl == nullptr || !editModeUIControl->initialized())
-		{
-			createEditModeUI();
-			editModeUIControl = EditModeUIControl();
-			editModeUIControl->set_visible(false);
-		}
-		if (editModeUIControl != nullptr /* && m_editMode*/)
-		{
-			if (m_quadrantSelPos.empty())
-			{
-				editModeUIControl->setMouseQuadSelLabelText("");
-				editModeUIControl->setMouseQuadSelPosLabelText("");
-				editModeUIControl->setEmptyTerrainEditValues();
-				editModeUIControl->setElapsed(0, false);
-			}
-			else
-			{
-				editModeUIControl->setMouseQuadSelLabelText(m_quadrantSelPos.getName() + " " + m_quadrantSelPos.getTag());
-				editModeUIControl->setMouseQuadSelPosLabelText(std::string("X=") + std::format("{:.2f}", m_quadrantSelPos.getLowerXGridVertex()) + " Z=" + std::format("{:.2f}", m_quadrantSelPos.getLowerZGridVertex()) + " " + std::format("{:.2f}", m_quadrantSelPos.getSizeInWU()));
-				if (quadTreeSel != nullptr)
-				{
-					TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
-
-					TheWorld_Utils::TerrainEdit* northSideTerrainEdit = nullptr;
-					TheWorld_Utils::QuadrantPos pos = m_quadrantSelPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-					QuadTree* q = getQuadTree(pos);
-					if (q != nullptr && !q->getQuadrant()->empty())
-						northSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
-					TheWorld_Utils::TerrainEdit* southSideTerrainEdit = nullptr;
-					pos = m_quadrantSelPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
-					q = getQuadTree(pos);
-					if (q != nullptr && !q->getQuadrant()->empty())
-						southSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
-					TheWorld_Utils::TerrainEdit* westSideTerrainEdit = nullptr;
-					pos = m_quadrantSelPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
-					q = getQuadTree(pos);
-					if (q != nullptr && !q->getQuadrant()->empty())
-						westSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
-					TheWorld_Utils::TerrainEdit* eastSideTerrainEdit = nullptr;
-					pos = m_quadrantSelPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
-					q = getQuadTree(pos);
-					if (q != nullptr && !q->getQuadrant()->empty())
-						eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
-					terrainEdit->adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);
-
-					editModeUIControl->setTerrainEditValues(*terrainEdit);
-				}
+				selectWorldQuadrant(m_quadrantHitPos);
+				selectMapQuadrant(m_quadrantHitPos);
 			}
 		}
 	}
+
 }
 
 void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
@@ -6563,7 +6662,7 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 
 	if (event->is_action_pressed("ui_select") && m_altPressed)
 	{
-		toggleQuadrantSelected();
+		toggleWorldQuadrantSelected();
 	}
 
 	if (event->is_action_pressed("ui_toggle_track_mouse"))
@@ -6656,7 +6755,7 @@ void GDN_TheWorld_Viewer::toggleMapView(void)
 				// SWITCHING TO WORLD MODE: world camera will not move (remaining where it was when map mode was activated)
 				{
 					godot::Vector2 worldPos(m_worldCameraWorldTransformForToggleToWorldMode.origin.x, m_worldCameraWorldTransformForToggleToWorldMode.origin.z);
-					setWorldCameraWorldPos(worldPos, m_altitudeForToggleToWorldMode, m_altitudeForToggleToWorldModeIsAbsolute, m_worldCameraWorldTransformForToggleToWorldMode, true);
+					setWorldCameraWorldPos(worldPos, m_altitudeForToggleToWorldMode, m_altitudeForToggleToWorldModeIsAbsolute, m_worldCameraWorldTransformForToggleToWorldMode, true, false);
 				}
 
 				mapMode(false);
@@ -7941,6 +8040,113 @@ godot::Control* GDN_TheWorld_Viewer::getOrCreateEditModeUIControl(void)
 	return editModeUIControl;
 }
 
+bool GDN_TheWorld_Viewer::isInputEventTracked(TrackedInputEvent::TrackedInputEventType eventType, TrackedInputEvent* trackedInputEvent, TrackedInputEventContainer* inputEvents)
+{
+	if (inputEvents == nullptr)
+		inputEvents = &m_trackedInputEventsForProcess;
+
+	TrackedInputEvent event(nullptr, eventType);
+	if (inputEvents->contains(event))
+	{
+		if (trackedInputEvent != nullptr)
+		{
+			TrackedInputEventContainer::iterator it = inputEvents->find(event);
+			*trackedInputEvent = it->first;
+		}
+		return true;
+	}
+	else
+		return false;
+}
+
+void GDN_TheWorld_Viewer::compressTrackedInputEvents(TrackedInputEventContainer* inputEvents)
+{
+	if (inputEvents == nullptr)
+		inputEvents = &m_trackedInputEventsForProcess;
+
+	if (!m_trackedInputEvents.empty())
+	{
+		for (auto& trackedInputEvent : m_trackedInputEvents)
+		{
+			if (trackedInputEvent.isAvailable())
+			{
+				(*inputEvents)[trackedInputEvent] = true;
+				trackedInputEvent.reset();
+			}
+		}
+	}
+
+	//// DEBUG
+	//{
+	//	bool printHeader = true;
+	//	TrackedInputEvent trackedInputEvent(nullptr);
+	//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT, &trackedInputEvent))
+	//	{
+	//		if (printHeader)
+	//		{
+	//			PLOG_DEBUG << "===============";
+	//			printHeader = false;
+	//		}
+	//		PLOG_DEBUG << "Mouse button LEFT " << trackedInputEvent.strTime();
+	//	}
+	//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT, &trackedInputEvent))
+	//	{
+	//		if (printHeader)
+	//		{
+	//			PLOG_DEBUG << "===============";
+	//			printHeader = false;
+	//		}
+	//		PLOG_DEBUG << "Mouse button RIGHT " << trackedInputEvent.strTime();
+	//	}
+	//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, &trackedInputEvent))
+	//	{
+	//		if (printHeader)
+	//		{
+	//			PLOG_DEBUG << "===============";
+	//			printHeader = false;
+	//		}
+	//		PLOG_DEBUG << "Double mouse button LEFT " << trackedInputEvent.strTime();
+	//	}
+	//	if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, &trackedInputEvent))
+	//	{
+	//		if (printHeader)
+	//		{
+	//			PLOG_DEBUG << "===============";
+	//			printHeader = false;
+	//		}
+	//		PLOG_DEBUG << "Double mouse button RIGHT " << trackedInputEvent.strTime();
+	//	}
+	//}
+	//// DEBUG
+}
+
+void GDN_TheWorld_Viewer::resetTrackedInputEvents(TrackedInputEventContainer* inputEvents)
+{
+	if (inputEvents == nullptr)
+		inputEvents = &m_trackedInputEventsForProcess;
+
+	if (!inputEvents->empty())
+		inputEvents->clear();
+	if (!m_trackedInputEvents.empty())
+	{
+		bool allItemsReset = true;
+		for (auto& trackedInputEvent : m_trackedInputEvents)
+		{
+			//if (trackedInputEvent.isAvailable())		// trackedInputEvent was available to check so we can reset it now
+			//	trackedInputEvent.reset();
+			//else if (not trackedInputEvent.isReset())
+			//	allItemsReset = false;
+			if (not trackedInputEvent.isReset())
+				allItemsReset = false;
+		}
+
+		if (allItemsReset)
+			m_trackedInputEvents.clear();
+	}
+	else
+		assert(m_trackedInputEvents.empty());
+}
+
 void GDN_TheWorld_Viewer::_process(double _delta)
 {
 	// To activate _process method add this Node to a Godot Scene
@@ -8637,27 +8843,9 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 
 			if (editModeUIControl->editingMap())
 			{
-				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT, &trackedInputEvent))
-				{
-					if (not m_selectedMapQuadrant.isInitialized())
-					{
-						godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
-						godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
-						godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
-						TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-
-						GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
-						if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
-						{
-							TheWorld_Utils::TerrainEdit terrainEdit = MapQuadrantOverride->terrainEdit();
-							editModeUIControl->setTerrainEditValues(terrainEdit);
-						}
-					}
-				}
-
 				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT, &trackedInputEvent))
 				{
-					if (not m_selectedMapQuadrant.isInitialized())
+					if (not m_selectedMapQuadrantPos.isInitialized())
 					{
 						godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
 						godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
@@ -8681,10 +8869,10 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 						else
 						{
 							// removing override
-							if (m_selectedMapQuadrant.isInitialized() and m_selectedMapQuadrant == pos)
+							if (m_selectedMapQuadrantPos.isInitialized() and m_selectedMapQuadrantPos == pos)
 							{
-								map->editMode(m_selectedMapQuadrant, false);
-								m_selectedMapQuadrant.reset();
+								map->editMode(m_selectedMapQuadrantPos, false);
+								m_selectedMapQuadrantPos.reset();
 							}
 							map->removeEditedMapQuadrantOverride(pos);
 						}
@@ -8692,63 +8880,38 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 				}
 			}
 
-			if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, &trackedInputEvent))
+			if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT, &trackedInputEvent))
 			{
-				TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
-				godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
-				godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
-				godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
-				TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-
-				bool sameQuadrant = false;
-				if (m_selectedMapQuadrant.isInitialized())
+				if (not m_selectedMapQuadrantPos.isInitialized())
 				{
-					map->editMode(m_selectedMapQuadrant, false);
-					if (m_selectedMapQuadrant == pos)
-						sameQuadrant = true;
-					m_selectedMapQuadrant.reset();
-				}
+					godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
+					godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
+					godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+					TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
 
-				GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
-				if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
-					terrainEdit = MapQuadrantOverride->terrainEdit();
-				else if (m_worldQuadrantsMap.contains(pos) and m_worldQuadrantsMap[pos]->statusInitialized())
-				{
-					TheWorld_Utils::TerrainEdit* t = m_worldQuadrantsMap[pos]->getQuadrant()->getTerrainEdit(false);
-					if (t != nullptr && t->terrainType != TheWorld_Utils::TerrainEdit::TerrainType::notset)
+					GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
+					if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
 					{
-						terrainEdit = *t;
-						MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEdit);
-					}
-				}
-
-				if (sameQuadrant)
-				{
-					// if double click on previously selected quadrant persist edit values
-					editModeUIControl->getEditedTerrainEditValues(terrainEdit);
-					if (terrainEdit.terrainType != TheWorld_Utils::TerrainEdit::TerrainType::notset)
-						MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEdit);
-				}
-
-				if (MapQuadrantOverride != nullptr and terrainEdit.terrainType != TheWorld_Utils::TerrainEdit::TerrainType::notset)
-				{
-					editModeUIControl->setTerrainEditValues(terrainEdit);
-					if (not sameQuadrant)
-					{
-						// if double click on previously selected quadrant quit edit mode but not reactivate it
-						map->editMode(pos, true);
-						m_selectedMapQuadrant = pos;
+						TheWorld_Utils::TerrainEdit terrainEdit = MapQuadrantOverride->terrainEdit();
+						editModeUIControl->setTerrainEditValues(terrainEdit, false);
 					}
 				}
 			}
 
+			if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, &trackedInputEvent))
+			{
+				godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
+				godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
+				godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+				TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+				selectMapQuadrant(pos);
+				selectWorldQuadrant(pos);
+			}
+
 			if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, &trackedInputEvent))
 			{
-				if (m_selectedMapQuadrant.isInitialized())
-				{
-					map->editMode(m_selectedMapQuadrant, false);
-					m_selectedMapQuadrant.reset();
-				}
+				deselectMapQuadrant();
+				deselectWorldQuadrant();
 			}
 		}
 	}
@@ -8771,6 +8934,79 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 				//adjustWorldCamera(desideredCameraWorldPos);
 			}
 		}
+	}
+}
+
+void GDN_TheWorld_Viewer::selectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
+{
+	doSelectMapQuadrant(pos);
+}
+
+void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
+{
+	bool sameQuadrant = false;
+	if (isMapQuadrantSelectedForEdit())
+	{
+		if (m_selectedMapQuadrantPos == pos)
+			sameQuadrant = true;
+	}
+
+	if (isMapQuadrantSelectedForEdit())
+		deselectMapQuadrant();
+
+	GDN_TheWorld_Map* map = Map();
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl != nullptr and editModeUIControl->initialized() and map != nullptr)
+	{
+		TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+		GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
+		if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
+			terrainEdit = MapQuadrantOverride->terrainEdit();
+		else if (m_worldQuadrantsMap.contains(pos) and m_worldQuadrantsMap[pos]->statusInitialized())
+		{
+			TheWorld_Utils::TerrainEdit* t = m_worldQuadrantsMap[pos]->getQuadrant()->getTerrainEdit(false);
+			if (t != nullptr && t->terrainType != TheWorld_Utils::TerrainEdit::TerrainType::notset)
+			{
+				terrainEdit = *t;
+				MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEdit);
+			}
+		}
+
+		if (sameQuadrant)
+		{
+			// if double click on previously selected quadrant persist edit values
+			editModeUIControl->getEditedTerrainEditValues(terrainEdit);
+			if (terrainEdit.terrainType != TheWorld_Utils::TerrainEdit::TerrainType::notset)
+				MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEdit);
+		}
+
+		if (MapQuadrantOverride != nullptr and terrainEdit.terrainType != TheWorld_Utils::TerrainEdit::TerrainType::notset)
+		{
+			editModeUIControl->setTerrainEditValues(terrainEdit);
+			if (not sameQuadrant)		// if double click on previously selected quadrant quit edit mode but not reactivate it
+			{
+				map->editMode(pos, true);
+				m_selectedMapQuadrantPos = pos;
+				selectWorldQuadrant(pos);
+			}
+		}
+
+		editModeUIControl->expandTerrainGenerationPanel();
+	}
+}
+
+void GDN_TheWorld_Viewer::deselectMapQuadrant(void)
+{
+	doDeselectMapQuadrant();
+}
+
+void GDN_TheWorld_Viewer::doDeselectMapQuadrant(void)
+{
+	GDN_TheWorld_Map* map = Map();
+	if (isMapQuadrantSelectedForEdit())
+	{
+		map->editMode(m_selectedMapQuadrantPos, false);
+		m_selectedMapQuadrantPos.reset();
 	}
 }
 
@@ -11449,7 +11685,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 1 ") + __FUNCTION__, "ReloadSelectedQuadrantShaderRequired");
 
 		QuadTree* quadTreeSel = nullptr;
-		TheWorld_Utils::QuadrantPos quadrantSelPos = getQuadrantSelForEdit(&quadTreeSel);
+		TheWorld_Utils::QuadrantPos quadrantSelPos = getWorldQuadrantSelForEdit(&quadTreeSel);
 
 		if (quadTreeSel != nullptr)
 		{
@@ -11894,7 +12130,7 @@ void GDN_TheWorld_Viewer::_physics_process(double _delta)
 	if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
 		return;
 
-	Input* input = Input::get_singleton();
+	godot::Input* input = godot::Input::get_singleton();
 
 	if (IS_EDITOR_HINT())
 	{
@@ -11930,7 +12166,8 @@ void GDN_TheWorld_Viewer::clearQuadTreeMap(void)
 	m_quadrantHit = nullptr;
 	m_adjacentQuadrantsHit.clear();
 	m_previousTrackedMouseHitInMap = godot::Vector3();
-	m_quadrantSelPos.reset();
+	m_selectedWorldQuadrantPos.reset();
+	m_selectedMapQuadrantPos.reset();
 }
 
 size_t GDN_TheWorld_Viewer::getExtraQuadsMapSize(void)
@@ -12465,18 +12702,26 @@ void GDN_TheWorld_Viewer::createEditModeUI(void)
 	}
 }
 
-bool GDN_TheWorld_Viewer::isQuadrantSelectedForEdit(void)
+bool GDN_TheWorld_Viewer::isWorldQuadrantSelectedForEdit(void)
 {
-	if (m_quadrantSelPos.empty())
+	if (m_selectedWorldQuadrantPos.empty())
 		return false;
 	else
 		return true;
 }
 
-TheWorld_Utils::QuadrantPos GDN_TheWorld_Viewer::getQuadrantSelForEdit(QuadTree** quadTreeSel)
+bool GDN_TheWorld_Viewer::isMapQuadrantSelectedForEdit(void)
+{
+	if (m_selectedMapQuadrantPos.empty())
+		return false;
+	else
+		return true;
+}
+
+TheWorld_Utils::QuadrantPos GDN_TheWorld_Viewer::getWorldQuadrantSelForEdit(QuadTree** quadTreeSel)
 {
 	*quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos ret = m_quadrantSelPos;
+	TheWorld_Utils::QuadrantPos ret = m_selectedWorldQuadrantPos;
 
 	if (ret.empty())
 		return ret;
@@ -13361,6 +13606,23 @@ int GDN_TheWorld_Viewer::getNumJoins(void) const
 
 float GDN_TheWorld_Viewer::getLoadingProgress()
 {
+	//if (recalcQuadrantsInViewNeeded())
+	//{
+	//	float loadingProgress = 0;
+	//	int numInitializedQuadrant = getNumInitializedQuadrants();
+	//	int numQuadrant = getNumQuadrants();
+	//	int maxNumQuadrant = getMaxNumQuadrants();
+	//	if (numQuadrant == 0 or maxNumQuadrant == 0 or numInitializedQuadrant == numQuadrant)
+	//		loadingProgress = 0;
+	//	else
+	//	{
+	//		int progress = numInitializedQuadrant * 100 / numQuadrant;
+	//		int totalProgress = numInitializedQuadrant * 100 / maxNumQuadrant;
+	//		loadingProgress = (float)totalProgress;
+	//	}
+	//	return loadingProgress;
+	//}
+	
 	// escludere cache quadrants
 	GDN_TheWorld_Globals* globals = Globals();
 	int _numReadyQuadrants = 0, _numQuadrants = 0;
@@ -13383,6 +13645,9 @@ float GDN_TheWorld_Viewer::getLoadingProgress()
 	if (numQuadrants > 1 and numReadyQuadrants > 0 and numReadyQuadrants <= numQuadrants)
 		loadingProgress = (float(_numReadyQuadrants) / numQuadrants) * 100;
 
+	//if (loadingProgress == 100)
+	//	assert(loadingProgress == 100);
+	
 	return loadingProgress;
 }
 

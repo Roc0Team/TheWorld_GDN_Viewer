@@ -155,7 +155,7 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 	if (!viewer->mapMode())
 		return;
 
-	Input* input = Input::get_singleton();
+	godot::Input* input = godot::Input::get_singleton();
 
 	if (input->is_action_pressed("ui_shift"))
 		m_shiftPressed = true;
@@ -608,7 +608,7 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 		return;
 	}
 
-	Input* input = Input::get_singleton();
+	godot::Input* input = godot::Input::get_singleton();
 
 	if (mouseMovementSuspended())
 	{

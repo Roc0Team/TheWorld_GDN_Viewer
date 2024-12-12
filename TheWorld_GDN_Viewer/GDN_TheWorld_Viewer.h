@@ -112,13 +112,14 @@ namespace godot
 	public:
 		void init(GDN_TheWorld_Viewer* viewer);
 		//godot::Ref<godot::Image> getMapImage(TheWorld_Utils::QuadrantPos& quadrantPos);
-		void setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId);
+		//void setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId);
 		bool updated(void);
 
+		void clearThasher(void);
 		void addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos);
-		TheWorld_Utils::QuadrantPos fetchUpdatedQuadrant(void);
-		void fetchUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos);
-		void fetchUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		//TheWorld_Utils::QuadrantPos fetchUpdatedQuadrant(void);
+		void eraseUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void eraseUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void erase(TheWorld_Utils::QuadrantPos& pos);
 
 		bool updateNeeded(TheWorld_Utils::QuadrantPos& pos);

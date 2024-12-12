@@ -85,25 +85,25 @@ void MapQuadrantImagesMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		m_updatingQuadrants.erase(pos);
 }
 
-TheWorld_Utils::QuadrantPos MapQuadrantImagesMap::fetchUpdatedQuadrant(void)
-{
-	TheWorld_Utils::QuadrantPos pos;
-	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
-	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
-	if (m_updatedQuadrants.size() > 0)
-	{
-		pos = m_updatedQuadrants.begin()->first;
-		m_updatedQuadrants.erase(m_updatedQuadrants.begin());
-	}
-	return pos;
-}
-void MapQuadrantImagesMap::fetchUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
+//TheWorld_Utils::QuadrantPos MapQuadrantImagesMap::fetchUpdatedQuadrant(void)
+//{
+//	TheWorld_Utils::QuadrantPos pos;
+//	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+//	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+//	if (m_updatedQuadrants.size() > 0)
+//	{
+//		pos = m_updatedQuadrants.begin()->first;
+//		m_updatedQuadrants.erase(m_updatedQuadrants.begin());
+//	}
+//	return pos;
+//}
+void MapQuadrantImagesMap::eraseUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 	m_updatedQuadrants.erase(pos);
 }
-void MapQuadrantImagesMap::fetchUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos)
+void MapQuadrantImagesMap::eraseUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
@@ -115,8 +115,8 @@ void MapQuadrantImagesMap::erase(TheWorld_Utils::QuadrantPos& pos)
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 	std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantImage>>::erase(pos);
-	fetchUpdatedQuadrant(pos);
-	fetchUpdatingQuadrant(pos);
+	eraseUpdatedQuadrant(pos);
+	eraseUpdatingQuadrant(pos);
 }
 
 void MapQuadrantImagesMap::lock(void)
@@ -131,24 +131,39 @@ void MapQuadrantImagesMap::unlock(void)
 	m_viewer->getMainProcessingMutex().unlock();
 }
 
-void MapQuadrantImagesMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId)
+//void MapQuadrantImagesMap::setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId)
+//{
+//	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
+//	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+//
+//	if (mapImage != nullptr)
+//	{
+//		godot::Vector2i imageSize = mapImage->get_size();
+//		my_assert(imageSize.x == imageSize.y);
+//		my_assert(imageSize.x == getImageNumPixelsPerSize());
+//	}
+//	
+//	if (not contains(quadrantPos))
+//		(*this)[quadrantPos] = std::make_unique<MapQuadrantImage>(quadrantPos, m_viewer, MapQuadrantImagesMap::getMapQuadrantOptimizationLevel());
+//	(*this)[quadrantPos]->setMapData(mapImage);
+//	(*this)[quadrantPos]->setMeshId(meshId);
+//
+//	addUpdatedQuadrant(quadrantPos);
+//}
+
+void MapQuadrantImagesMap::clearThasher(void)
 {
-	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
-
-	if (mapImage != nullptr)
+	std::vector<TheWorld_Utils::QuadrantPos> toDelete;
+	for (auto& item : m_updatedQuadrants)
 	{
-		godot::Vector2i imageSize = mapImage->get_size();
-		my_assert(imageSize.x == imageSize.y);
-		my_assert(imageSize.x == getImageNumPixelsPerSize());
+		if (not std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantImage>>::contains(item.first))
+		{
+			toDelete.push_back(item.first);
+		}
 	}
-	
-	if (not contains(quadrantPos))
-		(*this)[quadrantPos] = std::make_unique<MapQuadrantImage>(quadrantPos, m_viewer, MapQuadrantImagesMap::getMapQuadrantOptimizationLevel());
-	(*this)[quadrantPos]->setMapData(mapImage);
-	(*this)[quadrantPos]->setMeshId(meshId);
-
-	addUpdatedQuadrant(quadrantPos);
+	for (auto& item : toDelete)
+		m_updatedQuadrants.erase(item);
 }
 
 bool MapQuadrantImagesMap::updated(void)
@@ -11517,6 +11532,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 				}
 				for (auto& pos : quadrantsPosToErase)
 					m_mapQuadrantsMap.erase(pos);
+				m_mapQuadrantsMap.clearThasher();
 			}
 
 			bool statusChanged = m_mapQuadrantsMap.checkUpdatingQuadrants();

@@ -92,8 +92,8 @@ namespace godot
 				m_mainTerrainScrollContainer = nullptr;
 				m_terrGenerationVBoxContainer = nullptr;
 				m_terrGenerationButton = nullptr;
-				m_terrEditVBoxContainer = nullptr;
-				m_terrEditButton = nullptr;
+				m_quadrantTextureEditVBoxContainer = nullptr;
+				m_quadrantTextureEditButton = nullptr;
 				m_seed = nullptr;
 				m_frequency = nullptr;
 				m_fractalOctaves = nullptr;
@@ -216,8 +216,8 @@ namespace godot
 			godot::Control* m_terrBlendingVBoxContainer = nullptr;
 			godot::CheckBox* m_blendAllCheckBox = nullptr;
 
-			godot::Control* m_terrEditVBoxContainer;
-			godot::Button* m_terrEditButton;
+			godot::Control* m_quadrantTextureEditVBoxContainer;
+			godot::Button* m_quadrantTextureEditButton;
 
 			godot::LineEdit* m_slopeVerticalFactor;
 			godot::LineEdit* m_slopeFlatFactor;
@@ -263,6 +263,7 @@ namespace godot
 			bool m_mouseInsideEditPanel;
 
 			std::map<size_t, std::map<int, TheWorld_Utils::MapManagerProceduralGenerationStatus>> m_serverProceGenStatusMap;
+			bool m_waitingForServerGen = false;
 			bool m_serverProceGenStatusMapChanged = false;
 
 			enum class TheWorld_Utils::TerrainEdit::TerrainType m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
@@ -333,7 +334,7 @@ namespace godot
 		void setSizeUI(void);
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
-		void editModeSetGenerateCursor(void);
+		void editModeSetTerrType(void);
 		void editModeBlendAction(void);
 		bool hiResCollisionGridEnabled(void);
 		bool lowResCollisionGridEnabled(void);
@@ -533,6 +534,11 @@ namespace godot
 
 		void setServerProcGenStatus(TheWorld_Utils::MapManagerProceduralGenerationStatus& s);
 		void resetServerProcGenStatus(void);
+		void waitingForServerGen(bool b);
+		bool waitingForServerGen(void) const
+		{
+			return m_innerData->m_waitingForServerGen;
+		}
 
 		void mapMode(bool b);
 

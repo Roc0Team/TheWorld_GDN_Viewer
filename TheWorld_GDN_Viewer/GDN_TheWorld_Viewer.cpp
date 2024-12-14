@@ -265,16 +265,20 @@ GDN_TheWorld_Map::MapTextureRect::MapTextureRect(GDN_TheWorld_Map* map, TheWorld
 	m_map = map;
 	m_mapTextureRectPos = mapTextureRectPos;
 	setStatus(Status::CheckFromServerNotDone);
+	if (m_map != nullptr)
+		m_map->incMapTextureRectNum();
 }
 
 GDN_TheWorld_Map::MapTextureRect::~MapTextureRect(void)
 {
+	if (m_map != nullptr)
+		m_map->decMapTextureRectNum();
 	//destroyTextureRect();
 }
 
 void GDN_TheWorld_Map::MapTextureRect::detachTextureResource(TheWorld_Utils::QuadrantPos& quadrantPos)
 {
-	if (m_quadrantTextureOverrideContainer.contains(quadrantPos))
+	if (m_quadrantTextureOverrideContainer.contains(quadrantPos) and m_quadrantTextureOverrideContainer[quadrantPos] != nullptr)
 	{
 		m_quadrantTextureOverrideContainer[quadrantPos].release();
 	}
@@ -469,7 +473,7 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride* GDN_TheWorld_Map::
 	if (m_internalTextureRect == nullptr)
 		return rect;
 
-	if (not m_quadrantTextureOverrideContainer.contains(quadrantPos))
+	if (not m_quadrantTextureOverrideContainer.contains(quadrantPos) or m_quadrantTextureOverrideContainer[quadrantPos] == nullptr)
 	{
 		if (createIfMissing)
 		{
@@ -488,7 +492,11 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride* GDN_TheWorld_Map::
 			textureRect->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
 			textureRect->set_stretch_mode(godot::TextureRect::StretchMode::STRETCH_SCALE);
 
-			m_quadrantTextureOverrideContainer.insert({ quadrantPos , std::unique_ptr<MapQuadrantTextureOverride>(textureRect) });
+			if (m_quadrantTextureOverrideContainer.contains(quadrantPos))	// is nullptr
+				m_quadrantTextureOverrideContainer[quadrantPos] = std::unique_ptr<MapQuadrantTextureOverride>(textureRect);
+			else
+				m_quadrantTextureOverrideContainer[quadrantPos] = std::unique_ptr<MapQuadrantTextureOverride>(textureRect);
+				//m_quadrantTextureOverrideContainer.insert({ quadrantPos , std::unique_ptr<MapQuadrantTextureOverride>(textureRect) });
 
 			rect = m_quadrantTextureOverrideContainer[quadrantPos].get();
 		}
@@ -660,16 +668,22 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::~MapQuadrantTextur
 	{
 		m_mapTextureRect->detachTextureResource(m_quadrantPos);
 	}
+	if (m_mapTextureRect != nullptr)
+		m_mapTextureRect->getMap()->decMapQuadrantTextureOverrideNum();
 }
 
 void GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::init(MapTextureRect* mapTextureRect, TheWorld_Utils::QuadrantPos& quadrantPos)
 {
 	m_mapTextureRect = mapTextureRect;
 	m_quadrantPos = quadrantPos;
+	if (m_mapTextureRect != nullptr)
+		m_mapTextureRect->getMap()->incMapQuadrantTextureOverrideNum();
 }
 
 void GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::freeResource(void)
 {
+	if (m_mapTextureRect != nullptr)
+		m_mapTextureRect->getMap()->decMapQuadrantTextureOverrideNum();
 	m_mapTextureRect = nullptr;
 }
 
@@ -688,6 +702,17 @@ void GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::apply(GDN_The
 	}
 
 	set_texture(tex);
+
+	if (canBeErased(mapQuadrantOverride))
+		queue_free();
+}
+
+bool GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::canBeErased(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride)
+{
+	if (get_texture() == nullptr)
+		return true;
+	else
+		return false;
 }
 
 void GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride::applyOverride()
@@ -750,16 +775,22 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::~MapQuadrantColorOve
 	{
 		m_mapTextureRect->detachColorResource(m_quadrantPos);
 	}
+	if (m_mapTextureRect != nullptr)
+		m_mapTextureRect->getMap()->decMapQuadrantColorOverrideNum();
 }
 
 void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::init(MapTextureRect* mapTextureRect, TheWorld_Utils::QuadrantPos& quadrantPos)
 {
 	m_mapTextureRect = mapTextureRect;
 	m_quadrantPos = quadrantPos;
+	if (m_mapTextureRect != nullptr)
+		m_mapTextureRect->getMap()->incMapQuadrantColorOverrideNum();
 }
 
 void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::freeResource(void)
 {
+	if (m_mapTextureRect != nullptr)
+		m_mapTextureRect->getMap()->decMapQuadrantColorOverrideNum();
 	m_mapTextureRect = nullptr;
 }
 
@@ -806,6 +837,17 @@ void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::apply(GDN_TheWo
 		bool editMode = mapQuadrantOverride->editMode();
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_COLOR_EDIT_MODE, editMode);
 	}
+
+	if (canBeErased(mapQuadrantOverride))
+		queue_free();
+}
+
+bool GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::canBeErased(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride)
+{
+	if (not mapQuadrantOverride->quadrantActuallyInWorld() and not mapQuadrantOverride->editMode())
+		return true;
+	else
+		return false;
 }
 
 void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::applyOverride()
@@ -1627,14 +1669,36 @@ int32_t GDN_TheWorld_Map::getNumTextureRects(void)
 {
 	int32_t num = 0;
 	
-	godot::Array nodes = get_children();
-	for (int i = 0; i < nodes.size(); i++)
-	{
-		godot::Node* node = godot::Object::cast_to<godot::Node>(nodes[i]);
-		if (node->is_in_group("MapTextureRect"))
-			num++;
-	}
+	//godot::Array nodes = get_children();
+	//int32_t size = int32_t(nodes.size());
+	//for (int i = 0; i < size; i++)
+	//{
+	//	godot::Node* node = godot::Object::cast_to<godot::Node>(nodes[i]);
+	//	if (node->is_in_group("MapTextureRect"))
+	//		num++;
+	//}
 
+	num = m_mapTextureRectNum;
+	num = get_tree()->get_node_count_in_group("MapTextureRect");
+
+	return num;
+}
+
+int32_t GDN_TheWorld_Map::getMapQuadrantColorOverrideNum(void)
+{
+	int32_t num = 0;
+	
+	num = m_mapQuadrantColorOverrideNum;
+	num = get_tree()->get_node_count_in_group("MapQuadrantColorRect");
+	return num;
+}
+
+int32_t GDN_TheWorld_Map::getMapQuadrantTextureOverrideNum(void)
+{
+	int32_t num = 0;
+	
+	num = m_mapQuadrantTextureOverrideNum;
+	num = get_tree()->get_node_count_in_group("MapQuadrantTextureRect");
 	return num;
 }
 
@@ -1771,9 +1835,8 @@ void GDN_TheWorld_Map::removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantP
 	if (m_mapQuadrantOverrideContainer.contains(quadrantPos))
 	{
 		m_mapQuadrantOverrideContainer[quadrantPos]->resetEditedStatus();
-		//TheWorld_Utils::TerrainEdit nullTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
-		//m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(nullTerrainEdit);
-		//m_mapQuadrantOverrideContainer[quadrantPos]->applyTexture();
+		if (m_mapQuadrantOverrideContainer[quadrantPos]->canBeErased())
+			m_mapQuadrantOverrideContainer.erase(quadrantPos);
 	}
 }
 
@@ -3976,9 +4039,12 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_lowres_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider);
 	ClassDB::bind_method(D_METHOD("get_num_process_not_owns_lock"), &GDN_TheWorld_Viewer::getProcessNotOwnsLock);
 	ClassDB::bind_method(D_METHOD("get_process_duration"), &GDN_TheWorld_Viewer::getProcessDuration);
-	ClassDB::bind_method(D_METHOD("get_map_quadrants_num"), &GDN_TheWorld_Viewer::getMapQuadrantsNum);
-	ClassDB::bind_method(D_METHOD("get_updating_map_quadrants_num"), &GDN_TheWorld_Viewer::getUpdatingMapQuadrantsNum);
-	ClassDB::bind_method(D_METHOD("get_to_show_map_quadrants_num"), &GDN_TheWorld_Viewer::getToShowMapQuadrantsNum);
+	ClassDB::bind_method(D_METHOD("get_map_quadrant_num"), &GDN_TheWorld_Viewer::getMapQuadrantNum);
+	ClassDB::bind_method(D_METHOD("get_updating_map_quadrant_num"), &GDN_TheWorld_Viewer::getUpdatingMapQuadrantNum);
+	ClassDB::bind_method(D_METHOD("get_to_show_map_quadrant_num"), &GDN_TheWorld_Viewer::getToShowMapQuadrantNum);
+	ClassDB::bind_method(D_METHOD("get_map_quadrant_override_num"), &GDN_TheWorld_Viewer::getMapQuadrantOverrideNum);
+	ClassDB::bind_method(D_METHOD("get_map_quadrant_color_override_num"), &GDN_TheWorld_Viewer::getMapQuadrantColorOverrideNum);
+	ClassDB::bind_method(D_METHOD("get_map_quadrant_texture_override_num"), &GDN_TheWorld_Viewer::getMapQuadrantTextureOverrideNum);
 	ClassDB::bind_method(D_METHOD("get_map_quadrants_rect"), &GDN_TheWorld_Viewer::getMapQuadrantRects);
 	//ClassDB::bind_method(D_METHOD("get_refresh_quads_duration"), &GDN_TheWorld_Viewer::getRefreshMapQuadDuration);
 	ClassDB::bind_method(D_METHOD("get_update_quads1_duration"), &GDN_TheWorld_Viewer::getUpdateQuads1Duration);
@@ -13547,9 +13613,12 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	}
 
 	GDN_TheWorld_Map* map = Map();
-	m_mapQuadrantsNum = m_mapQuadrantsMap.size();
-	m_updatingMapQuadrantsNum = m_mapQuadrantsMap.getNumUpdatingQuadrants();
-	m_toShowMapQuadrantsNum = m_mapQuadrantsMap.getNumQuadrantsToShow();
+	m_mapQuadrantNum = m_mapQuadrantsMap.size();
+	m_updatingMapQuadrantNum = m_mapQuadrantsMap.getNumUpdatingQuadrants();
+	m_toShowMapQuadrantNum = m_mapQuadrantsMap.getNumQuadrantsToShow();
+	m_mapQuadrantOverrideNum = map->mapQuadrantOverrideNum();
+	m_mapQuadrantColorOverrideNum = map->getMapQuadrantColorOverrideNum();
+	m_mapQuadrantTextureOverrideNum = map->getMapQuadrantTextureOverrideNum();
 	m_mapQuadrantRects = map->getNumTextureRects();
 
 	m_numSplits = numSplits;

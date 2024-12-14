@@ -493,6 +493,7 @@ namespace godot
 				void freeResource(void);
 				void apply(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride);
 				void applyOverride(void);
+				bool canBeErased(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride);
 
 			private:
 				MapTextureRect* m_mapTextureRect = nullptr;
@@ -523,6 +524,7 @@ namespace godot
 				void freeResource(void);
 				void apply(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride);
 				void applyOverride(void);
+				bool canBeErased(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride);
 
 			private:
 				MapTextureRect* m_mapTextureRect = nullptr;
@@ -834,6 +836,8 @@ namespace godot
 		}
 
 		int32_t getNumTextureRects(void);
+		int32_t getMapQuadrantColorOverrideNum(void);
+		int32_t getMapQuadrantTextureOverrideNum(void);
 
 		void addMapTextureRectRefreshScheduled(TheWorld_Utils::MapTextureRectPos& pos);
 
@@ -851,6 +855,36 @@ namespace godot
 		MapQuadrantOverride* addEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::TerrainEdit& terrainEdit);
 		void removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void editMode(TheWorld_Utils::QuadrantPos& quadrantPos, bool b);
+
+		size_t mapQuadrantOverrideNum(void) const
+		{
+			return m_mapQuadrantOverrideContainer.size();
+		}
+
+		void incMapTextureRectNum(void)
+		{
+			m_mapTextureRectNum++;
+		}
+		void decMapTextureRectNum(void)
+		{
+			m_mapTextureRectNum--;
+		}
+		void incMapQuadrantColorOverrideNum(void)
+		{
+			m_mapQuadrantColorOverrideNum++;
+		}
+		void decMapQuadrantColorOverrideNum(void)
+		{
+			m_mapQuadrantColorOverrideNum--;
+		}
+		void incMapQuadrantTextureOverrideNum(void)
+		{
+			m_mapQuadrantTextureOverrideNum++;
+		}
+		void decMapQuadrantTextureOverrideNum(void)
+		{
+			m_mapQuadrantTextureOverrideNum--;
+		}
 
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
@@ -880,6 +914,10 @@ namespace godot
 		//godot::Ref<godot::ShaderMaterial> m_quadrantRectMaterial;
 
 		bool m_mapGridOn = false;
+
+		int32_t m_mapTextureRectNum = 0;
+		int32_t m_mapQuadrantColorOverrideNum = 0;
+		int32_t m_mapQuadrantTextureOverrideNum = 0;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -2396,26 +2434,38 @@ namespace godot
 
 		void incUpdatedMapQuadrants(void)
 		{
-			m_updatedMapQuadrantsNum++;
+			m_updatedMapQuadrantNum++;
 		}
 		size_t fetchUpdatedMapQuadrants(void)
 		{
-			size_t s = m_updatedMapQuadrantsNum;
-			m_updatedMapQuadrantsNum = 0;
+			size_t s = m_updatedMapQuadrantNum;
+			m_updatedMapQuadrantNum = 0;
 			return s;
 		}
 
-		size_t getMapQuadrantsNum(void) const
+		size_t getMapQuadrantNum(void) const
 		{
-			return m_mapQuadrantsNum;
+			return m_mapQuadrantNum;
 		}
-		size_t getUpdatingMapQuadrantsNum(void) const
+		size_t getUpdatingMapQuadrantNum(void) const
 		{
-			return m_updatingMapQuadrantsNum;
+			return m_updatingMapQuadrantNum;
 		}
-		size_t getToShowMapQuadrantsNum(void) const
+		size_t getToShowMapQuadrantNum(void) const
 		{
-			return m_toShowMapQuadrantsNum;
+			return m_toShowMapQuadrantNum;
+		}
+		size_t getMapQuadrantOverrideNum(void) const
+		{
+			return m_mapQuadrantOverrideNum;
+		}
+		size_t getMapQuadrantColorOverrideNum(void) const
+		{
+			return m_mapQuadrantColorOverrideNum;
+		}
+		size_t getMapQuadrantTextureOverrideNum(void) const
+		{
+			return m_mapQuadrantTextureOverrideNum;
 		}
 		size_t getMapQuadrantRects(void) const
 		{
@@ -2642,11 +2692,14 @@ namespace godot
 		size_t m_numSetLowResCollisionData = 0;
 		size_t m_elapsedSetLowResCollisionData = 0;
 
-		size_t m_mapQuadrantsNum = 0;
-		size_t m_updatingMapQuadrantsNum = 0;
-		size_t m_toShowMapQuadrantsNum = 0;
+		size_t m_mapQuadrantNum = 0;
+		size_t m_updatingMapQuadrantNum = 0;
+		size_t m_toShowMapQuadrantNum = 0;
+		size_t m_mapQuadrantOverrideNum = 0;
+		size_t m_mapQuadrantColorOverrideNum = 0;
+		size_t m_mapQuadrantTextureOverrideNum = 0;
 		size_t m_mapQuadrantRects = 0;
-		size_t m_updatedMapQuadrantsNum = 0;
+		size_t m_updatedMapQuadrantNum = 0;
 		// Statistics data
 
 		TrackedInputEventContainer m_trackedInputEventsForProcess;

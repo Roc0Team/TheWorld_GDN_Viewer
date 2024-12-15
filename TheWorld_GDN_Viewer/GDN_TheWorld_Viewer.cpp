@@ -292,20 +292,37 @@ void GDN_TheWorld_Map::MapTextureRect::detachColorResource(TheWorld_Utils::Quadr
 	}
 }
 
-bool GDN_TheWorld_Map::MapTextureRect::rectFull(void)
+void GDN_TheWorld_Map::MapTextureRect::saveRectImage(godot::Ref<godot::Image> rectImage, std::chrono::system_clock::time_point moreRecentQuadrantTime)
+{
+	godot::String imagePath = getImageCachePath();
+	rectImage->save_png(imagePath);
+	std::string _imagePath = imagePath.utf8().get_data();
+	//if (not TheWorld_Utils::is_time_point_null(moreRecentQuadrantTime))
+		TheWorld_Utils::last_write_time_point_utc(_imagePath, moreRecentQuadrantTime);
+	fileTimeStrFromFile(_imagePath);
+}
+
+bool GDN_TheWorld_Map::MapTextureRect::rectFull(std::chrono::system_clock::time_point& moreRecentQuadrantTime)
 {
 	if (m_quadrantImages.empty())
 		return false;
+
+	moreRecentQuadrantTime = std::chrono::system_clock::time_point();
 
 	bool rectFull = true;
 
 	for (int y = 0; y < m_mapTextureRectPos.getNumQuadrantsPerSize(); y++)
 	{
 		for (int x = 0; x < m_mapTextureRectPos.getNumQuadrantsPerSize(); x++)
-			if (m_quadrantImages[y][x] == nullptr)
+			if (m_quadrantImages[y][x].image() == nullptr)
 			{
 				rectFull = false;
 				break;
+			}
+			else
+			{
+				if (m_quadrantImages[y][x].quadrantTime() > moreRecentQuadrantTime)
+					moreRecentQuadrantTime = m_quadrantImages[y][x].quadrantTime();
 			}
 		if (not rectFull)
 			break;
@@ -395,14 +412,14 @@ void GDN_TheWorld_Map::MapTextureRect::renderImage(godot::Ref<godot::Image> imag
 	}
 }
 
-void GDN_TheWorld_Map::MapTextureRect::setInternalImageData(TheWorld_Utils::MemoryBuffer& imageBuffer)
+void GDN_TheWorld_Map::MapTextureRect::setInternalImageData(TheWorld_Utils::MemoryBuffer& imageBuffer, std::chrono::system_clock::time_point imageTime)
 {
 	m_internalImageData.resize((int64_t)imageBuffer.size());
 	{
 		memcpy((char*)m_internalImageData.ptrw(), imageBuffer .ptr(), imageBuffer.size());
 	}
+	m_imageTime = imageTime;
 	m_map->getMapViewer()->getViewer()->forceProcessNewMapQuadrants(true);
-
 }
 
 //#define SHADER_PARAM_MAP_RECT_COLOR		"u_color"
@@ -581,23 +598,19 @@ bool GDN_TheWorld_Map::MapTextureRect::renderInternalTexture(void)
 		return rendered;
 	
 	godot::Ref<godot::Image> rectImage = godot::Image::create_from_data(int32_t(m_mapTextureRectPos.getGlobalSize()), int32_t(m_mapTextureRectPos.getGlobalSize()), false, Image::FORMAT_RGB8, m_internalImageData);
-	m_internalImageData.clear();
-	assert(!internalImageDataValid());	// DEBUG
-
-	godot::String imagePath = getImageCachePath();
-	rectImage->save_png(imagePath);
-
-	std::string _imagePath = imagePath.utf8().get_data();
-	fileTimeStrFromFile(_imagePath);
-
+	saveRectImage(rectImage, m_imageTime);
 	renderImage(rectImage);
+
+	m_internalImageData.clear();
+	m_imageTime = std::chrono::system_clock::time_point();
+	assert(!internalImageDataValid());	// DEBUG
 
 	rendered = true;
 
 	return rendered;
 }
 
-bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
+bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantData)
 {
 	bool fullRectRendered = false;
 	
@@ -609,43 +622,44 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 
 	if (m_quadrantImages.empty())
 	{
-		//godot::Ref<godot::Image> nullImage;
+		QuadrantImage emptyQuadrantimage(nullptr, std::chrono::system_clock::time_point());
+		
 		// pre init of images vector
 		for (int y = 0; y < m_mapTextureRectPos.getNumQuadrantsPerSize(); y++)
 		{
-			std::vector<godot::Ref<godot::Image>> v;
+			std::vector<QuadrantImage> v;
 			m_quadrantImages.push_back(v);
 			for (int x = 0; x < m_mapTextureRectPos.getNumQuadrantsPerSize(); x++)
-				m_quadrantImages[y].push_back(nullptr);
+				m_quadrantImages[y].push_back(emptyQuadrantimage);
 		}
 	}
 
+	QuadrantImage quadrantImage(mapImage, quadrantData);
+	
 	int32_t idxX, idxY;
 	bool quadrantIsContainedInRect = m_mapTextureRectPos.getQuadrantRelativeIndices(quadrantPos, idxX, idxY);
 	if (quadrantIsContainedInRect)
 	{
-		m_quadrantImages[idxY][idxX] = mapImage;
+		m_quadrantImages[idxY][idxX] = quadrantImage;
 	}
 
-	if (rectFull())
+	std::chrono::system_clock::time_point moreRecentQuadrantTime;
+	if (rectFull(moreRecentQuadrantTime))
 	{
 		godot::Ref<godot::Image> rectImage = godot::Image::create_empty(int32_t(m_mapTextureRectPos.getNumPixelsPerSize()), int32_t(m_mapTextureRectPos.getNumPixelsPerSize()), false, Image::FORMAT_RGB8);
 
 		for (int32_t y = 0; y < m_mapTextureRectPos.getNumQuadrantsPerSize(); y++)
 			for (int32_t x = 0; x < m_mapTextureRectPos.getNumQuadrantsPerSize(); x++)
 			{
-				godot::Ref<godot::Image> quadrantImage = m_quadrantImages[y][x];
-				godot::Rect2i quadrantImageRect(0, 0, quadrantImage->get_size().x, quadrantImage->get_size().y);
+				QuadrantImage quadrantImage = m_quadrantImages[y][x];
+				godot::Rect2i quadrantImageRect(0, 0, quadrantImage.image()->get_size().x, quadrantImage.image()->get_size().y);
 				godot::Vector2i pos(x * int32_t(m_mapTextureRectPos.getQuadrantGlobalSize()), y * int32_t(m_mapTextureRectPos.getQuadrantGlobalSize()));
-				rectImage->blit_rect(quadrantImage, quadrantImageRect, pos);
+				rectImage->blit_rect(quadrantImage.image(), quadrantImageRect, pos);
 			}
 
 		m_quadrantImages.clear();
 
-		godot::String imagePath = getImageCachePath();
-		rectImage->save_png(imagePath);
-		std::string _imagePath = imagePath.utf8().get_data();
-		fileTimeStrFromFile(_imagePath);
+		saveRectImage(rectImage, moreRecentQuadrantTime);
 		
 		std::string _fileTimeStr = fileTimeStr();
 		m_map->selectTextureRectForUpload(m_mapTextureRectPos, _fileTimeStr, rectImage);
@@ -2242,11 +2256,15 @@ void GDN_TheWorld_Map::replyFromServer(TheWorld_ClientServer::ClientServerExecut
 							repliedMapTextureRectsBufferCursor += imageBufferSize;
 						}
 
+						// Image Time
+						std::chrono::system_clock::time_point imageTime = TheWorld_Utils::deserializeFromByteStream<std::chrono::system_clock::time_point>(repliedMapTextureRectsBuffer.ptr() + repliedMapTextureRectsBufferCursor, size);
+						repliedMapTextureRectsBufferCursor += size;
+
 						if (m_mapTextureRectContainer.contains(mapTextureRectPos) and m_mapTextureRectContainer[mapTextureRectPos]->CheckFromServerInProgress())
 						{
 							if (imageBuffer.size() > 0)
 							{
-								m_mapTextureRectContainer[mapTextureRectPos]->setInternalImageData(imageBuffer);
+								m_mapTextureRectContainer[mapTextureRectPos]->setInternalImageData(imageBuffer, imageTime);
 							}
 							m_mapTextureRectContainer[mapTextureRectPos]->setStatus(MapTextureRect::Status::CheckFromServerDone);
 						}
@@ -2388,13 +2406,13 @@ GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getMapTextureRect(const TheW
 	return getMapTextureRect(mapTextureRectPos, add);
 }
 
-bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos)
+bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantData)
 {
 	if (mapImage == nullptr)
 		return false;
 	
 	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
-	return getMapTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos);
+	return getMapTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos, quadrantData);
 }
 
 void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Color c, bool setCameraDir, bool visible)
@@ -11697,7 +11715,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 								MapQuadrantImage* mapQuadrant = m_mapQuadrantsMap[pos].get();
 								if (mapQuadrant->updated())
 								{
-									bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos);
+									bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos, TheWorld_Utils::MeshCacheBuffer::getTimeFromMeshId(mapQuadrant->getMeshId()));
 									if (b)
 										fullRectRendered = true;
 								}
@@ -14328,31 +14346,30 @@ void GDN_TheWorld_Viewer::streamer(void)
 									for (auto& textureRectPos : rectsPos)
 									{
 										std::lock_guard<std::recursive_mutex> lock(getMainProcessingMutex());
+										
 										GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(textureRectPos, false);
 										if (mapTextureRect == nullptr or !mapTextureRect->canCheckForRefresh())
 											mapTextureRect = &nullMapTextureRect;
 
+										// TheWorld_Utils::MapTextureRectPos
 										assert(textureRectPos.initialized());
 										TheWorld_Utils::MemoryBuffer textureRectPosBuffer;
 										textureRectPos.serialize(textureRectPosBuffer);
-
 										buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 										TheWorld_Utils::serializeToByteStream<size_t>(textureRectPosBuffer.size(), buffer.ptr() + cursor, size);
 										cursor += size;
 										buffer.adjustSize(cursor);
-
 										buffer.reserve(cursor + textureRectPosBuffer.size());		// to avoid memory overflow
 										memcpy(buffer.ptr() + cursor, textureRectPosBuffer.ptr(), textureRectPosBuffer.size());
 										cursor += textureRectPosBuffer.size();
 										buffer.adjustSize(cursor);
 
+										// File Time Str
 										std::string fileTime = mapTextureRect->fileTimeStr();
-
 										buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
 										TheWorld_Utils::serializeToByteStream<size_t>(fileTime.size(), buffer.ptr() + cursor, size);
 										cursor += size;
 										buffer.adjustSize(cursor);
-
 										buffer.reserve(cursor + fileTime.size());		// to avoid memory overflow
 										memcpy(buffer.ptr() + cursor, fileTime.c_str(), fileTime.size());
 										cursor += fileTime.size();

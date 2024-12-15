@@ -61,6 +61,10 @@ namespace godot
 		{
 			m_meshId = meshId;
 		}
+		std::string getMeshId(void) const
+		{
+			return m_meshId;
+		}
 
 		TheWorld_Utils::QuadrantPos getPos(void)
 		{

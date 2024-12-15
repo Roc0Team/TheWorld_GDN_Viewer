@@ -555,8 +555,9 @@ namespace godot
 				return m_mapTextureRectPos;
 			}
 
-			bool rectFull(void);
-			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
+			bool rectFull(std::chrono::system_clock::time_point& moreRecentQuadrantTime);
+			void saveRectImage(godot::Ref<godot::Image> rectImage, std::chrono::system_clock::time_point moreRecentQuadrantTime);
+			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantData);
 			bool destroyInternalTextureRect(void);
 			bool isTextureRectRendered(void);
 			godot::TextureRect* getInternalTextureRect(void);
@@ -636,7 +637,7 @@ namespace godot
 					m_status = status;
 				}
 			}
-			void setInternalImageData(TheWorld_Utils::MemoryBuffer& imageBuffer);
+			void setInternalImageData(TheWorld_Utils::MemoryBuffer& imageBuffer, std::chrono::system_clock::time_point imageTime);
 
 			MapQuadrantColorOverride* getQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing = false);
 			MapQuadrantTextureOverride* getQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing = false);
@@ -648,16 +649,42 @@ namespace godot
 				return m_map;
 			}
 
+			class QuadrantImage
+			{
+			public:
+				QuadrantImage(godot::Ref<godot::Image> image, std::chrono::system_clock::time_point quadrantTime)
+				{
+					m_image = image;
+					m_quadrantTime = quadrantTime;
+				}
+				~QuadrantImage()
+				{
+				}
+				godot::Ref<godot::Image> image(void) const
+				{
+					return m_image;
+				}
+				std::chrono::system_clock::time_point quadrantTime(void) const
+				{
+					return m_quadrantTime;
+				}
+
+			private:
+				godot::Ref<godot::Image> m_image;
+				std::chrono::system_clock::time_point m_quadrantTime;
+			};
+
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
 			Status m_status = Status::NotSet;
 			TheWorld_Viewer_Utils::MsTimePoint m_lastStatusChange;
 			TheWorld_Utils::MapTextureRectPos m_mapTextureRectPos;
-			std::vector<std::vector<godot::Ref<godot::Image>>> m_quadrantImages;	// bi-dimensional vector of Image references
+			std::vector<std::vector<QuadrantImage>> m_quadrantImages;	// bi-dimensional vector of Image references
 			//std::filesystem::file_time_type m_fileTime;
 			std::string m_fileTimeStr;		// es: 2023-09-04 19:33:24.7026392
 			godot::TextureRect* m_internalTextureRect = nullptr;
 			godot::PackedByteArray m_internalImageData;
+			std::chrono::system_clock::time_point m_imageTime;
 			std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantColorOverride>> m_quadrantColorOverrideContainer;
 			std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantTextureOverride>> m_quadrantTextureOverrideContainer;
 		};
@@ -813,7 +840,7 @@ namespace godot
 		bool AcqQuadrantsNeeded(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool AcqQuadrantsInProgress(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		void setStatus(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, MapTextureRect::Status status);
-		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos);
+		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantData);
 		void setWorldFlag(godot::String name, godot::Color c, bool setCameraDir = false, bool visible = true);
 		godot::String getCacheDir(void);
 

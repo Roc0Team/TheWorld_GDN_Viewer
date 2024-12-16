@@ -419,7 +419,7 @@ namespace godot
 			}
 			bool canBeErased(void) const
 			{
-				if (overrideTerrainTypeNull() and not quadrantActuallyInWorld())
+				if (overrideTerrainTypeNull() and not quadrantActuallyInWorld() and not refreshInProgress())
 					return true;
 				else
 					return false;
@@ -448,6 +448,15 @@ namespace godot
 				m_editMode = b;
 			}
 
+			bool refreshInProgress(void) const
+			{
+				return m_refreshInProgress;
+			}
+			void refreshInProgress(bool b)
+			{
+				m_refreshInProgress = b;
+			}
+
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
 			TheWorld_Utils::QuadrantPos m_quadrantPos;
@@ -460,6 +469,8 @@ namespace godot
 
 			TheWorld_Utils::TerrainEdit m_terrainEdit;
 			bool m_editMode = false;
+
+			bool m_refreshInProgress = false;
 		};
 
 		class MapQuadrantOverrideContainer : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantOverride>>
@@ -469,6 +480,18 @@ namespace godot
 		class MapTextureRect
 		{
 		public:
+			enum class Status
+			{
+				NotSet = -1
+				, CheckFromServerNotDone = 0
+				, CheckFromServerRequired = 1
+				, CheckFromServerInProgress = 2
+				, CheckFromServerDone = 3
+				, AcqQuadrantsNeeded = 4
+				, AcqQuadrantsInProgress = 5
+				, AcqQuadrantsDone = 6
+			};
+
 			class MapQuadrantTextureOverride : public godot::TextureRect
 			{
 				GDCLASS(MapQuadrantTextureOverride, godot::TextureRect)
@@ -531,22 +554,40 @@ namespace godot
 				TheWorld_Utils::QuadrantPos m_quadrantPos;
 			};
 
-		public:
-			enum class Status
+			class MapTextureColorOverlay : public godot::ColorRect
 			{
-				NotSet = -1
-				, CheckFromServerNotDone = 0
-				, CheckFromServerRequired = 1
-				, CheckFromServerInProgress = 2
-				, CheckFromServerDone = 3
-				, AcqQuadrantsNeeded = 4
-				, AcqQuadrantsInProgress = 5
-				, AcqQuadrantsDone = 6
+				GDCLASS(MapTextureColorOverlay, godot::ColorRect)
+
+			protected:
+				static void _bind_methods(void);
+				//void _notification(int p_what);
+
+			public:
+				//
+				// Godot Standard Functions
+				//
+				//virtual void _ready(void) override;
+				//virtual void _process(double _delta) override;
+				//virtual void _input(const Ref<InputEvent>& event) override;
+				//virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+
+				MapTextureColorOverlay(void);
+				~MapTextureColorOverlay(void);
+
+				void init(MapTextureRect* mapTextureRect);
+				void rectStatusChanged(void);
+
+			private:
+				MapTextureRect* m_mapTextureRect = nullptr;
 			};
-			
+
+		public:
 			MapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 			~MapTextureRect(void);
 
+			static godot::Color colorFromStatus(enum class Status status, bool& highlighted);
+
+			void init(GDN_TheWorld_Map* map = nullptr);
 			void detachTextureResource(TheWorld_Utils::QuadrantPos& quadrantPos);
 			void detachColorResource(TheWorld_Utils::QuadrantPos& quadrantPos);
 
@@ -557,7 +598,7 @@ namespace godot
 
 			bool rectFull(std::chrono::system_clock::time_point& moreRecentQuadrantTime);
 			void saveRectImage(godot::Ref<godot::Image> rectImage, std::chrono::system_clock::time_point moreRecentQuadrantTime);
-			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantData);
+			bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantTime);
 			bool destroyInternalTextureRect(void);
 			bool isTextureRectRendered(void);
 			godot::TextureRect* getInternalTextureRect(void);
@@ -620,23 +661,8 @@ namespace godot
 			{
 				return getStatus() == Status::AcqQuadrantsDone;
 			}
-			Status getStatus(void)
-			{
-				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-				long long elapsedFromStatusChange = (now - m_lastStatusChange).count();
-				if (m_status == Status::CheckFromServerInProgress and elapsedFromStatusChange > 60000)
-					m_status = Status::CheckFromServerRequired;
-				return m_status;
-			}
-			void setStatus(Status status)
-			{
-				if (m_status != status)
-				{
-					TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-					m_lastStatusChange = now;
-					m_status = status;
-				}
-			}
+			Status getStatus(void);
+			void setStatus(Status status);
 			void setInternalImageData(TheWorld_Utils::MemoryBuffer& imageBuffer, std::chrono::system_clock::time_point imageTime);
 
 			MapQuadrantColorOverride* getQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing = false);
@@ -683,6 +709,7 @@ namespace godot
 			//std::filesystem::file_time_type m_fileTime;
 			std::string m_fileTimeStr;		// es: 2023-09-04 19:33:24.7026392
 			godot::TextureRect* m_internalTextureRect = nullptr;
+			MapTextureColorOverlay* m_internalColorRect = nullptr;
 			godot::PackedByteArray m_internalImageData;
 			std::chrono::system_clock::time_point m_imageTime;
 			std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantColorOverride>> m_quadrantColorOverrideContainer;
@@ -783,13 +810,6 @@ namespace godot
 	public:
 		static int32_t numImagesForTexture(void);
 		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
-		godot::Ref<godot::ShaderMaterial> getTextureRectMaterial(void) const;
-		void setMapGridWorldCameraQuadrantPos(godot::Vector2 pos);
-		void setMapGridNumVisibleQuadrantsOnNorthSide(int num);
-		void setMapGridNumVisibleQuadrantsOnSouthSide(int num);
-		void setMapGridNumVisibleQuadrantsOnWestSide(int num);
-		void setMapGridNumVisibleQuadrantsOnEastSide(int num);
-		void setMapGridNumCacheQuadrants(int num);
 		void setMapGridLineThickness(float thickness);
 		bool mapGridOn(void) const
 		{
@@ -840,7 +860,7 @@ namespace godot
 		bool AcqQuadrantsNeeded(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool AcqQuadrantsInProgress(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		void setStatus(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, MapTextureRect::Status status);
-		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantData);
+		bool setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantTime);
 		void setWorldFlag(godot::String name, godot::Color c, bool setCameraDir = false, bool visible = true);
 		godot::String getCacheDir(void);
 
@@ -857,7 +877,7 @@ namespace godot
 		//{
 		//	return m_scaleFactor;
 		//}
-		int32_t numImagesForTextureRectSide(void) const
+		static int32_t numImagesForTextureRectSide(void)
 		{
 			return s_numImagesForTexture;
 		}
@@ -881,6 +901,8 @@ namespace godot
 		MapQuadrantOverride* getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		MapQuadrantOverride* addEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::TerrainEdit& terrainEdit);
 		void removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+		MapQuadrantOverride* addRefreshingMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
+		void removeRefreshingMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void editMode(TheWorld_Utils::QuadrantPos& quadrantPos, bool b);
 
 		size_t mapQuadrantOverrideNum(void) const
@@ -937,7 +959,7 @@ namespace godot
 
 		godot::TextureRect* m_compassImage = nullptr;
 
-		godot::Ref<godot::ShaderMaterial> m_textureRectMaterial;
+		//godot::Ref<godot::ShaderMaterial> m_textureRectMaterial;
 		//godot::Ref<godot::ShaderMaterial> m_quadrantRectMaterial;
 
 		bool m_mapGridOn = false;
@@ -2613,11 +2635,11 @@ namespace godot
 		bool isMapQuadrantSelectedForEdit(void);
 		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized, bool& allVisibleQuadrantInitialized);
 		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea, bool adjustPositionOnTerrain = true);
-		bool gridDimensionChanged(void) const
+		bool worldGridDimensionChanged(void) const
 		{
 			return m_gridDimensionChanged;
 		}
-		void gridDimensionChanged(bool b)
+		void worldGridDimensionChanged(bool b)
 		{
 			m_gridDimensionChanged = b;
 		}

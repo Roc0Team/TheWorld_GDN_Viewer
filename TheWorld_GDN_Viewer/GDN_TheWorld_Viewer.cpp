@@ -260,13 +260,22 @@ bool MapQuadrantImagesMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos
 	return scheduled;
 }
 
+#define GLOBAL_SHADER_PARAM_MAP_GRID_ON						"gu_map_grid_on"
+#define SHADER_PARAM_LINE_THICKNESS							"u_line_thickness"
+#define SHADER_PARAM_NUM_QUADRANTS							"u_num_quadrants"
+#define SHADER_PARAM_QUADRANT_SIZE							"u_quadrant_size"
+#define SHADER_PARAM_TEXTURE_BORDER_COLOR					"u_texture_border_color"
+#define SHADER_PARAM_HIGHLIGHTED							"u_highlighted"
+
 GDN_TheWorld_Map::MapTextureRect::MapTextureRect(GDN_TheWorld_Map* map, TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
 {
 	m_map = map;
 	m_mapTextureRectPos = mapTextureRectPos;
 	setStatus(Status::CheckFromServerNotDone);
 	if (m_map != nullptr)
+	{
 		m_map->incMapTextureRectNum();
+	}
 }
 
 GDN_TheWorld_Map::MapTextureRect::~MapTextureRect(void)
@@ -274,6 +283,62 @@ GDN_TheWorld_Map::MapTextureRect::~MapTextureRect(void)
 	if (m_map != nullptr)
 		m_map->decMapTextureRectNum();
 	//destroyTextureRect();
+}
+
+void GDN_TheWorld_Map::MapTextureRect::init(GDN_TheWorld_Map* map)
+{
+	if (map != nullptr)
+		m_map = map;
+	
+	if (m_map != nullptr)
+	{
+		m_internalColorRect = memnew(MapTextureColorOverlay);
+		m_map->add_child(m_internalColorRect);
+		m_internalColorRect->init(this);
+	}
+}
+
+godot::Color GDN_TheWorld_Map::MapTextureRect::colorFromStatus(enum class GDN_TheWorld_Map::MapTextureRect::Status status, bool& highlighted)
+{
+	godot::Color c;
+	
+	switch (status)
+	{
+	case GDN_TheWorld_Map::MapTextureRect::Status::CheckFromServerNotDone:
+		c = GDN_TheWorld_Globals::g_color_aquamarine_green;
+		highlighted = false;
+		break;
+	case GDN_TheWorld_Map::MapTextureRect::Status::CheckFromServerRequired:
+		c = GDN_TheWorld_Globals::g_color_yellow_apricot;
+		highlighted = true;
+		break;
+	case GDN_TheWorld_Map::MapTextureRect::Status::CheckFromServerInProgress:
+		c = GDN_TheWorld_Globals::g_color_yellow_apricot;
+		highlighted = true;
+		break;
+	case GDN_TheWorld_Map::MapTextureRect::Status::CheckFromServerDone:
+		c = GDN_TheWorld_Globals::g_color_blue;
+		highlighted = true;
+		break;
+	case GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsNeeded:
+		c = GDN_TheWorld_Globals::g_color_dark_red;
+		highlighted = true;
+		break;
+	case GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsInProgress:
+		c = GDN_TheWorld_Globals::g_color_dark_red;
+		highlighted = true;
+		break;
+	case GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsDone:
+		c = GDN_TheWorld_Globals::g_color_black;
+		highlighted = true;
+		break;
+	default:
+		c = GDN_TheWorld_Globals::g_color_white;
+		highlighted = false;
+		break;
+	}
+
+	return c;
 }
 
 void GDN_TheWorld_Map::MapTextureRect::detachTextureResource(TheWorld_Utils::QuadrantPos& quadrantPos)
@@ -378,16 +443,15 @@ void GDN_TheWorld_Map::MapTextureRect::renderImage(godot::Ref<godot::Image> imag
 	godot::Vector2i rectImageSize = image->get_size();
 
 	m_internalTextureRect = memnew(godot::TextureRect);
+	m_map->add_child(m_internalTextureRect);
 	m_internalTextureRect->set_name(m_mapTextureRectPos.getName().c_str());
 	m_internalTextureRect->add_to_group("MapTextureRect");
-	m_map->add_child(m_internalTextureRect);
 	m_internalTextureRect->set_size(rectImageSize);
 	godot::Vector2 pos(m_mapTextureRectPos.getGlobalLowerPosX(), m_mapTextureRectPos.getGlobalLowerPosY());
 	m_internalTextureRect->set_position(pos);
 
 	godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
 	m_internalTextureRect->set_texture(tex);
-	m_internalTextureRect->set_material(m_map->getTextureRectMaterial());
 
 	std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
 	m_mapTextureRectPos.getAllContainedQuadrantPos(quadrantsPos, m_map->getMapViewer()->getViewer()->getLevel(), (int)m_map->getMapViewer()->getViewer()->Globals()->numVerticesPerQuadrantSize(), m_map->getMapViewer()->getViewer()->Globals()->gridStepInWU());
@@ -408,6 +472,29 @@ void GDN_TheWorld_Map::MapTextureRect::renderImage(godot::Ref<godot::Image> imag
 				if (mapQuadrantTextureOverride != nullptr)
 					mapQuadrantTextureOverride->apply(mapQuadrantOverride);
 			}
+		}
+	}
+}
+
+GDN_TheWorld_Map::MapTextureRect::Status GDN_TheWorld_Map::MapTextureRect::getStatus(void)
+{
+	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+	long long elapsedFromStatusChange = (now - m_lastStatusChange).count();
+	if (m_status == Status::CheckFromServerInProgress and elapsedFromStatusChange > 60000)
+		//m_status = Status::CheckFromServerRequired;
+		setStatus(Status::CheckFromServerRequired);
+	return m_status;
+}
+void GDN_TheWorld_Map::MapTextureRect::setStatus(GDN_TheWorld_Map::MapTextureRect::Status status)
+{
+	if (m_status != status)
+	{
+		TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+		m_lastStatusChange = now;
+		m_status = status;
+		if (m_internalColorRect != nullptr)
+		{
+			m_internalColorRect->call_deferred("rect_status_changed");
 		}
 	}
 }
@@ -433,6 +520,7 @@ void GDN_TheWorld_Map::MapTextureRect::setInternalImageData(TheWorld_Utils::Memo
 #define SHADER_PARAM_QUADRANT_COLOR_QUADRANT_READY		"u_quadrant_ready"
 #define SHADER_PARAM_QUADRANT_COLOR_FAR_QUADRANT		"u_far_quadrant"
 #define SHADER_PARAM_QUADRANT_COLOR_EDIT_MODE			"u_edit_mode"
+#define SHADER_PARAM_QUADRANT_HIGHLIGHTED				"u_highlighted"
 
 GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride* GDN_TheWorld_Map::MapTextureRect::getQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos, bool createIfMissing)
 {
@@ -610,7 +698,7 @@ bool GDN_TheWorld_Map::MapTextureRect::renderInternalTexture(void)
 	return rendered;
 }
 
-bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantData)
+bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantTime)
 {
 	bool fullRectRendered = false;
 	
@@ -634,7 +722,7 @@ bool GDN_TheWorld_Map::MapTextureRect::setMapQuadrantData(const godot::Ref<godot
 		}
 	}
 
-	QuadrantImage quadrantImage(mapImage, quadrantData);
+	QuadrantImage quadrantImage(mapImage, quadrantTime);
 	
 	int32_t idxX, idxY;
 	bool quadrantIsContainedInRect = m_mapTextureRectPos.getQuadrantRelativeIndices(quadrantPos, idxX, idxY);
@@ -850,6 +938,9 @@ void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::apply(GDN_TheWo
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_COLOR_QUADRANT_READY, quadrantReady);
 		bool editMode = mapQuadrantOverride->editMode();
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_COLOR_EDIT_MODE, editMode);
+
+		bool refreshInProgress = mapQuadrantOverride->refreshInProgress();
+		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_HIGHLIGHTED, refreshInProgress);
 	}
 
 	if (canBeErased(mapQuadrantOverride))
@@ -858,7 +949,7 @@ void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::apply(GDN_TheWo
 
 bool GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::canBeErased(GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride)
 {
-	if (not mapQuadrantOverride->quadrantActuallyInWorld() and not mapQuadrantOverride->editMode())
+	if (not mapQuadrantOverride->quadrantActuallyInWorld() and not mapQuadrantOverride->editMode() and not mapQuadrantOverride->refreshInProgress())
 		return true;
 	else
 		return false;
@@ -911,6 +1002,85 @@ void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::_bind_methods(v
 //}
 
 //void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::_unhandled_input(const Ref<InputEvent>& event)
+//{
+//}
+
+GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::MapTextureColorOverlay(void)
+{
+}
+
+GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::~MapTextureColorOverlay(void)
+{
+}
+
+void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::init(MapTextureRect* mapTextureRect)
+{
+	m_mapTextureRect = mapTextureRect;
+
+	godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
+	godot::String shaderPath = "res://addons/twviewer/shaders/MapTextureRect.gdshader";
+	godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
+	godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
+	mat->set_shader(shader);
+	mat->set_shader_parameter(SHADER_PARAM_NUM_QUADRANTS, GDN_TheWorld_Map::numImagesForTextureRectSide());
+	mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_mapTextureRect->getMap()->getQuadrantGlobalSize());
+
+	godot::Vector2i rectSize = m_mapTextureRect->getMap()->getTextureRectSize();
+	set_name((std::string("Color_") + m_mapTextureRect->pos().getName()).c_str());
+	add_to_group("MapColorRect");
+	set_z_index(3);
+	set_size(rectSize);
+	godot::Vector2 pos(m_mapTextureRect->pos().getGlobalLowerPosX(), m_mapTextureRect->pos().getGlobalLowerPosY());
+	set_position(pos);
+	set_material(mat);
+	call_deferred("rect_status_changed");
+}
+
+void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::rectStatusChanged(void)
+{
+	godot::Ref<godot::ShaderMaterial> mat = get_material();
+	bool highlighted = false;
+	mat->set_shader_parameter(SHADER_PARAM_TEXTURE_BORDER_COLOR, GDN_TheWorld_Map::MapTextureRect::colorFromStatus(m_mapTextureRect->getStatus(), highlighted));
+	mat->set_shader_parameter(SHADER_PARAM_HIGHLIGHTED, highlighted);
+}
+
+void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::_bind_methods(void)
+{
+	ClassDB::bind_method(D_METHOD("rect_status_changed"), &GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::rectStatusChanged);
+}
+
+//void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::_notification(int p_what)
+//{
+//	switch (p_what)
+//	{
+//	case NOTIFICATION_ENTER_TREE:
+//	{
+//	}
+//	break;
+//	case NOTIFICATION_WM_CLOSE_REQUEST:
+//	{
+//	}
+//	break;
+//	case NOTIFICATION_PREDELETE:
+//	{
+//	}
+//	break;
+//	}
+//}
+
+//void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::_ready(void)
+//{
+//}
+
+//void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::_process(double _delta)
+//{
+//}
+
+//void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::_input(const Ref<InputEvent>& event)
+//{
+//}
+
+//void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::_unhandled_input(const Ref<InputEvent>& event)
 //{
 //}
 
@@ -1078,17 +1248,6 @@ GDN_TheWorld_Map::~GDN_TheWorld_Map(void)
 	}
 }
 
-#define SHADER_PARAM_FRAME_VISIBLE							"u_frame_visible"
-#define SHADER_PARAM_LINE_THICKNESS							"u_line_thickness"
-#define SHADER_PARAM_NUM_QUADRANTS							"u_num_quadrants"
-#define SHADER_PARAM_QUADRANT_SIZE							"u_quadrant_size"
-#define SHADER_PARAM_CAMERA_QUADRANT_POS					"u_world_camera_quadrant_pos"
-#define SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_NORTH_SIDE	"u_num_visible_quadrants_on_north_side"
-#define SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_SOUTH_SIDE	"u_num_visible_quadrants_on_south_side"
-#define SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_WEST_SIDE		"u_num_visible_quadrants_on_west_side"
-#define SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_EAST_SIDE		"u_num_visible_quadrants_on_east_side"
-#define SHADER_PARAM_NUM_CACHE_QUADRANTS					"u_num_cache_quadrants"
-
 int32_t GDN_TheWorld_Map::numImagesForTexture(void)
 {
 	return s_numImagesForTexture;
@@ -1178,93 +1337,19 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	rulerVerticalLine2->set_default_color(MapRulerColor);
 	rulerVerticalLine2->set_width(MapRulerLineWidth);
 
-	godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-	
-	godot::String shaderPath = "res://addons/twviewer/shaders/MapGrid.gdshader";
-	godot::Ref<godot::Shader> shader = resLoader->load(shaderPath);
-	godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
-	m_textureRectMaterial = mat;
-	m_textureRectMaterial->set_shader(shader);
-	m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_QUADRANTS, GDN_TheWorld_Map::numImagesForTextureRectSide());
-	m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, getQuadrantGlobalSize());
 	mapGridOn(false);
-
-	//shaderPath = "res://addons/twviewer/shaders/MapQuadrantRect.gdshader";
-	//shader = resLoader->load(shaderPath);
-	//godot::Ref<godot::ShaderMaterial> mat1 = memnew(godot::ShaderMaterial);
-	//m_quadrantRectMaterial = mat1;
-	//m_quadrantRectMaterial->set_shader(shader);
-}
-
-void GDN_TheWorld_Map::setMapGridWorldCameraQuadrantPos(godot::Vector2 pos)
-{
-	if (m_textureRectMaterial != nullptr)
-	{
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_CAMERA_QUADRANT_POS, pos);
-	}
-}
-
-void GDN_TheWorld_Map::setMapGridNumVisibleQuadrantsOnNorthSide(int num)
-{
-	if (m_textureRectMaterial != nullptr)
-	{
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_NORTH_SIDE, num);
-	}
-}
-
-void GDN_TheWorld_Map::setMapGridNumVisibleQuadrantsOnSouthSide(int num)
-{
-	if (m_textureRectMaterial != nullptr)
-	{
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_SOUTH_SIDE, num);
-	}
-}
-
-void GDN_TheWorld_Map::setMapGridNumVisibleQuadrantsOnWestSide(int num)
-{
-	if (m_textureRectMaterial != nullptr)
-	{
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_WEST_SIDE, num);
-	}
-}
-
-void GDN_TheWorld_Map::setMapGridNumVisibleQuadrantsOnEastSide(int num)
-{
-	if (m_textureRectMaterial != nullptr)
-	{
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_VISIBLE_QUADRANTS_ON_EAST_SIDE, num);
-	}
-}
-
-void GDN_TheWorld_Map::setMapGridNumCacheQuadrants(int num)
-{
-	if (m_textureRectMaterial != nullptr)
-	{
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_NUM_CACHE_QUADRANTS, num);
-	}
 }
 
 void GDN_TheWorld_Map::setMapGridLineThickness(float multiplier)
 {
-	constexpr float SHADER_PARAM_MAX_LINE_THICKNESS	= 0.016f;
-	if (m_textureRectMaterial != nullptr)
-	{
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_LINE_THICKNESS, 0.008);
-	}
-}
-
-godot::Ref<godot::ShaderMaterial> GDN_TheWorld_Map::getTextureRectMaterial(void) const
-{
-	return m_textureRectMaterial;
 }
 
 void GDN_TheWorld_Map::mapGridOn(bool b)
 {
 	m_mapGridOn = b;
 
-	if (m_textureRectMaterial != nullptr)
-		m_textureRectMaterial->set_shader_parameter(SHADER_PARAM_FRAME_VISIBLE, m_mapGridOn);
-
+	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_MAP_GRID_ON, b);
+	
 	for (auto& item : m_mapQuadrantOverrideContainer)
 	{
 		item.second->setVisible(m_mapGridOn);
@@ -1854,6 +1939,33 @@ void GDN_TheWorld_Map::removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantP
 	}
 }
 
+GDN_TheWorld_Map::MapQuadrantOverride* GDN_TheWorld_Map::addRefreshingMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+	if (m_mapQuadrantOverrideContainer.contains(quadrantPos))
+	{
+		m_mapQuadrantOverrideContainer[quadrantPos]->refreshInProgress(true);
+	}
+	else
+	{
+		m_mapQuadrantOverrideContainer[quadrantPos] = std::make_unique<MapQuadrantOverride>(this, quadrantPos);
+		m_mapQuadrantOverrideContainer[quadrantPos]->refreshInProgress(true);
+	}
+	m_mapQuadrantOverrideContainer[quadrantPos]->applyColor();
+	return m_mapQuadrantOverrideContainer[quadrantPos].get();
+}
+
+void GDN_TheWorld_Map::removeRefreshingMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+	if (m_mapQuadrantOverrideContainer.contains(quadrantPos))
+	{
+		m_mapQuadrantOverrideContainer[quadrantPos]->refreshInProgress(false);
+		if (m_mapQuadrantOverrideContainer[quadrantPos]->canBeErased())
+			m_mapQuadrantOverrideContainer.erase(quadrantPos);
+	}
+}
+
 void GDN_TheWorld_Map::editMode(TheWorld_Utils::QuadrantPos& quadrantPos, bool b)
 {
 	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
@@ -2374,6 +2486,7 @@ GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getMapTextureRect(TheWorld_U
 	if (not m_mapTextureRectContainer.contains(mapTextureRectPos))
 	{
 		m_mapTextureRectContainer[mapTextureRectPos] = std::make_unique<MapTextureRect>(this, mapTextureRectPos);
+		m_mapTextureRectContainer[mapTextureRectPos]->init();
 	}
 	return m_mapTextureRectContainer[mapTextureRectPos].get();
 }
@@ -2406,13 +2519,13 @@ GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getMapTextureRect(const TheW
 	return getMapTextureRect(mapTextureRectPos, add);
 }
 
-bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantData)
+bool GDN_TheWorld_Map::setMapQuadrantData(const godot::Ref<godot::Image> mapImage, const TheWorld_Utils::QuadrantPos& quadrantPos, std::chrono::system_clock::time_point quadrantTime)
 {
 	if (mapImage == nullptr)
 		return false;
 	
 	std::lock_guard<std::recursive_mutex> lock(m_mapViewer->getViewer()->getMainProcessingMutex());
-	return getMapTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos, quadrantData);
+	return getMapTextureRect(quadrantPos)->setMapQuadrantData(mapImage, quadrantPos, quadrantTime);
 }
 
 void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Color c, bool setCameraDir, bool visible)
@@ -7756,79 +7869,79 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	if (m_numCacheQuadrantOnPerimeter != getCacheQuadOnPerimeter())
 	{
 		m_numCacheQuadrantOnPerimeter = getCacheQuadOnPerimeter();
-		gridDimensionChanged(true);
+		worldGridDimensionChanged(true);
 	}
 
 	if (m_numVisibleQuadrantOnPerimeterOnNorthSide == -1)
 	{
 		m_numVisibleQuadrantOnPerimeterOnNorthSide = m_minVisibleQuadrantOnPerimeter;
-		gridDimensionChanged(true);
+		worldGridDimensionChanged(true);
 	}
 	else 
 	{
 		if (m_numVisibleQuadrantOnPerimeterOnNorthSide < m_minVisibleQuadrantOnPerimeter)
 		{
 			m_numVisibleQuadrantOnPerimeterOnNorthSide = m_minVisibleQuadrantOnPerimeter;
-			gridDimensionChanged(true);
+			worldGridDimensionChanged(true);
 		}
 		if (m_numVisibleQuadrantOnPerimeterOnNorthSide > getMaxDepthQuadOnPerimeter())
 		{
 			m_numVisibleQuadrantOnPerimeterOnNorthSide = getMaxDepthQuadOnPerimeter();
-			gridDimensionChanged(true);
+			worldGridDimensionChanged(true);
 		}
 	}
 	if (m_numVisibleQuadrantOnPerimeterOnSouthSide == -1)
 	{
 		m_numVisibleQuadrantOnPerimeterOnSouthSide = m_minVisibleQuadrantOnPerimeter;
-		gridDimensionChanged(true);
+		worldGridDimensionChanged(true);
 	}
 	else
 	{
 		if (m_numVisibleQuadrantOnPerimeterOnSouthSide < m_minVisibleQuadrantOnPerimeter)
 		{
 			m_numVisibleQuadrantOnPerimeterOnSouthSide = m_minVisibleQuadrantOnPerimeter;
-			gridDimensionChanged(true);
+			worldGridDimensionChanged(true);
 		}
 		if (m_numVisibleQuadrantOnPerimeterOnSouthSide > getMaxDepthQuadOnPerimeter())
 		{
 			m_numVisibleQuadrantOnPerimeterOnSouthSide = getMaxDepthQuadOnPerimeter();
-			gridDimensionChanged(true);
+			worldGridDimensionChanged(true);
 		}
 	}
 	if (m_numVisibleQuadrantOnPerimeterOnWestSide == -1)
 	{
 		m_numVisibleQuadrantOnPerimeterOnWestSide = m_minVisibleQuadrantOnPerimeter;
-		gridDimensionChanged(true);
+		worldGridDimensionChanged(true);
 	}
 	else
 	{
 		if (m_numVisibleQuadrantOnPerimeterOnWestSide < m_minVisibleQuadrantOnPerimeter)
 		{
 			m_numVisibleQuadrantOnPerimeterOnWestSide = m_minVisibleQuadrantOnPerimeter;
-			gridDimensionChanged(true);
+			worldGridDimensionChanged(true);
 		}
 		if (m_numVisibleQuadrantOnPerimeterOnWestSide > getMaxDepthQuadOnPerimeter())
 		{
 			m_numVisibleQuadrantOnPerimeterOnWestSide = getMaxDepthQuadOnPerimeter();
-			gridDimensionChanged(true);
+			worldGridDimensionChanged(true);
 		}
 	}
 	if (m_numVisibleQuadrantOnPerimeterOnEastSide == -1)
 	{
 		m_numVisibleQuadrantOnPerimeterOnEastSide = m_minVisibleQuadrantOnPerimeter;
-		gridDimensionChanged(true);
+		worldGridDimensionChanged(true);
 	}
 	else
 	{
 		if (m_numVisibleQuadrantOnPerimeterOnEastSide < m_minVisibleQuadrantOnPerimeter)
 		{
 			m_numVisibleQuadrantOnPerimeterOnEastSide = m_minVisibleQuadrantOnPerimeter;
-			gridDimensionChanged(true);
+			worldGridDimensionChanged(true);
 		}
 		if (m_numVisibleQuadrantOnPerimeterOnEastSide > getMaxDepthQuadOnPerimeter())
 		{
 			m_numVisibleQuadrantOnPerimeterOnEastSide = getMaxDepthQuadOnPerimeter();
-			gridDimensionChanged(true);
+			worldGridDimensionChanged(true);
 		}
 	}
 
@@ -9423,14 +9536,14 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnNorthSide--;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 				else if (m_numVisibleQuadrantOnPerimeterOnNorthSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnNorthSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnNorthSide++;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 			}
 			else
@@ -9440,7 +9553,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnNorthSide++;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 			}
 			
@@ -9559,14 +9672,14 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnSouthSide--;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 				else if (m_numVisibleQuadrantOnPerimeterOnSouthSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnSouthSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnSouthSide++;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 			}
 			else
@@ -9576,7 +9689,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnSouthSide++;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 			}
 		}
@@ -9693,14 +9806,14 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnWestSide--;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 				else if (m_numVisibleQuadrantOnPerimeterOnWestSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnWestSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnWestSide++;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 			}
 			else
@@ -9710,7 +9823,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnWestSide++;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 			}
 		}
@@ -9827,14 +9940,14 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnEastSide--;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 				else if (m_numVisibleQuadrantOnPerimeterOnEastSide < getMaxDepthQuadOnPerimeter() && maxDistanceFromCamera > m_numVisibleQuadrantOnPerimeterOnEastSide * m_computedWorldCameraQuadrantPos.getSizeInWU())
 				{
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnEastSide++;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 			}
 			else
@@ -9844,7 +9957,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 					recalcQuadrantsInViewNeeded(true);
 					finishedResizingGrid(false);
 					m_numVisibleQuadrantOnPerimeterOnEastSide++;
-					gridDimensionChanged(true);
+					worldGridDimensionChanged(true);
 				}
 			}
 		}
@@ -9924,12 +10037,12 @@ void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals
 		m_refreshQuadTreeMap = false;
 		m_computedWorldCameraQuadrantPos = worldCameraQuadrantPos;
 
-		GDN_TheWorld_Map* map = Map();
-		if (map != nullptr)
-		{
-			godot::Vector2 worldCameraQuadrantPosInMap = map->worldPosToGlobalPos(godot::Vector2(m_computedWorldCameraQuadrantPos.getLowerXGridVertex(), m_computedWorldCameraQuadrantPos.getLowerZGridVertex()));
-			map->setMapGridWorldCameraQuadrantPos(worldCameraQuadrantPosInMap);
-		}
+		//GDN_TheWorld_Map* map = Map();
+		//if (map != nullptr)
+		//{
+		//	godot::Vector2 worldCameraQuadrantPosInMap = map->worldPosToGlobalPos(godot::Vector2(m_computedWorldCameraQuadrantPos.getLowerXGridVertex(), m_computedWorldCameraQuadrantPos.getLowerZGridVertex()));
+		//	map->setMapGridWorldCameraQuadrantPos(worldCameraQuadrantPosInMap);
+		//}
 
 		if ((Globals()->status() != TheWorldStatus::worldDeployed and Globals()->status() != TheWorldStatus::minimalWorldDeployed) || Globals()->getStreamWorld())
 			recalcQuadrantsInViewNeeded(true);
@@ -10488,14 +10601,14 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 	GDN_TheWorld_Globals* globals = Globals();
 	
 	GDN_TheWorld_Map* map = Map();
-	if (map != nullptr and gridDimensionChanged())
+	if (map != nullptr and worldGridDimensionChanged())
 	{
-		map->setMapGridNumVisibleQuadrantsOnNorthSide(m_numVisibleQuadrantOnPerimeterOnNorthSide);
-		map->setMapGridNumVisibleQuadrantsOnSouthSide(m_numVisibleQuadrantOnPerimeterOnSouthSide);
-		map->setMapGridNumVisibleQuadrantsOnWestSide(m_numVisibleQuadrantOnPerimeterOnWestSide);
-		map->setMapGridNumVisibleQuadrantsOnEastSide(m_numVisibleQuadrantOnPerimeterOnEastSide);
-		map->setMapGridNumCacheQuadrants(m_numCacheQuadrantOnPerimeter);
-		gridDimensionChanged(false);
+		//map->setMapGridNumVisibleQuadrantsOnNorthSide(m_numVisibleQuadrantOnPerimeterOnNorthSide);
+		//map->setMapGridNumVisibleQuadrantsOnSouthSide(m_numVisibleQuadrantOnPerimeterOnSouthSide);
+		//map->setMapGridNumVisibleQuadrantsOnWestSide(m_numVisibleQuadrantOnPerimeterOnWestSide);
+		//map->setMapGridNumVisibleQuadrantsOnEastSide(m_numVisibleQuadrantOnPerimeterOnEastSide);
+		//map->setMapGridNumCacheQuadrants(m_numCacheQuadrantOnPerimeter);
+		worldGridDimensionChanged(false);
 	}
 	
 	if (globals->status() != TheWorldStatus::worldDeployed and globals->status() != TheWorldStatus::minimalWorldDeployed)
@@ -11616,7 +11729,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 				}
 				for (auto& pos : quadrantsPosToErase)
 					m_mapQuadrantsMap.erase(pos);
-				m_mapQuadrantsMap.clearThasher();
+				//m_mapQuadrantsMap.clearThasher();
 			}
 
 			bool statusChanged = m_mapQuadrantsMap.checkUpdatingQuadrants();
@@ -11671,69 +11784,79 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 			//bool atLeastAFullRectRendered = false;
 			
 			// get quadrants for not cached map textures
-			for (auto& itemRectsPos : rectsPos)
+			for (auto& rectPosItem : rectsPos)
 			{
 				bool fullRectRendered = false;
 						
 				std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
-				itemRectsPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+				rectPosItem.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
 
-				bool rendered = map->renderInternalTexture(itemRectsPos);
+				bool rendered = map->renderInternalTexture(rectPosItem);
 				if (rendered)
 				{
 					fullRectRendered = true;
 				}
 				else
 				{
-					if (not map->isTextureRectRendered(itemRectsPos))
+					if (not map->isTextureRectRendered(rectPosItem))
 					{
-						rendered = map->renderCachedTexture(itemRectsPos);
+						rendered = map->renderCachedTexture(rectPosItem);
 						if (rendered)
 						{
 							fullRectRendered = true;
 						}
 						else
 						{
-							if (map->CheckFromServerNotDone(itemRectsPos))
+							if (map->CheckFromServerNotDone(rectPosItem))
 							{
-								map->setStatus(itemRectsPos, GDN_TheWorld_Map::MapTextureRect::Status::CheckFromServerRequired);
+								map->setStatus(rectPosItem, GDN_TheWorld_Map::MapTextureRect::Status::CheckFromServerRequired);
 							}
 						}
 					}
 				}
 
-				if (not map->CheckFromServerInProgress(itemRectsPos) and not map->CheckFromServerRequired(itemRectsPos))
+				if (not map->CheckFromServerInProgress(rectPosItem) and not map->CheckFromServerRequired(rectPosItem))
 				{
-					if (not map->isTextureRectRendered(itemRectsPos) or map->AcqQuadrantsNeeded(itemRectsPos) or map->AcqQuadrantsInProgress(itemRectsPos))
+					if (not map->isTextureRectRendered(rectPosItem) or map->AcqQuadrantsNeeded(rectPosItem) or map->AcqQuadrantsInProgress(rectPosItem))
 					{
+						map->setStatus(rectPosItem, GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsInProgress);
+
 						std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
-						itemRectsPos.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
-						for (auto& pos : quadrantsPos)
+						rectPosItem.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
+						for (auto& quadrantPosItem : quadrantsPos)
 						{
-							if (m_mapQuadrantsMap.contains(pos))
+							if (m_mapQuadrantsMap.contains(quadrantPosItem))
 							{
-								MapQuadrantImage* mapQuadrant = m_mapQuadrantsMap[pos].get();
+								MapQuadrantImage* mapQuadrant = m_mapQuadrantsMap[quadrantPosItem].get();
 								if (mapQuadrant->updated())
 								{
-									bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), pos, TheWorld_Utils::MeshCacheBuffer::getTimeFromMeshId(mapQuadrant->getMeshId()));
+									bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), quadrantPosItem, TheWorld_Utils::MeshCacheBuffer::getTimeFromMeshId(mapQuadrant->getMeshId()));
 									if (b)
 										fullRectRendered = true;
+									mapQuadrant->updated(false);
+									map->removeRefreshingMapQuadrantOverride(quadrantPosItem);
 								}
 								else
 								{
-									if (m_mapQuadrantsMap.updateNeeded(pos))
+									if (m_mapQuadrantsMap.updateNeeded(quadrantPosItem))
 									{
-										bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+										bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(quadrantPosItem);
 										if (scheduled)
+										{
+											map->addRefreshingMapQuadrantOverride(quadrantPosItem);
 											breakLoop = true;
+										}
 									}
 								}
 							}
 							else
 							{
-								bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(pos);
+								bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(quadrantPosItem);
 								if (scheduled)
+								{
+									map->addRefreshingMapQuadrantOverride(quadrantPosItem);
 									breakLoop = true;
+								}
 							}
 						}
 					}
@@ -11744,8 +11867,8 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 					//atLeastAFullRectRendered = true;
 					for (auto& pos : quadrantsPos)
 						m_mapQuadrantsMap.erase(pos);
-					if (map->AcqQuadrantsNeeded(itemRectsPos) or map->AcqQuadrantsInProgress(itemRectsPos))
-						map->setStatus(itemRectsPos, GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsDone);
+					if (map->AcqQuadrantsNeeded(rectPosItem) or map->AcqQuadrantsInProgress(rectPosItem))
+						map->setStatus(rectPosItem, GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsDone);
 				}
 
 				if (breakLoop)

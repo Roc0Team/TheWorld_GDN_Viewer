@@ -5746,8 +5746,6 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							{
 								m_mtxQuadrantsAndMainProcessing.lock(); 
 								
-								quadTree->setStatus(QuadrantStatus::initialized);
-
 								quadTree->materialParamsNeedReset(true);
 								quadTree->colliderNeedReset(true, QuadType::NotSet);
 								if (quadTree->statusRefreshTerrainDataInProgress())
@@ -5763,6 +5761,8 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 								GDN_TheWorld_Map* map = Map();
 								if (map != nullptr)
 									map->removeEditedMapQuadrantOverride(quadrantPos);
+
+								quadTree->setStatus(QuadrantStatus::initialized);
 
 								m_mtxQuadrantsAndMainProcessing.unlock();
 							}
@@ -5799,8 +5799,6 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						// clear everything
 						m_mapQuadrantsMap.erase(quadrantPos);
 					}
-#pragma warning(suppress: 26117)
-					m_mapQuadrantsMap.unlock();
 
 					if (mapQuadrant != nullptr)
 					{
@@ -5808,6 +5806,9 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
 						m_mapQuadrantsMap.addUpdatedQuadrant(quadrantPos);
 					}
+
+#pragma warning(suppress: 26117)
+					m_mapQuadrantsMap.unlock();
 
 #pragma warning(suppress: 26117)
 					if (quadTree != nullptr)

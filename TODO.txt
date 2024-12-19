@@ -1,11 +1,7 @@
-								* removed fps cap at 75 (disabling V-Sync Mode in Project settings / Display / Window)
-* project exporting jobs
-* loading screen
-* map view
 
-* fix bug in under water view
+* architettura client-server con software di rete
 * profiler should aliment a que dequeued by a dedicated thread
-
+* la mappa (globalmap) deve avere un aspetto più verosimile
 * ottimizzazione: eliminare cache heightmap 32 precalcolando min max height per ogni chunk e salvandolo insieme alle heightmap
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde
@@ -14,12 +10,18 @@
 * strade
 * laghi
 * fiumi
-* architettura client-server
 * ciclo giorno-notte
 * miglior effetto visivo della sabbia
 * Visibilità che sfuma in 2D come mappa: a comando ed oltre una certa altezza
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
+
+Tag 2024/12/19
+* ***OK*** project exporting jobs
+* ***OK*** loading screen
+* ***OK*** map view
+* ***OK*** fix bug in under water view
+								* removed fps cap at 75 (disabling V-Sync Mode in Project settings / Display / Window)
 
 Tag 2024/07/25
 * ***OK*** aggiunto godot.natvis (strutture custom in debug) e configurato nel progetto TheWorld_GDN_Viewer

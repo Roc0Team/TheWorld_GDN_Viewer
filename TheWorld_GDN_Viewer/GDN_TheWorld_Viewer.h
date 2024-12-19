@@ -2570,6 +2570,10 @@ namespace godot
 		{
 			return m_streamingInProgress;
 		}
+		void worldStreamingInProgress(bool b)
+		{
+			m_streamingInProgress = b;
+		}
 
 		bool isCameraQuadrantColliderSet(void);
 		bool worldStreamingTerminated(void);
@@ -2588,6 +2592,15 @@ namespace godot
 
 		void worldQuadrantReady(TheWorld_Utils::QuadrantPos& pos);
 		void worldQuadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos);
+
+		bool serverGenerationInProgress(void) const
+		{
+			return m_serverGenerationInProgress;
+		}
+		void serverGenerationInProgress(bool b)
+		{
+			m_serverGenerationInProgress = b;
+		}
 
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
@@ -2939,6 +2952,7 @@ namespace godot
 		bool m_quadrantSyncInProgress = false;
 		bool m_uploadTextureRectInProgress = false;
 		bool m_checkServerTextureRectInProgress = false;
+		bool m_serverGenerationInProgress = false;
 
 		float m_shaderParamSeaFlatSeaHeightApplied = 0;
 		float m_shaderParamSeaNoiseScaleApplied = 0;

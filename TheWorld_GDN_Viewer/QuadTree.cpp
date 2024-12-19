@@ -93,6 +93,7 @@ void MapQuadrantImage::setMapData(godot::Ref<godot::Image> mapImage)
 	m_mapImage = mapImage;
 	m_lastUpdateTime = TIME()->get_ticks_msec();
 	updated(true);
+	//PLOG_DEBUG << "#################### updated(true) - Pos: " << getPos().getIndexPosX() << "," << getPos().getIndexPosZ();
 }
 
 void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer, bool updateCache)

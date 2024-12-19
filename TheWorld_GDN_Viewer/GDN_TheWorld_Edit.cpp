@@ -2069,8 +2069,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			if (!m_innerData->m_procgenClock.counterStarted())
 				m_innerData->m_procgenClock.tick();
 			
-			size_t procgenDuration = m_innerData->m_procgenClock.partialDuration().count();
-			std::string procgenDurationStr = " " + std::to_string(procgenDuration) + "ms";
+			size_t procgenDurationMs = m_innerData->m_procgenClock.partialDuration().count();
+			std::string procgenDurationStr = " " + TheWorld_Utils::milliseconds_to_hhhmmss(procgenDurationMs);;
 
 			// WARNIG: DISPLAING ONLY FIRST ELEMENET OF MAP, ASSUMING ATM ONLY 1 LEVEL IS PRESENT
 			m_innerData->m_procgenHeader->set_text((std::string("Proc. Gen (Vert ") + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numVerticesPerSize) + ")").c_str());
@@ -2098,8 +2098,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			if (m_innerData->m_procgenClock.counterStarted() && !clientWorkNeeded)
 				m_innerData->m_procgenClock.tock();
 
-			size_t procgenDuration = m_innerData->m_procgenClock.counterStarted() ? m_innerData->m_procgenClock.partialDuration().count() : m_innerData->m_procgenClock.duration().count();
-			std::string procgenDurationStr = " Elapsed=" + std::to_string(procgenDuration) + "ms";
+			size_t procgenDurationMs = m_innerData->m_procgenClock.counterStarted() ? m_innerData->m_procgenClock.partialDuration().count() : m_innerData->m_procgenClock.duration().count();
+			std::string procgenDurationStr = " Elapsed=" + TheWorld_Utils::milliseconds_to_hhhmmss(procgenDurationMs);
 
 			m_innerData->m_procgenHeader->set_text("Proc. Gen.");
 			if (waitingForServerGen())

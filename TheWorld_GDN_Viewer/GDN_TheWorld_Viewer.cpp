@@ -81,6 +81,7 @@ void MapQuadrantImagesMap::addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos)
 	if (not m_updatedQuadrants.contains(pos))
 		m_viewer->incUpdatedMapQuadrants();
 	m_updatedQuadrants[pos] = true;
+	//PLOG_DEBUG << "#################### Added updated quadrant info - Pos:" << pos.getIndexPosX() << "," << pos.getIndexPosZ();
 	if (m_updatingQuadrants.contains(pos))
 		m_updatingQuadrants.erase(pos);
 }
@@ -102,6 +103,7 @@ void MapQuadrantImagesMap::eraseUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 	m_updatedQuadrants.erase(pos);
+	//PLOG_DEBUG << "#################### Erased updated quadrant info - Pos:" << pos.getIndexPosX() << "," << pos.getIndexPosZ();
 }
 void MapQuadrantImagesMap::eraseUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
@@ -163,7 +165,10 @@ void MapQuadrantImagesMap::clearThasher(void)
 		}
 	}
 	for (auto& item : toDelete)
+	{
 		m_updatedQuadrants.erase(item);
+		//PLOG_DEBUG << "#################### Erased updated quadrant info - Pos:" << item.getIndexPosX() << "," << item.getIndexPosZ();
+	}
 }
 
 bool MapQuadrantImagesMap::updated(void)
@@ -1437,13 +1442,16 @@ void GDN_TheWorld_Map::resizeRuler(godot::Vector2 newSize)
 
 		float zoomFactor = cam->getZoomFactor();
 
-		const float MapRulerHLineSize = getQuadrantGlobalSize() * zoomFactor;
+		//const float MapRulerHLineSize = getQuadrantGlobalSize() * zoomFactor;
+		//std::string labelText = std::to_string(int(getQuadrantWorldSize())) + " m";
+		const float MapRulerHLineSize = getQuadrantGlobalSize();
+		std::string labelText = std::format("{:.2f}", getQuadrantWorldSize() / zoomFactor) + " m";
+
 		const float MapRulerVLineSize = 10;
 		const double MapRulerLineWidth = 3;
 
 		n = m_rulerGroup->find_child("MapRulerLabel", true, false);
 		godot::Label* rulerLabel = godot::Object::cast_to<godot::Label>(n);
-		std::string labelText = std::to_string(int(getQuadrantWorldSize())) + " m";
 		rulerLabel->set_text(labelText.c_str());
 		int32_t fontSize = rulerLabel->get_theme_font_size("font_size");
 		godot::Vector2 minimumRulerLabelSize(real_t(labelText.size() * fontSize), real_t(fontSize));
@@ -1963,6 +1971,8 @@ void GDN_TheWorld_Map::removeRefreshingMapQuadrantOverride(TheWorld_Utils::Quadr
 		m_mapQuadrantOverrideContainer[quadrantPos]->refreshInProgress(false);
 		if (m_mapQuadrantOverrideContainer[quadrantPos]->canBeErased())
 			m_mapQuadrantOverrideContainer.erase(quadrantPos);
+		else
+			m_mapQuadrantOverrideContainer[quadrantPos]->applyColor();
 	}
 }
 
@@ -5022,7 +5032,7 @@ void GDN_TheWorld_Viewer::setPosHud(godot::Size2& windowSize)
 
 		if (m_eastLabel != nullptr)
 		{
-			godot::Rect2 rect = m_southLabel->get_rect();
+			godot::Rect2 rect = m_eastLabel->get_rect();
 			godot::Size2 size = rect.size;
 			m_eastLabel->set_anchor(godot::Side::SIDE_LEFT, 1.0);
 			m_eastLabel->set_offset(SIDE_LEFT, -size.x);
@@ -6284,21 +6294,31 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					proceGenStatusCursor += size;
 					if (numProceGenStatus > 0)
 					{
+						bool _serverGenerationInProgress = false;
 						for (int idx = 0; idx < numProceGenStatus; idx++)
 						{
 							TheWorld_Utils::MapManagerProceduralGenerationStatus procGenStatus = TheWorld_Utils::deserializeFromByteStream<TheWorld_Utils::MapManagerProceduralGenerationStatus>((BYTE*)replyProceGenStatus.c_str() + proceGenStatusCursor, size);
 							proceGenStatusCursor += size;
+							if (procGenStatus.m_proceduralProcessingInProgress or procGenStatus.m_numQuadrantsToElabClientSide > 0)
+								_serverGenerationInProgress = true;
 							if (editModeUIControl != nullptr && editModeUIControl->initialized())
 								editModeUIControl->setServerProcGenStatus(procGenStatus);
 						}
+						serverGenerationInProgress(_serverGenerationInProgress);
 					}
 					else
+					{
+						serverGenerationInProgress(false);
 						if (editModeUIControl != nullptr && editModeUIControl->initialized())
 							editModeUIControl->resetServerProcGenStatus();
+					}
 				}
 				else
+				{
+					serverGenerationInProgress(false);
 					if (editModeUIControl != nullptr && editModeUIControl->initialized())
 						editModeUIControl->resetServerProcGenStatus();
+				}
 			}
 
 			{
@@ -8226,12 +8246,12 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 
 void GDN_TheWorld_Viewer::startInitializingStreamOfQuadrants(void)
 {
-	m_streamingInProgress = true;
+	worldStreamingInProgress(true);
 }
 
 void GDN_TheWorld_Viewer::endInitializingStreamOfQuadrants(void)
 {
-	m_streamingInProgress = false;
+	worldStreamingInProgress(false);
 	finishedResizingGrid(false);
 }
 
@@ -9397,7 +9417,7 @@ bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* glob
 	if ((Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed or Globals()->status() == TheWorldStatus::worldDeployInProgress)
 		&& !recalcQuadrantsInViewNeeded()
 		&& allVisibleCollidersReady()
-		//&& !m_streamingInProgress		// *** WARNING ***
+		//&& !worldStreamingInProgress()		// *** WARNING ***
 		//&& elapsedFromLastRecalc > TIME_INTERVAL_BETWEEN_RECALC_QUADRANT
 		&& m_computedWorldCameraQuadrantPos.isInitialized()
 		&& Globals()->getStreamWorld())
@@ -10404,7 +10424,7 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 	if (globals->status() != TheWorldStatus::worldDeployed and globals->status() != TheWorldStatus::minimalWorldDeployed)
 		return;
 	
-	if (m_streamingInProgress)
+	if (worldStreamingInProgress())
 		return;
 
 	float distance;
@@ -11729,7 +11749,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 				}
 				for (auto& pos : quadrantsPosToErase)
 					m_mapQuadrantsMap.erase(pos);
-				//m_mapQuadrantsMap.clearThasher();
+				m_mapQuadrantsMap.clearThasher();
 			}
 
 			bool statusChanged = m_mapQuadrantsMap.checkUpdatingQuadrants();
@@ -11830,6 +11850,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 								MapQuadrantImage* mapQuadrant = m_mapQuadrantsMap[quadrantPosItem].get();
 								if (mapQuadrant->updated())
 								{
+									//PLOG_DEBUG << "#################### mapQuadrant->updated() - Pos: " << mapQuadrant->getPos().getIndexPosX() << "," << mapQuadrant->getPos().getIndexPosZ();
 									bool b = map->setMapQuadrantData(mapQuadrant->getMapImage(), quadrantPosItem, TheWorld_Utils::MeshCacheBuffer::getTimeFromMeshId(mapQuadrant->getMeshId()));
 									if (b)
 										fullRectRendered = true;
@@ -11845,6 +11866,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 										{
 											map->addRefreshingMapQuadrantOverride(quadrantPosItem);
 											breakLoop = true;
+											//PLOG_DEBUG << "#################### map->addRefreshingMapQuadrantOverride - Pos: " << mapQuadrant->getPos().getIndexPosX() << "," << mapQuadrant->getPos().getIndexPosZ();
 										}
 									}
 								}
@@ -11856,6 +11878,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 								{
 									map->addRefreshingMapQuadrantOverride(quadrantPosItem);
 									breakLoop = true;
+									//PLOG_DEBUG << "#################### map->addRefreshingMapQuadrantOverride - Pos: " << quadrantPosItem.getIndexPosX() << "," << quadrantPosItem.getIndexPosZ();
 								}
 							}
 						}
@@ -14377,7 +14400,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 						bool _allVisibleQuadrantInitialized = allVisibleQuadrantsInitialized();
-						if (recalcQuadrantsInViewNeeded() && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and _allVisibleQuadrantInitialized /* *** WARNING *** and !m_streamingInProgress*/)
+						if (recalcQuadrantsInViewNeeded() && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and _allVisibleQuadrantInitialized /* *** WARNING *** and !worldStreamingInProgress()*/)
 						{
 							bool newQuadAdded = recalcQuadrantsInView();
 							if (not newQuadAdded)
@@ -14445,7 +14468,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 							//buffer.adjustSize(cursor);
 							buffer.toString(quadrants);
 
-							if (mapMode())
+							if (mapMode() and not serverGenerationInProgress() and not worldStreamingInProgress())
 							{
 								GDN_TheWorld_Map* map = Map();
 								if (map != nullptr)

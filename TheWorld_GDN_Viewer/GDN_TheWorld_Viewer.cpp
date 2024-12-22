@@ -4540,48 +4540,50 @@ constexpr float SATELLITE_VIEW_CONTROL_DISTANCE_FROM_BORDER = 5;
 void GDN_TheWorld_Viewer::setEditor3dOverlay(godot::Object* editor3dOverlay)
 {
 	m_editor3dOverlay = (godot::Control*)editor3dOverlay;
-	if (isInEditor() and m_editor3dOverlay != nullptr)
-	{
-		int64_t editor3dOverlayId = m_editor3dOverlay->get_instance_id();
+	
+	// putting hudControls child of editor3dOverlay makes overlay gui hang
+	//if (isInEditor() and m_editor3dOverlay != nullptr)
+	//{
+	//	int64_t editor3dOverlayId = m_editor3dOverlay->get_instance_id();
 
-		GDN_TheWorld_HudControls* hudControls = HudControls();
-		if (hudControls != nullptr)
-		{
-			godot::Node* parent = hudControls->get_parent();
-			if (parent != nullptr)
-			{
-				int64_t parentId = parent->get_instance_id();
-				if (parentId != editor3dOverlayId)
-				{
-					parent->remove_child(hudControls);
-					m_editor3dOverlay->add_child(hudControls);
-					godot::Size2 windowSize = getViewportSize();
-					setPosHud(windowSize);
-				}
-			}
-		}
+	//	GDN_TheWorld_HudControls* hudControls = HudControls();
+	//	if (hudControls != nullptr)
+	//	{
+	//		godot::Node* parent = hudControls->get_parent();
+	//		if (parent != nullptr)
+	//		{
+	//			int64_t parentId = parent->get_instance_id();
+	//			if (parentId != editor3dOverlayId)
+	//			{
+	//				parent->remove_child(hudControls);
+	//				m_editor3dOverlay->add_child(hudControls);
+	//				godot::Size2 windowSize = getViewportSize();
+	//				setPosHud(windowSize);
+	//			}
+	//		}
+	//	}
 
-		GDN_TheWorld_MapViewer* mapViewer = MapViewer();
-		if (mapViewer != nullptr)
-		{
-			GDN_TheWorld_Map* map = mapViewer->getMap();
-			if (map != nullptr)
-			{
-				godot::Node* parent = map->get_parent();
-				if (parent != nullptr)
-				{
-					int64_t parentId = parent->get_instance_id();
-					if (parentId != editor3dOverlayId)
-					{
-						parent->remove_child(map);
-						m_editor3dOverlay->add_child(map);
-						godot::Size2 windowSize = getViewportSize();
-						setPosMapViewer(windowSize);
-					}
-				}
-			}
-		}
-	}
+	//	GDN_TheWorld_MapViewer* mapViewer = MapViewer();
+	//	if (mapViewer != nullptr)
+	//	{
+	//		GDN_TheWorld_Map* map = mapViewer->getMap();
+	//		if (map != nullptr)
+	//		{
+	//			godot::Node* parent = map->get_parent();
+	//			if (parent != nullptr)
+	//			{
+	//				int64_t parentId = parent->get_instance_id();
+	//				if (parentId != editor3dOverlayId)
+	//				{
+	//					parent->remove_child(map);
+	//					m_editor3dOverlay->add_child(map);
+	//					godot::Size2 windowSize = getViewportSize();
+	//					setPosMapViewer(windowSize);
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 void GDN_TheWorld_Viewer::setPosWorldViewer(godot::Size2& windowSize)
@@ -5758,7 +5760,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 								quadTree->getQuadrant()->mapModderWorkDone(false);
 
-								GDN_TheWorld_Map* map = Map();
+								GDN_TheWorld_Map* map = Map(true, true);
 								if (map != nullptr)
 									map->removeEditedMapQuadrantOverride(quadrantPos);
 
@@ -6237,7 +6239,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				}
 			}
 
-			GDN_TheWorld_Map* map = Map();
+			GDN_TheWorld_Map* map = Map(true, true);
 			if (map != nullptr and mapTextureRects.length() > 0 and replyMapTextureRects.length() > 0)
 			{
 				size_t size = 0;
@@ -13172,9 +13174,12 @@ GDN_TheWorld_MapViewport* GDN_TheWorld_Viewer::MapViewport(bool useCache)
 	return m_mapViewport;
 }
 
-GDN_TheWorld_Map* GDN_TheWorld_Viewer::Map(bool useCache)
+GDN_TheWorld_Map* GDN_TheWorld_Viewer::Map(bool canUseCache, bool mustUseCache)
 {
-	if (m_map == nullptr || !useCache)
+	if (m_map == nullptr and mustUseCache)
+		return nullptr;
+	
+	if (m_map == nullptr or not canUseCache)
 	{
 		if (not is_inside_tree())
 			return nullptr;

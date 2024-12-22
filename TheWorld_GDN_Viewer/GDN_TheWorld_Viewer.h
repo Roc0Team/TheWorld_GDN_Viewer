@@ -1751,7 +1751,7 @@ namespace godot
 		GDN_TheWorld_MapViewer* MapViewer(bool useCache = true);
 		GDN_TheWorld_MapViewportContainer* MapViewportContainer(bool useCache = true);
 		GDN_TheWorld_MapViewport* MapViewport(bool useCache = true);
-		GDN_TheWorld_Map* Map(bool useCache = true);
+		GDN_TheWorld_Map* Map(bool canUseCache = true, bool mustUseCache = false);
 		GDN_TheWorld_MapCamera* MapCamera(bool useCache = true);
 		godot::GDN_TheWorld_Edit* EditModeUIControl(bool useCache = true);
 		godot::Control* getOrCreateEditModeUIControl(void);

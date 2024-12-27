@@ -6,15 +6,17 @@
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde
 
-* environment con nebbia, dissolvenza in lontananza, nubi etc.
 * strade
 * laghi
 * fiumi
-* ciclo giorno-notte
 * miglior effetto visivo della sabbia e in generale delle texture a media distanza
 * Visibilità che sfuma in 2D come mappa: a comando ed oltre una certa altezza
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
+
+Tag 2024/12/27
+* ***OK*** environment con nebbia, dissolvenza in lontananza, nubi etc.
+* ***OK*** ciclo giorno-notte
 
 Tag 2024/12/19
 * ***OK*** project exporting jobs

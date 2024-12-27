@@ -3354,7 +3354,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 									//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader", "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
 									//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.gdshader");
 			//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/tools/shaders/height2splatmap.tres");
-			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/test/height2splatmap.tres");
+			//godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/test/height2splatmap.tres");
+			godot::Ref<godot::Shader> shader = resLoader->load("res://addons/twviewer/shaders/height2splatmap.tres");
 			mat->set_shader(shader);
 			//float gridStepInWU = m_viewer->Globals()->gridStepInWU();
 			//mat->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, heightmapTexture);

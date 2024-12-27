@@ -1,4 +1,5 @@
 
+* vegetazione
 * architettura client-server con software di rete
 * profiler should aliment a que dequeued by a dedicated thread
 * la mappa (globalmap) deve avere un aspetto più verosimile

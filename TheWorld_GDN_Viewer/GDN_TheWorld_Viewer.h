@@ -967,6 +967,8 @@ namespace godot
 		int32_t m_mapTextureRectNum = 0;
 		int32_t m_mapQuadrantColorOverrideNum = 0;
 		int32_t m_mapQuadrantTextureOverrideNum = 0;
+
+		bool m_destroying = false;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -1697,6 +1699,14 @@ namespace godot
 		void adjustWorldCameraRequired(bool b, godot::Vector2 desideredCameraWorldPos = godot::Vector2());
 		bool delayedWorldMode(void) const;
 		void delayedWorldMode(bool b);
+		bool adjustEnvironmentRequired(void) const
+		{
+			return m_adjustEnvironmentRequired;
+		}
+		void adjustEnvironmentRequired(bool b)
+		{
+			m_adjustEnvironmentRequired = b;
+		}
 		bool worldMode(void) const;
 		void toggleMapView(void);
 		void adjustWorldCamera(godot::Vector2 desideredCameraGlobalPos);
@@ -1774,6 +1784,8 @@ namespace godot
 		{
 			m_dumpRequired = true; 
 		}
+		void adjustEnvironment(void);
+		template <typename T> void getChildrenOfType(godot::Array& outNodes, godot::Node* parent = nullptr, int level = 0, bool recurse = true);
 		void dump(void);
 		void dumpRecurseIntoChildrenNodes(Array nodes, int level);
 		void setWorldCameraTerrainChunk(Chunk* chunk, QuadTree* quadTree);
@@ -2767,6 +2779,8 @@ namespace godot
 		TrackedInputEventContainer m_trackedInputEventsForProcess;
 		TrackedInputEventContainer m_trackedInputEventsForTrackMouse;
 		TrackedInputEventQueue m_trackedInputEvents;
+
+		bool m_adjustEnvironmentRequired = false;
 
 		//bool m_mapGridOn = false;
 		bool m_trackMouse = false;

@@ -33,6 +33,8 @@
 #include <godot_cpp/classes/line2d.hpp>
 #include <godot_cpp/classes/thread.hpp>
 #include <godot_cpp/classes/center_container.hpp>
+#include <godot_cpp/classes/world_environment.hpp>
+#include <godot_cpp/classes/environment.hpp>
 #include "warning_pop.h"
 //#pragma warning(pop)
 
@@ -1246,6 +1248,8 @@ GDN_TheWorld_Map::GDN_TheWorld_Map(void)
 
 GDN_TheWorld_Map::~GDN_TheWorld_Map(void)
 {
+	m_destroying = true;
+
 	if (m_mapViewport != nullptr)
 	{
 		if (m_mapViewport->is_connected("size_changed", Callable(this, "viewport_size_changed")))
@@ -1873,6 +1877,9 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride* GDN_TheWorld_Map::
 
 void GDN_TheWorld_Map::releaseQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos)
 {
+	if (m_destroying)	// If map is destroying Globals and Viewer are already done
+		return;
+	
 	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
 
 	TheWorld_Utils::MapTextureRectPos pos = TheWorld_Utils::MapTextureRectPos::getFromQuadrant(quadrantPos, GDN_TheWorld_Map::getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
@@ -1885,6 +1892,9 @@ void GDN_TheWorld_Map::releaseQuadrantColorOverride(TheWorld_Utils::QuadrantPos&
 
 void GDN_TheWorld_Map::releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos)
 {
+	if (m_destroying)	// If map is destroying Globals and Viewer are already done
+		return;
+
 	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
 
 	TheWorld_Utils::MapTextureRectPos pos = TheWorld_Utils::MapTextureRectPos::getFromQuadrant(quadrantPos, GDN_TheWorld_Map::getNumQuadrantsPerSize(), getQuadrantGlobalSize(), getQuadrantWorldSize());
@@ -2853,11 +2863,15 @@ void GDN_TheWorld_HudControls::init(GDN_TheWorld_Viewer* viewer)
 {
 	m_viewer = viewer;
 
+	godot::Control::MouseFilter mouseFilter = godot::Control::MouseFilter::MOUSE_FILTER_IGNORE;
+	set_mouse_filter(mouseFilter);
+
 	m_loadingVBox = memnew(godot::VBoxContainer);
 	add_child(m_loadingVBox);
 	m_loadingVBox->set_name("HudLoadingVBox");
 	m_loadingVBox->set_custom_minimum_size(godot::Vector2(500, 0));
 	m_loadingVBox->set_visible(false);
+	m_loadingVBox->set_mouse_filter(mouseFilter);
 
 	m_loadingLabel = memnew(godot::Label);
 	m_loadingVBox->add_child(m_loadingLabel);
@@ -2865,10 +2879,12 @@ void GDN_TheWorld_HudControls::init(GDN_TheWorld_Viewer* viewer)
 	m_loadingLabel->add_theme_color_override("font_color", Color(0.5, 0, 0));
 	m_loadingLabel->add_theme_font_size_override("font_size", 20);
 	m_loadingLabel->set_text("Loading...");
+	m_loadingLabel->set_mouse_filter(mouseFilter);
 
 	m_loadingProgressBar = memnew(godot::ProgressBar);
 	m_loadingVBox->add_child(m_loadingProgressBar);
 	m_loadingProgressBar->set_name("HudLoadingProgressBar");
+	m_loadingProgressBar->set_mouse_filter(mouseFilter);
 }
 
 void GDN_TheWorld_HudControls::setPos(godot::Size2& windowSize)
@@ -4543,48 +4559,48 @@ void GDN_TheWorld_Viewer::setEditor3dOverlay(godot::Object* editor3dOverlay)
 	m_editor3dOverlay = (godot::Control*)editor3dOverlay;
 	
 	// putting hudControls child of editor3dOverlay makes overlay gui hang
-	//if (isInEditor() and m_editor3dOverlay != nullptr)
-	//{
-	//	int64_t editor3dOverlayId = m_editor3dOverlay->get_instance_id();
+	if (isInEditor() and m_editor3dOverlay != nullptr)
+	{
+		int64_t editor3dOverlayId = m_editor3dOverlay->get_instance_id();
 
-	//	GDN_TheWorld_HudControls* hudControls = HudControls();
-	//	if (hudControls != nullptr)
-	//	{
-	//		godot::Node* parent = hudControls->get_parent();
-	//		if (parent != nullptr)
-	//		{
-	//			int64_t parentId = parent->get_instance_id();
-	//			if (parentId != editor3dOverlayId)
-	//			{
-	//				parent->remove_child(hudControls);
-	//				m_editor3dOverlay->add_child(hudControls);
-	//				godot::Size2 windowSize = getViewportSize();
-	//				setPosHud(windowSize);
-	//			}
-	//		}
-	//	}
+		GDN_TheWorld_HudControls* hudControls = HudControls();
+		if (hudControls != nullptr)
+		{
+			godot::Node* parent = hudControls->get_parent();
+			if (parent != nullptr)
+			{
+				int64_t parentId = parent->get_instance_id();
+				if (parentId != editor3dOverlayId)
+				{
+					parent->remove_child(hudControls);
+					m_editor3dOverlay->add_child(hudControls);
+					godot::Size2 windowSize = getViewportSize();
+					setPosHud(windowSize);
+				}
+			}
+		}
 
-	//	GDN_TheWorld_MapViewer* mapViewer = MapViewer();
-	//	if (mapViewer != nullptr)
-	//	{
-	//		GDN_TheWorld_Map* map = mapViewer->getMap();
-	//		if (map != nullptr)
-	//		{
-	//			godot::Node* parent = map->get_parent();
-	//			if (parent != nullptr)
-	//			{
-	//				int64_t parentId = parent->get_instance_id();
-	//				if (parentId != editor3dOverlayId)
-	//				{
-	//					parent->remove_child(map);
-	//					m_editor3dOverlay->add_child(map);
-	//					godot::Size2 windowSize = getViewportSize();
-	//					setPosMapViewer(windowSize);
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
+		GDN_TheWorld_MapViewer* mapViewer = MapViewer();
+		if (mapViewer != nullptr)
+		{
+			GDN_TheWorld_Map* map = mapViewer->getMap();
+			if (map != nullptr)
+			{
+				godot::Node* parent = map->get_parent();
+				if (parent != nullptr)
+				{
+					int64_t parentId = parent->get_instance_id();
+					if (parentId != editor3dOverlayId)
+					{
+						parent->remove_child(map);
+						m_editor3dOverlay->add_child(map);
+						godot::Size2 windowSize = getViewportSize();
+						setPosMapViewer(windowSize);
+					}
+				}
+			}
+		}
+	}
 }
 
 void GDN_TheWorld_Viewer::setPosWorldViewer(godot::Size2& windowSize)
@@ -5159,6 +5175,9 @@ bool GDN_TheWorld_Viewer::init(void)
 
 	set_notify_transform(true);
 
+	// Adjust environment
+	adjustEnvironment();
+	
 	// Set World Camera
 	{
 		GDN_TheWorld_Camera* camera = WorldCamera(false);
@@ -5274,6 +5293,35 @@ bool GDN_TheWorld_Viewer::init(void)
 	PLOG_INFO << "TheWorld Viewer Initialized!";
 
 	return true;
+}
+
+void GDN_TheWorld_Viewer::adjustEnvironment(void)
+{
+	//if (!IS_EDITOR_HINT())
+	{
+		godot::Array worldEnvironmentNodes;
+		getChildrenOfType<godot::WorldEnvironment>(worldEnvironmentNodes);
+		if (worldEnvironmentNodes.size() > 0)
+		{
+			godot::WorldEnvironment* worldEnv = godot::Object::cast_to<godot::WorldEnvironment>(worldEnvironmentNodes[0]);
+			if (worldEnv != nullptr)
+			{
+				godot::Ref<godot::Environment> env = worldEnv->get_environment();
+				if (env != nullptr)
+				{
+					float fogDistanceFactor = Globals()->getParamFogDistanceFactor();
+					float fogDepthBegin = float(53000 / 12) * getMaxDepthQuadOnPerimeter() * fogDistanceFactor;
+					float fogDepthEnd = float(60000 / 12) * getMaxDepthQuadOnPerimeter() * fogDistanceFactor;
+					env->set_fog_enabled(Globals()->getParamShowFog());
+					env->set_fog_mode(godot::Environment::FogMode::FOG_MODE_DEPTH);
+					env->set_fog_density(1.0);
+					env->set_fog_aerial_perspective(1.0);
+					env->set_fog_depth_begin(fogDepthBegin);
+					env->set_fog_depth_end(fogDepthEnd);
+				}
+			}
+		}
+	}
 }
 
 void GDN_TheWorld_Viewer::preDeinit(void)
@@ -7658,6 +7706,8 @@ void GDN_TheWorld_Viewer::setMaxDepthQuadOnPerimeter(int depth)
 		m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
 		if ((int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
 			recalcQuadrantsInViewNeeded(true);
+		if(m_maxDepthQuadOnPerimeter >= 0)
+			adjustEnvironmentRequired(true);
 	}
 }
 
@@ -8666,6 +8716,12 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	//	clock.tock();	d = clock.duration().count();
 	//}
 
+	if (adjustEnvironmentRequired())
+	{
+		adjustEnvironment();
+		adjustEnvironmentRequired(false);
+	}
+	
 	static size_t s_num = 0, s_loadingWorldRefresh = 0;
 	if (globals->status() == TheWorldStatus::worldDeployInProgress && s_loadingWorldRefresh < 10)
 		if (s_num > 10)
@@ -9389,6 +9445,12 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	if (globals->getParamShowTerrainChanged())
 		globals->setParamShowTerrainChanged(false);
 
+	if (globals->getParamShowFogChanged())
+	{
+		adjustEnvironment();
+		globals->setParamShowFogChanged(false);
+	}
+		
 	if (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed)
 	{
 		for (auto& item : m_extraQuadsMap)
@@ -14326,6 +14388,31 @@ void GDN_TheWorld_Viewer::dump()
 	//godot::Ref<godot::Image> image = vpt->get_image();
 	//std::string outFileName = GDN_TheWorld_Globals::getClientDataDir() + "\\screen.png";
 	//image->save_png(outFileName.c_str());
+}
+
+template <typename T> void GDN_TheWorld_Viewer::getChildrenOfType(godot::Array& outNodes, godot::Node* parent, int level, bool recurse)
+{
+	//if (IS_EDITOR_HINT())
+	//	return;
+	
+	if (parent == nullptr)
+	{
+		SceneTree* scene = get_tree();
+		if (scene == nullptr)
+			return;
+		parent = scene->get_root();
+	}
+	
+	godot::Array nodes = parent->get_children();
+	for (int i = 0; i < nodes.size(); i++)
+	{
+		godot::Node* node = godot::Object::cast_to<T>(nodes[i]);
+		if (node != nullptr)
+			outNodes.append(node);
+		node = godot::Object::cast_to<godot::Node>(nodes[i]);
+		if (recurse and node != nullptr)
+			getChildrenOfType<T>(outNodes, node, level + 1, recurse);
+	}
 }
 
 void GDN_TheWorld_Viewer::dumpRecurseIntoChildrenNodes(godot::Array nodes, int level)

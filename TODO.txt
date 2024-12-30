@@ -1,5 +1,8 @@
-
-* vegetazione
+* visualizzazione della velocità del movimento della camera
+* import delle texture direttamente dallo zip di https://ambientcg.com/
+* miglior effetto visivo della sabbia e in generale delle texture a media distanza
+* Nubi volumetriche e nebbia in 3d
+* vegetazione e costruzioni
 * architettura client-server con software di rete
 * profiler should aliment a que dequeued by a dedicated thread
 * la mappa (globalmap) deve avere un aspetto più verosimile
@@ -10,7 +13,7 @@
 * strade
 * laghi
 * fiumi
-* miglior effetto visivo della sabbia e in generale delle texture a media distanza
+* pioggia
 * Visibilità che sfuma in 2D come mappa: a comando ed oltre una certa altezza
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile

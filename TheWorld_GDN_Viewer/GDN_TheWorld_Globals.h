@@ -52,8 +52,10 @@
 #define THEWORLD_DEFAULT_TEXTURE_OPTIMIZATION_RESOLUTION_INCREMENT				2
 #define THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR									2
 #define THEWORLD_DEFAULT_SHOW_SEA												true
-#define THEWORLD_DEFAULT_SHOW_TERRAIN												true
+#define THEWORLD_DEFAULT_SHOW_TERRAIN											true
+#define THEWORLD_DEFAULT_SHOW_FOG												true
 #define THEWORLD_DEFAULT_SHOW_CHUNKS											false
+#define THEWORLD_DEFAULT_FOG_DISTANCE_FACTOR									1.0f
 //#define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
 #define PLOG_DEFAULT_LEVEL plog::Severity::info
@@ -722,6 +724,11 @@ namespace godot
 			return m_paramShowSea;
 		}
 		void setParamShowSea(bool b);
+		bool getParamShowFog(void) const
+		{
+			return m_paramShowFog;
+		}
+		void setParamShowFog(bool b);
 		bool getParamShowSeaChanged(void) const
 		{
 			return m_paramShowSeaChanged;
@@ -737,6 +744,11 @@ namespace godot
 			return m_paramShowTerrainChanged;
 		}
 		void setParamShowTerrainChanged(bool b);
+		bool getParamShowFogChanged(void) const
+		{
+			return m_paramShowFogChanged;
+		}
+		void setParamShowFogChanged(bool b);
 		bool getParamShowChunks(void) const
 		{
 			return m_paramShowChunks;
@@ -752,6 +764,12 @@ namespace godot
 			return m_paramElevationZero;
 		}
 		void setParamElevationZero(bool f);
+
+		float getParamFogDistanceFactor(void) const
+		{
+			return m_paramFogDistanceFactor;
+		}
+		void setParamFogDistanceFactor(float f);
 
 		void setTextureBlendingSize(float f)
 		{
@@ -890,10 +908,13 @@ namespace godot
 		int64_t m_paramOriginShiftFactor = THEWORLD_DEFAULT_ORIGIN_SHIFT_FACTOR;
 		bool m_paramShowSea = THEWORLD_DEFAULT_SHOW_SEA;
 		bool m_paramShowSeaChanged = false;
+		bool m_paramShowFog = THEWORLD_DEFAULT_SHOW_FOG;
+		bool m_paramShowFogChanged = false;
 		bool m_paramShowTerrain = THEWORLD_DEFAULT_SHOW_TERRAIN;
 		bool m_paramShowTerrainChanged = false;
 		bool m_paramShowChunks = THEWORLD_DEFAULT_SHOW_CHUNKS;
 		bool m_paramElevationZero = false;
+		float m_paramFogDistanceFactor = THEWORLD_DEFAULT_FOG_DISTANCE_FACTOR;
 		bool m_loadingScreen = true;
 		bool m_loadingScreenExitOnFullWorldDeploy = true;
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;

@@ -307,7 +307,7 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_camera_world_transform"), &GDN_TheWorld_Camera::getWorldTransform);
 
 	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
-	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_camera_tracking_speed", "get_camera_tracking_speed");
+	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR /* | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED*/), "set_camera_tracking_speed", "get_camera_tracking_speed");
 	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::VECTOR3, "camera_tracking_offset"), "set_camera_tracking_offset", "get_camera_tracking_offset");
 }
 

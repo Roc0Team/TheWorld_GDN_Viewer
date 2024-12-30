@@ -495,12 +495,16 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_perfparam_origin_shift_factor"), &GDN_TheWorld_Globals::getParamOriginShiftFactor);
 		ClassDB::bind_method(D_METHOD("set_viewparam_show_sea", "p_value"), &GDN_TheWorld_Globals::setParamShowSea);
 		ClassDB::bind_method(D_METHOD("get_viewparam_show_sea"), &GDN_TheWorld_Globals::getParamShowSea);
+		ClassDB::bind_method(D_METHOD("set_viewparam_show_fog", "p_value"), &GDN_TheWorld_Globals::setParamShowFog);
+		ClassDB::bind_method(D_METHOD("get_viewparam_show_fog"), &GDN_TheWorld_Globals::getParamShowFog);
 		ClassDB::bind_method(D_METHOD("set_viewparam_show_terrain", "p_value"), &GDN_TheWorld_Globals::setParamShowTerrain);
 		ClassDB::bind_method(D_METHOD("get_viewparam_show_terrain"), &GDN_TheWorld_Globals::getParamShowTerrain);
 		ClassDB::bind_method(D_METHOD("set_viewparam_show_chunks", "p_value"), &GDN_TheWorld_Globals::setParamShowChunks);
 		ClassDB::bind_method(D_METHOD("get_viewparam_show_chunks"), &GDN_TheWorld_Globals::getParamShowChunks);
 		ClassDB::bind_method(D_METHOD("set_viewparam_elevation_zero", "p_value"), &GDN_TheWorld_Globals::setParamElevationZero);
 		ClassDB::bind_method(D_METHOD("get_viewparam_elevation_zero"), &GDN_TheWorld_Globals::getParamElevationZero);
+		ClassDB::bind_method(D_METHOD("set_viewparam_fog_distance_factor", "p_value"), &GDN_TheWorld_Globals::setParamFogDistanceFactor);
+		ClassDB::bind_method(D_METHOD("get_viewparam_fog_distance_factor"), &GDN_TheWorld_Globals::getParamFogDistanceFactor);
 
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "Performance", "perfparam_");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_stream_world"), "set_perfparam_stream_world", "get_perfparam_stream_world");
@@ -514,9 +518,9 @@ namespace godot
 		// WARNING: 0 mean that all quadrants have collider data set consuming a lot of memory in the engine, but setting this value permit less memory usage but more time to read data from disk to set data
 		//ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::INT, "perfparam_depth_quad_with_collision"), "set_perfparam_depth_quad_with_collision_info", "get_perfparam_depth_quad_with_collision_info");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "perfparam_disable_terrain_collisions"), "set_perfparam_disable_terrain_collisions", "get_perfparam_disable_terrain_collisions");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_factor", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.5, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_perfparam_refresh_quadrants_factor", "get_perfparam_refresh_quadrants_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_factor", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.5, or_greater", PROPERTY_USAGE_EDITOR /* | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED*/), "set_perfparam_refresh_quadrants_factor", "get_perfparam_refresh_quadrants_factor");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_quadrants_threshold", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY), "", "get_perfparam_refresh_quadrants_threshold");
-		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunks_factor", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED), "set_perfparam_refresh_chunks_factor", "get_perfparam_refresh_chunks_factor");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunks_factor", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR /* | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED*/), "set_perfparam_refresh_chunks_factor", "get_perfparam_refresh_chunks_factor");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_refresh_chunk_lod_threshold", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY), "", "get_perfparam_refresh_chunk_lod_threshold");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_globalmap"), "set_perfparam_threshold_for_globalmap", "get_perfparam_threshold_for_globalmap");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "perfparam_threshold_tex_opt"), "set_perfparam_threshold_for_map_texture_optimization", "get_perfparam_threshold_for_map_texture_optimization");
@@ -527,8 +531,10 @@ namespace godot
 		ClassDB::add_property_group("GDN_TheWorld_Globals", "View", "viewparam_");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_terrain"), "set_viewparam_show_terrain", "get_viewparam_show_terrain");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_sea"), "set_viewparam_show_sea", "get_viewparam_show_sea");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_fog"), "set_viewparam_show_fog", "get_viewparam_show_fog");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_chunks"), "set_viewparam_show_chunks", "get_viewparam_show_chunks");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_elevation_zero"), "set_viewparam_elevation_zero", "get_viewparam_elevation_zero");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "viewparam_fog_distance_factor", PROPERTY_HINT_RANGE, "0.0, 1.0, 0.01", PROPERTY_USAGE_EDITOR /* | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED*/), "set_viewparam_fog_distance_factor", "get_viewparam_fog_distance_factor");
 
 		ADD_SIGNAL(MethodInfo("tw_status_changed", PropertyInfo(Variant::INT, "old_value"), PropertyInfo(Variant::INT, "new_value")));
 	}
@@ -1120,7 +1126,7 @@ namespace godot
 		{
 			m_paramShowSea = b;
 			//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
-			m_paramShowSeaChanged = true;
+			setParamShowSeaChanged(true);
 		}
 		PLOG_INFO << "View Parameter - Show Sea: " << (m_paramShowSea ? "true" : "false");
 	}
@@ -1136,7 +1142,7 @@ namespace godot
 		{
 			m_paramShowTerrain = b;
 			//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_TERRAIN, m_paramShowSea);
-			m_paramShowTerrainChanged = true;
+			setParamShowTerrainChanged(true);
 		}
 		PLOG_INFO << "View Parameter - Show Terrain: " << (m_paramShowTerrain ? "true" : "false");
 	}
@@ -1144,6 +1150,22 @@ namespace godot
 	void GDN_TheWorld_Globals::setParamShowTerrainChanged(bool b)
 	{
 		m_paramShowTerrainChanged = b;
+	}
+
+	void GDN_TheWorld_Globals::setParamShowFog(bool b)
+	{
+		if (m_paramShowFog != b)
+		{
+			m_paramShowFog = b;
+			//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_SEA, m_paramShowSea);
+			setParamShowFogChanged(true);
+		}
+		PLOG_INFO << "View Parameter - Show Fog: " << (m_paramShowFog ? "true" : "false");
+	}
+
+	void GDN_TheWorld_Globals::setParamShowFogChanged(bool b)
+	{
+		m_paramShowFogChanged = b;
 	}
 
 	void GDN_TheWorld_Globals::setParamShowChunks(bool b)
@@ -1160,6 +1182,16 @@ namespace godot
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_FORCE_ELEVATION_0, paramElevationZero);
 		Viewer()->terrainHeightsChangedEvent();
 		PLOG_INFO << "View Parameter - Elevation Zero: " << (m_paramElevationZero ? "true" : "false");
+	}
+
+	void GDN_TheWorld_Globals::setParamFogDistanceFactor(float f)
+	{
+		if (m_paramFogDistanceFactor != f)
+		{
+			m_paramFogDistanceFactor = f;
+			//PLOG_INFO << "View Parameter - Fog Distance Factor: " << m_paramFogDistanceFactor;
+			Viewer()->adjustEnvironmentRequired(true);
+		}
 	}
 
 	//void GDN_TheWorld_Globals::setParamDepthQuadWithCollisionInfo(int64_t f)

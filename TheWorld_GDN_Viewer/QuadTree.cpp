@@ -477,7 +477,7 @@ void QuadTree::checkAndInitSeaQuadrant(void)
 {
 	if (status() == QuadrantStatus::initialized)
 	{
-		if (canContainSea() == QUADRANT_SEA_INFO_SET_TRUE && !containsQuadOfType(QuadType::Sea))
+		if (canContainSea() == QUADRANT_SEA_INFO_TRUE && !containsQuadOfType(QuadType::Sea))
 		{
 			m_viewer->getMainProcessingMutex().lock();
 			m_quads[QuadType::Sea] = std::make_unique<Quads>();
@@ -609,9 +609,6 @@ void QuadTree::setPrevStatus(void)
 
 void QuadTree::setStatus(enum class QuadrantStatus status)
 {
-	//if (status == QuadrantStatus::loadTerrainDataFromCacheNeeded)	// DEBUG ONLY
-	//	m_status = status;											// DEBUG ONLY
-
 	//if (m_worldQuadrant != nullptr && m_worldQuadrant->getPos().isInitialized() && m_worldQuadrant->getPos().getIndexPosX() == -2 && m_worldQuadrant->getPos().getIndexPosZ() == 3)
 	//{
 	//	PLOG_DEBUG << "TRACKING setStatus to " << statusToString(status) << " " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << getQuadrant()->getPos().getIndexPosX() << "Z=" << getQuadrant()->getPos().getIndexPosZ();
@@ -622,12 +619,14 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 	if (status == QuadrantStatus::toErase && m_status != QuadrantStatus::toErase)
 		m_prevStatus = m_status;
 
+	if (status == QuadrantStatus::refreshTerrainDataNeeded)	// DEBUG ONLY
+		m_status = status;									// DEBUG ONLY
 	m_status = status;
 	Quadrant* quadrant = getQuadrant();
 	if (quadrant != nullptr)
 		quadrant->lockInternalDataUntilCompleteProcessExecution();
 
-	if (m_status == QuadrantStatus::initialized && canContainSea() == QUADRANT_SEA_INFO_SET_NOTSET)
+	if (m_status == QuadrantStatus::initialized && canContainSea() == QUADRANT_SEA_INFO_NOTSET)
 	{
 		//if (this->getQuadrant()->getPos().getIndexPosX() == 2 && this->getQuadrant()->getPos().getIndexPosZ() == 3)
 		//{
@@ -663,12 +662,12 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 void QuadTree::refreshSeaInfo(void)
 {
 	TheWorld_Utils::TerrainEdit* terrainEdit = getQuadrant()->getTerrainEdit();
-	if (terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_SET_TRUE)
+	if (terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE)
 	{
-		if (terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_SET_TRUE)
-			canContainSea(QUADRANT_SEA_INFO_SET_TRUE);
+		if (terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE)
+			canContainSea(QUADRANT_SEA_INFO_TRUE);
 		else
-			canContainSea(QUADRANT_SEA_INFO_SET_FALSE);
+			canContainSea(QUADRANT_SEA_INFO_FALSE);
 	}
 	else
 	{
@@ -678,10 +677,10 @@ void QuadTree::refreshSeaInfo(void)
 		}
 		else
 		{
-			if (terrainEdit->minHeight <= (THEWORLD_SEA_LEVEL + THEWORLD_SEA_MAX_WAVE_HEIGHT))
-				canContainSea(QUADRANT_SEA_INFO_SET_TRUE);
+			if (terrainEdit->canContainSea())
+				canContainSea(QUADRANT_SEA_INFO_TRUE);
 			else
-				canContainSea(QUADRANT_SEA_INFO_SET_FALSE);
+				canContainSea(QUADRANT_SEA_INFO_FALSE);
 		}
 	}
 }
@@ -921,7 +920,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosInMap, Quad* quad, enum cl
 				quad->getChunk()->setDistanceFromCamera(distance);
 				if (distance < splitDistance)
 				{
-					if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
+					if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())	// split only if there are Heights16
 					{
 						setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
 						m_viewer->forceProcessWorldCameraPosForChunks();
@@ -1103,7 +1102,7 @@ void QuadTree::internalUpdate(godot::Vector3 cameraPosInMap, Quad* quad, enum cl
 
 			if (quad->splitRequired() && quad->Lod() > 0)
 			{
-				if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())
+				if (statusInitialized() && !getQuadrant()->hasHeigthsForChunkSplitsAndShaderRendering())	// split only if there are Heights16
 				{
 					//godot::Vector3 quadrantCenter = getQuadrant()->getCenter();
 					//quadrantCenter.y = (getQuadrant()->getTerrainEdit()->maxHeight + getQuadrant()->getTerrainEdit()->minHeight) / 2;
@@ -1541,15 +1540,15 @@ void QuadTree::setQuadrantOptimizations(godot::Vector3& worldCameraWorldPos)
 		}
 	}
 
-	enum class QuadType typeForOptimizations = QuadType::Terrain;
+	enum class QuadType quadrantTypeForOptimizations = QuadType::Terrain;
 
-	if (!containsQuadOfType(typeForOptimizations))
+	if (!containsQuadOfType(quadrantTypeForOptimizations))
 		return;
 
 	{
 		size_t newOptimizationLevel = 0;	// 0 ==> no optimization
 		//if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low)
-		if (getQuadrant()->quadrantAtMinLod(typeForOptimizations))	// optimization > 0 only for quadrant with a unique chunk coincident with the root
+		if (getQuadrant()->quadrantAtMinLod(quadrantTypeForOptimizations))	// optimization > 0 only for quadrant with a unique chunk coincident with the root: for those quadrants we used cached resized texture for the whole quad and we don't split it in chunks
 		{
 			newOptimizationLevel += m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
 			float thresholdForTextureOptimization = m_viewer->Globals()->getParamThresholdForMapTextureOptimization();
@@ -1573,10 +1572,12 @@ void QuadTree::setQuadrantOptimizations(godot::Vector3& worldCameraWorldPos)
 
 	{
 		//if (getQuadrant()->getMeshResolutionLevel() == Quadrant::MeshResolutionLevel::low 
-		if (getQuadrant()->quadrantAtMinLod(typeForOptimizations)
+		if (getQuadrant()->quadrantAtMinLod(quadrantTypeForOptimizations)
 			&&
 			((m_viewer->Globals()->getParamThresholdCacheHeights() > 0 && m_lastComputedQuadrantDistanceFromCamera > m_viewer->Globals()->getParamThresholdCacheHeights()) /* || !m_viewer->Globals()->getParamCacheHeightsForLowResQuadrants()*/))
+		{
 			getQuadrant()->canCacheHeigthBuffers(false);
+		}
 		else
 		{
 			bool changed = getQuadrant()->canCacheHeigthBuffers(true);
@@ -1634,7 +1635,14 @@ bool QuadTree::materialParamsNeedReset(void)
 void QuadTree::materialParamsNeedReset(bool b)
 {
 	if (b)
+	{
 		getQuadrant()->getShaderTerrainData()->materialParamsNeedReset(b);
+
+		//getQuadrant()->northQuadrantData().initialized(false);
+		//getQuadrant()->southQuadrantData().initialized(false);
+		//getQuadrant()->westQuadrantData().initialized(false);
+		//getQuadrant()->eastQuadrantData().initialized(false);
+	}
 	else
 		getQuadrant()->getShaderTerrainData()->materialParamsNeedReset(b);
 }
@@ -2147,8 +2155,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 									//String shaderPath = "res://addons/twviewer/shaders/regularChunk.gdshader";
 									//String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
 									//String shaderPath = "res://addons/twviewer/test/regularChunk.tres";
-		String shaderPath = "res://addons/twviewer/shaders/terrain.gdshader";
-		//String shaderPath = "res://addons/twviewer/test/terrain.gdshader";
+		//String shaderPath = "res://addons/twviewer/shaders/terrain.gdshader";
+		String shaderPath = "res://addons/twviewer/test/terrain.gdshader";
 		m_sendTextureToShader = true;
 		godot::Ref<godot::Shader> shader;
 		if (reload)
@@ -4234,29 +4242,52 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 		return;
 	
 	// i buffers durante il caricamento devono essere distrutti appena lavorati perché fanno esaurire la memoria di sistema rallentando notevolmente il caricamento
-	if (!canCacheHeigthBuffers())
+	if (canCacheHeigthBuffers())	// set according to camera distance from camera: heights can be cached if distance is under a threshold value because it is supposed splits will be necessary
 	{
-		// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass form optimizatrion level > 0 (used cached resize images) to optimization level = 0
-		if (m_float16HeigthsBuffer.size() > 0)		// for split (calc AABB)
-			m_float16HeigthsBuffer.clear(__FUNCTION__);
-		if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
-			m_float32HeigthsBuffer.clear(__FUNCTION__);
-		if (m_normalsBuffer.size() > 0)
-			m_normalsBuffer.clear(__FUNCTION__);
-		if (m_splatmapBuffer.size() > 0)
-			m_splatmapBuffer.clear(__FUNCTION__);
-		if (m_colormapBuffer.size() > 0)
-			m_colormapBuffer.clear(__FUNCTION__);
-		if (m_globalmapBuffer.size() > 0)
-			m_globalmapBuffer.clear(__FUNCTION__);
-
-		// Needed for Shader: at init time or when optimization level changes (from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
-		getShaderTerrainData()->getHeightmapImageRef().unref();
-		getShaderTerrainData()->getNormalmapImageRef().unref();
-		getShaderTerrainData()->getSplatmapImageRef().unref();
-		getShaderTerrainData()->getColormapImageRef().unref();
-		getShaderTerrainData()->getGlobalmapImageRef().unref();
+		//manualSave = true;	// DEBUG ONLY
 	}
+	else
+	{
+		// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass from optimizatrion level > 0 (using cached resized images) to optimization level = 0 (we need full textures)
+		if (m_float16HeigthsBuffer.size() > 0)		// for split (calc AABB): if they are need in split operation they wiil be reloaded from disk cache before split
+			m_float16HeigthsBuffer.clear(__FUNCTION__);
+
+		//if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
+		//	m_float32HeigthsBuffer.clear(__FUNCTION__);
+		//if (m_normalsBuffer.size() > 0)
+		//	m_normalsBuffer.clear(__FUNCTION__);
+		//if (m_splatmapBuffer.size() > 0)
+		//	m_splatmapBuffer.clear(__FUNCTION__);
+		//if (m_colormapBuffer.size() > 0)
+		//	m_colormapBuffer.clear(__FUNCTION__);
+		//if (m_globalmapBuffer.size() > 0)
+		//	m_globalmapBuffer.clear(__FUNCTION__);
+
+		//// Needed for Shader: at init time or when optimization level changes from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
+		//getShaderTerrainData()->getHeightmapImageRef().unref();
+		//getShaderTerrainData()->getNormalmapImageRef().unref();
+		//getShaderTerrainData()->getSplatmapImageRef().unref();
+		//getShaderTerrainData()->getColormapImageRef().unref();
+		//getShaderTerrainData()->getGlobalmapImageRef().unref();
+	}
+
+	if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
+		m_float32HeigthsBuffer.clear(__FUNCTION__);
+	if (m_normalsBuffer.size() > 0)
+		m_normalsBuffer.clear(__FUNCTION__);
+	if (m_splatmapBuffer.size() > 0)
+		m_splatmapBuffer.clear(__FUNCTION__);
+	if (m_colormapBuffer.size() > 0)
+		m_colormapBuffer.clear(__FUNCTION__);
+	if (m_globalmapBuffer.size() > 0)
+		m_globalmapBuffer.clear(__FUNCTION__);
+
+	// Needed for Shader: at init time or when optimization level changes from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
+	getShaderTerrainData()->getHeightmapImageRef().unref();
+	getShaderTerrainData()->getNormalmapImageRef().unref();
+	getShaderTerrainData()->getSplatmapImageRef().unref();
+	getShaderTerrainData()->getColormapImageRef().unref();
+	getShaderTerrainData()->getGlobalmapImageRef().unref();
 
 	int64_t size = m_heightsForCollider.size();
 	m_heightsForCollider.resize(0);
@@ -4415,11 +4446,11 @@ void Quadrant::process_mapModder(double _delta)
 	QuadTree* westQuadrantTree = m_viewer->getQuadTree(currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus), true, false, true);
 	bool westQuadrantValid = westQuadrantTree != nullptr && westQuadrantTree->statusInitialized() && westQuadrantTree->isValid() && !westQuadrantTree->getQuadrant()->empty();
 
-	if (terrainEdit->splatmapNeedRegen
+	if (terrainEdit->splatmapNeedRegen()
 		|| (northQuadrantValid && northQuadrantTree->statusInitialized() && (terrainEdit->northNeighbourZMinus.minHeight() != northQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->northNeighbourZMinus.maxHeight() != northQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
-		|| (southQuadrantValid && (terrainEdit->southNeighbourZPlus.minHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->southNeighbourZPlus.maxHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
-		|| (eastQuadrantValid && (terrainEdit->eastNeighbourXPlus.minHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->eastNeighbourXPlus.maxHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
-		|| (westQuadrantValid && (terrainEdit->westNeighbourXMinus.minHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->westNeighbourXMinus.maxHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		|| (southQuadrantValid && southQuadrantTree->statusInitialized() && (terrainEdit->southNeighbourZPlus.minHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->southNeighbourZPlus.maxHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		|| (eastQuadrantValid && eastQuadrantTree->statusInitialized() && (terrainEdit->eastNeighbourXPlus.minHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->eastNeighbourXPlus.maxHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		|| (westQuadrantValid && westQuadrantTree->statusInitialized() && (terrainEdit->westNeighbourXMinus.minHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->westNeighbourXMinus.maxHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
 		)
 	{
 		//if (!terrainEdit->splatmapNeedRegen)	// DEBUG ONLY
@@ -4456,7 +4487,7 @@ void Quadrant::process_mapModder(double _delta)
 			if (lockAcquired)
 			{
 				saveQuadrantToDiskCache2(true, false);
-				editModeUIControl->eraseQuadToSave(m_quadrantPos);
+				editModeUIControl->removeQuadToSave(m_quadrantPos);
 				terrainEdit->needUploadToServer = false;
 				std::string buffer;
 				getQuadrantBufferForCache(buffer);
@@ -4983,13 +5014,31 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		if (empty)
 			setEmpty(true);
 	}
+	else
+	{
+		// Buffer from server was valid ...
+		if (updateCache)
+		{
+			// ... and was written to disk cache, we can remove from quadrant to save if marked to save
+			GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
+			if (editModeUIControl != nullptr)
+			{
+				bool manualSave = false;
+				if (editModeUIControl->isQuadToSave(m_quadrantPos, manualSave))
+				{
+					if (manualSave)
+						editModeUIControl->removeQuadToSave(m_quadrantPos);
+				}
+			}
+		}
+	}
 
 	//assert(!m_float16HeigthsBuffer.empty());
 	if (m_float16HeigthsBuffer.empty())
 	{
 		getTerrainEdit()->heightsNeedRegen = true;
 		getTerrainEdit()->normalsNeedRegen = true;
-		getTerrainEdit()->splatmapNeedRegen = true;
+		getTerrainEdit()->splatmapNeedRegen(true);
 		getTerrainEdit()->globalmapNeedRegen = true;
 		getTerrainEdit()->colormapNeedRegen = true;
 	}
@@ -4997,8 +5046,8 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	{
 		if (m_normalsBuffer.empty() && !getTerrainEdit()->normalsNeedRegen)
 			getTerrainEdit()->normalsNeedRegen = true;
-		if (m_splatmapBuffer.empty() && !getTerrainEdit()->splatmapNeedRegen)
-			getTerrainEdit()->splatmapNeedRegen = true;
+		if (m_splatmapBuffer.empty() && !getTerrainEdit()->splatmapNeedRegen())
+			getTerrainEdit()->splatmapNeedRegen(true);
 		if (m_globalmapBuffer.empty() && !getTerrainEdit()->globalmapNeedRegen)
 			getTerrainEdit()->globalmapNeedRegen = true;
 		if (m_colormapBuffer.empty() && !getTerrainEdit()->colormapNeedRegen)
@@ -5006,11 +5055,11 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	}
 
 
-	if ((getTerrainEdit()->extraValues.seaInfoSet != QUADRANT_SEA_INFO_SET_FALSE && getTerrainEdit()->extraValues.seaInfoSet != QUADRANT_SEA_INFO_SET_TRUE) 
-		|| (!getTerrainEdit()->heightsNeedRegen && getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_SET_FALSE))
-	{
-		bool done = getTerrainEdit()->detectSeaInQuadrant();
-	}
+	//if ((getTerrainEdit()->extraValues.seaInfoSet != QUADRANT_SEA_INFO_FALSE && getTerrainEdit()->extraValues.seaInfoSet != QUADRANT_SEA_INFO_TRUE)
+	//	|| (!getTerrainEdit()->heightsNeedRegen && getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_FALSE))
+	//{
+	//	bool done = getTerrainEdit()->detectSeaInQuadrant();
+	//}
 
 	if (getTerrainEdit()->needUploadToServer)
 		setNeedUploadToServer(true);

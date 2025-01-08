@@ -670,7 +670,7 @@ namespace godot
 		virtual void checkAndCalcAABB();
 
 	protected:
-		int m_containsSea = QUADRANT_SEA_INFO_SET_NOTSET;
+		int m_containsSea = QUADRANT_SEA_INFO_NOTSET;
 	};
 
 	class DebugTerrainChunk : public TerrainChunk
@@ -734,7 +734,7 @@ namespace godot
 		virtual void checkAndCalcAABB();
 
 	protected:
-		int m_containsSea = QUADRANT_SEA_INFO_SET_NOTSET;
+		int m_containsSea = QUADRANT_SEA_INFO_NOTSET;
 	};
 
 }

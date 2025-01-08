@@ -490,7 +490,7 @@ namespace godot
 				m_mapQuadToSave[pos] = manual;
 		}
 
-		void eraseQuadToSave(TheWorld_Utils::QuadrantPos& pos)
+		void removeQuadToSave(TheWorld_Utils::QuadrantPos& pos)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
 			if (m_mapQuadToSave.contains(pos))

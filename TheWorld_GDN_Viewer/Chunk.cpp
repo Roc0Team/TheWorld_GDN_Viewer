@@ -20,7 +20,7 @@ using namespace godot;
 void Chunk::SeaInfoChangedChunkAction::preExec(QuadTree* quadTree)
 {
 	ChunkAction::preExec(quadTree);
-	quadTree->canContainSea(QUADRANT_SEA_INFO_SET_NOTSET);
+	quadTree->canContainSea(QUADRANT_SEA_INFO_NOTSET);
 	quadTree->refreshSeaInfo();
 }
 
@@ -43,7 +43,7 @@ void Chunk::TerrainHeightsChangedChunkAction::preExec(QuadTree* quadTree)
 	//	PLOG_DEBUG << "TRACKING Chunk::TerrainHeightsChangedChunkAction::preExec " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << quadTree->getQuadrant()->getPos().getIndexPosZ();
 	//}
 	ChunkAction::preExec(quadTree);
-	quadTree->canContainSea(QUADRANT_SEA_INFO_SET_NOTSET);
+	quadTree->canContainSea(QUADRANT_SEA_INFO_NOTSET);
 	quadTree->refreshSeaInfo();
 }
 
@@ -915,35 +915,35 @@ void TerrainChunk::terrainHeightsChanged(void)
 void TerrainChunk::seaInfoChanged(void)
 {
 	Chunk::seaInfoChanged();
-	m_containsSea = QUADRANT_SEA_INFO_SET_NOTSET;
+	m_containsSea = QUADRANT_SEA_INFO_NOTSET;
 }
 
 bool TerrainChunk::containsSea()
 {
-	if (m_containsSea == QUADRANT_SEA_INFO_SET_NOTSET)
+	if (m_containsSea == QUADRANT_SEA_INFO_NOTSET)
 	{
-		if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_SET_NOTSET)
+		if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_NOTSET)
 		{
 			//return true;	// SUPERDEBUGRIC
-			return false;	// leaving m_containsSea == QUADRANT_SEA_INFO_SET_NOTSET
+			return false;	// leaving m_containsSea == QUADRANT_SEA_INFO_NOTSET
 		}
 		else
 		{
-			if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_SET_TRUE)
+			if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_TRUE)
 			{
 				godot::AABB aabb = getAABB();
 				if (aabb.position.y <= (THEWORLD_SEA_LEVEL + THEWORLD_SEA_MAX_WAVE_HEIGHT))
-					m_containsSea = QUADRANT_SEA_INFO_SET_TRUE;
+					m_containsSea = QUADRANT_SEA_INFO_TRUE;
 				else
-					m_containsSea = QUADRANT_SEA_INFO_SET_FALSE;
+					m_containsSea = QUADRANT_SEA_INFO_FALSE;
 			}
 			else
-				m_containsSea = QUADRANT_SEA_INFO_SET_FALSE;
+				m_containsSea = QUADRANT_SEA_INFO_FALSE;
 		}
 	}
 
 	//return true;	// SUPERDEBUGRIC
-	return (m_containsSea == QUADRANT_SEA_INFO_SET_TRUE);
+	return (m_containsSea == QUADRANT_SEA_INFO_TRUE);
 }
 
 DebugTerrainChunk::DebugTerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat /*, godot::Ref<godot::Material>& seaMat*/)
@@ -1481,33 +1481,33 @@ void SeaChunk::terrainHeightsChanged(void)
 void SeaChunk::seaInfoChanged(void)
 {
 	Chunk::seaInfoChanged();
-	m_containsSea = QUADRANT_SEA_INFO_SET_NOTSET;
+	m_containsSea = QUADRANT_SEA_INFO_NOTSET;
 }
 
 bool SeaChunk::containsSea(void)
 {
-	if (m_containsSea == QUADRANT_SEA_INFO_SET_NOTSET)
+	if (m_containsSea == QUADRANT_SEA_INFO_NOTSET)
 	{
-		if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_SET_NOTSET)
-			return false;	// leaving m_containsSea == QUADRANT_SEA_INFO_SET_NOTSET
+		if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_NOTSET)
+			return false;	// leaving m_containsSea == QUADRANT_SEA_INFO_NOTSET
 		else
 		{
-			if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_SET_TRUE)
+			if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_TRUE)
 			{
 				godot::AABB aabb;
 				getGlobalCoordTerrainAABB(aabb, m_firstWorldVertCol, m_lastWorldVertCol, m_firstWorldVertRow, m_lastWorldVertRow, m_gridStepInGridInWGVs);
 				if (aabb.position.y <= (THEWORLD_SEA_LEVEL + THEWORLD_SEA_MAX_WAVE_HEIGHT))
-					m_containsSea = QUADRANT_SEA_INFO_SET_TRUE;
+					m_containsSea = QUADRANT_SEA_INFO_TRUE;
 				else
-					m_containsSea = QUADRANT_SEA_INFO_SET_FALSE;
+					m_containsSea = QUADRANT_SEA_INFO_FALSE;
 			}
 			else
-				m_containsSea = QUADRANT_SEA_INFO_SET_FALSE;
+				m_containsSea = QUADRANT_SEA_INFO_FALSE;
 		}
 		return (m_containsSea > 0);
 	}
 	else
-		return (m_containsSea == QUADRANT_SEA_INFO_SET_TRUE);
+		return (m_containsSea == QUADRANT_SEA_INFO_TRUE);
 }
 
 //void GDN_Chunk_MeshInstance::_register_methods()

@@ -1715,6 +1715,11 @@ namespace godot
 		void toggleEditMode(void);
 		void setEditMode(bool editMode);
 		bool isEditMode(void) const;
+		bool infoPanelVisible(void) const
+		{
+			return m_infoPanelVisible;
+		}
+		void setInfoPanelVisible(bool b);
 		void toggleDebugVisibility(void);
 		enum class GDN_TheWorld_Globals::ChunkDebugMode getChunkDebugMode(void) const;
 		void rotateChunkDebugMode(void);
@@ -1740,6 +1745,7 @@ namespace godot
 		void setCacheQuadOnPerimeter(int cache);
 		int getCacheQuadOnPerimeter(void) const;
 		void setMaxDepthQuadOnPerimeter(int depth);
+
 		int getMaxDepthQuadOnPerimeter(void) const;
 		int maxActualDepthQuadInAllDirections(void) const;
 		void checkNewVisibleQuadrantsRectSize(godot::Transform3D newCameraT, godot::Transform3D oldCameraT);
@@ -2587,6 +2593,7 @@ namespace godot
 			m_streamingInProgress = b;
 		}
 
+		QuadTree* getCameraQuadrant(godot::Camera3D* camera = nullptr);
 		bool isCameraQuadrantColliderSet(void);
 		bool worldStreamingTerminated(void);
 		bool worldStreamingTerminated(float& loadingProgress);
@@ -2654,7 +2661,7 @@ namespace godot
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
-		void writeStatisticsNewQuadrants(void);
+		void writeStreamingNewQuadrantsStatistics(void);
 		TheWorld_Utils::QuadrantPos getWorldQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isWorldQuadrantSelectedForEdit(void);
 		bool isMapQuadrantSelectedForEdit(void);
@@ -2785,6 +2792,7 @@ namespace godot
 		//bool m_mapGridOn = false;
 		bool m_trackMouse = false;
 		bool m_editMode = false;
+		bool m_infoPanelVisible = false;
 		int64_t m_timeElapsedFromLastQuadrandtInit = 0;
 		int64_t m_timeElapsedFromLastUpdateGridDimension = 0;
 		int64_t m_timeElapsedFromLastMouseTrack = 0;

@@ -1173,7 +1173,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	setPostGenerateElevation(terrainEdit.extraValues.postGenerateElevation);
 	setMinHeight(terrainEdit.minHeight);
 	setMaxHeight(terrainEdit.maxHeight);
-	//setCanContainSea((terrainEdit.extraValues.seaInfoSet == QUADRANT_SEA_INFO_SET_TRUE && terrainEdit.extraValues.canContainSea == QUADRANT_SEA_INFO_SET_TRUE) ? true : false);
+	//setCanContainSea((terrainEdit.extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && terrainEdit.extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 
 	//setSlopeVerticalFactor(4.0f);
 	//setSlopeFlatFactor(1.0f);
@@ -2257,7 +2257,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			if (quadTreeSel->getQuadrant()->getCollider() != nullptr)
 				quadSelColliderInfoStr = quadTreeSel->getQuadrant()->getCollider()->hasHiResData() ? "HIRES" : "LOWRES";
 			quadSelCanContainSeaStr = std::to_string(quadTreeSel->canContainSea());
-			quadSelCanContainSea = (quadTreeSel->canContainSea() == QUADRANT_SEA_INFO_SET_TRUE);
+			quadSelCanContainSea = (quadTreeSel->canContainSea() == QUADRANT_SEA_INFO_TRUE);
 		}
 
 		std::string mouseHitInfoLabelText = "Hit: " + m_innerData->m_mouseHitStr;
@@ -2939,13 +2939,15 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 				TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
 				if (pressed)
 				{
-					terrainEdit->extraValues.seaInfoSet = QUADRANT_SEA_INFO_SET_TRUE;
-					terrainEdit->extraValues.canContainSea = QUADRANT_SEA_INFO_SET_TRUE;
+					terrainEdit->extraValues.seaInfoSet = QUADRANT_SEA_INFO_TRUE;
+					terrainEdit->extraValues.canContainSea = QUADRANT_SEA_INFO_TRUE;
+					quadTreeSel->canContainSea(QUADRANT_SEA_INFO_TRUE);
 				}
 				else
 				{
-					terrainEdit->extraValues.seaInfoSet = QUADRANT_SEA_INFO_SET_TRUE;
-					terrainEdit->extraValues.canContainSea = QUADRANT_SEA_INFO_SET_FALSE;
+					terrainEdit->extraValues.seaInfoSet = QUADRANT_SEA_INFO_TRUE;
+					terrainEdit->extraValues.canContainSea = QUADRANT_SEA_INFO_FALSE;
+					quadTreeSel->canContainSea(QUADRANT_SEA_INFO_FALSE);
 				}
 				Chunk::SeaInfoChangedChunkAction action;
 				quadTreeSel->ForAllChunk(action, QuadType::NotSet);
@@ -3118,161 +3120,184 @@ void GDN_TheWorld_Edit::editModeUploadAction(void)
 
 void GDN_TheWorld_Edit::editModeUpload(void)
 {
-	editModeSave();
-		
-	if (m_actionClock.counterStarted())
+	GDN_TheWorld_Map* map = m_viewer->Map();
+
+	if (m_viewer->worldMode())
 	{
-		m_actionInProgress = false;
-		return;
-	}
+		editModeSave();
 
-	setMessage(godot::String("Uploading world quadrants..."));
-
-	m_actionClock.tick();
-
-	TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1 ") + __FUNCTION__, "ALL");
-
-	{
-		std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
-
-		QuadTree* quadTreeSel = nullptr;
-		TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
-		bool allCheched = m_innerData->m_allCheckBox->is_pressed();
-		if (!allCheched && (quadrantSelPos.empty() or !quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer))
+		if (m_actionClock.counterStarted())
 		{
-			m_actionClock.tock();
 			m_actionInProgress = false;
-			setMessage(godot::String("Completed!"), true);
 			return;
 		}
 
-		std::vector<TheWorld_Utils::QuadrantPos> quandrantPosToUpload;
-		if (allCheched)
-		{
-			std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
-			m_viewer->getAllQuadrantPos(allQuandrantPos);
+		setMessage(godot::String("Uploading world quadrants..."));
 
-			for (auto& pos : allQuandrantPos)
+		m_actionClock.tick();
+
+		TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1 ") + __FUNCTION__, "ALL");
+
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+
+			QuadTree* quadTreeSel = nullptr;
+			TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
+			bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+			if (!allCheched && (quadrantSelPos.empty() or !quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer))
 			{
-				QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
-				if (quadTree != nullptr)
+				m_actionClock.tock();
+				m_actionInProgress = false;
+				setMessage(godot::String("Completed!"), true);
+				return;
+			}
+
+			std::vector<TheWorld_Utils::QuadrantPos> quandrantPosToUpload;
+			if (allCheched)
+			{
+				std::vector<TheWorld_Utils::QuadrantPos> allQuandrantPos;
+				m_viewer->getAllQuadrantPos(allQuandrantPos);
+
+				for (auto& pos : allQuandrantPos)
 				{
-					if (quadTree->getQuadrant()->needUploadToServer())
+					QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+					if (quadTree != nullptr)
 					{
-						quandrantPosToUpload.push_back(pos);
+						if (quadTree->getQuadrant()->needUploadToServer())
+						{
+							quandrantPosToUpload.push_back(pos);
+						}
 					}
 				}
 			}
-		}
-		else
-			quandrantPosToUpload.push_back(quadrantSelPos);
+			else
+				quandrantPosToUpload.push_back(quadrantSelPos);
 
-		m_completedItems = 0;
-		m_elapsedCompleted = 0;
-		m_lastElapsed = 0;
-		m_allItems = quandrantPosToUpload.size();
-		for (auto& pos : quandrantPosToUpload)
-		{
-			if (m_actionStopRequested)
+			m_completedItems = 0;
+			m_elapsedCompleted = 0;
+			m_lastElapsed = 0;
+			m_allItems = quandrantPosToUpload.size();
+			for (auto& pos : quandrantPosToUpload)
 			{
-				m_actionStopRequested = false;
-				break;
+				if (m_actionStopRequested)
+				{
+					m_actionStopRequested = false;
+					break;
+				}
+
+				QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+				if (quadTree != nullptr)
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1.1 ") + __FUNCTION__, "Single QuadTree");
+
+					std::string buffer;
+					bool saved = quadTree->getQuadrant()->saveQuadrantToDiskCache2(buffer, false, true, false);
+					my_assert(saved);
+
+					if (!saved)
+						throw(GDN_TheWorld_Exception(__FUNCTION__, "Quadrant not saved!"));
+
+					float lowerXGridVertex = pos.getLowerXGridVertex();
+					float lowerZGridVertex = pos.getLowerZGridVertex();
+					int numVerticesPerSize = pos.getNumVerticesPerSize();
+					float gridStepInWU = pos.getGridStepInWU();
+					int lvl = pos.getLevel();
+					quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
+				}
 			}
 
-			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
-			if (quadTree != nullptr)
+			std::list<TheWorld_Utils::QuadrantPos> list;
+			map->getAllMapQuadrantOverridePos(list, true);
+			if (list.size() > 0)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1.1 ") + __FUNCTION__, "Single QuadTree");
-
-				std::string buffer;
-				bool saved = quadTree->getQuadrant()->saveQuadrantToDiskCache2(buffer, false, true, false);
-				my_assert(saved);
-				if (!saved)
-					throw(GDN_TheWorld_Exception(__FUNCTION__, "Quadrant not saved!"));
-
-				float lowerXGridVertex = pos.getLowerXGridVertex();
-				float lowerZGridVertex = pos.getLowerZGridVertex();
-				int numVerticesPerSize = pos.getNumVerticesPerSize();
-				float gridStepInWU = pos.getGridStepInWU();
-				int lvl = pos.getLevel();
-				quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
-
-				//quadTree->getQuadrant()->setNeedUploadToServer(false);
+				for (auto& item : list)
+				{
+					map->removeEditedMapQuadrantOverride(item);
+				}
 			}
 		}
+
+		while (!m_actionStopRequested && m_allItems > m_completedItems)
+			Sleep(10);
 	}
-	
-	while (!m_actionStopRequested && m_allItems > m_completedItems)
-		Sleep(10);
-
-	m_uploadQuadrantOverridesInProgress = false;
-	std::list<TheWorld_Utils::QuadrantPos> list;
-	GDN_TheWorld_Map* map = m_viewer->Map();
-	map->getAllMapQuadrantOverridePos(list, true);
-	if (list.size() > 0)
+	else
 	{
+		if (m_actionClock.counterStarted())
+		{
+			m_actionInProgress = false;
+			return;
+		}
+
 		setMessage(godot::String("Uploading map quadrants..."));
 
-		call_deferred("expand_server_info_panel");
-		waitingForServerGen(true);
-		
-		std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+		m_actionClock.tick();
 
-		m_uploadQuadrantOverridesInProgress = true;
-
-		TheWorld_Utils::MemoryBuffer buffer;
-		buffer.reserve(10000);		// preallocation for optimization purpose
-
-		*buffer.ptr() = '0';
-		size_t cursor = 1;
-		buffer.adjustSize(cursor);
-
-		size_t size;
-		TheWorld_Utils::serializeToByteStream<size_t>(list.size(), buffer.ptr() + cursor, size);
-		buffer.adjustCursorAndSize(cursor, size);
-
-		for (auto& item : list)
+		m_uploadQuadrantOverridesInProgress = false;
+		std::list<TheWorld_Utils::QuadrantPos> list;
+		map->getAllMapQuadrantOverridePos(list, true);
+		if (list.size() > 0)
 		{
-			{
-				// TheWorld_Utils::QuadrantPos
+			call_deferred("expand_server_info_panel");
+			waitingForServerGen(true);
 
-				TheWorld_Utils::MemoryBuffer quadrantPosBuffer;
-				item.serialize(quadrantPosBuffer);
-				buffer.reserve(cursor + sizeof(size_t));				// to avoid memory overflow
-				TheWorld_Utils::serializeToByteStream<size_t>(quadrantPosBuffer.size(), buffer.ptr() + cursor, size);
-				buffer.adjustCursorAndSize(cursor, size);
-				buffer.reserve(cursor + quadrantPosBuffer.size());		// to avoid memory overflow
-				memcpy(buffer.ptr() + cursor, quadrantPosBuffer.ptr(), quadrantPosBuffer.size());
-				buffer.adjustCursorAndSize(cursor, quadrantPosBuffer.size());
+			std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+
+			m_uploadQuadrantOverridesInProgress = true;
+
+			TheWorld_Utils::MemoryBuffer buffer;
+			buffer.reserve(10000);		// preallocation for optimization purpose
+
+			*buffer.ptr() = '0';
+			size_t cursor = 1;
+			buffer.adjustSize(cursor);
+
+			size_t size;
+			TheWorld_Utils::serializeToByteStream<size_t>(list.size(), buffer.ptr() + cursor, size);
+			buffer.adjustCursorAndSize(cursor, size);
+
+			for (auto& item : list)
+			{
+				{
+					// TheWorld_Utils::QuadrantPos
+
+					TheWorld_Utils::MemoryBuffer quadrantPosBuffer;
+					item.serialize(quadrantPosBuffer);
+					buffer.reserve(cursor + sizeof(size_t));				// to avoid memory overflow
+					TheWorld_Utils::serializeToByteStream<size_t>(quadrantPosBuffer.size(), buffer.ptr() + cursor, size);
+					buffer.adjustCursorAndSize(cursor, size);
+					buffer.reserve(cursor + quadrantPosBuffer.size());		// to avoid memory overflow
+					memcpy(buffer.ptr() + cursor, quadrantPosBuffer.ptr(), quadrantPosBuffer.size());
+					buffer.adjustCursorAndSize(cursor, quadrantPosBuffer.size());
+				}
+
+				GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride = map->getMapQuadrantOverride(item);
+				TheWorld_Utils::TerrainEdit terrainEdit = mapQuadrantOverride->terrainEdit();
+
+				{
+					// TheWorld_Utils::TerrainEdit
+
+					TheWorld_Utils::MemoryBuffer terrainEditBuffer;
+					terrainEdit.serialize(terrainEditBuffer);
+					buffer.reserve(cursor + sizeof(size_t));				// to avoid memory overflow
+					TheWorld_Utils::serializeToByteStream<size_t>(terrainEditBuffer.size(), buffer.ptr() + cursor, size);
+					buffer.adjustCursorAndSize(cursor, size);
+					buffer.reserve(cursor + terrainEditBuffer.size());		// to avoid memory overflow
+					memcpy(buffer.ptr() + cursor, terrainEditBuffer.ptr(), terrainEditBuffer.size());
+					buffer.adjustCursorAndSize(cursor, terrainEditBuffer.size());
+				}
 			}
 
-			GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride = map->getMapQuadrantOverride(item);
-			TheWorld_Utils::TerrainEdit terrainEdit = mapQuadrantOverride->terrainEdit();
-
-			{
-				// TheWorld_Utils::TerrainEdit
-
-				TheWorld_Utils::MemoryBuffer terrainEditBuffer;
-				terrainEdit.serialize(terrainEditBuffer);
-				buffer.reserve(cursor + sizeof(size_t));				// to avoid memory overflow
-				TheWorld_Utils::serializeToByteStream<size_t>(terrainEditBuffer.size(), buffer.ptr() + cursor, size);
-				buffer.adjustCursorAndSize(cursor, size);
-				buffer.reserve(cursor + terrainEditBuffer.size());		// to avoid memory overflow
-				memcpy(buffer.ptr() + cursor, terrainEditBuffer.ptr(), terrainEditBuffer.size());
-				buffer.adjustCursorAndSize(cursor, terrainEditBuffer.size());
-			}
+			int numVerticesPerSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
+			float gridStepInWU = m_viewer->Globals()->gridStepInWU();
+			int lvl = m_viewer->getLevel();
+			std::string strBuffer;
+			buffer.toString(strBuffer);
+			m_viewer->Globals()->Client()->MapManagerUploadQuadrantOverrides(m_viewer->isInEditor(), numVerticesPerSize, gridStepInWU, lvl, strBuffer);
 		}
 
-		int numVerticesPerSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
-		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
-		int lvl = m_viewer->getLevel();
-		std::string strBuffer;
-		buffer.toString(strBuffer);
-		m_viewer->Globals()->Client()->MapManagerUploadQuadrantOverrides(m_viewer->isInEditor(), numVerticesPerSize, gridStepInWU, lvl, strBuffer);
+		while (m_uploadQuadrantOverridesInProgress)
+			Sleep(10);
 	}
-
-	while (m_uploadQuadrantOverridesInProgress)
-		Sleep(10);
 
 	m_actionClock.tock();
 
@@ -3282,11 +3307,6 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 	setElapsed(duration, false);
 	setCounter(m_completedItems, m_allItems);
 	setNote1(m_lastElapsed);
-
-	//size_t numToSave = 0;
-	//size_t numToUpload = 0;
-	//size_t numLocked = 0;
-	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
 
 	setMessage(godot::String("Completed!"), true);
 }
@@ -3507,7 +3527,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	setMinHeight(terrainEdit->minHeight);
 	setMaxHeight(terrainEdit->maxHeight);
-	//setCanContainSea((terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_SET_TRUE && terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_SET_TRUE) ? true : false);
+	//setCanContainSea((terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 
 	// 11. set texture according to editor
 	strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
@@ -3861,7 +3881,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 
 	setMinHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->minHeight);
 	setMaxHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->maxHeight);
-	//setCanContainSea((quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_SET_TRUE && quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.canContainSea == QUADRANT_SEA_INFO_SET_TRUE) ? true : false);
+	//setCanContainSea((quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 
 	m_blendingInProgress = false;
 	
@@ -3997,6 +4017,10 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 
 		quadTree->materialParamsNeedReset(true);
 		quadTree->colliderNeedReset(true, QuadType::NotSet);
+		//quadTree->getQuadrant()->northQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->southQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->westQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->eastQuadrantData().initialized(false);
 	}
 }
 
@@ -4447,14 +4471,14 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 			{
 				if (forceApplySelectedQuad)
 				{
-					quadTreeSel->getQuadrant()->getTerrainEdit()->splatmapNeedRegen = true;
+					quadTreeSel->getQuadrant()->getTerrainEdit()->splatmapNeedRegen(true);
 					quadTreeSel->getQuadrant()->setNeedUploadToServer(true);
 					quandrantPos.push_back(quadrantSelPos);
 				}
 				else
 				{
 					TheWorld_Utils::MemoryBuffer& splatmapBuffer = quadTreeSel->getQuadrant()->getSplatmapBuffer(true);
-					if (splatmapBuffer.size() == 0 || quadTreeSel->getQuadrant()->getTerrainEdit()->splatmapNeedRegen)
+					if (splatmapBuffer.size() == 0 || quadTreeSel->getQuadrant()->getTerrainEdit()->splatmapNeedRegen())
 					{
 						quadTreeSel->getQuadrant()->setNeedUploadToServer(true);
 						quandrantPos.push_back(quadrantSelPos);
@@ -4466,7 +4490,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 		else
 		{
 			if (quadTreeSel != nullptr && forceApplySelectedQuad)
-				quadTreeSel->getQuadrant()->getTerrainEdit()->splatmapNeedRegen = true;
+				quadTreeSel->getQuadrant()->getTerrainEdit()->splatmapNeedRegen(true);
 
 			{
 				for (auto& pos : allQuandrantPos)
@@ -4482,7 +4506,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_1(bool forceApplySelectedQuad, boo
 							sp = &s;
 						}
 						TheWorld_Utils::MemoryBuffer& splatmapBuffer = *sp;
-						if (splatmapBuffer.size() == 0 || quadTree->getQuadrant()->getTerrainEdit()->splatmapNeedRegen)
+						if (splatmapBuffer.size() == 0 || quadTree->getQuadrant()->getTerrainEdit()->splatmapNeedRegen())
 						{
 							if (allCheched || pos == quadrantSelPos)
 							{
@@ -4559,7 +4583,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_2(QuadTree* quadTree)
 		sp = &s;
 	}
 	TheWorld_Utils::MemoryBuffer& splatmapBuffer = *sp;
-	if (splatmapBuffer.size() == 0 || quadTree->getQuadrant()->getTerrainEdit()->splatmapNeedRegen)
+	if (splatmapBuffer.size() == 0 || quadTree->getQuadrant()->getTerrainEdit()->splatmapNeedRegen())
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("EditSetTextures 1.2.2 ") + __FUNCTION__, "Single QuadTree");
 
@@ -4632,7 +4656,7 @@ void GDN_TheWorld_Edit::editModeApplyTextures_2(QuadTree* quadTree)
 		quadTree->getQuadrant()->getTerrainEdit()->needUploadToServer = true;
 		quadTree->getQuadrant()->setNeedUploadToServer(true);
 
-		quadTree->getQuadrant()->getTerrainEdit()->splatmapNeedRegen = false;
+		quadTree->getQuadrant()->getTerrainEdit()->splatmapNeedRegen(false);
 		quadTree->getQuadrant()->setSplatmapUpdated(true);
 
 		{

@@ -3812,7 +3812,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 		m_terrainPlane->set_material_override(terrainPlaneMaterial);
 
-		if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_SET_TRUE)
+		if (m_quadTree->canContainSea() == QUADRANT_SEA_INFO_TRUE)
 		{
 			m_seaPlane = memnew(godot::MeshInstance3D);
 			m_mapModderViewport->add_child(m_seaPlane);
@@ -4152,6 +4152,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("toggle_edit_mode"), &GDN_TheWorld_Viewer::toggleEditMode);
 	ClassDB::bind_method(D_METHOD("set_edit_mode"), &GDN_TheWorld_Viewer::setEditMode);
 	ClassDB::bind_method(D_METHOD("is_edit_mode"), &GDN_TheWorld_Viewer::isEditMode);
+	ClassDB::bind_method(D_METHOD("set_info_panel_visible", "value"), &GDN_TheWorld_Viewer::setInfoPanelVisible);
 	ClassDB::bind_method(D_METHOD("toggle_debug_visibility"), &GDN_TheWorld_Viewer::toggleDebugVisibility);
 	ClassDB::bind_method(D_METHOD("get_debug_visibility"), &GDN_TheWorld_Viewer::getDebugContentVisibility);
 	ClassDB::bind_method(D_METHOD("rotate_chunk_debug_mode"), &GDN_TheWorld_Viewer::rotateChunkDebugMode);
@@ -4388,10 +4389,16 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 
 		TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
 		terrainEdit->normalsNeedRegen = false;
-		terrainEdit->splatmapNeedRegen = true;
+		terrainEdit->splatmapNeedRegen(true);
 
 		quadTree->getQuadrant()->setNormalsUpdated(true);
 		quadTree->materialParamsNeedReset(true);
+		
+		//quadTree->getQuadrant()->northQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->southQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->westQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->eastQuadrantData().initialized(false);
+		
 		quadTree->getQuadrant()->unlockInternalData();
 
 		save = true;
@@ -4407,7 +4414,7 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		mapModder->deinitRequired(true);
 
 		TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
-		terrainEdit->splatmapNeedRegen = false;
+		terrainEdit->splatmapNeedRegen(false);
 		terrainEdit->eastNeighbourXPlus.minHeight(mapModder->eastQuadrantheights().x);
 		terrainEdit->eastNeighbourXPlus.maxHeight(mapModder->eastQuadrantheights().y);
 		terrainEdit->westNeighbourXMinus.minHeight(mapModder->westQuadrantheights().x);
@@ -4420,6 +4427,12 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 
 		quadTree->getQuadrant()->setSplatmapUpdated(true);
 		quadTree->materialParamsNeedReset(true);
+
+		//quadTree->getQuadrant()->northQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->southQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->westQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->eastQuadrantData().initialized(false);
+
 		quadTree->getQuadrant()->unlockInternalData();
 
 		save = true;
@@ -4439,6 +4452,12 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		
 		quadTree->getQuadrant()->setGlobalmapUpdated(true);
 		quadTree->materialParamsNeedReset(true);
+		
+		//quadTree->getQuadrant()->northQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->southQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->westQuadrantData().initialized(false);
+		//quadTree->getQuadrant()->eastQuadrantData().initialized(false);
+
 		quadTree->getQuadrant()->unlockInternalData();
 
 		save = true;
@@ -6537,23 +6556,47 @@ float GDN_TheWorld_Viewer::getloadingProgressScript(void)
 	return loadingProgress;
 }
 
-bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)
+QuadTree* GDN_TheWorld_Viewer::getCameraQuadrant(godot::Camera3D* camera)
 {
-	bool ret = false;
 	GDN_TheWorld_Globals* globals = Globals();
-	godot::Camera3D* camera = getWorldCamera2(true);
+	if (camera == nullptr)
+		camera = getWorldCamera2(true);
 	godot::Vector3 cameraGlobalPos = camera->get_global_position();
 	godot::Vector3 cameraWorldPos = globalPosToWorldPos(cameraGlobalPos);
 	TheWorld_Utils::QuadrantPos quadrantPos(cameraWorldPos.x, cameraWorldPos.z, m_worldViewerLevel, (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 	if (m_worldQuadrantsMap.contains(quadrantPos))
 	{
-		QuadTree* quadTree = m_worldQuadrantsMap[quadrantPos].get();
-		if (quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::NotSet))
-		{
-			ret = true;
-		}
+		return m_worldQuadrantsMap[quadrantPos].get();
 	}
+	else
+		return nullptr;
+}
+
+bool GDN_TheWorld_Viewer::isCameraQuadrantColliderSet(void)
+{
+	bool ret = false;
+
+	//GDN_TheWorld_Globals* globals = Globals();
+	//godot::Camera3D* camera = getWorldCamera2(true);
+	//godot::Vector3 cameraGlobalPos = camera->get_global_position();
+	//godot::Vector3 cameraWorldPos = globalPosToWorldPos(cameraGlobalPos);
+	//TheWorld_Utils::QuadrantPos quadrantPos(cameraWorldPos.x, cameraWorldPos.z, m_worldViewerLevel, (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
+	//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+	//if (m_worldQuadrantsMap.contains(quadrantPos))
+	//{
+	//	QuadTree* quadTree = m_worldQuadrantsMap[quadrantPos].get();
+	//	if (quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::NotSet))
+	//	{
+	//		ret = true;
+	//	}
+	//}
+	
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+	QuadTree* quadTree = getCameraQuadrant();
+	if (quadTree!= nullptr and quadTree->statusInitialized() and !quadTree->colliderNeedReset(QuadType::NotSet))
+		ret = true;
+
 	return ret;
 }
 
@@ -7370,6 +7413,11 @@ bool GDN_TheWorld_Viewer::isEditMode(void) const
 	return m_editMode;
 }
 
+void GDN_TheWorld_Viewer::setInfoPanelVisible(bool b)
+{
+	m_infoPanelVisible = b;
+}
+
 void GDN_TheWorld_Viewer::toggleDebugVisibility(void)
 {
 	m_debugContentVisibility = !m_debugContentVisibility;
@@ -8172,7 +8220,7 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 					if (!m_streamingTime.counterStarted())
 					{
 						counterStartedNow = true;
-						writeStatisticsNewQuadrants();
+						writeStreamingNewQuadrantsStatistics();
 						if (m_notStreamingTime.counterStarted())
 							m_notStreamingTime.tock();
 						PLOG_DEBUG /* << "\n" */  << "Start initializing of a stream of quadrant";
@@ -10189,7 +10237,7 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 				// Initialization of last stream of quadrant COMPLETED
 				m_lastCameraAltitudeSetToShader = -1.0f;
 				m_lastCameraPosSetToShaderInitialized = false;
-				writeStatisticsNewQuadrants();
+				writeStreamingNewQuadrantsStatistics();
 				m_streamingTime.tock();
 				m_notStreamingTime.tick();
 				
@@ -10322,7 +10370,7 @@ void GDN_TheWorld_Viewer::allCollidersReady(bool b)
 
 }
 
-void GDN_TheWorld_Viewer::writeStatisticsNewQuadrants(void)
+void GDN_TheWorld_Viewer::writeStreamingNewQuadrantsStatistics(void)
 {
 	size_t num = m_numVisibleQuadrantsStreamed + m_numInvisibleQuadrantsStreamed;
 	
@@ -12181,8 +12229,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* northQuadTree = m_worldQuadrantsMap[northPos].get();
 				if (!northQuadTree->statusToErase() && northQuadTree->statusInitialized())
 				{
-					northQuadrantData.init(northQuadTree->getQuadrant()->quadrantTextureLayers());
-					northQuadTree->getQuadrant()->southQuadrantData().init(quadrant->quadrantTextureLayers());
+					northQuadrantData.init(northQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, northPos);
+					northQuadTree->getQuadrant()->southQuadrantData().init(quadrant->quadrantTextureLayers(), northPos, quadrantPos);
 				}
 			}
 		}
@@ -12196,8 +12244,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* southQuadTree = m_worldQuadrantsMap[southPos].get();
 				if (!southQuadTree->statusToErase() && southQuadTree->statusInitialized())
 				{
-					southQuadrantData.init(southQuadTree->getQuadrant()->quadrantTextureLayers());
-					southQuadTree->getQuadrant()->northQuadrantData().init(quadrant->quadrantTextureLayers());
+					southQuadrantData.init(southQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, southPos);
+					southQuadTree->getQuadrant()->northQuadrantData().init(quadrant->quadrantTextureLayers(), southPos, quadrantPos);
 				}
 			}
 		}
@@ -12211,8 +12259,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* westQuadTree = m_worldQuadrantsMap[westPos].get();
 				if (!westQuadTree->statusToErase() && westQuadTree->statusInitialized())
 				{
-					westQuadrantData.init(westQuadTree->getQuadrant()->quadrantTextureLayers());
-					westQuadTree->getQuadrant()->eastQuadrantData().init(quadrant->quadrantTextureLayers());
+					westQuadrantData.init(westQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, westPos);
+					westQuadTree->getQuadrant()->eastQuadrantData().init(quadrant->quadrantTextureLayers(), westPos, quadrantPos);
 				}
 			}
 		}
@@ -12226,8 +12274,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* eastQuadTree = m_worldQuadrantsMap[eastPos].get();
 				if (!eastQuadTree->statusToErase() && eastQuadTree->statusInitialized())
 				{
-					eastQuadrantData.init(eastQuadTree->getQuadrant()->quadrantTextureLayers());
-					eastQuadTree->getQuadrant()->westQuadrantData().init(quadrant->quadrantTextureLayers());
+					eastQuadrantData.init(eastQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, eastPos);
+					eastQuadTree->getQuadrant()->westQuadrantData().init(quadrant->quadrantTextureLayers(), eastPos, quadrantPos);
 				}
 			}
 		}
@@ -12292,7 +12340,7 @@ void GDN_TheWorld_Viewer::process_dump(GDN_TheWorld_Globals* globals)
 void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 {
 	// Check for Statistics
-	if (TIME_INTERVAL_BETWEEN_STATISTICS != 0)
+	if (TIME_INTERVAL_BETWEEN_STATISTICS != 0 and infoPanelVisible())
 	{
 		int64_t timeElapsed = TIME()->get_ticks_msec();
 		if (timeElapsed - m_timeElapsedFromLastStatistic > TIME_INTERVAL_BETWEEN_STATISTICS)
@@ -12301,7 +12349,7 @@ void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
 
 			if (m_notStreamingTime.counterStarted() && m_notStreamingTime.partialDuration().count() > 60000)
 			{
-				writeStatisticsNewQuadrants();
+				writeStreamingNewQuadrantsStatistics();
 				m_notStreamingTime.tock();
 				m_notStreamingTime.tick();
 			}
@@ -14189,14 +14237,17 @@ void GDN_TheWorld_Viewer::dump()
 	globals->debugPrint("FPS: " + String(std::to_string(f).c_str()));
 
 	{
+		map<int, size_t> mapNumActiveChunksPerLod;
+		map<int, size_t> mapNumActiveTerrainChunksPerLod;
+		map<int, size_t> mapNumActiveSeaChunksPerLod;
+
 		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 		if (editModeUIControl != nullptr && !editModeUIControl->initialized())
 			editModeUIControl = nullptr;
 
 		size_t numQuadrantsWithSea = 0;
-		std::map<size_t, size_t> mapOptimizationLevels;
-		std::map<int, size_t> mapQuadrantsToSaveTerrainType;
-		std::map<int, size_t> mapQuadrantsToUploadTerrainType;
+		std::map<size_t, size_t> mapNumQuadrantsPerOptimizationLevel, mapNumChunksPerOptimizationLevel, mapNumTerrainChunksPerOptimizationLevel, mapNumSeaChunksPerOptimizationLevel, mapNumActiveChunksPerOptimizationLevel, mapNumActiveTerrainChunksPerOptimizationLevel, mapNumActiveSeaChunksPerOptimizationLevel;
+		std::map<int, size_t> mapQuadrantsToSaveTerrainType, mapQuadrantsToUploadTerrainType;
 		size_t mapMemoryOccupation = 0, heightmap16MemoryOccupation = 0, heightmap32MemoryOccupation = 0, normalmapMemoryOccupation = 0, splatmapMemoryOccupation = 0, globalmapMemoryOccupation = 0, colormapMemoryOccupation = 0, terrainEditMemoryOccupation = 0, colliderHeightsMemoryOccupation = 0;
 		size_t texMemoryOccupation = 0;
 		size_t resizedTexMemoryOccupation = 0;
@@ -14219,11 +14270,81 @@ void GDN_TheWorld_Viewer::dump()
 			texMemoryOccupation += quadTree.second->getQuadrant()->calcTexMemoryOccupation();
 			resizedTexMemoryOccupation += quadTree.second->getQuadrant()->calcResizedTexMemoryOccupation();
 			
+			int numActiveChunksInQuadrant = 0, numActiveTerrainChunksInQuadrant = 0, numActiveSeaChunksInQuadrant = 0;
+			int numChunksInQuadrant = 0, numTerrainChunksInQuadrant = 0, numSeaChunksInQuadrant = 0;
+			//std::string activeChunksInQuadrant, activeTerrainChunksInQuadrant, activeSeaChunksInQuadrant;
+			if (quadTree.second->statusInitialized() and !quadTree.second->statusToErase())
+			{
+				map<int, size_t> mapNumActiveChunksPerLodInQuadrant;
+				numActiveChunksInQuadrant = quadTree.second->getNumActiveChunks(mapNumActiveChunksPerLodInQuadrant, QuadType::NotSet);
+				numChunksInQuadrant = quadTree.second->getNumChunks(false, QuadType::NotSet);
+				for (auto& item : mapNumActiveChunksPerLodInQuadrant)
+				{
+					if (mapNumActiveChunksPerLod.contains(item.first))
+					{
+						mapNumActiveChunksPerLod[item.first] += item.second;
+					}
+					else
+					{
+						mapNumActiveChunksPerLod[item.first] = item.second;
+					}
+					//activeChunksInQuadrant += "  - lod " + std::to_string(item.first) + " = " + std::to_string(item.second);
+				}
+
+				map<int, size_t> mapNumActiveTerrainChunksPerLodInQuadrant;
+				numActiveTerrainChunksInQuadrant = quadTree.second->getNumActiveChunks(mapNumActiveTerrainChunksPerLodInQuadrant, QuadType::Terrain);
+				numTerrainChunksInQuadrant = quadTree.second->getNumChunks(false, QuadType::Terrain);
+				for (auto& item : mapNumActiveTerrainChunksPerLodInQuadrant)
+				{
+					if (mapNumActiveTerrainChunksPerLod.contains(item.first))
+					{
+						mapNumActiveTerrainChunksPerLod[item.first] += item.second;
+					}
+					else
+					{
+						mapNumActiveTerrainChunksPerLod[item.first] = item.second;
+					}
+					//activeTerrainChunksInQuadrant += "  - lod " + std::to_string(item.first) + " = " + std::to_string(item.second);
+				}
+
+				map<int, size_t> mapNumActiveSeaChunksPerLodInQuadrant;
+				numActiveSeaChunksInQuadrant = quadTree.second->getNumActiveChunks(mapNumActiveSeaChunksPerLodInQuadrant, QuadType::Sea);
+				numSeaChunksInQuadrant = quadTree.second->getNumChunks(false, QuadType::Sea);
+				for (auto& item : mapNumActiveSeaChunksPerLodInQuadrant)
+				{
+					if (mapNumActiveSeaChunksPerLod.contains(item.first))
+					{
+						mapNumActiveSeaChunksPerLod[item.first] += item.second;
+					}
+					else
+					{
+						mapNumActiveSeaChunksPerLod[item.first] = item.second;
+					}
+					//activeSeaChunksInQuadrant += "  - lod " + std::to_string(item.first) + " = " + std::to_string(item.second);
+				}
+			}
+
 			size_t optimizationLevel = quadTree.second->getQuadrant()->optimizationLevel();
-			if (mapOptimizationLevels.contains(optimizationLevel))
-				mapOptimizationLevels[optimizationLevel]++;
+			if (mapNumQuadrantsPerOptimizationLevel.contains(optimizationLevel))
+			{
+				mapNumQuadrantsPerOptimizationLevel[optimizationLevel]++;
+				mapNumChunksPerOptimizationLevel[optimizationLevel] += numChunksInQuadrant;
+				mapNumTerrainChunksPerOptimizationLevel[optimizationLevel] += numTerrainChunksInQuadrant;
+				mapNumSeaChunksPerOptimizationLevel[optimizationLevel] += numSeaChunksInQuadrant;
+				mapNumActiveChunksPerOptimizationLevel[optimizationLevel] += numActiveChunksInQuadrant;
+				mapNumActiveTerrainChunksPerOptimizationLevel[optimizationLevel] += numActiveTerrainChunksInQuadrant;
+				mapNumActiveSeaChunksPerOptimizationLevel[optimizationLevel] += numActiveSeaChunksInQuadrant;
+			}
 			else
-				mapOptimizationLevels[optimizationLevel] = 1;
+			{
+				mapNumQuadrantsPerOptimizationLevel[optimizationLevel] = 1;
+				mapNumChunksPerOptimizationLevel[optimizationLevel] = numChunksInQuadrant;
+				mapNumTerrainChunksPerOptimizationLevel[optimizationLevel] = numTerrainChunksInQuadrant;
+				mapNumSeaChunksPerOptimizationLevel[optimizationLevel] = numSeaChunksInQuadrant;
+				mapNumActiveChunksPerOptimizationLevel[optimizationLevel] = numActiveChunksInQuadrant;
+				mapNumActiveTerrainChunksPerOptimizationLevel[optimizationLevel] = numActiveTerrainChunksInQuadrant;
+				mapNumActiveSeaChunksPerOptimizationLevel[optimizationLevel] = numActiveSeaChunksInQuadrant;
+			}
 
 			int terrainType = (int)quadTree.second->getQuadrant()->getTerrainEdit()->terrainType;
 			TheWorld_Utils::QuadrantPos pos = quadTree.second->getQuadrant()->getPos();
@@ -14276,31 +14397,49 @@ void GDN_TheWorld_Viewer::dump()
 		globals->debugPrint(String("Actual num quadrants on perimeter on south side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnSouthSide).c_str());
 		globals->debugPrint(String("Actual num quadrants on perimeter on west side : ") + std::to_string(m_numVisibleQuadrantOnPerimeterOnWestSide).c_str());
 
-		for (auto& item : mapOptimizationLevels)
+		for (auto& item : mapNumQuadrantsPerOptimizationLevel)
 		{
 			//size_t resizedMapSize = (globals->heightmapResolution() / (size_t)pow(2, item.first)) + 1;
 			size_t resizedMapSize = globals->resolutionForOptimizationLevel(item.first);
-			std::string msg = "Num quadrants with optimization level " + std::to_string(item.first) + " : " + std::to_string(item.second) + " - map size : " + std::to_string(resizedMapSize);
-			globals->debugPrint(msg.c_str());
+			std::string msg = "Num quadrants with optimization level " + std::to_string(item.first) + " : " + std::to_string(item.second) + " - map size : " + std::to_string(resizedMapSize)
+				+ " - Chunks (active) : " + std::to_string(mapNumChunksPerOptimizationLevel[item.first]) + "(" + std::to_string(mapNumActiveChunksPerOptimizationLevel[item.first]) + ")"
+				+ " - Terrain Chunks (active) : " + std::to_string(mapNumTerrainChunksPerOptimizationLevel[item.first]) + "(" + std::to_string(mapNumActiveTerrainChunksPerOptimizationLevel[item.first]) + ")"
+				+ " - Sea Chunks (active) : " + std::to_string(mapNumSeaChunksPerOptimizationLevel[item.first]) + "(" + std::to_string(mapNumActiveSeaChunksPerOptimizationLevel[item.first]) + ")";
+				globals->debugPrint(msg.c_str());
 		}
 
-		for (auto& item : mapQuadrantsToSaveTerrainType)
+		if (mapQuadrantsToSaveTerrainType.size() > 0)
 		{
-			std::string msg = "Num quadrants to save with terrain type <" + TheWorld_Utils::TerrainEdit::terrainTypeString((TheWorld_Utils::TerrainEdit::TerrainType)item.first) + "> : " + std::to_string(item.second);
-			globals->debugPrint(msg.c_str());
+			for (auto& item : mapQuadrantsToSaveTerrainType)
+			{
+				std::string msg = "Num quadrants to save with terrain type <" + TheWorld_Utils::TerrainEdit::terrainTypeString((TheWorld_Utils::TerrainEdit::TerrainType)item.first) + "> : " + std::to_string(item.second);
+				globals->debugPrint(msg.c_str());
+			}
 		}
-		for (auto& item : mapQuadrantsToUploadTerrainType)
+		else
 		{
-			std::string msg = "Num quadrants to upload with terrain type <" + TheWorld_Utils::TerrainEdit::terrainTypeString((TheWorld_Utils::TerrainEdit::TerrainType)item.first) + "> : " + std::to_string(item.second);
-			globals->debugPrint(msg.c_str());
+			globals->debugPrint("No quadrant to save");
+		}
+		if (mapQuadrantsToUploadTerrainType.size() > 0)
+		{
+			for (auto& item : mapQuadrantsToUploadTerrainType)
+			{
+				std::string msg = "Num quadrants to upload with terrain type <" + TheWorld_Utils::TerrainEdit::terrainTypeString((TheWorld_Utils::TerrainEdit::TerrainType)item.first) + "> : " + std::to_string(item.second);
+				globals->debugPrint(msg.c_str());
+			}
+		}
+		else
+		{
+			globals->debugPrint("No quadrant to upload");
 		}
 
-		for (auto& item : m_mapNumActiveChunksPerLod)
+		globals->debugPrint("Active Chunks");
+		for (auto& item : mapNumActiveChunksPerLod)
 		{
 			int lod = item.first;
 			int numChunksPerSide = globals->numChunksPerHeightmapSide(lod);
 			int numVerticesPerSide = globals->numVerticesPerChuckSide() * numChunksPerSide;
-			std::string msg = "Num chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
+			std::string msg = "Num active chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
 				+ " - Num chunks per quadrant side = " + std::to_string(numChunksPerSide)
 				+ " - Grid step in WUs = " + std::to_string(globals->gridStepInHeightmapWUs(lod))
 				+ " - Num vertices per quadrant side = " + std::to_string(numVerticesPerSide)
@@ -14308,13 +14447,13 @@ void GDN_TheWorld_Viewer::dump()
 
 			globals->debugPrint(msg.c_str());
 		}
-		globals->debugPrint("Terrain Chunks");
-		for (auto& item : m_mapNumActiveTerrainChunksPerLod)
+		globals->debugPrint("Active Terrain Chunks");
+		for (auto& item : mapNumActiveTerrainChunksPerLod)
 		{
 			int lod = item.first;
 			int numChunksPerSide = globals->numChunksPerHeightmapSide(lod);
 			int numVerticesPerSide = globals->numVerticesPerChuckSide() * numChunksPerSide;
-			std::string msg = "Num chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
+			std::string msg = "Num active chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
 				+ " - Num chunks per quadrant side = " + std::to_string(numChunksPerSide)
 				+ " - Grid step in WUs = " + std::to_string(globals->gridStepInHeightmapWUs(lod))
 				+ " - Num vertices per quadrant side = " + std::to_string(numVerticesPerSide)
@@ -14322,13 +14461,13 @@ void GDN_TheWorld_Viewer::dump()
 
 			globals->debugPrint(msg.c_str());
 		}
-		globals->debugPrint("Sea Chunks");
-		for (auto& item : m_mapNumActiveSeaChunksPerLod)
+		globals->debugPrint("Active Sea Chunks");
+		for (auto& item : mapNumActiveSeaChunksPerLod)
 		{
 			int lod = item.first;
 			int numChunksPerSide = globals->numChunksPerHeightmapSide(lod);
 			int numVerticesPerSide = globals->numVerticesPerChuckSide() * numChunksPerSide;
-			std::string msg = "Num chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
+			std::string msg = "Num active chunks at lod " + std::to_string(lod) + " = " + std::to_string(item.second)
 				+ " - Num chunks per quadrant side = " + std::to_string(numChunksPerSide)
 				+ " - Grid step in WUs = " + std::to_string(globals->gridStepInHeightmapWUs(lod))
 				+ " - Num vertices per quadrant side = " + std::to_string(numVerticesPerSide)

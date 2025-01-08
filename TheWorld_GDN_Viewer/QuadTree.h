@@ -141,16 +141,25 @@ namespace godot
 			{
 				return m_groundTextureLayers;
 			}
-			void init(godot::Vector4 layers)
+			void init(godot::Vector4 layers, TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::QuadrantPos& neighbourQuadrantPos)
 			{
 				m_groundTextureLayers = layers;
 				initialized(true);
 				shaderUpdated(false);
+				m_quadrantPos = quadrantPos;
+				m_neighbourQuadrantPos = neighbourQuadrantPos;
+
+				// #####
+				//if (m_quadrantPos.getIndexPosX() == 5 and m_quadrantPos.getIndexPosZ() == 12 and m_neighbourQuadrantPos.getIndexPosX() == 4 and m_neighbourQuadrantPos.getIndexPosZ() == 12)
+				//	assert(m_quadrantPos.getIndexPosX() == 5);
+				// #####
 			}
 		private:
 			bool m_initialized = false;
 			godot::Vector4 m_groundTextureLayers;
 			bool m_shaderUpdated = false;
+			TheWorld_Utils::QuadrantPos m_quadrantPos;
+			TheWorld_Utils::QuadrantPos m_neighbourQuadrantPos;
 		};
 
 	public:
@@ -278,7 +287,7 @@ namespace godot
 		{
 			if (m_splatmapBuffer.empty() && reloadFromCache)
 			{
-				if (!getTerrainEdit()->splatmapNeedRegen)
+				if (!getTerrainEdit()->splatmapNeedRegen())
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getSplatmapBuffer 1 ") + __FUNCTION__, "Splatmap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
@@ -365,7 +374,7 @@ namespace godot
 		void resetSplatmapBuffer(std::string actor)
 		{
 			getSplatmapBuffer(false).clear(actor);
-			getTerrainEdit()->splatmapNeedRegen = true;
+			getTerrainEdit()->splatmapNeedRegen(true);
 			setSplatmapUpdated(true);
 			
 			resetGlobalmapBuffer(actor);
@@ -675,7 +684,7 @@ namespace godot
 		bool m_renderGlobalMap = false;
 		bool m_renderGlobalMapChanged = false;
 		bool m_canCacheHeigthBuffers = false;
-		size_t m_optimizationLevel = 0;
+		size_t m_optimizationLevel = 0;		// optimization level 0 = no optimization: we use full texture and we can split root chunk in child chunks according to distance from camera, for optimization level > 0 we use compressed textures and we don't split the root chunk
 		bool m_optimizationLevelChanged = false;
 
 		bool m_executingProcess = false;
@@ -1626,7 +1635,7 @@ namespace godot
 		GDN_TheWorld_Quadrant* m_GDN_Quadrant;
 		bool m_editModeQuadrantSelected = false;
 		enum class ShaderTerrainData::LookDev m_lookDev;
-		int m_canContainSea = QUADRANT_SEA_INFO_SET_NOTSET;
+		int m_canContainSea = QUADRANT_SEA_INFO_NOTSET;
 		QuadrantDepth m_quadrantDepth = QuadrantDepth::NotSet;
 		int m_numQuadrantsFromCameraQuadrant = -1;
 

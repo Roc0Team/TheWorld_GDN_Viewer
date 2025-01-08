@@ -305,6 +305,7 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_camera_global_transform"), &GDN_TheWorld_Camera::setGlobalTransform);
 	ClassDB::bind_method(D_METHOD("set_camera_world_transform", "p_transform"), &GDN_TheWorld_Camera::setWorldTransform);
 	ClassDB::bind_method(D_METHOD("get_camera_world_transform"), &GDN_TheWorld_Camera::getWorldTransform);
+	ClassDB::bind_method(D_METHOD("get_velocity"), &GDN_TheWorld_Camera::velocity);
 
 	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
 	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR /* | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED*/), "set_camera_tracking_speed", "get_camera_tracking_speed");
@@ -1046,10 +1047,18 @@ bool GDN_TheWorld_Camera::updateCamera(double _delta)
 {
 	bool ret;
 
+	m_prevCameraPos = get_global_position();
+
 	if (trackingPlayer())
 		ret = updatePlayerCamera(_delta);
 	else
 		ret = updateFreeLookCamera(_delta);
+
+	double movement = (get_global_position() - m_prevCameraPos).length();
+	if (_delta > 0)
+		m_velocity = float(movement / _delta);
+	else
+		m_velocity = 0;
 
 	//updateCameraUnderWater();
 
@@ -1077,6 +1086,13 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 	//		m_postProcessingUnderWaterNode->set_visible(false);
 	//}
 
+	QuadTree* quadTree = viewer->getCameraQuadrant(this);
+	if (not globals->getParamShowSea() or (quadTree != nullptr and quadTree->canContainSea() == QUADRANT_SEA_INFO_FALSE))
+	{
+		viewer->shaderParamCameraUnderWaterApplied(false);
+		return;
+	}
+
 	if (m_seaWaveMapTexture != nullptr)
 	{
 		if (m_seaWaveMapImage == nullptr)
@@ -1087,14 +1103,15 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 
 			GDN_TheWorld_Globals* globals = Globals();
 			GDN_TheWorld_Viewer* viewer = globals->Viewer();
-			
-			godot::Vector3 pos = get_global_position();
+
+			godot::Vector3 cameraGlobalPos = get_global_position();
+
 			float shaderParamSeaFlatSeaHeightApplied = viewer->shaderParamSeaFlatSeaHeightApplied();
-			if (pos.y > shaderParamSeaFlatSeaHeightApplied - THEWORLD_SEA_MAX_WAVE_HEIGHT and pos.y < shaderParamSeaFlatSeaHeightApplied + THEWORLD_SEA_MAX_WAVE_HEIGHT)
+			if (cameraGlobalPos.y > shaderParamSeaFlatSeaHeightApplied - THEWORLD_SEA_MAX_WAVE_HEIGHT and cameraGlobalPos.y < shaderParamSeaFlatSeaHeightApplied + THEWORLD_SEA_MAX_WAVE_HEIGHT)
 			{
 				// sea height in range 0.0 / 1.0 from noise texture moving uv with vertex global position and time 
 				float uv_factor = float(globals->shaderParamGlobalTimeApplied() * viewer->shaderParamSeaTimeScaleApplied() * viewer->shaderParamSeaRoughFactorApplied());
-				godot::Vector2 uv = godot::Vector2((pos.x / viewer->shaderParamSeaNoiseScaleApplied()) + uv_factor, (pos.z / viewer->shaderParamSeaNoiseScaleApplied()) + uv_factor);
+				godot::Vector2 uv = godot::Vector2((cameraGlobalPos.x / viewer->shaderParamSeaNoiseScaleApplied()) + uv_factor, (cameraGlobalPos.z / viewer->shaderParamSeaNoiseScaleApplied()) + uv_factor);
 				// force UV in 0.0/1.0 range
 				godot::Vector2 uv_fractional_part = uv - godot::Vector2(float(int(uv.x)), float(int(uv.y)));
 				if (uv_fractional_part.x < 0)
@@ -1111,12 +1128,12 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 
 				// Attenuation of waves height when camera is between start_camera_altitude_for_waves_attenuation (max waves height) and end_camera_altitude_for_waves (null waves height)
 				float shaderParamSeaStartCamAltForWavesAttenuationApplied = viewer->shaderParamSeaStartCamAltForWavesAttenuationApplied();
-				if (pos.y > shaderParamSeaFlatSeaHeightApplied + shaderParamSeaStartCamAltForWavesAttenuationApplied)
-					scaleFactor = scaleFactor - (scaleFactor * (pos.y - shaderParamSeaStartCamAltForWavesAttenuationApplied) / (viewer->shaderParamSeaEndCamAltForWavesApplied() - shaderParamSeaStartCamAltForWavesAttenuationApplied));
+				if (cameraGlobalPos.y > shaderParamSeaFlatSeaHeightApplied + shaderParamSeaStartCamAltForWavesAttenuationApplied)
+					scaleFactor = scaleFactor - (scaleFactor * (cameraGlobalPos.y - shaderParamSeaStartCamAltForWavesAttenuationApplied) / (viewer->shaderParamSeaEndCamAltForWavesApplied() - shaderParamSeaStartCamAltForWavesAttenuationApplied));
 
 				if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE)
 				{
-					float terrainHeigth = pos.y - m_lastCameraAltitudeFromTerrain;
+					float terrainHeigth = cameraGlobalPos.y - m_lastCameraAltitudeFromTerrain;
 					float shaderParamSeaStartTerrDepthForWavesAttenuationApplied = viewer->shaderParamSeaStartTerrDepthForWavesAttenuationApplied();
 					// Attenuation of height waves at lower depth (near the coast)
 					if (terrainHeigth > shaderParamSeaFlatSeaHeightApplied - shaderParamSeaStartTerrDepthForWavesAttenuationApplied)
@@ -1131,14 +1148,14 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 
 				seaHeight = shaderParamSeaFlatSeaHeightApplied + (seaHeight * scaleFactor) - (scaleFactor / 3);
 
-				if (seaHeight > pos.y)
+				if (seaHeight > cameraGlobalPos.y)
 					m_cameraUnderWater = true;
 				else
 					m_cameraUnderWater = false;
 			}
 			else
 			{
-				if (pos.y > shaderParamSeaFlatSeaHeightApplied + THEWORLD_SEA_MAX_WAVE_HEIGHT)
+				if (cameraGlobalPos.y > shaderParamSeaFlatSeaHeightApplied + THEWORLD_SEA_MAX_WAVE_HEIGHT)
 					m_cameraUnderWater = false;
 				else
 					m_cameraUnderWater = true;

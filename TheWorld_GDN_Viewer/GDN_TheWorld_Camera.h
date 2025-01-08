@@ -119,7 +119,7 @@ namespace godot {
 		virtual void _process(double _delta) override;
 		virtual void _physics_process(double _delta) override;
 		virtual void _input(const godot::Ref<godot::InputEvent>& event) override;
-		
+
 		bool initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll);
 		void set_cameraFar(void);
 		godot::Transform3D getWorldTransform(void);
@@ -285,6 +285,10 @@ namespace godot {
 		{
 			return m_adjustPositionOnTerrainRequired;
 		}
+		float velocity(void) const
+		{
+			return m_velocity;
+		}
 
 	private:
 
@@ -349,6 +353,9 @@ namespace godot {
 		bool m_mouseButtonRightPressedWhenSuspended = false;
 		bool m_mouseButtonLeftPressedWhenSuspended = false;
 
+		godot::Vector3 m_prevCameraPos;
+		float m_velocity = 0;	// m/s
+		
 		// Camera Movement/Rotation
 		bool m_mouseShiftCameraOn;
 		//bool m_shiftVertCameraOn;

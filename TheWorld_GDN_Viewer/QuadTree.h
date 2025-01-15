@@ -1416,7 +1416,8 @@ namespace godot
 		void refreshSeaInfo(void);
 		bool isValid(void)
 		{
-			return status() == QuadrantStatus::initialized;
+			//return status() == QuadrantStatus::initialized;
+			return statusInitialized();
 		}
 		bool isRefreshingData(void)
 		{

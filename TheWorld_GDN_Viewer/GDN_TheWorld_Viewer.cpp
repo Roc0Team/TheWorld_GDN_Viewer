@@ -4124,6 +4124,58 @@ void GDN_TheWorld_MapModder::_input(const Ref<InputEvent>& event)
 {
 }
 
+void GDN_TheWorld_Viewer::ProcessSteps::finalizeCurrentExecution(void)
+{
+	m_processClock.tock();
+
+	std::vector<ProcessStep> stepsInLastExecutionSortedByPartialElapsed;
+	for (auto& processStep : m_steps)		// local copy of step so to modify order sorting by by last partial elapsed
+		if (processStep.getNumInCurrentExecution() > 0)
+			stepsInLastExecutionSortedByPartialElapsed.push_back(processStep);
+	std::sort(stepsInLastExecutionSortedByPartialElapsed.begin(), stepsInLastExecutionSortedByPartialElapsed.end());	// sort by last partial elapsed (operator<) of current process execution
+
+	size_t previousStepElapsedFromProcessStart = 0;
+	for (auto& processStep : stepsInLastExecutionSortedByPartialElapsed)
+	{
+		m_steps[int(processStep.getIdx())].finalizeCurrentExecution(previousStepElapsedFromProcessStart);
+	}
+
+	if (m_stepsOrder.size() == 0)
+	{
+		for (auto& processStep : stepsInLastExecutionSortedByPartialElapsed)
+		{
+			m_stepsOrder.push_back(processStep.getIdx());
+			m_steps[int(processStep.getIdx())].setInOrdering(true);
+		}
+	}
+	else
+	{
+		for (size_t idx = 0; idx < stepsInLastExecutionSortedByPartialElapsed.size(); idx++)
+		{
+			if (not stepsInLastExecutionSortedByPartialElapsed[idx].setInOrdering())
+			{
+				if (stepsInLastExecutionSortedByPartialElapsed.size() > idx + 1)
+				{ 
+					std::list<ProcessStep::ProcessStepIdx>::iterator itNext = m_stepsOrder.end();
+					for (std::list<ProcessStep::ProcessStepIdx>::iterator it = m_stepsOrder.begin(); it != m_stepsOrder.end(); it++)
+					{
+						if (*it == stepsInLastExecutionSortedByPartialElapsed[idx + 1].getIdx())
+						{
+							itNext = it;
+							break;
+						}
+					}
+					if (itNext != m_stepsOrder.end())
+					{
+						m_stepsOrder.insert(itNext, stepsInLastExecutionSortedByPartialElapsed[idx].getIdx());
+						m_steps[int(stepsInLastExecutionSortedByPartialElapsed[idx].getIdx())].setInOrdering(true);
+					}
+				}
+			}
+		}
+	}
+}
+
 void GDN_TheWorld_Viewer::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("get_map_viewer"), &GDN_TheWorld_Viewer::getMapViewer);
@@ -4279,7 +4331,6 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_useVisualServer = true;
 	m_firstProcess = true;
 	m_initialWorldViewerPosSet = false;
-	m_dumpRequired = false;
 	lastTrackedChunk = nullptr;
 	m_refreshRequired = false;
 	m_worldViewerLevel = 0;
@@ -5329,7 +5380,7 @@ void GDN_TheWorld_Viewer::adjustEnvironment(void)
 				if (env != nullptr)
 				{
 					float fogDistanceFactor = Globals()->getParamFogDistanceFactor();
-					float fogDepthBegin = float(53000 / 12) * getMaxDepthQuadOnPerimeter() * fogDistanceFactor;
+					float fogDepthBegin = float(50000 / 12) * getMaxDepthQuadOnPerimeter() * fogDistanceFactor;	// 53000
 					float fogDepthEnd = float(60000 / 12) * getMaxDepthQuadOnPerimeter() * fogDistanceFactor;
 					env->set_fog_enabled(Globals()->getParamShowFog());
 					env->set_fog_mode(godot::Environment::FogMode::FOG_MODE_DEPTH);
@@ -8519,9 +8570,6 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	//m_processSteps.clear();
 	//m_lastProcessedStep = "";
 
-	//m_processClock.tick();
-	m_processSteps.init();
-
 	{
 		//TimerMcs clock;
 		//clock.tick();
@@ -8676,26 +8724,35 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 				this->m_sumProcessImplDuration += this->m_lastProcessImplDuration;
 				});
 
+			m_processSteps.initForCurrentExecution();
+
 			TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.1 ") + __FUNCTION__, "process_impl");
 			process_impl(_delta, activeMapCamera, activeWorldCamera);
+
+			size_t elapsed = addProcessStep(ProcessStep::ProcessStepIdx::EndOfProcessExecution);
+
+			m_lastProcessDuration = m_processSteps.elapsed();
+			m_processSteps.finalizeCurrentExecution();
+			m_numProcessExecution++;
+			m_sumProcessDuration += this->m_lastProcessDuration;
 		}
 
 		resetTrackedInputEvents();
 	
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2 ") + __FUNCTION__, "Process Dump/Statistics");
-			process_dump(globals);
+			TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.2 ") + __FUNCTION__, "Process Statistics");
 			process_statistics(globals);
+		}
+
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.3 ") + __FUNCTION__, "Process Dump");
+			process_dump(globals);
 		}
 	}
 
-	m_lastProcessDuration = m_processSteps.elapsed();
-	m_numProcessExecution++;
-	m_sumProcessDuration += this->m_lastProcessDuration;
-
 	if ((m_lastProcessExecutionInterrupted || m_lastProcessDuration > m_maxProcessDuration) && (globals->status() == TheWorldStatus::worldDeployed or globals->status() == TheWorldStatus::minimalWorldDeployed))
 	{
-		std::map<enum class ProcessStep::ProcessStepIdx, ProcessStep>& steps = m_processSteps.steps();
+		std::vector<ProcessStep>& steps = m_processSteps.steps();
 		std::string lastExecutedProcessStep = (steps.size() > 0 ? m_processSteps.lastAddedStepName() : "");
 		//size_t extra = m_lastProcessDuration - (/*m_lastRefreshMapQuadDuration + */m_lastUpdateQuads1Duration + m_lastUpdateQuads2Duration + m_lastUpdateQuads3Duration + m_lastUpdateChunksDuration + m_lastUpdateMaterialParamsDuration + m_lastMouseTrackHitDuration + m_lastEraseQuads + m_lastProcessMapModder + m_lastUpdateCameraQuad + m_lastStreamingQuadrantStuff);
 		//std::string msg = "PROCESS DURATION WARNING: "
@@ -8719,7 +8776,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		{
 			std::string msg1 = "PROCESS DURATION WARNING: " + std::to_string(m_lastProcessDuration / 1000) + (m_lastProcessExecutionInterrupted ? " EXECUTION INTERRUPTED after " + lastExecutedProcessStep + " " : " ");
 			for (auto& step : steps)
-				msg1 += step.second.msg() + " ";
+				msg1 += step.msg() + " ";
 			globals->debugPrint(msg1.c_str());
 		}
 	}
@@ -8804,29 +8861,35 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	if (globals->statusMinimalWorldDeployed() and worldStreamingTerminated())
 		globals->setStatus(TheWorldStatus::worldDeployed);
 	
+	addProcessStep(ProcessStep::ProcessStepIdx::process_initialStuff);
+
 	if (mapMode())
-		process_mapModeInputEvents();
-	
-	if (adjustWorldCameraRequired() and mapMode())
 	{
-		adjustWorldCamera(m_desideredCameraWorldPos);
-		
-		GDN_TheWorld_Map* map = Map();
-		if (map != nullptr)
-			map->setWorldFlag("WorldCamera", GDN_TheWorld_Globals::g_color_red, true);
-		
-		GDN_TheWorld_HudControls* hudControls = HudControls();
-		if (hudControls != nullptr)
+		process_mapModeInputEvents();
+
+		if (adjustWorldCameraRequired())
 		{
-			if (globals->loadingScreen())
+			adjustWorldCamera(m_desideredCameraWorldPos);
+
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr)
+				map->setWorldFlag("WorldCamera", GDN_TheWorld_Globals::g_color_red, true);
+
+			GDN_TheWorld_HudControls* hudControls = HudControls();
+			if (hudControls != nullptr)
 			{
-				hudControls->showLoadingBar();
+				if (globals->loadingScreen())
+				{
+					hudControls->showLoadingBar();
+				}
+				else
+					hudControls->hideLoadingBar();
 			}
-			else
-				hudControls->hideLoadingBar();
+
+			adjustWorldCameraRequired(false);
 		}
-		
-		adjustWorldCameraRequired(false);
+
+		addProcessStep(ProcessStep::ProcessStepIdx::process_mapQuadrantsUI);
 	}
 	
 	if (delayedWorldMode())
@@ -8858,6 +8921,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 				}
 			}
 		}
+
+		addProcessStep(ProcessStep::ProcessStepIdx::process_delayedWorldMode);
 	}
 
 	GDN_TheWorld_Map*map = Map();
@@ -8867,6 +8932,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		{
 			map->worldQuadrantMapReset();
 			recalcQuadrantsInViewJustExecuted(false);
+
+			addProcessStep(ProcessStep::ProcessStepIdx::process_adjustMapQuadrants);
 		}
 	}
 	
@@ -8874,6 +8941,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.02 ") + __FUNCTION__, "Erase out-of-view quadrants");
 		process_eraseOutOfViewQuads(editModeUIControl);
+		addProcessStep(ProcessStep::ProcessStepIdx::process_eraseOutOfViewQuadrants);
 	}
 	
 	godot::Vector3 worldCameraWorldPos;
@@ -8947,6 +9015,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 				}
 			}
 		}
+
+		addProcessStep(ProcessStep::ProcessStepIdx::process_checkCameraMovement);
 	}
 
 	//Transform globalTransform = internalTransformGlobalCoord();
@@ -9153,7 +9223,6 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		}
 	}
 
-	size_t elapsed = addProcessStep(ProcessStep::ProcessStepIdx::EndOfProcessExecution);
 	//m_desideredLookDevChanged = false;
 }
 
@@ -12317,24 +12386,37 @@ void GDN_TheWorld_Viewer::process_dump(GDN_TheWorld_Globals* globals)
 {
 //#pragma warning(push, 1)
 //#pragma warning( disable : 6237 )
+ 
 	// Check for Dump
-	if (TIME_INTERVAL_BETWEEN_DUMP != 0 && globals->isDebugEnabled())
+	if (TIME_INTERVAL_BETWEEN_PERIDODIC_DUMP != 0 && globals->isDebugEnabled())
 	{
 //#pragma warning(pop)
 		int64_t timeElapsed = TIME()->get_ticks_msec();
-		if (timeElapsed - m_timeElapsedFromLastDump > TIME_INTERVAL_BETWEEN_DUMP * 1000)
+		if (timeElapsed - m_timeElapsedFromLastDump > TIME_INTERVAL_BETWEEN_PERIDODIC_DUMP * 1000)
 		{
 			m_dumpRequired = true;
 			m_timeElapsedFromLastDump = timeElapsed;
 		}
 	}
-	//if (m_dumpRequired)
-	//{
-	//	TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.12.1 ") + __FUNCTION__, "Dump stuff");
 
-	//	m_dumpRequired = false;
-	//	dump();
-	//}
+	if (m_dumpRequired and not m_dumpScheduled)
+	{
+		m_dumpRequired = false;
+
+		m_processStepsForDump.clear();
+		std::vector<ProcessStep>& processSteps = m_processSteps.steps();
+		m_processStepsForDump.resize(processSteps.size());
+		int idx = 0;
+		for (auto& processStep : processSteps)
+		{
+			m_processStepsForDump[idx] = processStep;
+			assert(idx == int(m_processStepsForDump[idx].getIdx()));
+			idx++;
+			processStep.resetAverageValues();
+		}
+
+		m_dumpScheduled = true;
+	}
 }
 
 void GDN_TheWorld_Viewer::process_statistics(GDN_TheWorld_Globals* globals)
@@ -14070,13 +14152,14 @@ int GDN_TheWorld_Viewer::getNumReadyQuadrantsAtDepth(int& numEvaluated, float& n
 		}
 	}
 
-	{
-		int colliderSet = initialized - needCollider;									// colliderNeedReset is set only for intialized quadrants
-		int paramResetDone = initialized - needMatParamReset;							// materialParamsNeedReset is set only for intialized quadrants
-		int paramUpdateDone = initialized - needMatParamReset - needMatParamUpdate;		// materialParamsNeedUpdate is set only for quadrants which have done resetting params which are set for initialized quadrants
-		numReady = initialized * 0.25f + colliderSet * 0.25f + paramResetDone * 0.25f + paramUpdateDone * 0.25f;
-		//PLOG_DEBUG << "all quadrants = " << m_worldQuadrantsMap.size() << " evaluated = " << numEvaluated << " ready = " << _numReady << " " << numReady << " init = " << initialized << " need collider = " << needCollider << " collider set = " << colliderSet << " need param reset = " << needMatParamReset << " param reset done = " << paramResetDone << " need param update = " << needMatParamUpdate << " param update done = " << paramUpdateDone;
-	}
+	numReady = float(_numReady);
+	//{
+	//	int colliderSet = initialized - needCollider;									// colliderNeedReset is set only for intialized quadrants
+	//	int paramResetDone = initialized - needMatParamReset;							// materialParamsNeedReset is set only for intialized quadrants
+	//	int paramUpdateDone = initialized - needMatParamReset - needMatParamUpdate;		// materialParamsNeedUpdate is set only for quadrants which have done resetting params which are set for initialized quadrants
+	//	numReady = initialized * 0.25f + colliderSet * 0.25f + paramResetDone * 0.25f + paramUpdateDone * 0.25f;
+	//	//PLOG_DEBUG << "all quadrants = " << m_worldQuadrantsMap.size() << " evaluated = " << numEvaluated << " ready = " << _numReady << " " << numReady << " init = " << initialized << " need collider = " << needCollider << " collider set = " << colliderSet << " need param reset = " << needMatParamReset << " param reset done = " << paramResetDone << " need param update = " << needMatParamUpdate << " param update done = " << paramUpdateDone;
+	//}
 
 
 	//int numInitial = 0, numGrowing = 0, numCache = 0, numNotSet = 0;
@@ -14518,6 +14601,71 @@ void GDN_TheWorld_Viewer::dump()
 		globals->debugPrint("== PROFILE DATA ==========================================");
 	}
 
+	if (m_processStepsForDump.size() > 0)
+	{
+		globals->debugPrint("== PROCESS STEPS AVERAGE DURATION ========================");
+
+		class SortedByTotDiffFromPreviousStep
+		{
+		public:
+			SortedByTotDiffFromPreviousStep(enum class ProcessStep::ProcessStepIdx idx, size_t totDiffFromPreviousStep)
+			{
+				m_idx = idx;
+				m_totDiffFromPreviousStep = totDiffFromPreviousStep;
+			}
+			bool operator<(SortedByTotDiffFromPreviousStep& processStep) const
+			{
+				return m_totDiffFromPreviousStep > processStep.m_totDiffFromPreviousStep;
+			}
+			enum class ProcessStep::ProcessStepIdx getIdx(void) const
+			{
+				return m_idx;
+			}
+		private:
+			enum class ProcessStep::ProcessStepIdx m_idx = ProcessStep::ProcessStepIdx::not_set;
+			size_t m_totDiffFromPreviousStep = 0;
+		};
+
+		std::vector<SortedByTotDiffFromPreviousStep> sortedByTotDiffFromPreviousSteps;
+		for (auto& processStep : m_processStepsForDump)
+			sortedByTotDiffFromPreviousSteps.push_back(SortedByTotDiffFromPreviousStep(processStep.getIdx(), processStep.getTotDiffFromPreviousStep()));
+		std::sort(sortedByTotDiffFromPreviousSteps.begin(), sortedByTotDiffFromPreviousSteps.end());
+
+		int idx = 0;
+		for (auto& processStepidx : m_processSteps.stepsOrder())
+		{
+			std::vector<ProcessStep>::iterator itFound = m_processStepsForDump.end();
+			for (std::vector<ProcessStep>::iterator it = m_processStepsForDump.begin(); it != m_processStepsForDump.end(); it++)
+			{
+				if (it->getIdx() == processStepidx)
+				{
+					itFound = it;
+					break;
+				}
+			}
+			if (itFound != m_processStepsForDump.end())
+			{
+				bool reset = true;
+				itFound->computeAverageValues(reset);
+				size_t num = 0;
+				size_t averageDiffFromPreviousStep = itFound->getAverageDiffFromPreviousStep(num);
+				if (num > 0)
+				{
+					size_t idxWorst = 1;
+					for (auto& processStep : sortedByTotDiffFromPreviousSteps)
+					{
+						if (processStep.getIdx() == itFound->getIdx())
+							break;
+						idxWorst++;
+					}
+					globals->debugPrint((std::to_string(++idx) + " " + itFound->msg() + " - Diff = " + TheWorld_Utils::quickAddThousandSeparators(std::to_string(averageDiffFromPreviousStep)) + " mcs" + " - Idx Worst = " + std::to_string(idxWorst) + (idxWorst == 1 ? " - WORST" : "")).c_str());
+				}
+			}
+		}
+
+		globals->debugPrint("== PROCESS STEPS AVERAGE DURATION ========================");
+	}
+	
 	globals->debugPrint("DUMP COMPLETE");
 	globals->debugPrint("*************");
 
@@ -14847,12 +14995,12 @@ void GDN_TheWorld_Viewer::streamer(void)
 					}
 				}
 				
-				if (m_dumpRequired)
+				if (m_dumpScheduled)
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("streamer 1 ") + __FUNCTION__, "Dump stuff");
 
-					m_dumpRequired = false;
 					dump();
+					m_dumpScheduled = false;
 				}
 			}
 			catch (std::exception& e)

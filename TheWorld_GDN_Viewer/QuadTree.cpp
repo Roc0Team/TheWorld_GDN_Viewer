@@ -4351,10 +4351,10 @@ size_t Quadrant::calcResizedTexMemoryOccupation(void)
 
 void Quadrant::checkInternalData(double _delta)
 {
-	if (!empty() && getMeshId().length() > 0 && getMeshCacheBuffer().getMeshId().length() > 0 && getMeshId() != getMeshCacheBuffer().getMeshId())
-	{
-		PLOG_DEBUG << "WARNING: quadrant meshId [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(getMeshId()) << "] not equal cache meshId [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(getMeshCacheBuffer().getMeshId()) << "]";
-	}
+	//if (!empty() && getMeshId().length() > 0 && getMeshCacheBuffer().getMeshId().length() > 0 && getMeshId() != getMeshCacheBuffer().getMeshId())
+	//{
+	//	PLOG_DEBUG << "WARNING: quadrant meshId [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(getMeshId()) << "] not equal cache meshId [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(getMeshCacheBuffer().getMeshId()) << "]";
+	//}
 }
 
 void Quadrant::process_mapModder(double _delta)
@@ -4438,19 +4438,19 @@ void Quadrant::process_mapModder(double _delta)
 
 	TheWorld_Utils::QuadrantPos currentPos = getPos();
 	QuadTree* northQuadrantTree = m_viewer->getQuadTree(currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus), true, false, true);
-	bool northQuadrantValid = northQuadrantTree != nullptr && northQuadrantTree->statusInitialized() && northQuadrantTree->isValid() && !northQuadrantTree->getQuadrant()->empty();
+	bool northQuadrantValid = northQuadrantTree != nullptr && northQuadrantTree->statusInitialized() && northQuadrantTree->isValid() /* && !northQuadrantTree->getQuadrant()->empty()*/;
 	QuadTree* southQuadrantTree = m_viewer->getQuadTree(currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus), true, false, true);
-	bool southQuadrantValid = southQuadrantTree != nullptr && southQuadrantTree->statusInitialized() && southQuadrantTree->isValid() && !southQuadrantTree->getQuadrant()->empty();
+	bool southQuadrantValid = southQuadrantTree != nullptr && southQuadrantTree->statusInitialized() && southQuadrantTree->isValid() /* && !southQuadrantTree->getQuadrant()->empty()*/;
 	QuadTree* eastQuadrantTree = m_viewer->getQuadTree(currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus), true, false, true);
-	bool eastQuadrantValid = eastQuadrantTree != nullptr && eastQuadrantTree->statusInitialized() && eastQuadrantTree->isValid() && !eastQuadrantTree->getQuadrant()->empty();
+	bool eastQuadrantValid = eastQuadrantTree != nullptr && eastQuadrantTree->statusInitialized() && eastQuadrantTree->isValid() /* && !eastQuadrantTree->getQuadrant()->empty()*/;
 	QuadTree* westQuadrantTree = m_viewer->getQuadTree(currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus), true, false, true);
-	bool westQuadrantValid = westQuadrantTree != nullptr && westQuadrantTree->statusInitialized() && westQuadrantTree->isValid() && !westQuadrantTree->getQuadrant()->empty();
+	bool westQuadrantValid = westQuadrantTree != nullptr && westQuadrantTree->statusInitialized() && westQuadrantTree->isValid() /* && !westQuadrantTree->getQuadrant()->empty()*/;
 
 	if (terrainEdit->splatmapNeedRegen()
-		|| (northQuadrantValid && northQuadrantTree->statusInitialized() && (terrainEdit->northNeighbourZMinus.minHeight() != northQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->northNeighbourZMinus.maxHeight() != northQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
-		|| (southQuadrantValid && southQuadrantTree->statusInitialized() && (terrainEdit->southNeighbourZPlus.minHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->southNeighbourZPlus.maxHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
-		|| (eastQuadrantValid && eastQuadrantTree->statusInitialized() && (terrainEdit->eastNeighbourXPlus.minHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->eastNeighbourXPlus.maxHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
-		|| (westQuadrantValid && westQuadrantTree->statusInitialized() && (terrainEdit->westNeighbourXMinus.minHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->westNeighbourXMinus.maxHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		//|| (northQuadrantValid && (terrainEdit->northNeighbourZMinus.minHeight() != northQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->northNeighbourZMinus.maxHeight() != northQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		//|| (southQuadrantValid && (terrainEdit->southNeighbourZPlus.minHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->southNeighbourZPlus.maxHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		//|| (eastQuadrantValid && (terrainEdit->eastNeighbourXPlus.minHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->eastNeighbourXPlus.maxHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		//|| (westQuadrantValid && (terrainEdit->westNeighbourXMinus.minHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->westNeighbourXMinus.maxHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
 		)
 	{
 		//if (!terrainEdit->splatmapNeedRegen)	// DEBUG ONLY
@@ -4476,6 +4476,16 @@ void Quadrant::process_mapModder(double _delta)
 			m_mapModder->initForGlobalMap(m_quadTree, getPos().getNumVerticesPerSize() / 4, true);
 		}
 		return;
+	}
+
+	if ((northQuadrantValid && (terrainEdit->northNeighbourZMinus.minHeight() != northQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->northNeighbourZMinus.maxHeight() != northQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		|| (southQuadrantValid && (terrainEdit->southNeighbourZPlus.minHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->southNeighbourZPlus.maxHeight() != southQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		|| (eastQuadrantValid && (terrainEdit->eastNeighbourXPlus.minHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->eastNeighbourXPlus.maxHeight() != eastQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		|| (westQuadrantValid && (terrainEdit->westNeighbourXMinus.minHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->minHeight || terrainEdit->westNeighbourXMinus.maxHeight() != westQuadrantTree->getQuadrant()->getTerrainEdit()->maxHeight))
+		)
+	{
+		// Quadrant blend needed
+		assert(m_quadTree->isValid());	// DEBUG TRAP
 	}
 
 	bool manual = true;
@@ -5019,7 +5029,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		// Buffer from server was valid ...
 		if (updateCache)
 		{
-			// ... and was written to disk cache, we can remove from quadrant to save if marked to save
+			// ... and was written to disk cache, we can remove from list of quadrant to save if marked to save
 			GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
 			if (editModeUIControl != nullptr)
 			{

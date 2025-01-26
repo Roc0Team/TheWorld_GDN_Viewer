@@ -2213,7 +2213,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	
 	if (m_infoLabelTextChanged && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::minimalWorldDeployed || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) /* && m_innerData->m_quadTreeHit != nullptr*/)
 	{
-		std::string quadHitOptimizationLevelInfoStr, quadHitColliderInfoStr, quadHitCanContainSeaStr, quadHitTerrainTypeStr, quadHitMinHeightStr, quadHitMaxHeightStr, needToUploadStr, needToSaveStr, DepthStr, quadsFromCameraQuadStr, numVisibleChunksStr;
+		std::string quadHitOptimizationLevelInfoStr, quadHitColliderInfoStr, quadHitCanContainSeaStr, quadHitTerrainTypeStr, quadHitMinHeightStr, quadHitMaxHeightStr, quadHitEmptyStr, needToUploadStr, needToSaveStr, DepthStr, quadsFromCameraQuadStr, numVisibleChunksStr;
 		enum class TheWorld_Utils::TerrainEdit::TerrainType quadHitTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 		float quadHitMinHeight = 0, quadHitMaxHeight = 0;
 		if (m_innerData->m_quadTreeHit != nullptr)
@@ -2228,6 +2228,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			quadHitTerrainTypeStr = TheWorld_Utils::TerrainEdit::terrainTypeString(quadHitTerrainType);
 			quadHitMinHeightStr = std::format("{:.2f}", quadHitMinHeight);
 			quadHitMaxHeightStr = std::format("{:.2f}", quadHitMaxHeight);
+			quadHitEmptyStr = m_innerData->m_quadTreeHit->getQuadrant()->empty() ? "True" : "False";
 			needToUploadStr = (m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False");
 			needToSaveStr = (m_mapQuadToSave.contains(m_innerData->m_quadTreeHit->getQuadrant()->getPos()) ? "True" : "False");
 			DepthStr = QuadTree::quadrantDepthToString(m_innerData->m_quadTreeHit->quadrantDepth());
@@ -2242,6 +2243,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			quadHitTerrainTypeStr = "-";
 			quadHitMinHeightStr = "-";
 			quadHitMaxHeightStr = "-";
+			quadHitEmptyStr = "-";
 			needToUploadStr = "-";
 			needToSaveStr = "-";
 			DepthStr = "-";
@@ -2270,7 +2272,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		hitQuadInfoLabelText =
 			"Quad Hit: " + m_innerData->m_mouseQuadHitStr + " - Sea: " + quadHitCanContainSeaStr + "\n"
 			+ "Pos: " + m_innerData->m_mouseQuadHitPosStr + "\n"
-			+ "Type: " + quadHitTerrainTypeStr + " - Min: " + quadHitMinHeightStr + " Max: " + quadHitMaxHeightStr + "\n"
+			+ "Type: " + quadHitTerrainTypeStr + " - Min: " + quadHitMinHeightStr + " Max: " + quadHitMaxHeightStr + " - Empty: " + quadHitEmptyStr + "\n"
 			+ "Opt. Level: " + quadHitOptimizationLevelInfoStr + " Collider: " + quadHitColliderInfoStr + " Chunks: " + numVisibleChunksStr + "\n"
 			+ "To Upload: " + needToUploadStr + " To Save: " + needToSaveStr + "\n"
 			+ "Depth: " + DepthStr + " - Quads from Camera quad: " + quadsFromCameraQuadStr;
@@ -2283,7 +2285,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			selQuadInfoLabelText =
 				"Quad Sel: " + m_innerData->m_mouseQuadSelStr + " - Sea: " + quadSelCanContainSeaStr + "\n"
 				+ "Pos: " + m_innerData->m_mouseQuadSelPosStr + "\n"
-				+ "Type: " + TheWorld_Utils::TerrainEdit::terrainTypeString(m_innerData->m_selectedTerrainType) + " - Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
+				+ "Type: " + TheWorld_Utils::TerrainEdit::terrainTypeString(m_innerData->m_selectedTerrainType) + " - Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + " - Empty: " + (quadTreeSel->getQuadrant()->empty() ? "True" : "False") + "\n"
 				+ "Opt. Level: " + quadSelOptimizationLevelInfoStr + " Collider: " + quadSelColliderInfoStr + "\n"
 				+ "To Upload: " + (quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False") + " To Save: " + (m_mapQuadToSave.contains(quadTreeSel->getQuadrant()->getPos()) ? "True" : "False");
 		}
@@ -3513,7 +3515,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->ForAllChunk(action, QuadType::NotSet);
 
 	// 9. update quadrant flags
-	quadTreeSel->getQuadrant()->setEmpty(false);
+	//quadTreeSel->getQuadrant()->setEmpty(false);
 	quadTreeSel->getQuadrant()->setColorsUpdated(true);
 	quadTreeSel->materialParamsNeedReset(true);
 	quadTreeSel->colliderNeedReset(true, QuadType::NotSet);
@@ -3973,7 +3975,7 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 			addQuadToSave(pos, manual);
 
 		}
-		quadTree->getQuadrant()->setEmpty(false);
+		//quadTree->getQuadrant()->setEmpty(false);
 		quadTree->getQuadrant()->getTerrainEdit()->needUploadToServer = true;
 		quadTree->getQuadrant()->setNeedUploadToServer(true);
 
@@ -4707,23 +4709,31 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 		TheWorld_Utils::TerrainEdit* northSideTerrainEdit = nullptr;
 		TheWorld_Utils::QuadrantPos pos = selectedQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
 		QuadTree* q = m_viewer->getQuadTree(pos, false);
-		if (q != nullptr && !q->getQuadrant()->empty())
+		if (q != nullptr /* && !q->getQuadrant()->empty()*/)
+		{
 			northSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+		}
 		TheWorld_Utils::TerrainEdit* southSideTerrainEdit = nullptr;
 		pos = selectedQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
 		q = m_viewer->getQuadTree(pos, false);
-		if (q != nullptr && !q->getQuadrant()->empty())
+		if (q != nullptr /* && !q->getQuadrant()->empty()*/)
+		{
 			southSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+		}
 		TheWorld_Utils::TerrainEdit* westSideTerrainEdit = nullptr;
 		pos = selectedQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
 		q = m_viewer->getQuadTree(pos, false);
-		if (q != nullptr && !q->getQuadrant()->empty())
+		if (q != nullptr /* && !q->getQuadrant()->empty()*/)
+		{
 			westSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+		}
 		TheWorld_Utils::TerrainEdit* eastSideTerrainEdit = nullptr;
 		pos = selectedQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
 		q = m_viewer->getQuadTree(pos, false);
-		if (q != nullptr && !q->getQuadrant()->empty())
+		if (q != nullptr /* && !q->getQuadrant()->empty()*/)
+		{
 			eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+		}
 		terrainEdit.adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);
 	}
 

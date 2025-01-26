@@ -3390,67 +3390,67 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			//mat->set_shader_parameter(SHADER_PARAM_HILLS_ALTITUDE_THRESHOLD, DEFAULT_HILLS_ALTITUDE_THRESHOLD);
 			//mat->set_shader_parameter(SHADER_PARAM_PLAINS_ALTITUDE_THRESHOLD, DEFAULT_PLAINS_ALTITUDE_THRESHOLD);
 
-			{
-				Quadrant* quadrant = m_quadTree->getQuadrant();
-				TheWorld_Utils::QuadrantPos quadrantPos = quadrant->getPos();
-				
-				TheWorld_Utils::QuadrantPos northPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
-				QuadTree* northQuadTree = m_viewer->getQuadTree(northPos, true, false, true);
-				if (northQuadTree != nullptr && northQuadTree->statusInitialized())
-				{
-					godot::Vector2 heights(northQuadTree->getQuadrant()->getTerrainEdit()->minHeight, northQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
-					mat->set_shader_parameter(SHADER_PARAM_NORTH_HEIGHTS, heights);
-					m_northQuadrantheights = heights;
-				}
-				else
-				{
-					godot::Vector2 heights(FLT_MAX, FLT_MIN);
-					mat->set_shader_parameter(SHADER_PARAM_NORTH_HEIGHTS, heights);
-					m_northQuadrantheights = heights;
-				}
-				TheWorld_Utils::QuadrantPos southPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
-				QuadTree* southQuadTree = m_viewer->getQuadTree(southPos, true, false, true);
-				if (southQuadTree != nullptr && southQuadTree->statusInitialized())
-				{
-					godot::Vector2 heights(southQuadTree->getQuadrant()->getTerrainEdit()->minHeight, southQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
-					mat->set_shader_parameter(SHADER_PARAM_SOUTH_HEIGHTS, heights);
-					m_southQuadrantheights = heights;
-				}
-				else
-				{
-					godot::Vector2 heights(FLT_MAX, FLT_MIN);
-					mat->set_shader_parameter(SHADER_PARAM_SOUTH_HEIGHTS, heights);
-					m_southQuadrantheights = heights;
-				}
-				TheWorld_Utils::QuadrantPos westPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
-				QuadTree* westQuadTree = m_viewer->getQuadTree(westPos, true, false, true);
-				if (westQuadTree != nullptr && westQuadTree->statusInitialized())
-				{
-					godot::Vector2 heights(westQuadTree->getQuadrant()->getTerrainEdit()->minHeight, westQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
-					mat->set_shader_parameter(SHADER_PARAM_WEST_HEIGHTS, heights);
-					m_westQuadrantheights = heights;
-				}
-				else
-				{
-					godot::Vector2 heights(FLT_MAX, FLT_MIN);
-					mat->set_shader_parameter(SHADER_PARAM_WEST_HEIGHTS, heights);
-					m_westQuadrantheights = heights;
-				}
-				TheWorld_Utils::QuadrantPos eastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);
-				QuadTree* eastQuadTree = m_viewer->getQuadTree(eastPos, true, false, true);
-				if (eastQuadTree != nullptr && eastQuadTree->statusInitialized())
-				{
-					godot::Vector2 heights(eastQuadTree->getQuadrant()->getTerrainEdit()->minHeight, eastQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
-					mat->set_shader_parameter(SHADER_PARAM_EAST_HEIGHTS, heights);
-					m_eastQuadrantheights = heights;
-				}
-				else
-				{
-					godot::Vector2 heights(FLT_MAX, FLT_MIN);
-					mat->set_shader_parameter(SHADER_PARAM_EAST_HEIGHTS, heights);
-					m_eastQuadrantheights = heights;
-				}
-			}
+			//{
+			//	Quadrant* quadrant = m_quadTree->getQuadrant();
+			//	TheWorld_Utils::QuadrantPos quadrantPos = quadrant->getPos();
+			//	
+			//	TheWorld_Utils::QuadrantPos northPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
+			//	QuadTree* northQuadTree = m_viewer->getQuadTree(northPos, true, false, true);
+			//	if (northQuadTree != nullptr && northQuadTree->statusInitialized())
+			//	{
+			//		godot::Vector2 heights(northQuadTree->getQuadrant()->getTerrainEdit()->minHeight, northQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
+			//		mat->set_shader_parameter(SHADER_PARAM_NORTH_HEIGHTS, heights);
+			//		m_northQuadrantheights = heights;
+			//	}
+			//	else
+			//	{
+			//		godot::Vector2 heights(FLT_MAX, FLT_MIN);
+			//		mat->set_shader_parameter(SHADER_PARAM_NORTH_HEIGHTS, heights);
+			//		m_northQuadrantheights = heights;
+			//	}
+			//	TheWorld_Utils::QuadrantPos southPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
+			//	QuadTree* southQuadTree = m_viewer->getQuadTree(southPos, true, false, true);
+			//	if (southQuadTree != nullptr && southQuadTree->statusInitialized())
+			//	{
+			//		godot::Vector2 heights(southQuadTree->getQuadrant()->getTerrainEdit()->minHeight, southQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
+			//		mat->set_shader_parameter(SHADER_PARAM_SOUTH_HEIGHTS, heights);
+			//		m_southQuadrantheights = heights;
+			//	}
+			//	else
+			//	{
+			//		godot::Vector2 heights(FLT_MAX, FLT_MIN);
+			//		mat->set_shader_parameter(SHADER_PARAM_SOUTH_HEIGHTS, heights);
+			//		m_southQuadrantheights = heights;
+			//	}
+			//	TheWorld_Utils::QuadrantPos westPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
+			//	QuadTree* westQuadTree = m_viewer->getQuadTree(westPos, true, false, true);
+			//	if (westQuadTree != nullptr && westQuadTree->statusInitialized())
+			//	{
+			//		godot::Vector2 heights(westQuadTree->getQuadrant()->getTerrainEdit()->minHeight, westQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
+			//		mat->set_shader_parameter(SHADER_PARAM_WEST_HEIGHTS, heights);
+			//		m_westQuadrantheights = heights;
+			//	}
+			//	else
+			//	{
+			//		godot::Vector2 heights(FLT_MAX, FLT_MIN);
+			//		mat->set_shader_parameter(SHADER_PARAM_WEST_HEIGHTS, heights);
+			//		m_westQuadrantheights = heights;
+			//	}
+			//	TheWorld_Utils::QuadrantPos eastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);
+			//	QuadTree* eastQuadTree = m_viewer->getQuadTree(eastPos, true, false, true);
+			//	if (eastQuadTree != nullptr && eastQuadTree->statusInitialized())
+			//	{
+			//		godot::Vector2 heights(eastQuadTree->getQuadrant()->getTerrainEdit()->minHeight, eastQuadTree->getQuadrant()->getTerrainEdit()->maxHeight);
+			//		mat->set_shader_parameter(SHADER_PARAM_EAST_HEIGHTS, heights);
+			//		m_eastQuadrantheights = heights;
+			//	}
+			//	else
+			//	{
+			//		godot::Vector2 heights(FLT_MAX, FLT_MIN);
+			//		mat->set_shader_parameter(SHADER_PARAM_EAST_HEIGHTS, heights);
+			//		m_eastQuadrantheights = heights;
+			//	}
+			//}
 
 			m_map->set_material(mat);
 		}
@@ -4466,14 +4466,14 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 
 		TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
 		terrainEdit->splatmapNeedRegen(false);
-		terrainEdit->eastNeighbourXPlus.minHeight(mapModder->eastQuadrantheights().x);
-		terrainEdit->eastNeighbourXPlus.maxHeight(mapModder->eastQuadrantheights().y);
-		terrainEdit->westNeighbourXMinus.minHeight(mapModder->westQuadrantheights().x);
-		terrainEdit->westNeighbourXMinus.maxHeight(mapModder->westQuadrantheights().y);
-		terrainEdit->southNeighbourZPlus.minHeight(mapModder->southQuadrantheights().x);
-		terrainEdit->southNeighbourZPlus.maxHeight(mapModder->southQuadrantheights().y);
-		terrainEdit->northNeighbourZMinus.minHeight(mapModder->northQuadrantheights().x);
-		terrainEdit->northNeighbourZMinus.maxHeight(mapModder->northQuadrantheights().y);
+		//terrainEdit->eastNeighbourXPlus.minHeight(mapModder->eastQuadrantheights().x);
+		//terrainEdit->eastNeighbourXPlus.maxHeight(mapModder->eastQuadrantheights().y);
+		//terrainEdit->westNeighbourXMinus.minHeight(mapModder->westQuadrantheights().x);
+		//terrainEdit->westNeighbourXMinus.maxHeight(mapModder->westQuadrantheights().y);
+		//terrainEdit->southNeighbourZPlus.minHeight(mapModder->southQuadrantheights().x);
+		//terrainEdit->southNeighbourZPlus.maxHeight(mapModder->southQuadrantheights().y);
+		//terrainEdit->northNeighbourZMinus.minHeight(mapModder->northQuadrantheights().x);
+		//terrainEdit->northNeighbourZMinus.maxHeight(mapModder->northQuadrantheights().y);
 		terrainEdit->globalmapNeedRegen = true;
 
 		quadTree->getQuadrant()->setSplatmapUpdated(true);
@@ -5786,10 +5786,10 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 					//PLOG_DEBUG << "GDN_TheWorld_Viewer::replyFromServer - " << quadTree->getQuadrant()->getPos().getName();
 
-					//if (quadTree->getQuadrant()->getPos().getIndexPosX() == -2 && quadTree->getQuadrant()->getPos().getIndexPosZ() == 3)
-					//{
-					//	PLOG_DEBUG << "TRACKING replyFromServer " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << quadTree->getQuadrant()->getPos().getIndexPosZ();
-					//}
+					if (quadTree->getQuadrant()->getPos().getIndexPosX() == -10 && quadTree->getQuadrant()->getPos().getIndexPosZ() == -17)	// #####
+					{
+						PLOG_DEBUG << "TRACKING replyFromServer " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << quadTree->getQuadrant()->getPos().getIndexPosZ();
+					}	// #####
 
 					if (m_stopDeploy)
 					{
@@ -6792,22 +6792,22 @@ void GDN_TheWorld_Viewer::doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos
 			TheWorld_Utils::TerrainEdit* northSideTerrainEdit = nullptr;
 			TheWorld_Utils::QuadrantPos pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
 			QuadTree* q = getQuadTree(pos);
-			if (q != nullptr && !q->getQuadrant()->empty())
+			if (q != nullptr /*&& !q->getQuadrant()->empty()*/)
 				northSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 			TheWorld_Utils::TerrainEdit* southSideTerrainEdit = nullptr;
 			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
 			q = getQuadTree(pos);
-			if (q != nullptr && !q->getQuadrant()->empty())
+			if (q != nullptr /* && !q->getQuadrant()->empty()*/)
 				southSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 			TheWorld_Utils::TerrainEdit* westSideTerrainEdit = nullptr;
 			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
 			q = getQuadTree(pos);
-			if (q != nullptr && !q->getQuadrant()->empty())
+			if (q != nullptr /* && !q->getQuadrant()->empty()*/)
 				westSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 			TheWorld_Utils::TerrainEdit* eastSideTerrainEdit = nullptr;
 			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
 			q = getQuadTree(pos);
-			if (q != nullptr && !q->getQuadrant()->empty())
+			if (q != nullptr /*&& !q->getQuadrant()->empty()*/)
 				eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 			terrainEdit->adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);
 
@@ -8024,7 +8024,7 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 
 	bool newQuadAdded = false;
 	
-	PLOG_DEBUG << "Recalc quadrants in view - World camera quadrant pos: x=" << m_computedWorldCameraQuadrantPos.getLowerXGridVertex() << " z=" << m_computedWorldCameraQuadrantPos.getLowerZGridVertex();
+	PLOG_DEBUG << "Recalc quadrants in view - World camera quadrant pos: x=" << m_computedWorldCameraQuadrantPos.getLowerXGridVertex() << " z=" << m_computedWorldCameraQuadrantPos.getLowerZGridVertex() << " (" << m_computedWorldCameraQuadrantPos.getIndexPosX()  << "," << m_computedWorldCameraQuadrantPos.getIndexPosZ() << ")";
 	
 	TheWorld_Utils::QuadrantPos cameraQuadrantPos = m_computedWorldCameraQuadrantPos;
 	if (!cameraQuadrantPos.isInitialized())
@@ -8537,6 +8537,8 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	// To activate _process method add this Node to a Godot Scene
 	//Godot::print("GDN_TheWorld_Viewer::_process");
 
+	m_processSteps.initForCurrentExecution();
+
 	m_savedViewportSize = getViewportSize();
 	
 	GDN_TheWorld_Globals* globals = Globals();
@@ -8567,7 +8569,6 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 	m_lastUpdateCameraQuad = 0;
 	m_lastStreamingQuadrantStuff = 0;
 	m_lastProcessExecutionInterrupted = false;
-	//m_processSteps.clear();
 	//m_lastProcessedStep = "";
 
 	{
@@ -8724,7 +8725,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 				this->m_sumProcessImplDuration += this->m_lastProcessImplDuration;
 				});
 
-			m_processSteps.initForCurrentExecution();
+			addProcessStep(ProcessStep::ProcessStepIdx::process_beforeProcessImpl);
 
 			TheWorld_Utils::GuardProfiler profiler(std::string("_process 1.1 ") + __FUNCTION__, "process_impl");
 			process_impl(_delta, activeMapCamera, activeWorldCamera);
@@ -8838,10 +8839,14 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		else
 			s_num++;
 
+	addProcessStep(ProcessStep::ProcessStepIdx::process_initialStuff_0);
+
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.01 ") + __FUNCTION__, "Modder work");
 		process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(_delta);
 	}
+
+	addProcessStep(ProcessStep::ProcessStepIdx::process_mapModder);
 
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 	if (editModeUIControl != nullptr && editModeUIControl->initialized())
@@ -8861,7 +8866,7 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	if (globals->statusMinimalWorldDeployed() and worldStreamingTerminated())
 		globals->setStatus(TheWorldStatus::worldDeployed);
 	
-	addProcessStep(ProcessStep::ProcessStepIdx::process_initialStuff);
+	addProcessStep(ProcessStep::ProcessStepIdx::process_initialStuff_1);
 
 	if (mapMode())
 	{
@@ -9522,6 +9527,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	
 	GDN_TheWorld_Globals* globals = Globals();
 
+	size_t numBlendNeed = 0;
 	for (auto& item : m_worldQuadrantsMap)
 	{
 		if (globals->getParamShowSeaChanged())
@@ -9543,8 +9549,10 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 		
 		item.second->getQuadrant()->lockInternalDataUntilCompleteProcessExecution(false);
 
-		if (canProcessDataUpdate())
-			item.second->getQuadrant()->process_mapModder(_delta);
+		if (canProcessWorldDataUpdate())
+		{
+			item.second->getQuadrant()->process_mapModder(_delta, numBlendNeed);
+		}
 
 		if (item.second->statusLoadTerrainDataFromCacheNeeded())
 		{
@@ -9572,7 +9580,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	{
 		for (auto& item : m_extraQuadsMap)
 		{
-			if (canProcessDataUpdate())
+			if (canProcessWorldDataUpdate())
 			{
 				if (item.second->initDelayedRequested())
 					item.second->initDelayed();
@@ -9583,10 +9591,13 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 					item.second->initDelayed(forced);
 				}
 
-				item.second->getQuadrant()->process_mapModder(_delta);
+				item.second->getQuadrant()->process_mapModder(_delta, numBlendNeed);
 			}
 		}
 	}
+
+	//if (numBlendNeed > 0)
+	//	PLOG_DEBUG << "numBlendNeed=" << numBlendNeed;
 }
 
 bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Camera3D* activeWorldCamera)
@@ -14658,7 +14669,7 @@ void GDN_TheWorld_Viewer::dump()
 							break;
 						idxWorst++;
 					}
-					globals->debugPrint((std::to_string(++idx) + " " + itFound->msg() + " - Diff = " + TheWorld_Utils::quickAddThousandSeparators(std::to_string(averageDiffFromPreviousStep)) + " mcs" + " - Idx Worst = " + std::to_string(idxWorst) + (idxWorst == 1 ? " - WORST" : "")).c_str());
+					globals->debugPrint((std::to_string(++idx) + " " + itFound->msg() + " - Avg Diff = " + TheWorld_Utils::quickAddThousandSeparators(std::to_string(averageDiffFromPreviousStep / 1000)) + " mcs" + " - Idx Worst = " + std::to_string(idxWorst) + (idxWorst == 1 ? " - WORST" : "")).c_str());
 				}
 			}
 		}

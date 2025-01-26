@@ -484,14 +484,11 @@ namespace godot
 		{
 			return m_texturesUpdated;
 		}
-		void setEmpty(bool b)
-		{
-			m_empty = b;
-		}
-		bool empty(void) const
-		{
-			return m_empty;
-		}
+		//void setEmpty(bool b)
+		//{
+		//	m_empty = b;
+		//}
+		bool empty(void);
 
 		void releaseTerrainValuesMemory(bool visible);
 
@@ -515,7 +512,7 @@ namespace godot
 
 		void checkInternalData(double _delta);
 
-		void process_mapModder(double _delta);
+		void process_mapModder(double _delta, size_t& numBlendNeed);
 
 		GDN_TheWorld_MapModder* getMapModder(void)
 		{
@@ -627,6 +624,12 @@ namespace godot
 			return m_mapImage;
 		}
 
+		bool blendNeeded(QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
+		bool northSideBlendNeeded(QuadTree* northQuadrantTree = nullptr);
+		bool southSideBlendNeeded(QuadTree* southQuadrantTree = nullptr);
+		bool eastSideBlendNeeded(QuadTree* eastQuadrantTree = nullptr);
+		bool westSideBlendNeeded(QuadTree* westQuadrantTree = nullptr);
+
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
 		void loadTerrainDataFromCache(void);
@@ -644,7 +647,7 @@ namespace godot
 		bool m_internalDataLocked;
 		DWORD m_internalDataLockingTid = 0;
 		std::recursive_mutex m_mtxInternalData;
-		bool m_empty;
+		//bool m_empty = true;
 
 		GDN_TheWorld_MapModder* m_mapModder = nullptr;
 		bool m_mapModderWorkDone = false;

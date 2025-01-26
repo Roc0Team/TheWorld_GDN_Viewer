@@ -1062,22 +1062,22 @@ namespace godot
 		bool startProcessRequired(void) const;
 		void deinitRequired(bool b);
 		bool deinitRequired(void) const;
-		godot::Vector2 eastQuadrantheights(void) const
-		{
-			return m_eastQuadrantheights;
-		}
-		godot::Vector2 westQuadrantheights(void) const
-		{
-			return m_westQuadrantheights;
-		}
-		godot::Vector2 southQuadrantheights(void) const
-		{
-			return m_southQuadrantheights;
-		}
-		godot::Vector2 northQuadrantheights(void) const
-		{
-			return m_northQuadrantheights;
-		}
+		//godot::Vector2 eastQuadrantheights(void) const
+		//{
+		//	return m_eastQuadrantheights;
+		//}
+		//godot::Vector2 westQuadrantheights(void) const
+		//{
+		//	return m_westQuadrantheights;
+		//}
+		//godot::Vector2 southQuadrantheights(void) const
+		//{
+		//	return m_southQuadrantheights;
+		//}
+		//godot::Vector2 northQuadrantheights(void) const
+		//{
+		//	return m_northQuadrantheights;
+		//}
 		static void incNumWorking()
 		{
 			s_numWorking++;
@@ -1128,10 +1128,10 @@ namespace godot
 		float m_lowElevationFactor = 0;
 		float m_minHeigth = 0;
 		float m_maxHeigth = 0;
-		godot::Vector2 m_eastQuadrantheights;
-		godot::Vector2 m_westQuadrantheights;
-		godot::Vector2 m_southQuadrantheights;
-		godot::Vector2 m_northQuadrantheights;
+		//godot::Vector2 m_eastQuadrantheights;
+		//godot::Vector2 m_westQuadrantheights;
+		//godot::Vector2 m_southQuadrantheights;
+		//godot::Vector2 m_northQuadrantheights;
 		QuadTree* m_quadTree = nullptr;
 		godot::SubViewport* m_mapModderViewport = nullptr;
 		godot::Sprite2D* m_map = nullptr;
@@ -1434,36 +1434,51 @@ namespace godot
 				, process_delayedWorldMode = 28
 				, process_eraseOutOfViewQuadrants = 29
 				, process_checkCameraMovement = 30
+				, process_beforeProcessImpl = 31
+				, process_initialStuff_0 = 32
+				, process_initialStuff_1 = 33
+				, process_dummy_0 = 34
+				, process_dummy_1 = 35
+				, process_dummy_2 = 36
+				, process_dummy_3 = 37
+				, process_dummy_4 = 38
+				, process_dummy_5 = 39
+				, process_dummy_6 = 40
+				, process_dummy_7 = 41
+				, process_dummy_8 = 42
+				, process_dummy_9 = 43
+				, process_mapModder = 44
 			};
-			static const int maxProcessStepIdx = int(ProcessStepIdx::process_checkCameraMovement);
+			static const int maxProcessStepIdx = int(ProcessStepIdx::process_mapModder);
 			static const size_t numProcessStepIndices = maxProcessStepIdx + 1;
 
-			ProcessStep(enum class ProcessStepIdx idx, size_t currentElapsedFromProcessStart, int numInCurrentExecution = 1)
+			ProcessStep(enum class ProcessStepIdx idx)
 			{
 				m_idx = idx;
-				m_numInCurrentExecution = numInCurrentExecution;
-				m_currentElapsedFromProcessStart = currentElapsedFromProcessStart;
 			}
-			void setElapsedFromProcessStart(size_t elapsed)
+			void setElapsedFromProcessStart(size_t elapsed, size_t deltaFromPreviousStep)
 			{
-				m_currentElapsedFromProcessStart = elapsed;
 				m_numInCurrentExecution++;
+				m_currentElapsedFromProcessStart = elapsed;
+				m_currentDiffFromPreviousStep += deltaFromPreviousStep;
 			}
 			void clearForCurrentExecution(void)
 			{
 				m_numInCurrentExecution = 0;
 				m_currentElapsedFromProcessStart = 0;
+				m_currentDiffFromPreviousStep = 0;
 			}
 			void finalizeCurrentExecution(size_t& previousStepElapsedFromProcessStart)
 			{
 				if (m_numInCurrentExecution > 0)
 				{
-					if (m_idx == ProcessStepIdx::EndOfProcessExecution)				// DEBUG
-						assert(m_idx == ProcessStepIdx::EndOfProcessExecution);		// DEBUG
+					//if (m_idx == ProcessStepIdx::EndOfProcessExecution)			// DEBUG
+					//	assert(m_idx == ProcessStepIdx::EndOfProcessExecution);		// DEBUG
 
+					m_numTotExecutions++;
 					m_totElapsedFromProcessStart += m_currentElapsedFromProcessStart;
-					m_numTot++;
 					m_totDiffFromPreviousStep += (m_currentElapsedFromProcessStart - previousStepElapsedFromProcessStart);
+					m_totDiffFromPreviousStep_1 += m_currentDiffFromPreviousStep;
 					previousStepElapsedFromProcessStart = m_currentElapsedFromProcessStart;
 				}
 			}
@@ -1544,6 +1559,34 @@ namespace godot
 					return "process_eraseOutOfViewQuadrants";
 				case ProcessStepIdx::process_checkCameraMovement:
 					return "process_checkCameraMovement";
+				case ProcessStepIdx::process_beforeProcessImpl:
+					return "process_beforeProcessImpl";
+				case ProcessStepIdx::process_initialStuff_0:
+					return "process_initialStuff_0";
+				case ProcessStepIdx::process_initialStuff_1:
+					return "process_initialStuff_1";
+				case ProcessStepIdx::process_dummy_0:
+					return "process_dummy_0";
+				case ProcessStepIdx::process_dummy_1:
+					return "process_dummy_1";
+				case ProcessStepIdx::process_dummy_2:
+					return "process_dummy_2";
+				case ProcessStepIdx::process_dummy_3:
+					return "process_dummy_3";
+				case ProcessStepIdx::process_dummy_4:
+					return "process_dummy_4";
+				case ProcessStepIdx::process_dummy_5:
+					return "process_dummy_5";
+				case ProcessStepIdx::process_dummy_6:
+					return "process_dummy_6";
+				case ProcessStepIdx::process_dummy_7:
+					return "process_dummy_7";
+				case ProcessStepIdx::process_dummy_8:
+					return "process_dummy_8";
+				case ProcessStepIdx::process_dummy_9:
+					return "process_dummy_9";
+				case ProcessStepIdx::process_mapModder:
+					return "process_mapModder";
 				default:
 					return "not_set";
 				}
@@ -1556,7 +1599,7 @@ namespace godot
 			{
 				size_t num = 0;
 				size_t averageElapsedFromProcessStart = getAverageElapsedFromProcessStart(num);
-				return name() + " - Average execution (" + std::to_string(num) + ") = " + TheWorld_Utils::quickAddThousandSeparators(std::to_string(averageElapsedFromProcessStart)) + " mcs" + (m_numInCurrentExecution > 0 ? std::string(" - Last execution ") + "(" + std::to_string(m_numInCurrentExecution) + ")" + " = " + TheWorld_Utils::quickAddThousandSeparators(std::to_string(m_currentElapsedFromProcessStart)) + " mcs" : "");
+				return name() + " - Avg execution (num " + std::to_string(num) + ") = " + TheWorld_Utils::quickAddThousandSeparators(std::to_string(averageElapsedFromProcessStart / 1000)) + " mcs" + (m_numInCurrentExecution > 0 ? std::string(" - Last execution ") + "(" + std::to_string(m_numInCurrentExecution) + " times)" + " = " + TheWorld_Utils::quickAddThousandSeparators(std::to_string(m_currentElapsedFromProcessStart / 1000)) + " mcs" : "");
 			}
 			enum class ProcessStepIdx getIdx(void) const
 			{
@@ -1564,22 +1607,24 @@ namespace godot
 			}
 			void resetAverageValues(void)
 			{
-				m_totDiffFromPreviousStep = m_totElapsedFromProcessStart = m_numTot = 0;
+				m_totDiffFromPreviousStep = m_totDiffFromPreviousStep_1 = m_totElapsedFromProcessStart = m_numTotExecutions = 0;
 			}
 			void computeAverageValues(bool reset = true)
 			{
 				m_averageElapsedFromProcessStart = 0;
 				m_averageDiffFromPreviousStep = 0;
-				if (m_numTot != 0)
+				m_averageDiffFromPreviousStep_1 = 0;
+				if (m_numTotExecutions != 0)
 				{
-					m_averageElapsedFromProcessStart = m_totElapsedFromProcessStart / m_numTot;
-					m_averageDiffFromPreviousStep = m_totDiffFromPreviousStep / m_numTot;
+					m_averageElapsedFromProcessStart = m_totElapsedFromProcessStart / m_numTotExecutions;
+					m_averageDiffFromPreviousStep = m_totDiffFromPreviousStep / m_numTotExecutions;
+					m_averageDiffFromPreviousStep_1 = m_totDiffFromPreviousStep_1 / m_numTotExecutions;
 				}
-				m_totNumAverage = m_numTot;
+				m_totNumAverage = m_numTotExecutions;
 				if (reset)
 					resetAverageValues();
-				if (m_idx == ProcessStepIdx::EndOfProcessExecution)				// DEBUG
-					assert(m_idx == ProcessStepIdx::EndOfProcessExecution);		// DEBUG
+				//if (m_idx == ProcessStepIdx::EndOfProcessExecution)				// DEBUG
+				//	assert(m_idx == ProcessStepIdx::EndOfProcessExecution);		// DEBUG
 			}
 			bool setInOrdering(void) const
 			{
@@ -1591,7 +1636,8 @@ namespace godot
 			}
 			size_t getTotDiffFromPreviousStep(void) const
 			{
-				return m_totDiffFromPreviousStep;
+				//return m_totDiffFromPreviousStep;
+				return m_totDiffFromPreviousStep_1;
 			}
 			size_t getAverageElapsedFromProcessStart(size_t& num) const
 			{
@@ -1601,7 +1647,8 @@ namespace godot
 			size_t getAverageDiffFromPreviousStep(size_t& num) const
 			{
 				num = m_totNumAverage;
-				return m_averageDiffFromPreviousStep;
+				//return m_averageDiffFromPreviousStep;
+				return m_averageDiffFromPreviousStep_1;
 			}
 
 		private:
@@ -1609,14 +1656,17 @@ namespace godot
 			
 			size_t m_numInCurrentExecution = 0;
 			size_t m_currentElapsedFromProcessStart = 0;
-			
-			size_t m_numTot = 0;
+			size_t m_currentDiffFromPreviousStep = 0;
+
+			size_t m_numTotExecutions = 0;
 			size_t m_totElapsedFromProcessStart = 0;
 			size_t m_totDiffFromPreviousStep = 0;
-			
+			size_t m_totDiffFromPreviousStep_1 = 0;
+
 			size_t m_totNumAverage = 0;
 			size_t m_averageElapsedFromProcessStart = 0;
 			size_t m_averageDiffFromPreviousStep = 0;
+			size_t m_averageDiffFromPreviousStep_1 = 0;		// average weight from previous step during an execution of _process method considering all single contributes if inside a loop
 			bool m_setInOrdering = false;
 		};
 
@@ -1632,7 +1682,7 @@ namespace godot
 				{
 					m_steps.resize(ProcessStep::numProcessStepIndices);
 					for (int i = 0; i < ProcessStep::numProcessStepIndices; i++)
-						m_steps[i] = ProcessStep(ProcessStep::ProcessStepIdx(i), 0, 0);
+						m_steps[i] = ProcessStep(ProcessStep::ProcessStepIdx(i));
 					m_initialized = true;
 				}
 
@@ -1640,6 +1690,9 @@ namespace godot
 				{
 					processStep.clearForCurrentExecution();
 				}
+
+				m_lastStepIdx = ProcessStep::ProcessStepIdx::not_set;
+				m_lastStepElapsedFromProcessStart = 0;
 
 				m_processClock.tick();
 			}
@@ -1649,8 +1702,12 @@ namespace godot
 			size_t addElapsedFromProcessStart(enum class ProcessStep::ProcessStepIdx idx)
 			{
 				size_t elapsed = (size_t)m_processClock.partialDuration().count();
-				m_steps[int(idx)].setElapsedFromProcessStart(elapsed);
+				size_t deltaFromPreviousStep = elapsed;
+				if (m_lastStepIdx != ProcessStep::ProcessStepIdx::not_set)
+					deltaFromPreviousStep = elapsed - m_lastStepElapsedFromProcessStart;
+				m_steps[int(idx)].setElapsedFromProcessStart(elapsed, deltaFromPreviousStep);
 				m_lastStepIdx = idx;
+				m_lastStepElapsedFromProcessStart = elapsed;
 				return elapsed;
 			}
 
@@ -1678,8 +1735,9 @@ namespace godot
 			bool m_initialized = false;
 			std::vector<ProcessStep> m_steps;
 			std::list<ProcessStep::ProcessStepIdx> m_stepsOrder;
-			TimerMcs m_processClock;
+			TimerNans m_processClock;
 			enum class ProcessStep::ProcessStepIdx m_lastStepIdx = ProcessStep::ProcessStepIdx::not_set;
+			size_t m_lastStepElapsedFromProcessStart = 0;
 		};
 
 		GDN_TheWorld_Viewer();
@@ -2128,9 +2186,10 @@ namespace godot
 			return m_editMode;
 		}
 
-		bool canProcessDataUpdate(void) const
+		bool canProcessWorldDataUpdate(void) const
 		{
-			return editMode();
+			static bool canProcessDataUpdate = false;
+			return (canProcessDataUpdate or editMode());
 		}
 
 		//void GenerateHeigths(void);

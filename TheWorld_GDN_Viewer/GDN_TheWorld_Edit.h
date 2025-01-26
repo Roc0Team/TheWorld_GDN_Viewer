@@ -506,7 +506,9 @@ namespace godot
 				return true;
 			}
 			else
+			{
 				return false;
+			}
 		}
 
 		GDN_TheWorld_Globals* Globals(bool useCache = true)

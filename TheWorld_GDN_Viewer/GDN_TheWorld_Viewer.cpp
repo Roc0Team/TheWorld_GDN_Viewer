@@ -8735,7 +8735,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 			m_lastProcessDuration = m_processSteps.elapsed();
 			m_processSteps.finalizeCurrentExecution();
 			m_numProcessExecution++;
-			m_sumProcessDuration += this->m_lastProcessDuration;
+			m_sumProcessDuration += (m_lastProcessDuration / 1000);
 		}
 
 		resetTrackedInputEvents();

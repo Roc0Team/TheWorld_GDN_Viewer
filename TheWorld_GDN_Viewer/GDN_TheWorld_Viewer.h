@@ -2036,6 +2036,7 @@ namespace godot
 		int getNumVisibleQuadrants(void) const;
 		int getNumInitializedVisibleQuadrants(void) const;
 		int getNumNeedShaderResetQuadrants(void) const;
+		int getNumNeedShaderUpdateQuadrants(void) const;
 		int getNumEmptyQuadrants(void) const;
 		int getNumQuadrantsReloadingFromCache(void) const;
 		int getNumFlushedQuadrants(void) const;
@@ -2331,6 +2332,8 @@ namespace godot
 				}
 
 				if (!b)
+					updateMaterialParamsForEveryQuadrant();
+				else
 					updateMaterialParamsForEveryQuadrant();
 			}
 
@@ -2805,6 +2808,11 @@ namespace godot
 			m_serverGenerationInProgress = b;
 		}
 
+		bool debugTrace(void) const
+		{
+			return m_debugTrace;
+		}
+
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void doDeselectWorldQuadrant(void);
@@ -2939,7 +2947,8 @@ namespace godot
 		int m_numQuadrantWithLowResCollider = 0;
 		int m_numInitializedVisibleQuadrant;
 		int m_numQuadrantNeedResetMaterialParam = 0;
-		
+		int m_numQuadrantNeedUpdateMaterialParam = 0;
+
 		TimerMs m_streamingTime;
 		TimerMs m_notStreamingTime;
 		bool m_streamingInProgress = false;
@@ -3221,6 +3230,10 @@ namespace godot
 		godot::Ref<godot::Image> m_tempSplatmapImage;
 		godot::Ref<godot::Image> m_tempGlobalmapImage;
 		godot::Ref<godot::Image> m_tempColormapImage;
+
+		bool m_debugTrace = false;
+		size_t m_num = 0;
+		size_t m_loadingWorldRefresh = 0;
 	};
 }
 

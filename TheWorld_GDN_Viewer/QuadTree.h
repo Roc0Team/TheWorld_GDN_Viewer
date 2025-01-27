@@ -149,10 +149,10 @@ namespace godot
 				m_quadrantPos = quadrantPos;
 				m_neighbourQuadrantPos = neighbourQuadrantPos;
 
-				// #####
+				//// #####
 				//if (m_quadrantPos.getIndexPosX() == 5 and m_quadrantPos.getIndexPosZ() == 12 and m_neighbourQuadrantPos.getIndexPosX() == 4 and m_neighbourQuadrantPos.getIndexPosZ() == 12)
 				//	assert(m_quadrantPos.getIndexPosX() == 5);
-				// #####
+				//// #####
 			}
 		private:
 			bool m_initialized = false;

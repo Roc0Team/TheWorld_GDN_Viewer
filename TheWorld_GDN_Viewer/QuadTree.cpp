@@ -3563,7 +3563,7 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 					editMode = 1.0f;
 
 				bool gridOn = false;
-				if (selected)
+				//if (selected)
 					gridOn = m_viewer->gridOn();
 
 				Quadrant* quadrant = m_quadTree->getQuadrant();

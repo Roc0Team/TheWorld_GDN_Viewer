@@ -4241,6 +4241,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_visible_quadrant"), &GDN_TheWorld_Viewer::getNumVisibleQuadrants);
 	ClassDB::bind_method(D_METHOD("get_num_initialized_visible_quadrant"), &GDN_TheWorld_Viewer::getNumInitializedVisibleQuadrants);
 	ClassDB::bind_method(D_METHOD("get_num_need_shader_reset_quadrant"), &GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_need_shader_update_quadrant"), &GDN_TheWorld_Viewer::getNumNeedShaderUpdateQuadrants);
 	ClassDB::bind_method(D_METHOD("get_num_empty_quadrant"), &GDN_TheWorld_Viewer::getNumEmptyQuadrants);
 	ClassDB::bind_method(D_METHOD("get_num_reloading_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrantsReloadingFromCache);
 	ClassDB::bind_method(D_METHOD("get_num_flushed_quadrant"), &GDN_TheWorld_Viewer::getNumFlushedQuadrants);
@@ -5786,10 +5787,12 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 
 					//PLOG_DEBUG << "GDN_TheWorld_Viewer::replyFromServer - " << quadTree->getQuadrant()->getPos().getName();
 
-					if (quadTree->getQuadrant()->getPos().getIndexPosX() == -10 && quadTree->getQuadrant()->getPos().getIndexPosZ() == -17)	// #####
-					{
-						PLOG_DEBUG << "TRACKING replyFromServer " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << quadTree->getQuadrant()->getPos().getIndexPosZ();
-					}	// #####
+					//// #####
+					//if (quadTree->getQuadrant()->getPos().getIndexPosX() == -10 && quadTree->getQuadrant()->getPos().getIndexPosZ() == -17)
+					//{
+					//	PLOG_DEBUG << "TRACKING replyFromServer " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << quadTree->getQuadrant()->getPos().getIndexPosZ();
+					//}	
+					//// #####
 
 					if (m_stopDeploy)
 					{
@@ -8828,16 +8831,20 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 		adjustEnvironmentRequired(false);
 	}
 	
-	static size_t s_num = 0, s_loadingWorldRefresh = 0;
-	if (globals->status() == TheWorldStatus::worldDeployInProgress && s_loadingWorldRefresh < 10)
-		if (s_num > 10)
+	if (globals->status() == TheWorldStatus::worldDeployInProgress && m_loadingWorldRefresh < 10)
+		if (m_num > 10)
 		{
 			m_refreshRequired = true;
-			s_num = 0;
-			s_loadingWorldRefresh++;
+			m_num = 0;
+			m_loadingWorldRefresh++;
 		}
 		else
-			s_num++;
+			m_num++;
+
+	//// #####
+	//if (debugTrace())
+	//	PLOG_DEBUG << "_process";
+	//// #####
 
 	addProcessStep(ProcessStep::ProcessStepIdx::process_initialStuff_0);
 
@@ -12277,7 +12284,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 			if (materialParamsUpdated)
 				m_previousTrackedMouseHitInMap = godot::Vector3();
 
-			if ((materialParamsReset || materialParamsUpdated || colliderUpdated) and !m_desideredLookDevChanged and numLoop > 10 /* and itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
+			if ((materialParamsReset /* or materialParamsUpdated*/ or colliderUpdated) and !m_desideredLookDevChanged and numLoop > 10 /* and itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
 			{
 				//if (numMaterialParamReset > 0 or numMaterialParamUpdate > 0 or numColliderUpdate > 0)
 				//	PLOG_DEBUG << "Quadrants Updated: params set for quadrant = " << numMaterialParamReset << ", shaders updated = " << numMaterialParamUpdate << ", collider set = " << numColliderUpdate;
@@ -13908,6 +13915,7 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	int numQuadrantWithLowResCollider = 0;
 	int numinitializedVisibleQuadrant = 0;
 	int numQuadrantNeedResetMaterialParams = 0;
+	int numQuadrantNeedUpdateMaterialParams = 0;
 	m_mapNumActiveChunksPerLod.clear();
 	m_mapNumActiveTerrainChunksPerLod.clear();
 	m_mapNumActiveSeaChunksPerLod.clear();
@@ -13922,6 +13930,8 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 				numinitializedVisibleQuadrant++;
 			if (itQuadTree.second->materialParamsNeedReset())
 				numQuadrantNeedResetMaterialParams++;
+			if (itQuadTree.second->materialParamsNeedUpdate())
+				numQuadrantNeedUpdateMaterialParams++;
 		}
 		
 		if (itQuadTree.second->statusInitialized() and !itQuadTree.second->statusToErase())
@@ -14016,6 +14026,7 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	m_numQuadrantWithLowResCollider = numQuadrantWithLowResCollider;
 	m_numInitializedVisibleQuadrant = numinitializedVisibleQuadrant;
 	m_numQuadrantNeedResetMaterialParam = numQuadrantNeedResetMaterialParams;
+	m_numQuadrantNeedUpdateMaterialParam = numQuadrantNeedUpdateMaterialParams;
 }
 
 int GDN_TheWorld_Viewer::getProcessNotOwnsLock(void) const
@@ -14278,6 +14289,11 @@ int GDN_TheWorld_Viewer::getNumInitializedVisibleQuadrants(void) const
 int GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrants(void) const
 {
 	return m_numQuadrantNeedResetMaterialParam;
+}
+
+int GDN_TheWorld_Viewer::getNumNeedShaderUpdateQuadrants(void) const
+{
+	return m_numQuadrantNeedUpdateMaterialParam;
 }
 
 int GDN_TheWorld_Viewer::getProcessDuration(void) const

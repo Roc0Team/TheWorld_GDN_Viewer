@@ -55,6 +55,7 @@
 #define THEWORLD_DEFAULT_SHOW_TERRAIN											true
 #define THEWORLD_DEFAULT_SHOW_FOG												true
 #define THEWORLD_DEFAULT_SHOW_CHUNKS											false
+#define THEWORLD_DEFAULT_SHOW_WIREFRAME											false
 #define THEWORLD_DEFAULT_FOG_DISTANCE_FACTOR									1.0f
 //#define THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO							0
 
@@ -754,6 +755,11 @@ namespace godot
 			return m_paramShowChunks;
 		}
 		void setParamShowChunks(bool f);
+		bool getParamShowWireframe(void) const
+		{
+			return m_paramShowWireframe;
+		}
+		void setParamShowWireframe(bool f);
 		//int64_t getParamDepthQuadWithCollisionInfo(void)
 		//{
 		//	return m_paramDepthQuadWithCollisionInfo;
@@ -913,6 +919,7 @@ namespace godot
 		bool m_paramShowTerrain = THEWORLD_DEFAULT_SHOW_TERRAIN;
 		bool m_paramShowTerrainChanged = false;
 		bool m_paramShowChunks = THEWORLD_DEFAULT_SHOW_CHUNKS;
+		bool m_paramShowWireframe = THEWORLD_DEFAULT_SHOW_WIREFRAME;
 		bool m_paramElevationZero = false;
 		float m_paramFogDistanceFactor = THEWORLD_DEFAULT_FOG_DISTANCE_FACTOR;
 		bool m_loadingScreen = true;

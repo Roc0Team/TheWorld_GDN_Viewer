@@ -492,12 +492,15 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 	{
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "CLIENT Quads to save");
+		label = createControl<godot::Label>(hBoxContainer, "", "Quads to save");
 		m_innerData->m_numQuadrantToSaveLabel = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantToSaveLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
-		label = createControl<godot::Label>(hBoxContainer, "", "Quads to upload");
+		label = createControl<godot::Label>(hBoxContainer, "", "To upload");
 		m_innerData->m_numQuadrantToUploadLabel = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantToUploadLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
+		label = createControl<godot::Label>(hBoxContainer, "", "To blend");
+		m_innerData->m_numQuadrantToBlendLabel = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_numQuadrantToBlendLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
 		label = createControl<godot::Label>(hBoxContainer, "", "Locked");
 		m_innerData->m_numQuadrantLocked = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantLocked->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
@@ -1683,6 +1686,11 @@ void GDN_TheWorld_Edit::setNumQuadrantToSave(size_t num)
 void GDN_TheWorld_Edit::setNumQuadrantToUpload(size_t num)
 {
 	m_innerData->m_numQuadrantToUploadLabel->set_text(std::to_string(num).c_str());
+}
+
+void GDN_TheWorld_Edit::setNumQuadrantToBlend(size_t num)
+{
+	m_innerData->m_numQuadrantToBlendLabel->set_text(std::to_string(num).c_str());
 }
 
 void GDN_TheWorld_Edit::setNumQuadrantLocked(size_t num)
@@ -3049,7 +3057,7 @@ void GDN_TheWorld_Edit::editModeSave(void)
 			}
 
 			QuadTree* quadToSave = m_viewer->getQuadTree(item.first, false);
-			if (quadToSave != nullptr && !quadToSave->getQuadrant()->empty())
+			if (quadToSave != nullptr /* && !quadToSave->getQuadrant()->empty()*/)	// empty buffer must be saved because terrain datas may be changed (for instance needblend true/false)
 			{
 				//TheWorld_Utils::MeshCacheBuffer& cache = quadToSave->getQuadrant()->getMeshCacheBuffer();
 				//TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
@@ -3963,18 +3971,31 @@ QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(bool* lockAcquired, 
 
 void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer)
 {
+	if (terrainEditValuesBuffer.size() > 0)
+		quadTree->getQuadrant()->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
+
+	// we need to save quadrant and every surrounding even if heights are not changed becasue terrain datas may be changed during blending
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+		//m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
+		TheWorld_Utils::QuadrantPos pos = quadTree->getQuadrant()->getPos();
+		bool manual = true;
+		addQuadToSave(pos, manual);
+
+	}
+
 	if (quadrantData.heightsUpdated)
 	{
-		quadTree->getQuadrant()->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
+		//quadTree->getQuadrant()->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
 		
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			//m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
-			TheWorld_Utils::QuadrantPos pos = quadTree->getQuadrant()->getPos();
-			bool manual = true;
-			addQuadToSave(pos, manual);
+		//{
+		//	std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+		//	//m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
+		//	TheWorld_Utils::QuadrantPos pos = quadTree->getQuadrant()->getPos();
+		//	bool manual = true;
+		//	addQuadToSave(pos, manual);
 
-		}
+		//}
 		//quadTree->getQuadrant()->setEmpty(false);
 		quadTree->getQuadrant()->getTerrainEdit()->needUploadToServer = true;
 		quadTree->getQuadrant()->setNeedUploadToServer(true);

@@ -501,6 +501,8 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("get_viewparam_show_terrain"), &GDN_TheWorld_Globals::getParamShowTerrain);
 		ClassDB::bind_method(D_METHOD("set_viewparam_show_chunks", "p_value"), &GDN_TheWorld_Globals::setParamShowChunks);
 		ClassDB::bind_method(D_METHOD("get_viewparam_show_chunks"), &GDN_TheWorld_Globals::getParamShowChunks);
+		ClassDB::bind_method(D_METHOD("set_viewparam_show_wireframe", "p_value"), &GDN_TheWorld_Globals::setParamShowWireframe);
+		ClassDB::bind_method(D_METHOD("get_viewparam_show_wireframe"), &GDN_TheWorld_Globals::getParamShowWireframe);
 		ClassDB::bind_method(D_METHOD("set_viewparam_elevation_zero", "p_value"), &GDN_TheWorld_Globals::setParamElevationZero);
 		ClassDB::bind_method(D_METHOD("get_viewparam_elevation_zero"), &GDN_TheWorld_Globals::getParamElevationZero);
 		ClassDB::bind_method(D_METHOD("set_viewparam_fog_distance_factor", "p_value"), &GDN_TheWorld_Globals::setParamFogDistanceFactor);
@@ -533,6 +535,7 @@ namespace godot
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_sea"), "set_viewparam_show_sea", "get_viewparam_show_sea");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_fog"), "set_viewparam_show_fog", "get_viewparam_show_fog");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_chunks"), "set_viewparam_show_chunks", "get_viewparam_show_chunks");
+		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_show_wireframe"), "set_viewparam_show_wireframe", "get_viewparam_show_wireframe");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::BOOL, "viewparam_elevation_zero"), "set_viewparam_elevation_zero", "get_viewparam_elevation_zero");
 		ClassDB::add_property("GDN_TheWorld_Globals", PropertyInfo(Variant::FLOAT, "viewparam_fog_distance_factor", PROPERTY_HINT_RANGE, "0.0, 1.0, 0.01", PROPERTY_USAGE_EDITOR /* | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED*/), "set_viewparam_fog_distance_factor", "get_viewparam_fog_distance_factor");
 
@@ -1173,6 +1176,13 @@ namespace godot
 		m_paramShowChunks = b;
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, m_paramShowChunks);
 		PLOG_INFO << "View Parameter - Show Chunks: " << (m_paramShowChunks ? "true" : "false");
+	}
+
+	void GDN_TheWorld_Globals::setParamShowWireframe(bool b)
+	{
+		m_paramShowWireframe = b;
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_WIREFRAME, m_paramShowWireframe);
+		PLOG_INFO << "View Parameter - Show Wireframe: " << (m_paramShowWireframe ? "true" : "false");
 	}
 
 	void GDN_TheWorld_Globals::setParamElevationZero(bool b)

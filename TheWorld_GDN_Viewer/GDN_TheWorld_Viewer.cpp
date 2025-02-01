@@ -9534,7 +9534,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	
 	GDN_TheWorld_Globals* globals = Globals();
 
-	size_t numBlendNeed = 0;
+	size_t numBlendNeeded = 0;
 	for (auto& item : m_worldQuadrantsMap)
 	{
 		if (globals->getParamShowSeaChanged())
@@ -9556,10 +9556,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 		
 		item.second->getQuadrant()->lockInternalDataUntilCompleteProcessExecution(false);
 
-		if (canProcessWorldDataUpdate())
-		{
-			item.second->getQuadrant()->process_mapModder(_delta, numBlendNeed);
-		}
+		item.second->getQuadrant()->process_mapModder(_delta, numBlendNeeded);
 
 		if (item.second->statusLoadTerrainDataFromCacheNeeded())
 		{
@@ -9598,13 +9595,17 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 					item.second->initDelayed(forced);
 				}
 
-				item.second->getQuadrant()->process_mapModder(_delta, numBlendNeed);
+				item.second->getQuadrant()->process_mapModder(_delta, numBlendNeeded);
 			}
 		}
 	}
 
-	//if (numBlendNeed > 0)
-	//	PLOG_DEBUG << "numBlendNeed=" << numBlendNeed;
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl != nullptr and editModeUIControl->initialized())
+		editModeUIControl->setNumQuadrantToBlend(numBlendNeeded);
+
+	//if (numBlendNeeded > 0)
+	//	PLOG_DEBUG << "numBlendNeeded=" << numBlendNeeded;
 }
 
 bool GDN_TheWorld_Viewer::process_updateGridDimension(GDN_TheWorld_Globals* globals, godot::Camera3D* activeWorldCamera)

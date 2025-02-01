@@ -105,8 +105,6 @@ namespace godot
 				m_scaleFactorLabel = nullptr;
 				m_elapsedLabel = nullptr;
 				m_elapsed1Label = nullptr;
-				m_numQuadrantToSaveLabel = nullptr;
-				m_numQuadrantToUploadLabel = nullptr;
 				m_message = nullptr;
 				m_allCheckBox = nullptr;
 				m_terrTypeOptionButton = nullptr;
@@ -154,8 +152,9 @@ namespace godot
 			godot::Label* m_elapsedLabel;
 			godot::Label* m_elapsed1Label;
 
-			godot::Label* m_numQuadrantToSaveLabel;
-			godot::Label* m_numQuadrantToUploadLabel;
+			godot::Label* m_numQuadrantToSaveLabel = nullptr;
+			godot::Label* m_numQuadrantToUploadLabel = nullptr;
+			godot::Label* m_numQuadrantToBlendLabel = nullptr;
 			godot::Label* m_numQuadrantLocked = nullptr;
 
 			godot::Label* m_message;
@@ -461,6 +460,7 @@ namespace godot
 
 		void setNumQuadrantToSave(size_t num);
 		void setNumQuadrantToUpload(size_t num);
+		void setNumQuadrantToBlend(size_t num);
 		void setNumQuadrantLocked(size_t num);
 
 		void refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numLocked);

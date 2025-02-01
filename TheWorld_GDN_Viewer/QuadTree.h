@@ -512,7 +512,9 @@ namespace godot
 
 		void checkInternalData(double _delta);
 
-		void process_mapModder(double _delta, size_t& numBlendNeed);
+		void process_mapModder(double _delta, size_t& numBlendNeeded);
+		
+		void setBlendNeeded(bool b, bool northSideBlendNeeded, bool southSideBlendNeeded, bool eastSideBlendNeeded, bool westSideBlendNeeded);
 
 		GDN_TheWorld_MapModder* getMapModder(void)
 		{
@@ -624,7 +626,7 @@ namespace godot
 			return m_mapImage;
 		}
 
-		bool blendNeeded(QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
+		bool blendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
 		bool northSideBlendNeeded(QuadTree* northQuadrantTree = nullptr);
 		bool southSideBlendNeeded(QuadTree* southQuadrantTree = nullptr);
 		bool eastSideBlendNeeded(QuadTree* eastQuadrantTree = nullptr);
@@ -692,6 +694,12 @@ namespace godot
 
 		bool m_executingProcess = false;
 		bool m_terrainDataJustLoaded = false;
+
+		bool m_blendNeeded = false;
+		bool m_northSideBlendNeeded = false;
+		bool m_southSideBlendNeeded = false;
+		bool m_eastSideBlendNeeded = false;
+		bool m_westSideBlendNeeded = false;
 	};
 
 	class ShaderTerrainData
@@ -729,6 +737,15 @@ namespace godot
 #define SHADER_PARAM_USE_GLOBALMAP					"u_use_globalmap"
 #define SHADER_PARAM_OPTIMIZATION_LEVEL				"u_optimization_level"
 
+#define SHADER_PARAM_NEED_BLENDING					"u_need_blending"
+#define SHADER_PARAM_NEED_BLENDING_NORTH			"u_need_blending_north"
+#define SHADER_PARAM_NEED_BLENDING_SOUTH			"u_need_blending_south"
+#define SHADER_PARAM_NEED_BLENDING_EAST				"u_need_blending_east"
+#define SHADER_PARAM_NEED_BLENDING_WEST				"u_need_blending_west"
+#define SHADER_PARAM_WIRE_ALBEDO					"u_wire_albedo"
+#define SHADER_PARAM_NEED_BLENDING_ALBEDO			"u_need_blending_albedo"
+#define SHADER_PARAM_SELECTED_ALBEDO				"u_selected_albedo"
+
 #define GLOBAL_SHADER_PARAM_TIME					"gu_time"
 #define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
 #define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY		"gu_ground_albedo_bump_array"
@@ -740,6 +757,7 @@ namespace godot
 //#define GLOBAL_SHADER_PARAM_SHOW_SEA				"gu_show_sea"
 //#define GLOBAL_SHADER_PARAM_SHOW_TERRAIN			"gu_show_terrain"
 #define GLOBAL_SHADER_PARAM_SHOW_CHUNKS				"gu_show_chunks"
+#define GLOBAL_SHADER_PARAM_SHOW_WIREFRAME			"gu_show_wireframe"
 //#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_texture_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_splatmap_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_splatmapBlendingSize to avoid reading it from RenderingServer (slow operation)

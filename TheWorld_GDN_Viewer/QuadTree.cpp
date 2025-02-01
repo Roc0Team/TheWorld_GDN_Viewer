@@ -2172,6 +2172,14 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING, false);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_NORTH, false);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_SOUTH, false);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_EAST, false);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_WEST, false);
+		mat->set_shader_parameter(SHADER_PARAM_WIRE_ALBEDO, GDN_TheWorld_Globals::g_color_green1);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_ALBEDO, GDN_TheWorld_Globals::g_color_light_cyan);
+		mat->set_shader_parameter(SHADER_PARAM_SELECTED_ALBEDO, GDN_TheWorld_Globals::g_color_cyan);
 		m_regularTerrainMaterial = mat;
 	}
 	
@@ -4373,10 +4381,31 @@ void Quadrant::checkInternalData(double _delta)
 	//}
 }
 
-void Quadrant::process_mapModder(double _delta, size_t& numBlendNeed)
+void Quadrant::setBlendNeeded(bool blendNeeded, bool northSideBlendNeeded, bool southSideBlendNeeded, bool eastSideBlendNeeded, bool westSideBlendNeeded)
+{
+	if (m_blendNeeded != blendNeeded or m_northSideBlendNeeded != northSideBlendNeeded or m_southSideBlendNeeded != southSideBlendNeeded or m_eastSideBlendNeeded != eastSideBlendNeeded or m_westSideBlendNeeded != westSideBlendNeeded)
+	{
+		m_blendNeeded = blendNeeded;
+		m_northSideBlendNeeded = northSideBlendNeeded;
+		m_southSideBlendNeeded = southSideBlendNeeded;
+		m_eastSideBlendNeeded = eastSideBlendNeeded;
+		m_westSideBlendNeeded = westSideBlendNeeded;
+		godot::Ref<godot::ShaderMaterial> mat = getShaderTerrainData()->getRegularTerrainMaterial();
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING, m_blendNeeded);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_NORTH, m_northSideBlendNeeded);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_SOUTH, m_southSideBlendNeeded);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_EAST, m_eastSideBlendNeeded);
+		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_WEST, m_westSideBlendNeeded);
+	}
+}
+
+void Quadrant::process_mapModder(double _delta, size_t& numBlendNeeded)
 {
 	if (!m_viewer->canProcessWorldDataUpdate())
+	{
+		setBlendNeeded(false, false, false, false, false);
 		return;
+	}
 	
 	if (m_mapModder == nullptr)
 		return;
@@ -4433,7 +4462,7 @@ void Quadrant::process_mapModder(double _delta, size_t& numBlendNeed)
 	//}
 
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
-	if (editModeUIControl == nullptr || editModeUIControl->blendingInProgress())
+	if (editModeUIControl == nullptr or not editModeUIControl->initialized() or editModeUIControl->blendingInProgress())
 		return;
 
 	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
@@ -4500,13 +4529,20 @@ void Quadrant::process_mapModder(double _delta, size_t& numBlendNeed)
 	static bool checkBlendNeeded = true;
 	if (checkBlendNeeded)
 	{
+		bool northSideBlendNeeded = false;
+		bool southSideBlendNeeded = false;
+		bool eastSideBlendNeeded = false;
+		bool westSideBlendNeeded = false;
 
-		bool blendNeeded = Quadrant::blendNeeded(northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
+		if (currentPos.getIndexPosX() == -12 and currentPos.getIndexPosZ() == -14)	// #####
+			assert(northSideBlendNeeded == false);									// #####
+		
+		bool blendNeeded = Quadrant::blendNeeded(northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
+		setBlendNeeded(blendNeeded, northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded);
 		if (blendNeeded)
 		{
 			// Quadrant blend needed
-			assert(m_quadTree->isValid());	// DEBUG TRAP
-			numBlendNeed++;
+			numBlendNeeded++;
 		}
 	}
 	
@@ -4925,9 +4961,13 @@ godot::Vector4 Quadrant::quadrantTextureLayers(void) const
 	return v;
 }
 
-bool Quadrant::blendNeeded(QuadTree* northQuadrantTree, QuadTree* southQuadrantTree, QuadTree* eastQuadrantTree, QuadTree* westQuadrantTree)
+bool Quadrant::blendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree, QuadTree* southQuadrantTree, QuadTree* eastQuadrantTree, QuadTree* westQuadrantTree)
 {
-	if (northSideBlendNeeded(northQuadrantTree) or southSideBlendNeeded(southQuadrantTree) or eastSideBlendNeeded(eastQuadrantTree) or westSideBlendNeeded(westQuadrantTree))
+	northSideBlendNeeded = Quadrant::northSideBlendNeeded(northQuadrantTree);
+	southSideBlendNeeded = Quadrant::southSideBlendNeeded(southQuadrantTree);
+	eastSideBlendNeeded = Quadrant::eastSideBlendNeeded(eastQuadrantTree);
+	westSideBlendNeeded = Quadrant::westSideBlendNeeded(westQuadrantTree);
+	if (northSideBlendNeeded or southSideBlendNeeded or eastSideBlendNeeded or westSideBlendNeeded)
 		return true;
 	else
 		return false;
@@ -4935,52 +4975,48 @@ bool Quadrant::blendNeeded(QuadTree* northQuadrantTree, QuadTree* southQuadrantT
 
 bool Quadrant::northSideBlendNeeded(QuadTree* northQuadrantTree)
 {
-	if (not getTerrainEdit()->northSideZMinus.needBlend)
-		return false;
+	if (getTerrainEdit()->northSideZMinus.needBlend)
+		return true;
 
-	// it seems blend needed
 	bool northQuadrantValid = northQuadrantTree != nullptr and northQuadrantTree->isValid();
 	if (not northQuadrantValid)
-		return true;
+		return false;
 
 	return getTerrainEdit()->northSideZMinus != northQuadrantTree->getQuadrant()->getTerrainEdit()->southSideZPlus;
 }
 
 bool Quadrant::southSideBlendNeeded(QuadTree* southQuadrantTree)
 {
-	if (not getTerrainEdit()->southSideZPlus.needBlend)
-		return false;
+	if (getTerrainEdit()->southSideZPlus.needBlend)
+		return true;
 
-	// it seems blend needed
 	bool southQuadrantValid = southQuadrantTree != nullptr and southQuadrantTree->isValid();
 	if (not southQuadrantValid)
-		return true;
+		return false;
 
 	return getTerrainEdit()->southSideZPlus != southQuadrantTree->getQuadrant()->getTerrainEdit()->northSideZMinus;
 }
 
 bool Quadrant::eastSideBlendNeeded(QuadTree* eastQuadrantTree)
 {
-	if (not getTerrainEdit()->eastSideXPlus.needBlend)
-		return false;
+	if (getTerrainEdit()->eastSideXPlus.needBlend)
+		return true;
 
-	// it seems blend needed
 	bool eastQuadrantValid = eastQuadrantTree != nullptr and eastQuadrantTree->isValid();
 	if (not eastQuadrantValid)
-		return true;
+		return false;
 
 	return getTerrainEdit()->eastSideXPlus != eastQuadrantTree->getQuadrant()->getTerrainEdit()->westSideXMinus;
 }
 
 bool Quadrant::westSideBlendNeeded(QuadTree* westQuadrantTree)
 {
-	if (not getTerrainEdit()->westSideXMinus.needBlend)
-		return false;
+	if (getTerrainEdit()->westSideXMinus.needBlend)
+		return true;
 
-	// it seems blend needed
 	bool westQuadrantValid = westQuadrantTree != nullptr and westQuadrantTree->isValid();
 	if (not westQuadrantValid)
-		return true;
+		return false;
 
 	return getTerrainEdit()->westSideXMinus != westQuadrantTree->getQuadrant()->getTerrainEdit()->eastSideXPlus;
 }

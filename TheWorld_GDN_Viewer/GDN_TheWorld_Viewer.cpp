@@ -9534,9 +9534,12 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	
 	GDN_TheWorld_Globals* globals = Globals();
 
+	//bool blendDone = false;
 	size_t numBlendNeeded = 0;
 	for (auto& item : m_worldQuadrantsMap)
 	{
+		Quadrant* quadrant = item.second->getQuadrant();
+
 		if (globals->getParamShowSeaChanged())
 		{
 			Chunk::VisibilityChangedChunkAction action(globals->getParamShowSea(), globals);
@@ -9552,20 +9555,42 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 		if (item.second->initDelayedRequested())
 			item.second->initDelayed();
 
-		item.second->getQuadrant()->checkInternalData(_delta);
+		quadrant->checkInternalData(_delta);
 		
-		item.second->getQuadrant()->lockInternalDataUntilCompleteProcessExecution(false);
+		quadrant->lockInternalDataUntilCompleteProcessExecution(false);
 
-		item.second->getQuadrant()->process_mapModder(_delta, numBlendNeeded);
+		quadrant->process_mapModder(_delta);
+
+		quadrant->process_checkBlendNeeded(_delta);
+		if (quadrant->blendNeeded())
+			numBlendNeeded++;
 
 		if (item.second->statusLoadTerrainDataFromCacheNeeded())
 		{
 			item.second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
-			std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, item.second->getQuadrant());
+			std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, quadrant);
 			m_tpClientWorker.QueueJob(f);
 		}
 
 		item.second->checkSeaChunksToDelete();
+	}
+
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl != nullptr and editModeUIControl->initialized() and not editModeUIControl->terrainDataLocked() and canProcessWorldDataUpdate())
+	{
+		for (auto& item : m_worldQuadrantsMap)
+		{
+			Quadrant* quadrant = item.second->getQuadrant();
+			//if (quadrant->getPos().getIndexPosX() == -9 and quadrant->getPos().getIndexPosZ() == -10)	// #####
+			//	assert(editModeUIControl != nullptr);									// #####
+
+			if (quadrant->blendNeeded())
+			{
+				bool processed = quadrant->process_blend();
+				if (processed)
+					break;
+			}
+		}
 	}
 
 	if (globals->getParamShowSeaChanged())
@@ -9595,12 +9620,12 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 					item.second->initDelayed(forced);
 				}
 
-				item.second->getQuadrant()->process_mapModder(_delta, numBlendNeeded);
+				item.second->getQuadrant()->process_mapModder(_delta);
 			}
 		}
 	}
 
-	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	//GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 	if (editModeUIControl != nullptr and editModeUIControl->initialized())
 		editModeUIControl->setNumQuadrantToBlend(numBlendNeeded);
 

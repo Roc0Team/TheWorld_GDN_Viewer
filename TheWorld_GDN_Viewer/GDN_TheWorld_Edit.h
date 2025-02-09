@@ -214,6 +214,8 @@ namespace godot
 			godot::Button* m_terrBlendingButton = nullptr;
 			godot::Control* m_terrBlendingVBoxContainer = nullptr;
 			godot::CheckBox* m_blendAllCheckBox = nullptr;
+			godot::CheckBox* m_checkBlend = nullptr;
+			godot::CheckBox* m_autoBlendCheckBox = nullptr;
 
 			godot::Control* m_quadrantTextureEditVBoxContainer;
 			godot::Button* m_quadrantTextureEditButton;
@@ -334,6 +336,9 @@ namespace godot
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
 		void editModeSetTerrType(void);
+		bool blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock);
+		bool checkBlend(void);
+		bool autoBlendPermitted(void);
 		void editModeBlendAction(void);
 		bool hiResCollisionGridEnabled(void);
 		bool lowResCollisionGridEnabled(void);
@@ -373,10 +378,13 @@ namespace godot
 			float lowElevationFactor,	// if higher low elevation amount will be higher at higher altitude
 			size_t splatMapMode);
 		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
-
-		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer& heights16Buffer, TheWorld_Utils::MemoryBuffer& heights32Buffer);
-		void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
-		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, TheWorld_Utils::MemoryBuffer* heights16Buffer, TheWorld_Utils::MemoryBuffer* heights32Buffer);
+		
+		//void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
+		void prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
+		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
+		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, Quadrant* quadrant, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
+		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
+		void manageSaveAndUploadAfterBlending(Quadrant* quadrant);
 
 		godot::Ref<godot::Texture2D> getTextureByTerrainType(TheWorld_Utils::TerrainEdit::TerrainType terrainType);
 
@@ -529,9 +537,13 @@ namespace godot
 			m_requestedThreadExit = true;
 		}
 
-		bool blendingInProgress(void) const
+		bool terrainDataLocked(void) const
 		{
-			return m_blendingInProgress;
+			return m_terrainDataLocked;
+		}
+		void terrainDataLocked(bool b)
+		{
+			m_terrainDataLocked = b;
 		}
 
 		void setServerProcGenStatus(TheWorld_Utils::MapManagerProceduralGenerationStatus& s);
@@ -549,6 +561,20 @@ namespace godot
 		void editingMap(bool b);
 		void setEditingMapMouseShape(bool b);
 		bool getEditedTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
+
+	private:
+		void blendExecution(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder,
+			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder,
+			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southPosLockHolder,
+			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> westPosLockHolder,
+			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> eastPosLockHolder,
+			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northwestPosLockHolder,
+			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northeastPosLockHolder,
+			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southwestPosLockHolder,
+			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder,
+			bool updateUI,
+			bool unlock,
+			bool saveAndUpload);
 
 	private:
 		bool m_initialized;
@@ -572,7 +598,7 @@ namespace godot
 		size_t m_lastElapsed;
 		bool m_requiredUIAcceptFocus;
 		bool m_UIAcceptingFocus;
-		bool m_blendingInProgress = false;;
+		bool m_terrainDataLocked = false;
 
 		std::unique_ptr<InnerData> m_innerData;
 

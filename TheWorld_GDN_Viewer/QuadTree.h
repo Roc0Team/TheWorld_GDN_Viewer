@@ -96,6 +96,7 @@ namespace godot
 		, NotUsed = 2
 	};
 
+	
 	class Quadrant
 	{
 		friend class ShaderTerrainData;
@@ -117,6 +118,33 @@ namespace godot
 		//	, med = 1
 		//	, high = 2
 		//};
+
+		class InternalQuadrantDataLockHolder
+		{
+		public:
+			InternalQuadrantDataLockHolder(TheWorld_Utils::QuadrantPos pos, GDN_TheWorld_Viewer* viewer, bool lock = true, bool lockOnlyInitializedQuadrants = true);
+			InternalQuadrantDataLockHolder(QuadTree* quadTree, bool lock = true, bool lockOnlyInitializedQuadrants = true);
+			InternalQuadrantDataLockHolder(Quadrant* quadrant, bool lock = true, bool lockOnlyInitializedQuadrants = true);
+			~InternalQuadrantDataLockHolder();
+			bool lock(void);
+			void unlock(void);
+			bool lockAcquired(void) const
+			{
+				return m_lockAcquired;
+			}
+			Quadrant* quadrant(void) const
+			{
+				return m_quadrant;
+			}
+
+		private:
+			void init(Quadrant* quadrant, bool lock, bool lockOnlyInitializedQuadrants);
+
+		private:
+			Quadrant* m_quadrant = nullptr;
+			bool m_lockAcquired = false;
+			int32_t m_numLocks = 0;
+		};
 
 		class NeighbourQuadrantData
 		{
@@ -194,7 +222,11 @@ namespace godot
 			return m_heightsForCollider;
 		}
 
-		TheWorld_Utils::QuadrantPos getPos(void)
+		TheWorld_Utils::QuadrantPos getPos(void) const
+		{
+			return m_quadrantPos;
+		}
+		TheWorld_Utils::QuadrantPos& getInternalPos(void)
 		{
 			return m_quadrantPos;
 		}
@@ -417,34 +449,8 @@ namespace godot
 
 		bool needSaveToCache(bool& manual);
 
-		bool lockInternalData(void)
-		{
-			bool lockAcquired = false;
-			{
-				std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
-				if (!m_internalDataLocked)
-				{
-					m_internalDataLocked = true;
-					m_internalDataLockingTid = GetCurrentThreadId();
-					lockAcquired = true;
-				}
-			}
-			return lockAcquired;
-		}
-
-		void unlockInternalData(void)
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
-			if (m_internalDataLocked)
-			{
-				m_internalDataLocked = false;
-			}
-			else
-			{
-				m_internalDataLocked = false;
-			}
-			m_internalDataLockingTid = 0;
-		}
+		bool lockInternalData(void);
+		void unlockInternalData(void);
 
 		bool internalDataLocked() const
 		{
@@ -512,10 +518,10 @@ namespace godot
 
 		void checkInternalData(double _delta);
 
-		void process_mapModder(double _delta, size_t& numBlendNeeded);
+		void process_checkBlendNeeded(double _delta);
+		void process_mapModder(double _delta);
+		bool process_blend(void);
 		
-		void setBlendNeeded(bool b, bool northSideBlendNeeded, bool southSideBlendNeeded, bool eastSideBlendNeeded, bool westSideBlendNeeded);
-
 		GDN_TheWorld_MapModder* getMapModder(void)
 		{
 			return m_mapModder;
@@ -626,14 +632,57 @@ namespace godot
 			return m_mapImage;
 		}
 
-		bool blendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
-		bool northSideBlendNeeded(QuadTree* northQuadrantTree = nullptr);
-		bool southSideBlendNeeded(QuadTree* southQuadrantTree = nullptr);
-		bool eastSideBlendNeeded(QuadTree* eastQuadrantTree = nullptr);
-		bool westSideBlendNeeded(QuadTree* westQuadrantTree = nullptr);
+		bool checkBlendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
+		bool checkNorthSideBlendNeeded(QuadTree* northQuadrantTree = nullptr);
+		bool checkSouthSideBlendNeeded(QuadTree* southQuadrantTree = nullptr);
+		bool checkEastSideBlendNeeded(QuadTree* eastQuadrantTree = nullptr);
+		bool checkWestSideBlendNeeded(QuadTree* westQuadrantTree = nullptr);
+
+		void setBlendNeeded(bool b, bool northSideBlendNeeded, bool southSideBlendNeeded, bool eastSideBlendNeeded, bool westSideBlendNeeded);
+		bool blendNeeded(void) const
+		{
+			return m_blendNeeded;
+		}
+		bool northSideBlendNeeded(void) const
+		{
+			return m_northSideBlendNeeded;
+		}
+		bool southSideBlendNeeded(void) const
+		{
+			return m_southSideBlendNeeded;
+		}
+		bool eastSideBlendNeeded(void) const
+		{
+			return m_eastSideBlendNeeded;
+		}
+		bool westSideBlendNeeded(void) const
+		{
+			return m_westSideBlendNeeded;
+		}
+		bool northQuadrantValid(void) const
+		{
+			return m_northQuadrantValid;
+		}
+		bool southQuadrantValid(void) const
+		{
+			return m_southQuadrantValid;
+		}
+		bool eastQuadrantValid(void) const
+		{
+			return m_eastQuadrantValid;
+		}
+		bool westQuadrantValid(void) const
+		{
+			return m_westQuadrantValid;
+		}
+
+		QuadTree* getQuadTree(void) const
+		{
+			return m_quadTree;
+		}
 
 	private:
-		TheWorld_Utils::MeshCacheBuffer& getMeshCacheBuffer(void);
+		TheWorld_Utils::MeshCacheBuffer& getInternalMeshCacheBuffer(void);
 		void loadTerrainDataFromCache(void);
 
 	private:
@@ -700,6 +749,10 @@ namespace godot
 		bool m_southSideBlendNeeded = false;
 		bool m_eastSideBlendNeeded = false;
 		bool m_westSideBlendNeeded = false;
+		bool m_northQuadrantValid = false;
+		bool m_southQuadrantValid = false;
+		bool m_eastQuadrantValid = false;
+		bool m_westQuadrantValid = false;
 	};
 
 	class ShaderTerrainData

@@ -4453,12 +4453,35 @@ void Quadrant::setBlendNeeded(bool blendNeeded, bool northSideBlendNeeded, bool 
 		m_southSideBlendNeeded = southSideBlendNeeded;
 		m_eastSideBlendNeeded = eastSideBlendNeeded;
 		m_westSideBlendNeeded = westSideBlendNeeded;
-		godot::Ref<godot::ShaderMaterial> mat = getShaderTerrainData()->getRegularTerrainMaterial();
-		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING, m_blendNeeded);
-		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_NORTH, m_northSideBlendNeeded);
-		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_SOUTH, m_southSideBlendNeeded);
-		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_EAST, m_eastSideBlendNeeded);
-		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_WEST, m_westSideBlendNeeded);
+
+		{
+			godot::Ref<godot::ShaderMaterial> mat = getShaderTerrainData()->getRegularTerrainMaterial();
+			mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING, m_blendNeeded);
+			mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_NORTH, m_northSideBlendNeeded);
+			mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_SOUTH, m_southSideBlendNeeded);
+			mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_EAST, m_eastSideBlendNeeded);
+			mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_WEST, m_westSideBlendNeeded);
+		}
+
+		{
+			GDN_TheWorld_MapViewer* mapViewer = m_viewer->MapViewer();
+			if (mapViewer != nullptr)
+			{
+				GDN_TheWorld_Map* map = mapViewer->getMap();
+				if (map != nullptr)
+				{
+					GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride = map->getMapQuadrantOverride(getInternalPos());
+					if (mapQuadrantOverride != nullptr)
+					{
+						if (mapQuadrantOverride->blendNeeded() != m_blendNeeded)
+						{
+							mapQuadrantOverride->blendNeeded(m_blendNeeded);
+							mapQuadrantOverride->applyColor();
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

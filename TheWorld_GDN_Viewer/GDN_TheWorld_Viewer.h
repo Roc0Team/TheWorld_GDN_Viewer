@@ -457,6 +457,15 @@ namespace godot
 				m_refreshInProgress = b;
 			}
 
+			bool blendNeeded(void) const
+			{
+				return m_blendNeeded;
+			}
+			void blendNeeded(bool b)
+			{
+				m_blendNeeded = b;
+			}
+
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
 			TheWorld_Utils::QuadrantPos m_quadrantPos;
@@ -471,6 +480,8 @@ namespace godot
 			bool m_editMode = false;
 
 			bool m_refreshInProgress = false;
+
+			bool m_blendNeeded = false;
 		};
 
 		class MapQuadrantOverrideContainer : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantOverride>>

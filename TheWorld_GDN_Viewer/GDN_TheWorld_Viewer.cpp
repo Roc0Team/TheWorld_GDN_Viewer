@@ -523,6 +523,7 @@ void GDN_TheWorld_Map::MapTextureRect::setInternalImageData(TheWorld_Utils::Memo
 #define SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT_INITIAL		1;
 #define SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT_GROWING		2;
 #define SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT_CACHE		3;
+#define SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT_BLEND_NEEDED	4;
 #define SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT		"u_world_quadrant"
 #define SHADER_PARAM_QUADRANT_COLOR_QUADRANT_READY		"u_quadrant_ready"
 #define SHADER_PARAM_QUADRANT_COLOR_FAR_QUADRANT		"u_far_quadrant"
@@ -910,11 +911,18 @@ void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::apply(GDN_TheWo
 	{
 		enum class QuadTree::QuadrantDepth quadrantDepth = mapQuadrantOverride->quadrantDepth();
 		int numQuadrantsFromCameraQuadrant = mapQuadrantOverride->numQuadrantsFromCameraQuadrant();
+		bool blendNeeded = mapQuadrantOverride->blendNeeded();
 		if (quadrantDepth == QuadTree::QuadrantDepth::NotSet)
 		{
 			const godot::Variant v = SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT_NOPE;
 			mat->set_shader_parameter(SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT, v);
 			mat->set_shader_parameter(SHADER_PARAM_QUADRANT_COLOR_FAR_QUADRANT, -1);
+		}
+		else if (blendNeeded)
+		{
+			const godot::Variant v = SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT_BLEND_NEEDED;
+			mat->set_shader_parameter(SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT, v);
+			mat->set_shader_parameter(SHADER_PARAM_QUADRANT_COLOR_FAR_QUADRANT, numQuadrantsFromCameraQuadrant);
 		}
 		else if (numQuadrantsFromCameraQuadrant == 0)
 		{

@@ -2642,7 +2642,7 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 		for (auto& item : lookDevChunkLodMaterials)
 			if (item.second != nullptr)
 			{
-				if (m_viewer->positionVisible())
+				if (m_viewer->showPositionOnCursorHit())
 				{
 					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
 					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
@@ -2658,7 +2658,7 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 	{
 		godot::Ref<godot::ShaderMaterial> currentMaterial = (lookdev == LookDev::NotSet ? getRegularTerrainMaterial() : getLookDevMaterial(lookdev));
 		godot::Ref<godot::ShaderMaterial> currentSeaMaterial = getRegularSeaMaterial();
-		if (currentMaterial != nullptr && m_viewer->positionVisible())
+		if (currentMaterial != nullptr && m_viewer->showPositionOnCursorHit())
 		{
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
@@ -4534,7 +4534,7 @@ void Quadrant::process_checkBlendNeeded(double _delta)
 		bool eastSideBlendNeeded = false;
 		bool westSideBlendNeeded = false;
 
-		//if (currentPos.getIndexPosX() == -9 and currentPos.getIndexPosZ() == -10)	// #####
+		//if (currentPos.getIndexPosX() == -16 and currentPos.getIndexPosZ() == 22)	// #####
 		//	assert(northSideBlendNeeded == false);									// #####
 
 		bool blendNeeded = Quadrant::checkBlendNeeded(northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
@@ -4546,12 +4546,6 @@ void Quadrant::process_checkBlendNeeded(double _delta)
 
 void Quadrant::process_mapModder(double _delta)
 {
-	//if (!m_viewer->canProcessWorldDataUpdate())
-	//{
-	//	setBlendNeeded(false, false, false, false, false);
-	//	return;
-	//}
-	
 	if (m_mapModder == nullptr)
 		return;
 
@@ -4574,6 +4568,9 @@ void Quadrant::process_mapModder(double _delta)
 		return;
 
 	if (internalDataLocked())
+		return;
+
+	if (m_quadTree->materialParamsNeedReset())
 		return;
 
 	//if (m_quadTree->currentStatus() != QuadrantStatus::initialized)
@@ -4709,7 +4706,8 @@ bool Quadrant::process_blend(void)
 			{
 				return processed;
 			}
-			processed = editModeUIControl->blendAction(getPos(), false, true, true, true, true);
+			bool quadrantBusy = false;
+			processed = editModeUIControl->blendAction(getPos(), false, true, true, true, true, quadrantBusy, false);
 		}
 	}
 	

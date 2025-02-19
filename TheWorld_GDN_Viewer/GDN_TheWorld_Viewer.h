@@ -1272,6 +1272,7 @@ namespace godot
 		{
 		};
 
+		// Its purpose is to transform 2 single-click event enough close together in 1 double-click: the second is transformed and the previous is deleted (only if thay are enough far together)
 		class TrackedInputEventQueue : public std::list<TrackedInputEvent>
 		{
 		public:
@@ -2317,14 +2318,14 @@ namespace godot
 		{
 			m_normalVisible = b;
 		}
-		bool positionVisible(void) const
+		bool showPositionOnCursorHit(void) const
 		{
-			return m_positionVisible;
+			return m_showPositionOnCursorHit;
 		}
-		void positionVisible(bool b)
+		void showPositionOnCursorHit(bool b)
 		{
-			m_positionVisible = b;
-			if (!m_positionVisible)
+			m_showPositionOnCursorHit = b;
+			if (!m_showPositionOnCursorHit)
 				trackingDistance(false);
 		}
 		bool gridOn(void) const
@@ -2380,8 +2381,8 @@ namespace godot
 		}
 		
 		bool isInputEventTracked(TrackedInputEvent::TrackedInputEventType eventType, TrackedInputEvent* trackedInputEvent, TrackedInputEventContainer* inputEvents = nullptr);
-		void compressTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr);
-		void resetTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr);
+		void compressTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr, TrackedInputEventQueue* trackedInputEventQueue = nullptr);
+		void resetTrackedInputEvents(TrackedInputEventContainer* inputEvents = nullptr, TrackedInputEventQueue* trackedInputEventQueue = nullptr);
 
 		bool mouseInsideMainEditPanel(void);
 
@@ -2989,9 +2990,11 @@ namespace godot
 		size_t m_updatedMapQuadrantNum = 0;
 		// Statistics data
 
+		TrackedInputEventQueue m_trackedInputEventsQueueForProcess;
 		TrackedInputEventContainer m_trackedInputEventsForProcess;
+
+		TrackedInputEventQueue m_trackedInputEventsQueueForTrackMouse;
 		TrackedInputEventContainer m_trackedInputEventsForTrackMouse;
-		TrackedInputEventQueue m_trackedInputEvents;
 
 		bool m_adjustEnvironmentRequired = false;
 
@@ -3068,7 +3071,7 @@ namespace godot
 		bool m_normalVisible = false;
 		GDN_TheWorld_Gizmo3d* m_gizmo = nullptr;
 		bool m_gizmoVisible = false;
-		bool m_positionVisible = false;
+		bool m_showPositionOnCursorHit = false;
 		bool m_trackingDistance = false;
 		bool m_gridOn = false;
 		bool m_castRayFromCamera = false;

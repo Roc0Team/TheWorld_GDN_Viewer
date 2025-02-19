@@ -761,14 +761,14 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
 		button = createControl<godot::Button>(hBoxContainer, "", "Blend", "pressed", this, "edit_mode_blend");
 		button->set_self_modulate(BUTTON_COLOR);
-		m_innerData->m_blendAllCheckBox = createControl<godot::CheckBox>(hBoxContainer);
-		m_innerData->m_blendAllCheckBox->set_text("All");
-		m_innerData->m_blendAllCheckBox->set_toggle_mode(true);
+		//m_innerData->m_blendAllCheckBox = createControl<godot::CheckBox>(hBoxContainer);
+		//m_innerData->m_blendAllCheckBox->set_text("All");
+		//m_innerData->m_blendAllCheckBox->set_toggle_mode(true);
 		m_innerData->m_checkBlend = createControl<godot::CheckBox>(hBoxContainer);
 		m_innerData->m_checkBlend->set_text("Check Blend");
 		m_innerData->m_checkBlend->set_toggle_mode(true);
 		m_innerData->m_autoBlendCheckBox = createControl<godot::CheckBox>(hBoxContainer);
-		m_innerData->m_autoBlendCheckBox->set_text("Auto Blend");
+		m_innerData->m_autoBlendCheckBox->set_text("Auto Blend (S/U)");
 		m_innerData->m_autoBlendCheckBox->set_toggle_mode(true);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
@@ -1632,11 +1632,11 @@ size_t GDN_TheWorld_Edit::elapsed(void)
 	return ret;
 }
 
-void GDN_TheWorld_Edit::setMouseHitLabelText(std::string text)
+void GDN_TheWorld_Edit::setMouseHitPos(godot::Vector3 mouseHitPos)
 {
 	if (m_innerData != nullptr)
 	{
-		m_innerData->m_mouseHitStr = text;
+		m_innerData->m_mouseHitPos = mouseHitPos;
 		m_infoLabelTextChanged = true;
 	}
 }
@@ -2281,7 +2281,12 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			quadSelCanContainSea = (quadTreeSel->canContainSea() == QUADRANT_SEA_INFO_TRUE);
 		}
 
-		std::string mouseHitInfoLabelText = "Hit: " + m_innerData->m_mouseHitStr;
+		std::string mouseHitInfoLabelText = "Hit: ";
+		if (m_viewer->worldMode())
+			mouseHitInfoLabelText += (std::string("X=") + std::format("{:.2f}", m_innerData->m_mouseHitPos.x) + " Y=" + std::format("{:.2f}", m_innerData->m_mouseHitPos.y) + " Z=" + std::format("{:.2f}", m_innerData->m_mouseHitPos.z));
+		else
+			mouseHitInfoLabelText += (std::string("X=") + std::format("{:.2f}", m_innerData->m_mouseHitPos.x) + " Z=" + std::format("{:.2f}", m_innerData->m_mouseHitPos.z));
+		
 		m_innerData->m_mouseHitInfoLabel->set_text(mouseHitInfoLabelText.c_str());
 
 
@@ -2291,7 +2296,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		hitQuadInfoLabelText =
 			"Quad Hit: " + m_innerData->m_mouseQuadHitStr + " - Sea: " + quadHitCanContainSeaStr + "\n"
 			+ "Pos: " + m_innerData->m_mouseQuadHitPosStr + "\n"
-			+ "Type: " + quadHitTerrainTypeStr + " - Min: " + quadHitMinHeightStr + " Max: " + quadHitMaxHeightStr + "\n"
+			+ /*"Type: " +*/ quadHitTerrainTypeStr + " - Min: " + quadHitMinHeightStr + " Max: " + quadHitMaxHeightStr + "\n"
 			+ "Opt. Level: " + quadHitOptimizationLevelInfoStr + " Collider: " + quadHitColliderInfoStr + " Chunks: " + numVisibleChunksStr + "\n"
 			+ "To Upload: " + needToUploadStr + " To Save: " + needToSaveStr + " - Empty: " + quadHitEmptyStr + "\n"
 			+ "Depth: " + DepthStr + " - Quads from Camera quad: " + quadsFromCameraQuadStr;
@@ -2304,7 +2309,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			selQuadInfoLabelText =
 				"Quad Sel: " + m_innerData->m_mouseQuadSelStr + " - Sea: " + quadSelCanContainSeaStr + "\n"
 				+ "Pos: " + m_innerData->m_mouseQuadSelPosStr + "\n"
-				+ "Type: " + TheWorld_Utils::TerrainEdit::terrainTypeString(m_innerData->m_selectedTerrainType) + " - Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
+				+ /*"Type: " +*/ TheWorld_Utils::TerrainEdit::terrainTypeString(m_innerData->m_selectedTerrainType) + " - Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
 				+ "Opt. Level: " + quadSelOptimizationLevelInfoStr + " Collider: " + quadSelColliderInfoStr + "\n"
 				+ "To Upload: " + (quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False") + " To Save: " + (m_mapQuadToSave.contains(quadTreeSel->getQuadrant()->getPos()) ? "True" : "False") + " - Empty: " + (quadTreeSel->getQuadrant()->empty() ? "True" : "False");
 		}
@@ -2928,10 +2933,10 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 	else if (_objectName == "ShowPositionCheckBox")
 	{
 		if (pressed)
-			m_viewer->positionVisible(true);
+			m_viewer->showPositionOnCursorHit(true);
 		else
 		{
-			m_viewer->positionVisible(false);
+			m_viewer->showPositionOnCursorHit(false);
 			m_innerData->m_gridON->set_pressed(false);
 		}
 	}
@@ -3347,13 +3352,14 @@ void GDN_TheWorld_Edit::editModeSetTerrType(void)
 
 void GDN_TheWorld_Edit::editModeGenerate(void)
 {
+	m_viewer->getMainProcessingMutex().lock();
 	if (m_actionClock.counterStarted())
 	{
+		m_viewer->getMainProcessingMutex().unlock();
 		m_actionInProgress = false;
 		return;
 	}
 
-	m_viewer->getMainProcessingMutex().lock();
 	if (terrainDataLocked())
 	{
 		m_viewer->getMainProcessingMutex().unlock();
@@ -3374,7 +3380,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	{
 		m_actionClock.tock();
 		m_actionInProgress = false;
-		setMessage(godot::String("No quad selected!"), false);
+		setMessage(godot::String("No quad selected!"));
 		terrainDataLocked(false);
 		return;
 	}
@@ -3419,7 +3425,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	{
 		m_actionClock.tock();
 		m_actionInProgress = false;
-		setMessage(godot::String("Quadrant locked!"), false);
+		setMessage(godot::String("Quadrant locked!"));
 		terrainDataLocked(false);
 		return;
 	}
@@ -3484,13 +3490,18 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->setHeightsUpdated(true);
 	terrainEdit->heightsNeedRegen = false;
 
-	// 5. invalidata normals and textures as heigths have been changed and set flags according (normals need regen and empty normals have to be passed to shader)
+	// 5. renew MeshId
+	TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadTreeSel->getQuadrant()->getInternalMeshCacheBuffer();
+	quadrantCache.generateNewInternalMeshId();
+	quadTreeSel->getQuadrant()->setMeshId(quadrantCache.getMeshId());
+
+	// 6. invalidata normals and textures as heigths have been changed and set flags according (normals need regen and empty normals have to be passed to shader)
 	quadTreeSel->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
 	quadTreeSel->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
 	quadTreeSel->getQuadrant()->resetColormapBuffer(__FUNCTION__);
 	quadTreeSel->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
-	// 6. prepare new heigths for collider (PackedFloat32Array) - // WARNING useless ? Same instructions are executed in Collider::setData called in QuadTree::updateMaterialParams
+	// 7. prepare new heigths for collider (PackedFloat32Array) - // WARNING useless ? Same instructions are executed in Collider::setData called in QuadTree::updateMaterialParams
 	{
 #ifdef REAL_T_IS_DOUBLE
 		PackedFloat64Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
@@ -3509,7 +3520,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	}
 
 
-	// 7. calc new quadrant AABB for collider
+	// 8. calc new quadrant AABB for collider
 	Vector3 startPosition(lowerXGridVertex, terrainEdit->minHeight, lowerZGridVertex);
 	Vector3 endPosition(startPosition.x + sizeInWU, terrainEdit->maxHeight, startPosition.z + sizeInWU);
 	Vector3 size = endPosition - startPosition;
@@ -3517,13 +3528,13 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->getGlobalCoordAABB().set_size(size);
 
 	
-	// 8. notify all chunk of the quadrant that heigths have been changed (invalidates all cached chunk and quad AABB)
+	// 9. notify all chunk of the quadrant that heigths have been changed (invalidates all cached chunk and quad AABB)
 	//Chunk::HeightsChangedChunkAction action(m_viewer->is_visible_in_tree());
 	Chunk::TerrainHeightsChangedChunkAction action;
 	m_viewer->m_refreshRequired = true;
 	quadTreeSel->ForAllChunk(action, QuadType::NotSet);
 
-	// 9. update quadrant flags
+	// 10. update quadrant flags
 	//quadTreeSel->getQuadrant()->setEmpty(false);
 	quadTreeSel->getQuadrant()->setColorsUpdated(true);
 	quadTreeSel->materialParamsNeedReset(true);
@@ -3533,21 +3544,51 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->westQuadrantData().initialized(false);
 	quadTreeSel->getQuadrant()->eastQuadrantData().initialized(false);
 
-	// 10. unlock internal datas so that they can be passed to the shader/collider
+	// 11. unlock internal datas so that they can be passed to the shader/collider
 	quadTreeSel->getQuadrant()->unlockInternalData();
 
 	setMinHeight(terrainEdit->minHeight);
 	setMaxHeight(terrainEdit->maxHeight);
 	//setCanContainSea((terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 
-	// 11. set texture according to editor
+	// 12. set texture according to editor
 	strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 	strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 	strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 	strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 
-
+	bool processed = false, quadrantBusy = true;
+	while (not processed and quadrantBusy)
+	{
+		setMessage(godot::String("Heights generated, blendig quadrants..."));
+		processed = blendAction(quadTreeSel->getQuadrant()->getPos(), true, false, false, false, false, quadrantBusy, true);
+		if (not processed and quadrantBusy)
+			Sleep(1);
+	}
 	m_completedItems++;
+
+	//// blend all quadrants that need blending
+	//{
+	//	std::vector<TheWorld_Utils::QuadrantPos> allQuadrantPos;
+	//	m_viewer->getAllQuadrantPos(allQuadrantPos);
+
+	//	for (auto& pos : allQuadrantPos)
+	//	{
+	//		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+	//		if (quadTree != nullptr)
+	//		{
+
+	//		}
+	//	}
+
+	//}
+	
+	// final actions
+	setMinHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->minHeight);
+	setMaxHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->maxHeight);
+
+	setMessage(godot::String("Completed!"), true);
+
 	size_t partialCount = m_actionClock.partialDuration().count();
 	m_lastElapsed = partialCount - m_elapsedCompleted;
 	m_elapsedCompleted = partialCount;
@@ -3560,13 +3601,6 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	setElapsed(duration, false);
 	setCounter(m_completedItems, m_allItems);
 	setNote1(m_lastElapsed);
-
-	//size_t numToSave = 0;
-	//size_t numToUpload = 0;
-	//size_t numLocked = 0;
-	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
-
-	setMessage(godot::String("Completed!"), true);
 
 	// useless as maps will bhe generated by the viewer process pipeline
 	//{
@@ -3587,9 +3621,10 @@ bool GDN_TheWorld_Edit::autoBlendPermitted(void)
 	return m_innerData->m_autoBlendCheckBox->is_pressed();
 }
 
-bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock)
+bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock, bool& quadrantBusy, bool overrideBlendingParameters)
 {
 	bool processed = false;
+	quadrantBusy = false;
 
 	bool autoBlendPermitted = GDN_TheWorld_Edit::autoBlendPermitted();
 	if (automaticBlending and not autoBlendPermitted)
@@ -3629,6 +3664,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus), m_viewer);
@@ -3640,6 +3676,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus), m_viewer);
@@ -3651,6 +3688,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> westPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus), m_viewer);
@@ -3662,6 +3700,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> eastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus), m_viewer);
@@ -3673,6 +3712,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northwestPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXMinus), m_viewer);
@@ -3684,6 +3724,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northeastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXPlus), m_viewer);
@@ -3695,6 +3736,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southwestPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXMinus), m_viewer);
@@ -3706,6 +3748,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXPlus), m_viewer);
@@ -3717,6 +3760,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			terrainDataLocked(false);
 		}
 		m_viewer->getMainProcessingMutex().unlock();
+		quadrantBusy = true;
 		return processed;
 	}
 
@@ -3744,7 +3788,8 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			southeastPosLockHolder,
 			updateUI,
 			lock,
-			saveAndUpload);
+			saveAndUpload,
+			overrideBlendingParameters);
 	}
 	else
 	{
@@ -3760,7 +3805,8 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			southeastPosLockHolder,
 			updateUI,
 			lock,
-			saveAndUpload);
+			saveAndUpload,
+			overrideBlendingParameters);
 		m_tp.QueueJob(f);
 	}
 
@@ -3778,14 +3824,16 @@ void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadran
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder,
 	bool updateUI,
 	bool unlock,
-	bool saveAndUpload)
+	bool saveAndUpload,
+	bool overrideBlendingParameters)
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("Blend execution 1 ") + __FUNCTION__, "ALL");
 
 	std::stringstream str;
 	str << "Blending heigths for quadrant " << lockHolder->quadrant()->getPos().getIndexPosX() << "," << lockHolder->quadrant()->getPos().getIndexPosZ();
 	PLOG_DEBUG << str.str();
-	setMessage(godot::String(str.str().c_str()));
+	if (updateUI)
+		setMessage(godot::String(str.str().c_str()));
 
 	size_t numRounds = lockHolder->quadrant()->getTerrainEdit()->extraValues.numBlendingCycles;
 	for (size_t round = 0; round < numRounds; round++)
@@ -3797,23 +3845,23 @@ void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadran
 			lastPhase = true;
 
 		TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData quadrantData;
-		prepareHeightsForQuadrantBlend(lockHolder->quadrant(), &quadrantData, &terrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(lockHolder->quadrant(), &quadrantData, &terrainEditValuesBuffer, overrideBlendingParameters);
 		TheWorld_Utils::MemoryBuffer northTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northQuadrantData;
-		prepareHeightsForQuadrantBlend(northPosLockHolder->quadrant(), &northQuadrantData, &northTerrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(northPosLockHolder->quadrant(), &northQuadrantData, &northTerrainEditValuesBuffer, overrideBlendingParameters);
 		TheWorld_Utils::MemoryBuffer southTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southQuadrantData;
-		prepareHeightsForQuadrantBlend(southPosLockHolder->quadrant(), &southQuadrantData, &southTerrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(southPosLockHolder->quadrant(), &southQuadrantData, &southTerrainEditValuesBuffer, overrideBlendingParameters);
 		TheWorld_Utils::MemoryBuffer westTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData westQuadrantData;
-		prepareHeightsForQuadrantBlend(westPosLockHolder->quadrant(), &westQuadrantData, &westTerrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(westPosLockHolder->quadrant(), &westQuadrantData, &westTerrainEditValuesBuffer, overrideBlendingParameters);
 		TheWorld_Utils::MemoryBuffer eastTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData eastQuadrantData;
-		prepareHeightsForQuadrantBlend(eastPosLockHolder->quadrant(), &eastQuadrantData, &eastTerrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(eastPosLockHolder->quadrant(), &eastQuadrantData, &eastTerrainEditValuesBuffer, overrideBlendingParameters);
 		TheWorld_Utils::MemoryBuffer northwestTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northwestQuadrantData;
-		prepareHeightsForQuadrantBlend(northwestPosLockHolder->quadrant(), &northwestQuadrantData, &northwestTerrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(northwestPosLockHolder->quadrant(), &northwestQuadrantData, &northwestTerrainEditValuesBuffer, overrideBlendingParameters);
 		TheWorld_Utils::MemoryBuffer northeastTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northeastQuadrantData;
-		prepareHeightsForQuadrantBlend(northeastPosLockHolder->quadrant(), &northeastQuadrantData, &northeastTerrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(northeastPosLockHolder->quadrant(), &northeastQuadrantData, &northeastTerrainEditValuesBuffer, overrideBlendingParameters);
 		TheWorld_Utils::MemoryBuffer southwestTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southwestQuadrantData;
-		prepareHeightsForQuadrantBlend(southwestPosLockHolder->quadrant(), &southwestQuadrantData, &southwestTerrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(southwestPosLockHolder->quadrant(), &southwestQuadrantData, &southwestTerrainEditValuesBuffer, overrideBlendingParameters);
 		TheWorld_Utils::MemoryBuffer southeastTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southeastQuadrantData;
-		prepareHeightsForQuadrantBlend(southeastPosLockHolder->quadrant(), &southeastQuadrantData, &southeastTerrainEditValuesBuffer);
+		prepareHeightsForQuadrantBlend(southeastPosLockHolder->quadrant(), &southeastQuadrantData, &southeastTerrainEditValuesBuffer, overrideBlendingParameters);
 
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("Blend execution 1.1.1 ") + __FUNCTION__, "Single QuadTree blendQuadrant");
@@ -3915,19 +3963,126 @@ void GDN_TheWorld_Edit::editModeBlendAction(void)
 	setElapsed(0, true);
 	setNote1(0);
 
-	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeBlend, this);
+	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeBlendNew, this);
 	m_tp.QueueJob(f);
+}
+
+void GDN_TheWorld_Edit::editModeBlendNew(void)
+{
+	m_viewer->getMainProcessingMutex().lock();
+	if (m_actionClock.counterStarted())
+	{
+		m_actionInProgress = false;
+		m_viewer->getMainProcessingMutex().unlock();
+		return;
+	}
+	if (terrainDataLocked())
+	{
+		m_viewer->getMainProcessingMutex().unlock();
+		setMessage(godot::String("Terrain data locked wait..."));
+		return;
+	}
+	terrainDataLocked(true);
+	m_viewer->getMainProcessingMutex().unlock();
+
+	setMessage(godot::String("Blending heigths..."));
+
+	m_actionClock.tick();
+
+	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1 ") + __FUNCTION__, "ALL");
+
+	bool allCheched = false; // m_innerData->m_blendAllCheckBox->is_pressed();
+
+	QuadTree* quadTreeSel = nullptr;
+	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
+
+	if (quadrantSelPos.empty())
+	{
+		m_actionClock.tock();
+		m_actionInProgress = false;
+		setMessage(godot::String("No quadrant selected!"), true);
+		return;
+	}
+
+	std::vector<TheWorld_Utils::QuadrantPos> allQuadrantPos;
+	m_viewer->getAllQuadrantPos(allQuadrantPos);
+
+	std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
+	for (auto& pos : allQuadrantPos)
+	{
+		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+		if (quadTree != nullptr)
+		{
+			if (allCheched || pos == quadrantSelPos)
+			{
+				quadrantPos.push_back(pos);
+
+				if (!allCheched)
+					break;
+			}
+		}
+	}
+
+	m_elapsedCompleted = 0;
+	m_lastElapsed = 0;
+	m_allItems = quadrantPos.size();
+
+	for (auto& pos : quadrantPos)
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
+
+		if (m_actionStopRequested)
+		{
+			m_actionStopRequested = false;
+			break;
+		}
+
+		bool quadrantBusy = true;
+		bool processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true);
+
+		m_completedItems++;
+		size_t partialCount = m_actionClock.partialDuration().count();
+		m_lastElapsed = partialCount - m_elapsedCompleted;
+		m_elapsedCompleted = partialCount;
+	}
+
+	setMinHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->minHeight);
+	setMaxHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->maxHeight);
+	//setCanContainSea((quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
+
+	size_t partialCount = m_actionClock.partialDuration().count();
+	m_lastElapsed = partialCount - m_elapsedCompleted;
+	m_elapsedCompleted = partialCount;
+
+	m_actionClock.tock();
+
+	m_actionInProgress = false;
+
+	size_t duration = m_actionClock.duration().count();
+	setElapsed(duration, false);
+	setCounter(m_completedItems, m_allItems);
+	setNote1(m_lastElapsed);
+
+	setMessage(godot::String("Completed!"), true);
+
+	// useless as maps will bhe generated by the viewer process pipeline
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.2 ") + __FUNCTION__, "Apply Textures");
+	//	editModeApplyTextures_1(false, false);
+	//}
+
+	terrainDataLocked(false);
 }
 
 void GDN_TheWorld_Edit::editModeBlend(void)
 {
+	m_viewer->getMainProcessingMutex().lock();
 	if (m_actionClock.counterStarted())
 	{
 		m_actionInProgress = false;
+		m_viewer->getMainProcessingMutex().unlock();
 		return;
 	}
-
-	m_viewer->getMainProcessingMutex().lock();
 	if (terrainDataLocked())
 	{
 		m_viewer->getMainProcessingMutex().unlock();
@@ -3943,7 +4098,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 
 	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1 ") + __FUNCTION__, "ALL");
 
-	bool allCheched = m_innerData->m_blendAllCheckBox->is_pressed();
+	bool allCheched = false;	// m_innerData->m_blendAllCheckBox->is_pressed();
 
 	QuadTree* quadTreeSel = nullptr;
 	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
@@ -4249,10 +4404,18 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 //	*quadTree = prepareHeightsForQuadrantBlend(lockAcquired, pos, quadrantData, terrainEditValuesBuffer);
 //}
 
-void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer)
+void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters)
 {
 	if (quadrant != nullptr)
 	{
+		if (overrideBlendingParameters)
+		{
+			quadrant->getTerrainEdit()->extraValues.amplitudeBlendFactor = amplitudeBlendFactor();
+			quadrant->getTerrainEdit()->extraValues.numBlendingCycles = blendingCycles();
+			quadrant->getTerrainEdit()->extraValues.blendingBendingFactor = blendingBendingFactor();
+			quadrant->getTerrainEdit()->extraValues.minRandomBendingExtension = minRandomBendingExtension();
+			quadrant->getTerrainEdit()->extraValues.maxRandomBendingExtension = maxRandomBendingExtension();
+		}
 		quadrant->getTerrainEdit()->serialize(*terrainEditValuesBuffer);
 
 		quadrantData->meshId = quadrant->getInternalMeshCacheBuffer().getMeshId();
@@ -5210,6 +5373,9 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 	}
 
 	setTerrainEditValues(terrainEdit);
+
+	if (!selectedQuadrantPos.empty() && selectedQuadTree != nullptr and m_viewer->worldMode())
+		editModeGenerateAction();
 }
 
 void GDN_TheWorld_Edit::setMessage(std::string text, bool add)

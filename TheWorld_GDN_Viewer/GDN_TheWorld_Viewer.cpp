@@ -3002,6 +3002,8 @@ void GDN_TheWorld_MapModder::initForNormals(QuadTree* quadtree, TheWorld_Utils::
 
 	if (m_initialized == MapType::uninitialized)
 	{
+		PLOG_DEBUG << "MapModder Init For Normals - Quadrant " << quadtree->getQuadrant()->getPos().getIndexPosX() << "," << quadtree->getQuadrant()->getPos().getIndexPosZ();
+		
 		GDN_TheWorld_MapModder::incNumWorking();
 		
 		m_signalRequired = signalRequired;
@@ -3033,6 +3035,8 @@ void GDN_TheWorld_MapModder::initForSplatmap(QuadTree* quadtree, TheWorld_Utils:
 
 	if (m_initialized == MapType::uninitialized)
 	{
+		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadtree->getQuadrant()->getPos().getIndexPosX() << "," << quadtree->getQuadrant()->getPos().getIndexPosZ();
+
 		GDN_TheWorld_MapModder::incNumWorking();
 		
 		m_signalRequired = signalRequired;
@@ -3066,6 +3070,8 @@ void GDN_TheWorld_MapModder::initForGlobalMap(QuadTree* quadtree, size_t tileSiz
 
 	if (m_initialized == MapType::uninitialized)
 	{
+		PLOG_DEBUG << "MapModder Init For Globalmap - Quadrant " << quadtree->getQuadrant()->getPos().getIndexPosX() << "," << quadtree->getQuadrant()->getPos().getIndexPosZ();
+
 		GDN_TheWorld_MapModder::incNumWorking();
 
 		m_signalRequired = signalRequired;
@@ -4462,6 +4468,8 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		quadTree->getQuadrant()->unlockInternalData();
 
 		save = true;
+
+		PLOG_DEBUG << "MapModder Init For Normals - Quadrant " << quadTree->getQuadrant()->getPos().getIndexPosX() << "," << quadTree->getQuadrant()->getPos().getIndexPosZ() << " Work Done";
 	}
 	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForSplatmap)
 	{
@@ -4496,6 +4504,9 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		quadTree->getQuadrant()->unlockInternalData();
 
 		save = true;
+
+		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadTree->getQuadrant()->getPos().getIndexPosX() << "," << quadTree->getQuadrant()->getPos().getIndexPosZ() << " Work Done";
+
 	}
 	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForGlobalmap)
 	{
@@ -4521,6 +4532,8 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		quadTree->getQuadrant()->unlockInternalData();
 
 		save = true;
+
+		PLOG_DEBUG << "MapModder Init For Globalmap - Quadrant " << quadTree->getQuadrant()->getPos().getIndexPosX() << "," << quadTree->getQuadrant()->getPos().getIndexPosZ() << " Work Done";
 	}
 
 	if (save)
@@ -6906,23 +6919,15 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 		if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_pressed())
 		{
 			TrackedInputEvent event(this, TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT);
-			m_trackedInputEvents.push_back(event);
+			m_trackedInputEventsQueueForProcess.push_back(event);
+			m_trackedInputEventsQueueForTrackMouse.push_back(event);
 		}
-		//if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
-		//{
-		//	TrackedInputEvent event(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT);
-		//	m_trackedInputEvents.push_back(event);
-		//}
 		if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_pressed())
 		{
 			TrackedInputEvent event(this, TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT);
-			m_trackedInputEvents.push_back(event);
+			m_trackedInputEventsQueueForProcess.push_back(event);
+			m_trackedInputEventsQueueForTrackMouse.push_back(event);
 		}
-		//if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT && eventMouseButton->is_double_click())
-		//{
-		//	TrackedInputEvent event(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT);
-		//	m_trackedInputEvents.push_back(event);
-		//}
 	}
 
 	/* DEBUG */
@@ -6973,76 +6978,7 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 	else
 	{
 		// mapMode()
-
-		//GDN_TheWorld_Map* map = Map();
-		//	
-		//if (editMode())
-		//{
-		//	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-		//	if (eventMouseButton != nullptr)
-		//	{
-
-		//		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-		//		if (editModeUIControl != nullptr and editModeUIControl->initialized() and map != nullptr)
-		//		{
-		//			if (editModeUIControl->editingMap())
-		//			{
-		//				if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT and eventMouseButton->is_pressed())
-		//				{
-		//					TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
-		//					if (editModeUIControl->editingMap(terrainEdit))
-		//					{
-		//						godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
-		//						godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
-		//						TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-		//						map->addEditedMapQuadrantOverride(pos, terrainEdit);
-		//					}
-		//				}
-		//				if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_RIGHT and eventMouseButton->is_pressed())
-		//				{
-		//					godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord();
-		//					godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
-		//					TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-		//					map->removeEditedMapQuadrantOverride(pos);
-		//				}
-		//			}
-		//			else
-		//			{
-		//				if (!editModeUIControl->mouseInsideEditPanel() and eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT and eventMouseButton->is_double_click())
-		//				{
-		//					// edit quad
-		//				}
-		//			}
-		//		}
-		//	}
-		//}
-		//else
-		//{
-		//	const godot::InputEventMouseButton* eventMouseButton = godot::Object::cast_to<godot::InputEventMouseButton>(event.ptr());
-		//	if (eventMouseButton != nullptr)
-		//	{
-		//		if (eventMouseButton->get_button_index() == godot::MouseButton::MOUSE_BUTTON_LEFT && eventMouseButton->is_double_click())
-		//		{
-		//			godot::Vector2 mouseScreenPos = eventMouseButton->get_global_position();
-		//			godot::Vector2 screenCenter = getViewportSize() / 2;
-		//			godot::Vector2 mouseOffsetFromScreencenter = mouseScreenPos - screenCenter;
-		//			Camera2D* mapCamera = MapCamera();
-		//			if (mapCamera != nullptr)
-		//			{
-		//				GDN_TheWorld_MapCamera* cam = godot::Object::cast_to<GDN_TheWorld_MapCamera>(mapCamera);
-		//				mouseOffsetFromScreencenter *= (1 / cam->getZoomFactor());
-		//				godot::Vector2 globalCameraScreencenterPos = mapCamera->get_screen_center_position();
-		//				godot::Vector2 desideredCameraGlobalPos = globalCameraScreencenterPos + mouseOffsetFromScreencenter;
-		//				godot::Vector2 desideredCameraWorldPos = globalPosToWorldPos(desideredCameraGlobalPos);
-		//				adjustWorldCameraRequired(true, desideredCameraWorldPos);
-		//				//adjustWorldCamera(desideredCameraWorldPos);
-		//			}
-		//		}
-		//	}
-		//}
 	}
-
-
 
 	//if (event->is_action_pressed("ui_toggle_fullscreen"))
 	//{
@@ -7438,7 +7374,7 @@ void GDN_TheWorld_Viewer::toggleEditMode(void)
 	}
 	else
 	{
-		if (!positionVisible() && !normalVisible() && !gizmoVisible())
+		if (!showPositionOnCursorHit() && !normalVisible() && !gizmoVisible())
 			trackMouse(false);
 		mapGridOn(false);
 		//gridOn(false);
@@ -7460,7 +7396,7 @@ void GDN_TheWorld_Viewer::setEditMode(bool editMode)
 		}
 		else
 		{
-			if (!positionVisible() && !normalVisible() && !gizmoVisible())
+			if (!showPositionOnCursorHit() && !normalVisible() && !gizmoVisible())
 				trackMouse(false);
 			//gridOn(false);
 			GDN_TheWorld_Map* map = Map();
@@ -7523,42 +7459,75 @@ void GDN_TheWorld_Viewer::printKeyboardMapping(void)
 	Globals()->print("");
 	Globals()->print("KEYBOARD MAPPING");
 	Globals()->print("");
-	Globals()->print("LEFT							==> A	MOUSE BUTTON LEFT");
-	Globals()->print("RIGHT							==> D	MOUSE BUTTON LEFT");
-	Globals()->print("FORWARD						==>	W	MOUSE BUTTON MID	MOUSE WHEEL UP (WITH ALT MOVE ON MAP, WITHOUT MOVE FORWARD IN THE DIRECTION OF CAMERA)");
-	Globals()->print("BACKWARD						==>	S	MOUSE BUTTON MID	MOUSE WHEEL DOWN (WITH ALT MOVE ON MAP, WITHOUT MOVE BACKWARD IN THE DIRECTION OF CAMERA)");
-	Globals()->print("UP							==>	Q");
-	Globals()->print("DOWN							==>	E");
+	Globals()->print("      TOGGLE MAP VIEW					==>	M");
+	Globals()->print("      DROP PLAYER						==>	P");
+	Globals()->print("      CTRL-1/0						==>	SAVE VIEWPOINT 1/0");
+	Globals()->print("      ALT-1/0							==>	LOAD VIEWPOINT 1/0");
+	Globals()->print("      TOGGLE DEBUG STATS				==>	CTRL-ALT-D");
+	Globals()->print("      TOGGLE EDIT						==>	ALT-E");
+	Globals()->print("      TOGGLE TRACK MOUSE				==>	ALT-T");
+	Globals()->print("      DUMP							==>	ALT-D");
+	Globals()->print("      TOGGLE FULL SCREEN				==>	ALT-ENTER");
+	Globals()->print("      PRINT SCREEN					==>	ALT-C");
 	Globals()->print("");
-	Globals()->print("SHIFT							==>	LOW MOVEMENT");
-	Globals()->print("CTRL							==> FAST MOVEMENT");
+	Globals()->print("      TOGGLE DEBUG VISIBILITY			==>	F1");
+	Globals()->print("      ROTATE CHUNK DEBUG MODE			==>	F2");
+	Globals()->print("      ROTATE DRAWING MODE				==>	F3");
+	Globals()->print("      REFRESH VIEW					==>	F4");
+	Globals()->print("      TOGGLE WIREFRAME				==>	F5");
 	Globals()->print("");
-	Globals()->print("ROTATE CAMERA					==>	MOUSE BUTTON RIGHT");
-	Globals()->print("SHIFT ORI CAMERA				==>	MOUSE BUTTON LEFT");
-	Globals()->print("SHIFT VERT CAMERA				==>	MOUSE BUTTON MID");
+	Globals()->print("      EXIT							==>	ESC");
 	Globals()->print("");
-	Globals()->print("TOGGLE MAP VIEW				==>	M");
-	Globals()->print("TOGGLE TRACK PLAYER			==>	SHIFT-F");
-	Globals()->print("DROP PLAYER					==>	P");
-	Globals()->print("TOGGLE BACK MIRROR			==>	B");
-	Globals()->print("TOGGLE SATELLITE VIEW			==>	Y");
-	Globals()->print("CTRL-1/0						==>	SAVE VIEWPOINT 1/0");
-	Globals()->print("ALT-1/0						==>	LOAD VIEWPOINT 1/0");
-	Globals()->print("TOGGLE DEBUG STATS			==>	CTRL-ALT-D");
-	Globals()->print("TOGGLE EDIT					==>	ALT-E");
-	Globals()->print("TOGGLE TRACK MOUSE			==>	ALT-T");
-	Globals()->print("TOGGLE MAP GRID (MAP VIEW)	==>	ALT-G");
-	Globals()->print("DUMP							==>	ALT-D");
-	Globals()->print("TOGGLE FULL SCREEN			==>	ALT-ENTER");
-	Globals()->print("PRINT SCREEN					==>	ALT-C");
+	Globals()->print("   WORLD MODE");
 	Globals()->print("");
-	Globals()->print("TOGGLE DEBUG VISIBILITY		==>	F1");
-	Globals()->print("ROTATE CHUNK DEBUG MODE		==>	F2");
-	Globals()->print("ROTATE DRAWING MODE			==>	F3");
-	Globals()->print("REFRESH VIEW					==>	F4");
-	Globals()->print("TOGGLE WIREFRAME				==>	F5");
+	Globals()->print("      LEFT							==> A	MOUSE BUTTON LEFT");
+	Globals()->print("      RIGHT							==> D	MOUSE BUTTON LEFT");
+	Globals()->print("      FORWARD							==>	W	MOUSE BUTTON MID	MOUSE WHEEL UP (WITH ALT MOVE ON MAP, WITHOUT MOVE FORWARD IN THE DIRECTION OF CAMERA)");
+	Globals()->print("      BACKWARD						==>	S	MOUSE BUTTON MID	MOUSE WHEEL DOWN (WITH ALT MOVE ON MAP, WITHOUT MOVE BACKWARD IN THE DIRECTION OF CAMERA)");
+	Globals()->print("      UP								==>	Q");
+	Globals()->print("      DOWN							==>	E");
 	Globals()->print("");
-	Globals()->print("EXIT							==>	ESC");
+	Globals()->print("      SHIFT							==>	LOW MOVEMENT");
+	Globals()->print("      CTRL							==> FAST MOVEMENT");
+	Globals()->print("");
+	Globals()->print("      ROTATE CAMERA					==>	MOUSE BUTTON RIGHT");
+	Globals()->print("      SHIFT ORI CAMERA				==>	MOUSE BUTTON LEFT");
+	Globals()->print("      SHIFT VERT CAMERA				==>	MOUSE BUTTON MID");
+	Globals()->print("");
+	Globals()->print("      TOGGLE TRACK PLAYER				==>	SHIFT-F");
+	Globals()->print("      TOGGLE BACK MIRROR				==>	B");
+	Globals()->print("      TOGGLE SATELLITE VIEW			==>	Y");
+	Globals()->print("");
+	Globals()->print("      SHOW MOUSE HIT POSITION SELECTED");
+	Globals()->print("");
+	Globals()->print("         SET INITIAL POS FOR DISTANCE CALC	==> MOUSE DOUBLE BUTTON LEFT");
+	Globals()->print("         CANCEL DISTANCE CALC				==> MOUSE DOUBLE BUTTON RIGHT");
+	Globals()->print("");
+	Globals()->print("   MAP MODE");
+	Globals()->print("");
+	Globals()->print("      LEFT							==> A");
+	Globals()->print("      RIGHT							==> D");
+	Globals()->print("      FORWARD							==>	W");
+	Globals()->print("      BACKWARD						==>	S");
+	Globals()->print("");
+	Globals()->print("      CTRL							==> FAST MOVEMENT");
+	Globals()->print("");
+	Globals()->print("      MOUSE BUTTON LEFT				==> DRAG MAP");
+	Globals()->print("");
+	Globals()->print("      TOGGLE MAP GRID					==>	ALT-G");
+	Globals()->print("");
+	Globals()->print("      EDIT MODE DISABLED ");
+	Globals()->print("         MOUSE DOUBLE LEFT CLICK		==> move camera on selected point (same direction) and switch to world mode");
+	Globals()->print("");
+	Globals()->print("      EDIT MODE ENABLED");
+	Globals()->print("");
+	Globals()->print("         MOUSE DOUBLE LEFT CLICK		==> if pointed quadrant is already selected deselect it saving parameters from editor panel otherwise select pointed quadrant and activate the editing ");
+	Globals()->print("                                          of that quadrant setting editor panel parameter with its actual values, if it is not actually in world map editor panel parameters are used");
+	Globals()->print("         MOUSE DOUBLE RIGHT CLICK		==> if a quadrant is actually selected deselect it without modifying its parameters regardless which quadrant is pointed");
+	Globals()->print("         MOUSE LEFT CLICK				==> if exist an override for pointed quadrant its parameters are displayed in editor panel");
+	Globals()->print("         MOUSE RIGHT CLICK			==> if quadrant editing is active and no quadrant is selected do next things:");
+	Globals()->print("											   if pointed quadrant has an override remove it");
+	Globals()->print("											   if pointed quadrant does not have an override insert one using editor panel parameters");
 	Globals()->print("");
 	Globals()->print("===========================================================================");
 	Globals()->print("");
@@ -8455,14 +8424,16 @@ bool GDN_TheWorld_Viewer::isInputEventTracked(TrackedInputEvent::TrackedInputEve
 		return false;
 }
 
-void GDN_TheWorld_Viewer::compressTrackedInputEvents(TrackedInputEventContainer* inputEvents)
+void GDN_TheWorld_Viewer::compressTrackedInputEvents(TrackedInputEventContainer* inputEvents, TrackedInputEventQueue* trackedInputEventQueue)
 {
 	if (inputEvents == nullptr)
 		inputEvents = &m_trackedInputEventsForProcess;
+	if (trackedInputEventQueue == nullptr)
+		trackedInputEventQueue = &m_trackedInputEventsQueueForProcess;
 
-	if (!m_trackedInputEvents.empty())
+	if (!trackedInputEventQueue->empty())
 	{
-		for (auto& trackedInputEvent : m_trackedInputEvents)
+		for (auto& trackedInputEvent : *trackedInputEventQueue)
 		{
 			if (trackedInputEvent.isAvailable())
 			{
@@ -8516,17 +8487,19 @@ void GDN_TheWorld_Viewer::compressTrackedInputEvents(TrackedInputEventContainer*
 	//// DEBUG
 }
 
-void GDN_TheWorld_Viewer::resetTrackedInputEvents(TrackedInputEventContainer* inputEvents)
+void GDN_TheWorld_Viewer::resetTrackedInputEvents(TrackedInputEventContainer* inputEvents, TrackedInputEventQueue* trackedInputEventQueue)
 {
 	if (inputEvents == nullptr)
 		inputEvents = &m_trackedInputEventsForProcess;
+	if (trackedInputEventQueue == nullptr)
+		trackedInputEventQueue = &m_trackedInputEventsQueueForProcess;
 
 	if (!inputEvents->empty())
 		inputEvents->clear();
-	if (!m_trackedInputEvents.empty())
+	if (!trackedInputEventQueue->empty())
 	{
 		bool allItemsReset = true;
-		for (auto& trackedInputEvent : m_trackedInputEvents)
+		for (auto& trackedInputEvent : *trackedInputEventQueue)
 		{
 			//if (trackedInputEvent.isAvailable())		// trackedInputEvent was available to check so we can reset it now
 			//	trackedInputEvent.reset();
@@ -8537,10 +8510,10 @@ void GDN_TheWorld_Viewer::resetTrackedInputEvents(TrackedInputEventContainer* in
 		}
 
 		if (allItemsReset)
-			m_trackedInputEvents.clear();
+			trackedInputEventQueue->clear();
 	}
-	else
-		assert(m_trackedInputEvents.empty());
+	//else
+	//	assert(trackedInputEventQueue->empty());
 }
 
 void GDN_TheWorld_Viewer::_process(double _delta)
@@ -10946,7 +10919,7 @@ void GDN_TheWorld_Viewer::process_castRayFromCamera(godot::Camera3D* activeWorld
 			float distanceFromCameraInQuads = hitDistance / Globals()->heightmapSizeInWUs();
 
 			std::string text = "";
-			if (!positionVisible())
+			if (!showPositionOnCursorHit())
 				text = "   Dist=" + std::format("{:.2f}", hitDistance) + " quads=" + std::format("{:.2f}", distanceFromCameraInQuads) + " Deg=" + std::format("{:.2f}", degreeWithNorthDirection) + "° pitch=" + std::format("{:.2f}", pitch) + "°";
 			m_rayFromCameraDrawer->updateLine(m_lineRayFromCameraIdx, globalPosToWorldPos(activeWorldCamera->get_global_position()) + godot::Vector3(0, -1.0f, 0), hitPositionInMap, text);
 			
@@ -10989,7 +10962,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 				GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 				if (m_editMode && editModeUIControl && editModeUIControl->initialized())
 				{
-					editModeUIControl->setMouseHitLabelText(std::string("X=") + std::format("{:.2f}", m_trackedMouseHitWorldPos.x) + " Y=" + std::format("{:.2f}", m_trackedMouseHitWorldPos.y) + " Z=" + std::format("{:.2f}", m_trackedMouseHitWorldPos.z));
+					editModeUIControl->setMouseHitPos(m_trackedMouseHitWorldPos);
 					editModeUIControl->setMouseQuadHitLabelText(m_mouseQuadrantHitName);
 					editModeUIControl->setMouseQuadHitPosLabelText(std::string("X=") + std::format("{:.2f}", m_mouseQuadrantHitPos.x) + " Z=" + std::format("{:.2f}", m_mouseQuadrantHitPos.z) + " " + std::format("{:.2f}", pos.getSizeInWU()));
 					QuadTree* quadrantHit = nullptr;
@@ -11005,7 +10978,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 		godot::Node* collider = nullptr;
 		if (trackMouse())
 		{
-			compressTrackedInputEvents(&m_trackedInputEventsForTrackMouse);
+			compressTrackedInputEvents(&m_trackedInputEventsForTrackMouse, &m_trackedInputEventsQueueForTrackMouse);
 
 			int64_t timeElapsed = TIME()->get_ticks_msec();
 			if (timeElapsed - m_timeElapsedFromLastMouseTrack > TIME_INTERVAL_BETWEEN_MOUSE_TRACK)
@@ -11044,7 +11017,9 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 				if (m_mouseTrackedOnSomething)
 				{
 					if (m_editMode && editModeUIControl && editModeUIControl->initialized())
-						editModeUIControl->setMouseHitLabelText(std::string("X=") + std::format("{:.2f}", m_trackedMouseHitWorldPos.x) + " Y=" + std::format("{:.2f}", m_trackedMouseHitWorldPos.y) + " Z=" + std::format("{:.2f}", m_trackedMouseHitWorldPos.z));
+					{
+						editModeUIControl->setMouseHitPos(m_trackedMouseHitWorldPos);
+					}
 
 					godot::Vector3 normalHit = Vector3Zero;
 					if (rayArray.has("normal"))
@@ -11151,14 +11126,14 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 					m_previousTrackedMouseHitInMap = godot::Vector3();
 				}
 
-				resetTrackedInputEvents(&m_trackedInputEventsForTrackMouse);
+				resetTrackedInputEvents(&m_trackedInputEventsForTrackMouse, &m_trackedInputEventsQueueForTrackMouse);
 
 				m_timeElapsedFromLastMouseTrack = timeElapsed;
 			}
 		}
 		else
 		{
-			resetTrackedInputEvents(&m_trackedInputEventsForTrackMouse);
+			resetTrackedInputEvents(&m_trackedInputEventsForTrackMouse, &m_trackedInputEventsQueueForTrackMouse);
 
 			GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 			if (m_editMode && editModeUIControl && editModeUIControl->initialized())
@@ -11176,7 +11151,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 	//{
 		if (hit)
 		{
-			if (positionVisible())
+			if (showPositionOnCursorHit())
 			{
 				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, nullptr, &m_trackedInputEventsForTrackMouse))
 					trackingDistance(true, mouseHitInMap);
@@ -11249,7 +11224,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 					m_normalDrawer->set_visible(false);
 
 				bool _positionVisible = false;
-				if (positionVisible())
+				if (showPositionOnCursorHit())
 				{
 					if (m_labelPositionXIdx != -1 && m_labelPositionYIdx != -1 && m_labelPositionZIdx != -1 && m_labelPositionDistIdx != -1 && m_labelPositionDirIdx != -1)
 					{

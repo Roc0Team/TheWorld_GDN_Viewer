@@ -213,7 +213,7 @@ namespace godot
 
 			godot::Button* m_terrBlendingButton = nullptr;
 			godot::Control* m_terrBlendingVBoxContainer = nullptr;
-			godot::CheckBox* m_blendAllCheckBox = nullptr;
+			//godot::CheckBox* m_blendAllCheckBox = nullptr;
 			godot::CheckBox* m_checkBlend = nullptr;
 			godot::CheckBox* m_autoBlendCheckBox = nullptr;
 
@@ -253,7 +253,7 @@ namespace godot
 			//std::string m_canContainSeaStr;
 			std::string m_counterStr;
 			std::string m_note1Str;
-			std::string m_mouseHitStr;
+			godot::Vector3 m_mouseHitPos;
 			std::string m_mouseQuadHitStr;
 			std::string m_mouseQuadHitPosStr;
 			std::string m_mouseQuadSelStr;
@@ -336,7 +336,7 @@ namespace godot
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
 		void editModeSetTerrType(void);
-		bool blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock);
+		bool blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock, bool& quadrantBusy, bool overrideBlendingParameters);
 		bool checkBlend(void);
 		bool autoBlendPermitted(void);
 		void editModeBlendAction(void);
@@ -354,6 +354,7 @@ namespace godot
 
 		void editModeGenerate(void);
 		void editModeBlend(void);
+		void editModeBlendNew(void);
 		void editModeResetNormalsSplatmap(void);
 		void editModeGenNormals(void);
 		void editModeGenNormals_1(bool forceGenSelectedQuad, bool evaluateSelectedQuadOnly);
@@ -380,7 +381,7 @@ namespace godot
 		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
 		
 		//void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
-		void prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
+		void prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters);
 		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
 		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, Quadrant* quadrant, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
 		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
@@ -460,7 +461,7 @@ namespace godot
 
 		QuadTree* getQuadrantHit(void) const;
 		void setQuadrantHit(QuadTree* quadTree);
-		void setMouseHitLabelText(std::string text);
+		void setMouseHitPos(godot::Vector3 mouseHitPos);
 		void setMouseQuadHitLabelText(std::string text);
 		void setMouseQuadHitPosLabelText(std::string text);
 		void setMouseQuadSelLabelText(std::string text);
@@ -574,7 +575,8 @@ namespace godot
 			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder,
 			bool updateUI,
 			bool unlock,
-			bool saveAndUpload);
+			bool saveAndUpload,
+			bool overrideBlendingParameters);
 
 	private:
 		bool m_initialized;

@@ -9427,50 +9427,57 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 
 	std::vector<TheWorld_Utils::QuadrantPos> toErase;
 
-	for (auto& item : m_toErase)
+	bool canProceedErasingutOfViewQuads = true;
+	if (editModeUIControl != nullptr and editModeUIControl->initialized() and editModeUIControl->terrainDataLocked())
+		canProceedErasingutOfViewQuads = false;
+
+	if (canProceedErasingutOfViewQuads)
 	{
-		size_t numErased = 0;
-
-		TheWorld_Utils::QuadrantPos pos = item.first;
-
-		if (m_worldQuadrantsMap.contains(pos))
+		for (auto& item : m_toErase)
 		{
-			bool locked = m_worldQuadrantsMap[pos]->getQuadrant()->lockInternalData();
-			if (locked)
+			size_t numErased = 0;
+
+			TheWorld_Utils::QuadrantPos pos = item.first;
+
+			if (m_worldQuadrantsMap.contains(pos))
 			{
-				if (editModeUIControl != nullptr)
+				bool locked = m_worldQuadrantsMap[pos]->getQuadrant()->lockInternalData();
+				if (locked)
 				{
-					bool manualSave;
-					QuadTree* quadTreeToErase = m_worldQuadrantsMap[pos].get();
-					if (!editModeUIControl->isQuadToSave(pos, manualSave) && !quadTreeToErase->getQuadrant()->needUploadToServer())
+					if (editModeUIControl != nullptr && editModeUIControl->initialized())
 					{
-						m_adjacentQuadrantsHit.remove(quadTreeToErase);
-						if (m_quadrantHit == quadTreeToErase)
-							m_quadrantHit = nullptr;
-						if (m_editMode && editModeUIControl && editModeUIControl->initialized())
-							if (editModeUIControl->getQuadrantHit() == quadTreeToErase)
-								editModeUIControl->setQuadrantHit(nullptr);
+						bool manualSave;
+						QuadTree* quadTreeToErase = m_worldQuadrantsMap[pos].get();
+						if (!editModeUIControl->isQuadToSave(pos, manualSave) && !quadTreeToErase->getQuadrant()->needUploadToServer())
+						{
+							m_adjacentQuadrantsHit.remove(quadTreeToErase);
+							if (m_quadrantHit == quadTreeToErase)
+								m_quadrantHit = nullptr;
+							if (m_editMode)
+								if (editModeUIControl->getQuadrantHit() == quadTreeToErase)
+									editModeUIControl->setQuadrantHit(nullptr);
+							numErased = m_worldQuadrantsMap.erase(pos);
+							toErase.push_back(pos);
+							//break;
+						}
+						else
+							m_worldQuadrantsMap[pos]->getQuadrant()->unlockInternalData();
+					}
+					else
+					{
 						numErased = m_worldQuadrantsMap.erase(pos);
 						toErase.push_back(pos);
 						//break;
 					}
-					else
-						m_worldQuadrantsMap[pos]->getQuadrant()->unlockInternalData();
-				}
-				else
-				{
-					numErased = m_worldQuadrantsMap.erase(pos);
-					toErase.push_back(pos);
-					//break;
 				}
 			}
 		}
-	}
 
-	//m_toErase.clear();
-	for (auto& pos : toErase)
-	{
-		m_toErase.erase(pos);
+		//m_toErase.clear();
+		for (auto& pos : toErase)
+		{
+			m_toErase.erase(pos);
+		}
 	}
 
 	toErase.clear();

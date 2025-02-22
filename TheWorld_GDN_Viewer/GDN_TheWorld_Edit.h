@@ -435,6 +435,7 @@ namespace godot
 		//float minHeight(void);
 		void setMaxHeight(float maxHeight);
 		//float maxHeight(void);
+		void setSelectedTerrainType(enum class TheWorld_Utils::TerrainEdit::TerrainType terrainType);
 		//void setCanContainSea(bool canContainSea);
 		void setElapsed(size_t elapsed, bool onGoing);
 		size_t elapsed(void);

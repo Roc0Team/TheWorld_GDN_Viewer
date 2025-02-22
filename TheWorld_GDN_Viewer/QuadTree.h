@@ -632,6 +632,7 @@ namespace godot
 			return m_mapImage;
 		}
 
+		bool checkBlendNeeded(void);
 		bool checkBlendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
 		bool checkNorthSideBlendNeeded(QuadTree* northQuadrantTree = nullptr);
 		bool checkSouthSideBlendNeeded(QuadTree* southQuadrantTree = nullptr);
@@ -811,6 +812,7 @@ namespace godot
 //#define GLOBAL_SHADER_PARAM_SHOW_TERRAIN			"gu_show_terrain"
 #define GLOBAL_SHADER_PARAM_SHOW_CHUNKS				"gu_show_chunks"
 #define GLOBAL_SHADER_PARAM_SHOW_WIREFRAME			"gu_show_wireframe"
+#define GLOBAL_SHADER_PARAM_SHOW_NEED_BLENDING		"gu_show_need_blending"
 //#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_texture_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_splatmap_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_splatmapBlendingSize to avoid reading it from RenderingServer (slow operation)

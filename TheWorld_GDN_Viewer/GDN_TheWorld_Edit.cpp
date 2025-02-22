@@ -764,11 +764,12 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		//m_innerData->m_blendAllCheckBox = createControl<godot::CheckBox>(hBoxContainer);
 		//m_innerData->m_blendAllCheckBox->set_text("All");
 		//m_innerData->m_blendAllCheckBox->set_toggle_mode(true);
-		m_innerData->m_checkBlend = createControl<godot::CheckBox>(hBoxContainer);
+		m_innerData->m_checkBlend = createControl<godot::CheckBox>(hBoxContainer, "CheckBlendCheckBox");
 		m_innerData->m_checkBlend->set_text("Check Blend");
 		m_innerData->m_checkBlend->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_checkBlend, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 		m_innerData->m_autoBlendCheckBox = createControl<godot::CheckBox>(hBoxContainer);
-		m_innerData->m_autoBlendCheckBox->set_text("Auto Blend (S/U)");
+		m_innerData->m_autoBlendCheckBox->set_text("Auto Blend (Save/Upload)");
 		m_innerData->m_autoBlendCheckBox->set_toggle_mode(true);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
@@ -1532,6 +1533,12 @@ size_t GDN_TheWorld_Edit::splatMapMode(void)
 void GDN_TheWorld_Edit::setMinHeight(float minHeight)
 {
 	m_innerData->m_minHeightStr = std::format("{:.2f}", minHeight);
+	m_infoLabelTextChanged = true;
+}
+
+void GDN_TheWorld_Edit::setSelectedTerrainType(enum class TheWorld_Utils::TerrainEdit::TerrainType terrainType)
+{
+	m_innerData->m_selectedTerrainType = terrainType;
 	m_infoLabelTextChanged = true;
 }
 
@@ -2923,6 +2930,13 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 		else
 			m_viewer->gizmoVisible(false);
 	}
+	else if (_objectName == "CheckBlendCheckBox")
+	{
+		if (pressed)
+			Globals()->setParamShowNeedBlending(true);
+		else
+			Globals()->setParamShowNeedBlending(false);
+	}
 	else if (_objectName == "ShowNormalCheckBox")
 	{
 		if (pressed)
@@ -3549,6 +3563,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	setMinHeight(terrainEdit->minHeight);
 	setMaxHeight(terrainEdit->maxHeight);
+	setSelectedTerrainType(terrainEdit->terrainType);
 	//setCanContainSea((terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 
 	// 12. set texture according to editor
@@ -3557,6 +3572,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 	strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 
+	// 13. blend selected quadrant
 	bool processed = false, quadrantBusy = true;
 	while (not processed and quadrantBusy)
 	{
@@ -3565,27 +3581,45 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		if (not processed and quadrantBusy)
 			Sleep(1);
 	}
-	m_completedItems++;
+	if (processed)
+		m_completedItems++;
 
-	//// blend all quadrants that need blending
-	//{
-	//	std::vector<TheWorld_Utils::QuadrantPos> allQuadrantPos;
-	//	m_viewer->getAllQuadrantPos(allQuadrantPos);
+	// 14. blend neighbour quadrants
+	{
+		std::vector<TheWorld_Utils::QuadrantPos> neighbours;
+		quadTreeSel->getQuadrant()->getPos().getNeighbours(neighbours, 2);
 
-	//	for (auto& pos : allQuadrantPos)
-	//	{
-	//		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
-	//		if (quadTree != nullptr)
-	//		{
-
-	//		}
-	//	}
-
-	//}
-	
+		m_allItems += neighbours.size();
+		for (auto& pos : neighbours)
+		{
+			if (pos.getIndexPosX() == -14 and pos.getIndexPosZ() == 24)		// #####
+				assert(m_allItems > 0);									// #####
+			
+			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+			if (quadTree != nullptr)
+			{
+				bool blendNeeded = quadTree->getQuadrant()->checkBlendNeeded();
+				if (blendNeeded)
+				{
+					bool processed = false, quadrantBusy = true;
+					while (not processed and quadrantBusy)
+					{
+						processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true);
+						if (not processed and quadrantBusy)
+							Sleep(1);
+					}
+					if (processed)
+						m_completedItems++;
+				}
+				else
+					m_completedItems++;
+			}
+		}
+	}
+	 
 	// final actions
-	setMinHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->minHeight);
-	setMaxHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->maxHeight);
+	setMinHeight(terrainEdit->minHeight);
+	setMaxHeight(terrainEdit->maxHeight);
 
 	setMessage(godot::String("Completed!"), true);
 
@@ -3625,6 +3659,9 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 {
 	bool processed = false;
 	quadrantBusy = false;
+
+	//if (blendingPos.getIndexPosX() == -14 and blendingPos.getIndexPosZ() == 21)	// #####
+	//	assert(processed == false);												// #####
 
 	bool autoBlendPermitted = GDN_TheWorld_Edit::autoBlendPermitted();
 	if (automaticBlending and not autoBlendPermitted)

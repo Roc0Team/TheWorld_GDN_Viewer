@@ -1185,6 +1185,12 @@ namespace godot
 		PLOG_INFO << "View Parameter - Show Wireframe: " << (m_paramShowWireframe ? "true" : "false");
 	}
 
+	void GDN_TheWorld_Globals::setParamShowNeedBlending(bool b)
+	{
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_NEED_BLENDING, b);
+		PLOG_INFO << "View Parameter - Show Need Blending: " << (b ? "true" : "false");
+	}
+
 	void GDN_TheWorld_Globals::setParamElevationZero(bool b)
 	{
 		m_paramElevationZero = b;

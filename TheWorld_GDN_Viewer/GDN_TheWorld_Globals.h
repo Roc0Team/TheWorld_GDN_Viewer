@@ -760,6 +760,9 @@ namespace godot
 			return m_paramShowWireframe;
 		}
 		void setParamShowWireframe(bool f);
+
+		void setParamShowNeedBlending(bool b);
+
 		//int64_t getParamDepthQuadWithCollisionInfo(void)
 		//{
 		//	return m_paramDepthQuadWithCollisionInfo;

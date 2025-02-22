@@ -4516,29 +4516,26 @@ void Quadrant::process_checkBlendNeeded(double _delta)
 
 	editModeUIControl->terrainDataLocked(true);
 
-	TheWorld_Utils::QuadrantPos currentPos = getPos();
-	TheWorld_Utils::QuadrantPos pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-	QuadTree* northQuadrantTree = m_viewer->getQuadTree(pos, true, false, true);
-	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
-	QuadTree* southQuadrantTree = m_viewer->getQuadTree(pos, true, false, true);
-	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
-	QuadTree* eastQuadrantTree = m_viewer->getQuadTree(pos, true, false, true);
-	pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
-	QuadTree* westQuadrantTree = m_viewer->getQuadTree(pos, true, false, true);
-
-	static bool checkBlendNeeded = true;
-	if (checkBlendNeeded)
 	{
+		TheWorld_Utils::QuadrantPos currentPos = getPos();
+		TheWorld_Utils::QuadrantPos pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+		QuadTree* northQuadrantTree = m_viewer->getQuadTree(pos, true, false, true);
+		pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
+		QuadTree* southQuadrantTree = m_viewer->getQuadTree(pos, true, false, true);
+		pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
+		QuadTree* eastQuadrantTree = m_viewer->getQuadTree(pos, true, false, true);
+		pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
+		QuadTree* westQuadrantTree = m_viewer->getQuadTree(pos, true, false, true);
+
 		bool northSideBlendNeeded = false;
 		bool southSideBlendNeeded = false;
 		bool eastSideBlendNeeded = false;
 		bool westSideBlendNeeded = false;
 
-		//if (currentPos.getIndexPosX() == -16 and currentPos.getIndexPosZ() == 22)	// #####
-		//	assert(northSideBlendNeeded == false);									// #####
+		if (currentPos.getIndexPosX() == -14 and currentPos.getIndexPosZ() == 24)	// #####
+			assert(northSideBlendNeeded == false);									// #####
 
-		bool blendNeeded = Quadrant::checkBlendNeeded(northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
-		setBlendNeeded(blendNeeded, northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded);
+		bool blendNeeded = checkBlendNeeded(northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
 	}
 
 	editModeUIControl->terrainDataLocked(false);
@@ -5132,16 +5129,49 @@ godot::Vector4 Quadrant::quadrantTextureLayers(void) const
 	return v;
 }
 
+bool Quadrant::checkBlendNeeded(void)
+{
+	if (empty())
+		return false;
+	
+	TheWorld_Utils::QuadrantPos currentPos = getPos();
+	TheWorld_Utils::QuadrantPos _pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+	QuadTree* northQuadrantTree = m_viewer->getQuadTree(_pos, true, false, true);
+	_pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
+	QuadTree* southQuadrantTree = m_viewer->getQuadTree(_pos, true, false, true);
+	_pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
+	QuadTree* eastQuadrantTree = m_viewer->getQuadTree(_pos, true, false, true);
+	_pos = currentPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
+	QuadTree* westQuadrantTree = m_viewer->getQuadTree(_pos, true, false, true);
+
+	bool northSideBlendNeeded = false;
+	bool southSideBlendNeeded = false;
+	bool eastSideBlendNeeded = false;
+	bool westSideBlendNeeded = false;
+
+	//if (currentPos.getIndexPosX() == -16 and currentPos.getIndexPosZ() == 22)	// #####
+	//	assert(northSideBlendNeeded == false);									// #####
+
+	bool blendNeeded = checkBlendNeeded(northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
+	return blendNeeded;
+}
+
 bool Quadrant::checkBlendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree, QuadTree* southQuadrantTree, QuadTree* eastQuadrantTree, QuadTree* westQuadrantTree)
 {
 	northSideBlendNeeded = Quadrant::checkNorthSideBlendNeeded(northQuadrantTree);
 	southSideBlendNeeded = Quadrant::checkSouthSideBlendNeeded(southQuadrantTree);
 	eastSideBlendNeeded = Quadrant::checkEastSideBlendNeeded(eastQuadrantTree);
 	westSideBlendNeeded = Quadrant::checkWestSideBlendNeeded(westQuadrantTree);
+
+	bool blendNeeded;
+
 	if (northSideBlendNeeded or southSideBlendNeeded or eastSideBlendNeeded or westSideBlendNeeded)
-		return true;
+		blendNeeded = true;
 	else
-		return false;
+		blendNeeded = false;
+
+	setBlendNeeded(blendNeeded, northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded);
+	return blendNeeded;
 }
 
 bool Quadrant::checkNorthSideBlendNeeded(QuadTree* northQuadrantTree)

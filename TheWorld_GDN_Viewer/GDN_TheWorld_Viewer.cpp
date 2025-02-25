@@ -5209,6 +5209,8 @@ bool GDN_TheWorld_Viewer::init(void)
 		//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_TERRAIN, globals->getParamShowTerrain());
 		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, globals->getParamShowChunks());
 
+		highlightHitQuadrant(false, true);
+
 		godot::String waterFoamImageName("res://addons/twviewer/shaders/water_foam.png");
 		godot::Ref<godot::Texture2D> waterFoamTex = ResourceLoader::get_singleton()->load(waterFoamImageName);
 		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_WATER_FOAM, waterFoamTex);
@@ -7374,7 +7376,7 @@ void GDN_TheWorld_Viewer::toggleEditMode(void)
 	}
 	else
 	{
-		if (!showPositionOnCursorHit() && !normalVisible() && !gizmoVisible())
+		if (!showPositionOnCursorHit() && !normalVisible() && !gizmoVisible() && !highlightHitQuadrant())
 			trackMouse(false);
 		mapGridOn(false);
 		//gridOn(false);
@@ -7396,7 +7398,7 @@ void GDN_TheWorld_Viewer::setEditMode(bool editMode)
 		}
 		else
 		{
-			if (!showPositionOnCursorHit() && !normalVisible() && !gizmoVisible())
+			if (!showPositionOnCursorHit() && !normalVisible() && !gizmoVisible() && !highlightHitQuadrant())
 				trackMouse(false);
 			//gridOn(false);
 			GDN_TheWorld_Map* map = Map();
@@ -9572,7 +9574,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 			//if (quadrant->getPos().getIndexPosX() == -9 and quadrant->getPos().getIndexPosZ() == -10)	// #####
 			//	assert(editModeUIControl != nullptr);									// #####
 
-			if (quadrant->blendNeeded())
+			if (quadrant->blendNeeded() and not editModeUIControl->isDelayedBlend(quadrant->getPos()))
 			{
 				bool processed = quadrant->process_blend();
 				if (processed)
@@ -9582,15 +9584,25 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	}
 
 	if (globals->getParamShowSeaChanged())
+	{
 		globals->setParamShowSeaChanged(false);
+		if (editModeUIControl != nullptr and editModeUIControl->initialized())
+			editModeUIControl->showSeaPressed(globals->getParamShowSea());
+	}
 
 	if (globals->getParamShowTerrainChanged())
+	{
 		globals->setParamShowTerrainChanged(false);
+		if (editModeUIControl != nullptr and editModeUIControl->initialized())
+			editModeUIControl->showTerrainPressed(globals->getParamShowTerrain());
+	}
 
 	if (globals->getParamShowFogChanged())
 	{
 		adjustEnvironment();
 		globals->setParamShowFogChanged(false);
+		if (editModeUIControl != nullptr and editModeUIControl->initialized())
+			editModeUIControl->showFogPressed(globals->getParamShowFog());
 	}
 		
 	if (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed)
@@ -12628,6 +12640,15 @@ void GDN_TheWorld_Viewer::_physics_process(double _delta)
 			m_altPressed = true;
 		else
 			m_altPressed = false;
+	}
+}
+
+void GDN_TheWorld_Viewer::highlightHitQuadrant(bool b, bool force)
+{
+	if (m_highlightingHitQuadrant != b or force)
+	{
+		m_highlightingHitQuadrant = b;
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_HIGHLIGHT_HIT_QUAD, m_highlightingHitQuadrant);
 	}
 }
 

@@ -817,6 +817,7 @@ namespace godot
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_texture_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_splatmap_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_splatmapBlendingSize to avoid reading it from RenderingServer (slow operation)
 #define GLOBAL_SHADER_PARAM_FORCE_ELEVATION_0		"gu_force_height_0"
+#define GLOBAL_SHADER_PARAM_HIGHLIGHT_HIT_QUAD		"gu_highlight_hit_quadrant"
 
 #define GLOBAL_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT							"gu_sea_flat_sea_height"
 #define	DEFAULT_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT							THEWORLD_SEA_LEVEL

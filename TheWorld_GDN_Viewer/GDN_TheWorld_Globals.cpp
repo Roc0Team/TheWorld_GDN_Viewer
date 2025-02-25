@@ -2,6 +2,7 @@
 #include "GDN_TheWorld_Globals.h"
 #include "GDN_TheWorld_Viewer.h"
 #include "GDN_TheWorld_Camera.h"
+#include "GDN_TheWorld_Edit.h"
 
 #pragma warning(push, 0)
 #include <godot_cpp/classes/window.hpp>
@@ -1176,6 +1177,13 @@ namespace godot
 		m_paramShowChunks = b;
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, m_paramShowChunks);
 		PLOG_INFO << "View Parameter - Show Chunks: " << (m_paramShowChunks ? "true" : "false");
+		GDN_TheWorld_Viewer* viewer = Viewer();
+		if (viewer != nullptr)
+		{
+			GDN_TheWorld_Edit* editModeUIControl = viewer->EditModeUIControl();
+			if (editModeUIControl != nullptr and editModeUIControl->initialized())
+				editModeUIControl->showChunksPressed(getParamShowChunks());
+		}
 	}
 
 	void GDN_TheWorld_Globals::setParamShowWireframe(bool b)
@@ -1183,6 +1191,13 @@ namespace godot
 		m_paramShowWireframe = b;
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_WIREFRAME, m_paramShowWireframe);
 		PLOG_INFO << "View Parameter - Show Wireframe: " << (m_paramShowWireframe ? "true" : "false");
+		GDN_TheWorld_Viewer* viewer = Viewer();
+		if (viewer != nullptr)
+		{
+			GDN_TheWorld_Edit* editModeUIControl = viewer->EditModeUIControl();
+			if (editModeUIControl != nullptr and editModeUIControl->initialized())
+				editModeUIControl->showWireframePressed(getParamShowWireframe());
+		}
 	}
 
 	void GDN_TheWorld_Globals::setParamShowNeedBlending(bool b)

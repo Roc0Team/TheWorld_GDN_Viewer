@@ -344,6 +344,51 @@ bool GDN_TheWorld_Edit::editingMap(TheWorld_Utils::TerrainEdit& terrainEdit)
 		return false;
 }
 
+void GDN_TheWorld_Edit::showTerrainPressed(bool b)
+{
+	if (m_innerData->m_showTerrain == nullptr)
+		return;
+
+	if (m_innerData->m_showTerrain->is_pressed() != b)
+		m_innerData->m_showTerrain->set_pressed(b);
+}
+
+void GDN_TheWorld_Edit::showSeaPressed(bool b)
+{
+	if (m_innerData->m_showSea == nullptr)
+		return;
+
+	if (m_innerData->m_showSea->is_pressed() != b)
+		m_innerData->m_showSea->set_pressed(b);
+}
+
+void GDN_TheWorld_Edit::showFogPressed(bool b)
+{
+	if (m_innerData->m_showFog == nullptr)
+		return;
+
+	if (m_innerData->m_showFog->is_pressed() != b)
+		m_innerData->m_showFog->set_pressed(b);
+}
+
+void GDN_TheWorld_Edit::showChunksPressed(bool b)
+{
+	if (m_innerData->m_showChunks == nullptr)
+		return;
+
+	if (m_innerData->m_showChunks->is_pressed() != b)
+		m_innerData->m_showChunks->set_pressed(b);
+}
+
+void GDN_TheWorld_Edit::showWireframePressed(bool b)
+{
+	if (m_innerData->m_showWireframe == nullptr)
+		return;
+
+	if (m_innerData->m_showWireframe->is_pressed() != b)
+		m_innerData->m_showWireframe->set_pressed(b);
+}
+
 void GDN_TheWorld_Edit::editingMap(bool b)
 {
 	if (m_innerData->m_terrTypeButton == nullptr)
@@ -377,6 +422,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	m_innerData = std::make_unique<InnerData>();
 
 	m_viewer = viewer;
+	GDN_TheWorld_Globals* globals = m_viewer->Globals();
 
 	//TheWorld_Utils::WorldModifierPos pos(0, 4096, 4096, TheWorld_Utils::WMType::elevator, 0);
 	//m_wms[pos] = std::make_unique<TheWorld_Utils::WorldModifier>(pos, TheWorld_Utils::WMFunctionType::ConsiderMinMax, 10000.0f, 0.0f, 200.0f, TheWorld_Utils::WMOrder::MaxEffectOnWM);
@@ -590,6 +636,44 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_showPosition->set_text("Show Position");
 		m_innerData->m_showPosition->set_toggle_mode(true);
 		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showPosition, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrainInfoVBoxContainer);
+		m_innerData->m_showTerrain = createControl<godot::CheckBox>(hBoxContainer, "ShowTerrainCheckBox");
+		m_innerData->m_showTerrain->set_text("Show Terrain");
+		m_innerData->m_showTerrain->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showTerrain, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		if (globals->getParamShowTerrain())
+			m_innerData->m_showTerrain->set_pressed(true);
+		m_innerData->m_showSea = createControl<godot::CheckBox>(hBoxContainer, "ShowSeaCheckBox");
+		m_innerData->m_showSea->set_text("Show Sea");
+		m_innerData->m_showSea->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showSea, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		if (globals->getParamShowSea())
+			m_innerData->m_showSea->set_pressed(true);
+		m_innerData->m_showFog = createControl<godot::CheckBox>(hBoxContainer, "ShowFogCheckBox");
+		m_innerData->m_showFog->set_text("Show Fog");
+		m_innerData->m_showFog->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showFog, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		if (globals->getParamShowFog())
+			m_innerData->m_showFog->set_pressed(true);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrainInfoVBoxContainer);
+		m_innerData->m_highlightHitQuadrant = createControl<godot::CheckBox>(hBoxContainer, "HighlightHitQuadrantCheckBox");
+		m_innerData->m_highlightHitQuadrant->set_text("Highlight Hit Quad");
+		m_innerData->m_highlightHitQuadrant->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_highlightHitQuadrant, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		m_innerData->m_showChunks = createControl<godot::CheckBox>(hBoxContainer, "ShowChunksCheckBox");
+		m_innerData->m_showChunks->set_text("Show Chunks");
+		m_innerData->m_showChunks->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showChunks, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		if (globals->getParamShowChunks())
+			m_innerData->m_showChunks->set_pressed(true);
+		m_innerData->m_showWireframe = createControl<godot::CheckBox>(hBoxContainer, "ShowWireframeCheckBox");
+		m_innerData->m_showWireframe->set_text("Wireframe");
+		m_innerData->m_showWireframe->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showWireframe, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		if (globals->getParamShowWireframe())
+			m_innerData->m_showWireframe->set_pressed(true);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrainInfoVBoxContainer);
 		m_innerData->m_gridON = createControl<godot::CheckBox>(hBoxContainer, "GridOnCheckBox");
@@ -1704,7 +1788,9 @@ void GDN_TheWorld_Edit::setNumQuadrantToUpload(size_t num)
 
 void GDN_TheWorld_Edit::setNumQuadrantToBlend(size_t num)
 {
-	m_innerData->m_numQuadrantToBlendLabel->set_text(std::to_string(num).c_str());
+	//m_innerData->m_numQuadrantToBlendLabel->set_text(std::to_string(num).c_str());
+	m_innerData->m_numQuadrantToBlend = num;
+	m_infoLabelTextChanged = true;
 }
 
 void GDN_TheWorld_Edit::setNumQuadrantLocked(size_t num)
@@ -2239,6 +2325,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 
 	if (m_infoLabelTextChanged && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::minimalWorldDeployed || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) /* && m_innerData->m_quadTreeHit != nullptr*/)
 	{
+		m_innerData->m_numQuadrantToBlendLabel->set_text(std::to_string(m_innerData->m_numQuadrantToBlend + numQuadsToDelayedBlend()).c_str());
+
 		std::string quadHitOptimizationLevelInfoStr, quadHitColliderInfoStr, quadHitCanContainSeaStr, quadHitTerrainTypeStr, quadHitMinHeightStr, quadHitMaxHeightStr, quadHitEmptyStr, needToUploadStr, needToSaveStr, DepthStr, quadsFromCameraQuadStr, numVisibleChunksStr;
 		enum class TheWorld_Utils::TerrainEdit::TerrainType quadHitTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
 		float quadHitMinHeight = 0, quadHitMaxHeight = 0;
@@ -2947,12 +3035,56 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 	else if (_objectName == "ShowPositionCheckBox")
 	{
 		if (pressed)
+		{
 			m_viewer->showPositionOnCursorHit(true);
+		}
 		else
 		{
 			m_viewer->showPositionOnCursorHit(false);
 			m_innerData->m_gridON->set_pressed(false);
 		}
+	}
+	else if (_objectName == "ShowTerrainCheckBox")
+	{
+		if (pressed)
+			Globals()->setParamShowTerrain(true);
+		else
+			Globals()->setParamShowTerrain(false);
+	}
+	else if (_objectName == "ShowSeaCheckBox")
+	{
+		if (pressed)
+			Globals()->setParamShowSea(true);
+		else
+			Globals()->setParamShowSea(false);
+	}
+	else if (_objectName == "ShowFogCheckBox")
+	{
+		if (pressed)
+			Globals()->setParamShowFog(true);
+		else
+			Globals()->setParamShowFog(false);
+	}
+	else if (_objectName == "ShowChunksCheckBox")
+	{
+		if (pressed)
+			Globals()->setParamShowChunks(true);
+		else
+			Globals()->setParamShowChunks(false);
+	}
+	else if (_objectName == "ShowWireframeCheckBox")
+	{
+		if (pressed)
+			Globals()->setParamShowWireframe(true);
+		else
+			Globals()->setParamShowWireframe(false);
+	}
+	else if (_objectName == "HighlightHitQuadrantCheckBox")
+	{
+		if (pressed)
+			m_viewer->highlightHitQuadrant(true);
+		else
+			m_viewer->highlightHitQuadrant(false);
 	}
 	else if (_objectName == "GridOnCheckBox")
 	{
@@ -3366,6 +3498,8 @@ void GDN_TheWorld_Edit::editModeSetTerrType(void)
 
 void GDN_TheWorld_Edit::editModeGenerate(void)
 {
+	bool ctrlPressed = m_viewer->ctrlPressed();
+
 	m_viewer->getMainProcessingMutex().lock();
 	if (m_actionClock.counterStarted())
 	{
@@ -3573,50 +3707,16 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 
 	// 13. blend selected quadrant
-	bool processed = false, quadrantBusy = true;
-	while (not processed and quadrantBusy)
+	if (ctrlPressed)
 	{
-		setMessage(godot::String("Heights generated, blendig quadrants..."));
-		processed = blendAction(quadTreeSel->getQuadrant()->getPos(), true, false, false, false, false, quadrantBusy, true);
-		if (not processed and quadrantBusy)
-			Sleep(1);
+		addQuadToDelayedBlend(quadTreeSel->getQuadrant()->getPos());
 	}
-	if (processed)
-		m_completedItems++;
-
-	// 14. blend neighbour quadrants
+	else
 	{
-		std::vector<TheWorld_Utils::QuadrantPos> neighbours;
-		quadTreeSel->getQuadrant()->getPos().getNeighbours(neighbours, 2);
-
-		m_allItems += neighbours.size();
-		for (auto& pos : neighbours)
-		{
-			if (pos.getIndexPosX() == -14 and pos.getIndexPosZ() == 24)		// #####
-				assert(m_allItems > 0);									// #####
-			
-			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
-			if (quadTree != nullptr)
-			{
-				bool blendNeeded = quadTree->getQuadrant()->checkBlendNeeded();
-				if (blendNeeded)
-				{
-					bool processed = false, quadrantBusy = true;
-					while (not processed and quadrantBusy)
-					{
-						processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true);
-						if (not processed and quadrantBusy)
-							Sleep(1);
-					}
-					if (processed)
-						m_completedItems++;
-				}
-				else
-					m_completedItems++;
-			}
-		}
+		setMessage(godot::String("Heights generated, blending quadrants..."));
+		editModeBlendQuadrantAndNeighbours(quadTreeSel->getQuadrant()->getPos(), 2);
 	}
-	 
+
 	// final actions
 	setMinHeight(terrainEdit->minHeight);
 	setMaxHeight(terrainEdit->maxHeight);
@@ -3653,6 +3753,52 @@ bool GDN_TheWorld_Edit::checkBlend(void)
 bool GDN_TheWorld_Edit::autoBlendPermitted(void)
 {
 	return m_innerData->m_autoBlendCheckBox->is_pressed();
+}
+
+void GDN_TheWorld_Edit::editModeBlendQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, size_t maxDistance)
+{
+	bool processed = false, quadrantBusy = true;
+	while (not processed and quadrantBusy)
+	{
+		processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true);
+		if (not processed and quadrantBusy)
+			Sleep(1);
+	}
+	if (processed)
+		m_completedItems++;
+
+	// blend neighbour quadrants
+	{
+		std::vector<TheWorld_Utils::QuadrantPos> neighbours;
+		pos.getNeighbours(neighbours, maxDistance);
+
+		m_allItems += neighbours.size();
+		for (auto& pos : neighbours)
+		{
+			//if (pos.getIndexPosX() == -14 and pos.getIndexPosZ() == 24)		// #####
+			//	assert(m_allItems > 0);									// #####
+
+			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+			if (quadTree != nullptr)
+			{
+				bool blendNeeded = quadTree->getQuadrant()->checkBlendNeeded();
+				if (blendNeeded)
+				{
+					bool processed = false, quadrantBusy = true;
+					while (not processed and quadrantBusy)
+					{
+						processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true);
+						if (not processed and quadrantBusy)
+							Sleep(1);
+					}
+					if (processed)
+						m_completedItems++;
+				}
+				else
+					m_completedItems++;
+			}
+		}
+	}
 }
 
 bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock, bool& quadrantBusy, bool overrideBlendingParameters)
@@ -4033,32 +4179,20 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 	QuadTree* quadTreeSel = nullptr;
 	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
-	if (quadrantSelPos.empty())
+	if (quadrantSelPos.empty() and numQuadsToDelayedBlend() == 0)
 	{
 		m_actionClock.tock();
 		m_actionInProgress = false;
-		setMessage(godot::String("No quadrant selected!"), true);
+		setMessage(godot::String("No quadrant to blend!"), true);
 		return;
 	}
 
-	std::vector<TheWorld_Utils::QuadrantPos> allQuadrantPos;
-	m_viewer->getAllQuadrantPos(allQuadrantPos);
-
 	std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
-	for (auto& pos : allQuadrantPos)
-	{
-		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
-		if (quadTree != nullptr)
-		{
-			if (allCheched || pos == quadrantSelPos)
-			{
-				quadrantPos.push_back(pos);
+	if (not quadrantSelPos.empty())
+		quadrantPos.push_back(quadrantSelPos);
+	getQuadsToDelayedBlend(quadrantPos);
 
-				if (!allCheched)
-					break;
-			}
-		}
-	}
+	setMessage(godot::String("Blending quadrants..."));
 
 	m_elapsedCompleted = 0;
 	m_lastElapsed = 0;
@@ -4074,10 +4208,10 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 			break;
 		}
 
-		bool quadrantBusy = true;
-		bool processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true);
+		editModeBlendQuadrantAndNeighbours(pos, 2);
 
-		m_completedItems++;
+		removeQuadToDelayedBlend(pos);
+
 		size_t partialCount = m_actionClock.partialDuration().count();
 		m_lastElapsed = partialCount - m_elapsedCompleted;
 		m_elapsedCompleted = partialCount;

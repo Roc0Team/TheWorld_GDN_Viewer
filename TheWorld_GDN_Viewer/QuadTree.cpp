@@ -2642,7 +2642,7 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 		for (auto& item : lookDevChunkLodMaterials)
 			if (item.second != nullptr)
 			{
-				if (m_viewer->showPositionOnCursorHit())
+				if (m_viewer->showPositionOnCursorHit() or m_viewer->highlightHitQuadrant())
 				{
 					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
 					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
@@ -2658,7 +2658,7 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 	{
 		godot::Ref<godot::ShaderMaterial> currentMaterial = (lookdev == LookDev::NotSet ? getRegularTerrainMaterial() : getLookDevMaterial(lookdev));
 		godot::Ref<godot::ShaderMaterial> currentSeaMaterial = getRegularSeaMaterial();
-		if (currentMaterial != nullptr && m_viewer->showPositionOnCursorHit())
+		if (currentMaterial != nullptr && (m_viewer->showPositionOnCursorHit() or m_viewer->highlightHitQuadrant()))
 		{
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
@@ -4532,8 +4532,8 @@ void Quadrant::process_checkBlendNeeded(double _delta)
 		bool eastSideBlendNeeded = false;
 		bool westSideBlendNeeded = false;
 
-		if (currentPos.getIndexPosX() == -14 and currentPos.getIndexPosZ() == 24)	// #####
-			assert(northSideBlendNeeded == false);									// #####
+		//if (currentPos.getIndexPosX() == -14 and currentPos.getIndexPosZ() == 24)	// #####
+		//	assert(northSideBlendNeeded == false);									// #####
 
 		bool blendNeeded = checkBlendNeeded(northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
 	}

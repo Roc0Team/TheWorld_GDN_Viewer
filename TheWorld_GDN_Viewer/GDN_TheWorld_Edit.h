@@ -183,6 +183,12 @@ namespace godot
 			godot::CheckBox* m_showGizmo = nullptr;
 			godot::CheckBox* m_showNormal = nullptr;
 			godot::CheckBox* m_showPosition = nullptr;
+			godot::CheckBox* m_showTerrain = nullptr;
+			godot::CheckBox* m_showSea = nullptr;
+			godot::CheckBox* m_showFog = nullptr;
+			godot::CheckBox* m_showChunks = nullptr;
+			godot::CheckBox* m_showWireframe = nullptr;
+			godot::CheckBox* m_highlightHitQuadrant = nullptr;
 			godot::CheckBox* m_gridON = nullptr;
 			godot::CheckBox* m_castRay = nullptr;
 			godot::Label* m_mouseHitInfoLabel = nullptr;
@@ -258,6 +264,7 @@ namespace godot
 			std::string m_mouseQuadHitPosStr;
 			std::string m_mouseQuadSelStr;
 			std::string m_mouseQuadSelPosStr;
+			size_t m_numQuadrantToBlend = 0;
 
 			std::unique_ptr<SelTexturePanel> m_selTexturePanel;
 
@@ -336,6 +343,7 @@ namespace godot
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
 		void editModeSetTerrType(void);
+		void editModeBlendQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, size_t maxDistance = 1);
 		bool blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock, bool& quadrantBusy, bool overrideBlendingParameters);
 		bool checkBlend(void);
 		bool autoBlendPermitted(void);
@@ -487,6 +495,64 @@ namespace godot
 		//	return m_mapQuadToSave;
 		//}
 
+		void addQuadToDelayedBlend(TheWorld_Utils::QuadrantPos pos)
+		{
+			addQuadToDelayedBlendRef(pos);
+		}
+
+		void addQuadToDelayedBlendRef(TheWorld_Utils::QuadrantPos& pos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
+			m_mapQuadToDelayedBlend[pos] = true;
+		}
+
+		void removeQuadToDelayedBlend(TheWorld_Utils::QuadrantPos& pos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
+			if (m_mapQuadToDelayedBlend.contains(pos))
+				m_mapQuadToDelayedBlend.erase(pos);
+		}
+
+		size_t numQuadsToDelayedBlend(void)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
+			return m_mapQuadToDelayedBlend.size();
+		}
+
+		TheWorld_Utils::QuadrantPos getFirstQuadToDelayedBlend(void)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
+			return m_mapQuadToDelayedBlend.begin()->first;
+		}
+
+		void getQuadsToDelayedBlend(std::vector<TheWorld_Utils::QuadrantPos>& quadsToBlend)
+		{
+			std::map<TheWorld_Utils::QuadrantPos, bool> _quadsToBlend;
+			for (auto& item : quadsToBlend)
+				_quadsToBlend[item] = true;
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
+			for (auto& item : m_mapQuadToDelayedBlend)
+				_quadsToBlend[item.first] = true;
+
+			quadsToBlend.clear();
+			for (auto& item : _quadsToBlend)
+				quadsToBlend.push_back(item.first);
+		}
+
+		bool isDelayedBlend(TheWorld_Utils::QuadrantPos pos)
+		{
+			return isDelayedBlendRef(pos);
+		}
+			
+		bool isDelayedBlendRef(TheWorld_Utils::QuadrantPos& pos)
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
+			if (m_mapQuadToDelayedBlend.contains(pos))
+				return true;
+			else
+				return false;
+		}
+
 		void addQuadToSave(TheWorld_Utils::QuadrantPos& pos, bool manual = true)
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
@@ -563,6 +629,11 @@ namespace godot
 		void editingMap(bool b);
 		void setEditingMapMouseShape(bool b);
 		bool getEditedTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit);
+		void showTerrainPressed(bool b);
+		void showSeaPressed(bool b);
+		void showFogPressed(bool b);
+		void showChunksPressed(bool b);
+		void showWireframePressed(bool b);
 
 	private:
 		void blendExecution(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder,
@@ -617,6 +688,9 @@ namespace godot
 
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadToSave;
 		std::recursive_mutex m_mtxMapQuadToSave;
+
+		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadToDelayedBlend;
+		std::recursive_mutex m_mtxMapQuadToDelayedBlend;
 
 		TheWorld_Utils::ThreadPool m_tp;
 		bool m_requestedThreadExit = false;

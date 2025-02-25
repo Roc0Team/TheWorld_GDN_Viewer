@@ -2328,6 +2328,11 @@ namespace godot
 			if (!m_showPositionOnCursorHit)
 				trackingDistance(false);
 		}
+		void highlightHitQuadrant(bool b, bool force = false);
+		bool highlightHitQuadrant(void) const
+		{
+			return m_highlightingHitQuadrant;
+		}
 		bool gridOn(void) const
 		{
 			return m_gridOn;
@@ -2825,6 +2830,11 @@ namespace godot
 			return m_debugTrace;
 		}
 
+		bool ctrlPressed(void) const
+		{
+			return m_ctrlPressed;
+		}
+
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void doDeselectWorldQuadrant(void);
@@ -3072,6 +3082,7 @@ namespace godot
 		GDN_TheWorld_Gizmo3d* m_gizmo = nullptr;
 		bool m_gizmoVisible = false;
 		bool m_showPositionOnCursorHit = false;
+		bool m_highlightingHitQuadrant = false;
 		bool m_trackingDistance = false;
 		bool m_gridOn = false;
 		bool m_castRayFromCamera = false;

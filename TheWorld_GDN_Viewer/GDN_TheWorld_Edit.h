@@ -635,6 +635,19 @@ namespace godot
 		void showChunksPressed(bool b);
 		void showWireframePressed(bool b);
 
+		void holdBlending(bool b, bool force = false)
+		{
+			if (m_holdBlending != b or force)
+			{
+				m_holdBlending = b;
+				godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_HOLD_BLENDING, m_holdBlending);
+			}
+		}
+		bool holdBlending(void) const
+		{
+			return m_holdBlending;
+		}
+
 	private:
 		void blendExecution(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder,
 			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder,
@@ -698,6 +711,8 @@ namespace godot
 		GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
 		godot::Vector2 m_size;
+
+		bool m_holdBlending = false;
 	};
 }
 

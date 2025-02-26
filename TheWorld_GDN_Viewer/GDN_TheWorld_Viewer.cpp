@@ -3640,7 +3640,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			//	godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
 			//	godot::Variant inverseTransform = t.affine_inverse();
 			//	material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
-			//	material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			//	material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 			//	material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 			//}
 
@@ -3648,7 +3648,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			material->set_shader_parameter(SHADER_PARAM_GENERATE_GLOBAL_MAP, true);
 			material->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
-			material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 			material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 			material->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 			material->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
@@ -3856,7 +3856,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				material->set_shader(currentMaterial->get_shader()); 
 				material->set_shader_parameter(SHADER_PARAM_GENERATE_GLOBAL_MAP, true);
 				material->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
-				material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+				material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 				material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 				material->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 				material->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)numVerticesPerQuadrantSize + 1.0f);	// useless as it is used in show chunks mode which is inhibited when generating global map
@@ -4376,9 +4376,6 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_updateDebugModeRequired = false;
 	m_numWorldVerticesPerSize = 0;
 	m_debugDraw = Viewport::DebugDraw::DEBUG_DRAW_DISABLED;
-	m_altPressed = false;
-	m_ctrlPressed = false;
-	m_shiftPressed = false;
 	m_streamerThreadRequiredExit = false;
 	m_streamerThreadRunning = false;
 	m_editorInterface = nullptr;
@@ -4407,6 +4404,16 @@ godot::Node3D* GDN_TheWorld_Viewer::getAnchorForOriginShift(void)
 {
 	return m_anchorForOriginShift;
 }
+
+void GDN_TheWorld_Viewer::ctrlPressed(bool b)
+{
+	m_ctrlPressed = b;
+
+	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+	if (editModeUIControl != nullptr and editModeUIControl->initialized())
+		editModeUIControl->holdBlending(m_ctrlPressed);
+}
+
 
 void GDN_TheWorld_Viewer::worldQuadrantReady(TheWorld_Utils::QuadrantPos& pos)
 {
@@ -5210,6 +5217,8 @@ bool GDN_TheWorld_Viewer::init(void)
 		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_CHUNKS, globals->getParamShowChunks());
 
 		highlightHitQuadrant(false, true);
+
+		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_HOLD_BLENDING, false);
 
 		godot::String waterFoamImageName("res://addons/twviewer/shaders/water_foam.png");
 		godot::Ref<godot::Texture2D> waterFoamTex = ResourceLoader::get_singleton()->load(waterFoamImageName);
@@ -6767,7 +6776,12 @@ bool GDN_TheWorld_Viewer::setWorldCameraWorldPos(godot::Vector2 worldPos, float 
 //{
 //}
 
-void GDN_TheWorld_Viewer::selectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos)
+void GDN_TheWorld_Viewer::selectWorldQuadrant(TheWorld_Utils::QuadrantPos pos)
+{
+	selectWorldQuadrantRef(pos);
+}
+
+void GDN_TheWorld_Viewer::selectWorldQuadrantRef(TheWorld_Utils::QuadrantPos& pos)
 {
 	if (isWorldQuadrantSelectedForEdit())
 		deselectWorldQuadrant();
@@ -6896,7 +6910,7 @@ void GDN_TheWorld_Viewer::toggleWorldQuadrantSelected(void)
 		{
 			if (!m_quadrantHitPos.empty())
 			{
-				selectWorldQuadrant(m_quadrantHitPos);
+				selectWorldQuadrantRef(m_quadrantHitPos);
 				selectMapQuadrant(m_quadrantHitPos);
 			}
 		}
@@ -7012,7 +7026,7 @@ void GDN_TheWorld_Viewer::_input(const Ref<InputEvent>& event)
 		rotateDrawingMode();
 	}
 
-	if (event->is_action_pressed("ui_dump") && !m_ctrlPressed)
+	if (event->is_action_pressed("ui_dump") && !ctrlPressed())
 	{
 		m_dumpRequired = true;
 	}
@@ -7285,7 +7299,7 @@ void GDN_TheWorld_Viewer::toggleTrackMouse(void)
 			trackMouse(true);
 	}
 	else
-		m_previousTrackedMouseHitInMap = godot::Vector3();
+		m_previousTrackedMouseHitWorldPos = godot::Vector3();
 
 	if (trackMouse())
 		m_mouseQuadrantHitName = "";
@@ -7361,13 +7375,13 @@ void GDN_TheWorld_Viewer::trackMouse(bool b)
 		m_quadrantHitPos = TheWorld_Utils::QuadrantPos();
 		m_quadrantHit = nullptr;
 		m_adjacentQuadrantsHit.clear();
-		m_previousTrackedMouseHitInMap = godot::Vector3();
+		m_previousTrackedMouseHitWorldPos = godot::Vector3();
 	}
 }
 
 void GDN_TheWorld_Viewer::toggleEditMode(void)
 {
-	m_previousTrackedMouseHitInMap = godot::Vector3();
+	m_previousTrackedMouseHitWorldPos = godot::Vector3();
 	m_editMode = !m_editMode;
 	if (m_editMode)
 	{
@@ -7387,7 +7401,7 @@ void GDN_TheWorld_Viewer::setEditMode(bool editMode)
 {
 	if (m_editMode != editMode)
 	{
-		m_previousTrackedMouseHitInMap = godot::Vector3();
+		m_previousTrackedMouseHitWorldPos = godot::Vector3();
 		m_editMode = editMode;
 		if (m_editMode)
 		{
@@ -9309,7 +9323,7 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 				godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
 				TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
 				selectMapQuadrant(pos);
-				selectWorldQuadrant(pos);
+				selectWorldQuadrantRef(pos);
 			}
 
 			if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, &trackedInputEvent))
@@ -9391,7 +9405,7 @@ void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 			{
 				map->editMode(pos, true);
 				m_selectedMapQuadrantPos = pos;
-				selectWorldQuadrant(pos);
+				selectWorldQuadrantRef(pos);
 			}
 		}
 
@@ -11142,7 +11156,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 					m_quadrantHitPos = TheWorld_Utils::QuadrantPos();
 					m_quadrantHit = nullptr;
 					m_adjacentQuadrantsHit.clear();
-					m_previousTrackedMouseHitInMap = godot::Vector3();
+					m_previousTrackedMouseHitWorldPos = godot::Vector3();
 				}
 
 				resetTrackedInputEvents(&m_trackedInputEventsForTrackMouse, &m_trackedInputEventsQueueForTrackMouse);
@@ -11163,7 +11177,7 @@ void GDN_TheWorld_Viewer::process_trackMouse(godot::Camera3D* activeWorldCamera)
 	}
 }
 
-void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCamera, QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHitInMap, godot::Vector3 normalHit)
+void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCamera, QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHitWorldPos, godot::Vector3 normalHit)
 {
 
 	//if (quadrantHit != nullptr)
@@ -11173,17 +11187,31 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 			if (showPositionOnCursorHit())
 			{
 				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, nullptr, &m_trackedInputEventsForTrackMouse))
-					trackingDistance(true, mouseHitInMap);
+					trackingDistance(true, mouseHitWorldPos);
 				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, nullptr, &m_trackedInputEventsForTrackMouse))
 					trackingDistance(false);
 			}
 
-			if (m_previousTrackedMouseHitInMap != mouseHitInMap)
+			if (highlightHitQuadrant())
+			{
+				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, nullptr, &m_trackedInputEventsForTrackMouse))
+				{
+					if (quadrantHit != nullptr)
+						selectWorldQuadrant(quadrantHit->getQuadrant()->getPos());
+				}
+				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, nullptr, &m_trackedInputEventsForTrackMouse))
+				{
+					if (quadrantHit != nullptr)
+						deselectWorldQuadrant();
+				}
+			}
+
+			if (m_previousTrackedMouseHitWorldPos != mouseHitWorldPos)
 			{
 				if (quadrantHit != nullptr)
-					quadrantHit->mouseHitOnTerrainChanged(mouseHitInMap, true);
+					quadrantHit->mouseHitOnTerrainChanged(mouseHitWorldPos, true);
 				for (auto& item : adjacentQuadrantsHit)
-					item->mouseHitOnTerrainChanged(mouseHitInMap, true);
+					item->mouseHitOnTerrainChanged(mouseHitWorldPos, true);
 
 				bool _normalVisible = false;
 				if (normalVisible())
@@ -11191,7 +11219,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 					godot::Vector3 normal = normalHit;
 					if (normal == Vector3Zero && quadrantHit != nullptr)
 					{
-						size_t index = quadrantHit->getQuadrant()->getIndexFromMap((float)mouseHitInMap.x, (float)mouseHitInMap.z);
+						size_t index = quadrantHit->getQuadrant()->getIndexFromMap((float)mouseHitWorldPos.x, (float)mouseHitWorldPos.z);
 						if (index != -1)
 						{
 							bool ok;
@@ -11203,19 +11231,19 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 					if (normal != Vector3Zero)
 					{
 						const float lineSize = 50;
-						godot::Vector3 end = mouseHitInMap + normal * lineSize;
+						godot::Vector3 end = mouseHitWorldPos + normal * lineSize;
 						float radAngleWithVertical = (float)acos(normal.dot(Vector3Up));
 						float slope = (radAngleWithVertical * 180) / TheWorld_Utils::kPi;
 
 						if (m_normalLineIdx != -1 && m_normalSphereIdx != -1)
 						{
 							_normalVisible = true;
-							m_normalDrawer->updateLine(m_normalLineIdx, mouseHitInMap, end, std::to_string(int32_t(slope)) + "°");
+							m_normalDrawer->updateLine(m_normalLineIdx, mouseHitWorldPos, end, std::to_string(int32_t(slope)) + "°");
 							m_normalDrawer->updateSphere(m_normalSphereIdx, end);
 						}
 					}
 					
-					//size_t index = quadrantHit->getQuadrant()->getIndexFromMap(mouseHitInMap.x, mouseHitInMap.z);
+					//size_t index = quadrantHit->getQuadrant()->getIndexFromMap(mouseHitWorldPos.x, mouseHitWorldPos.z);
 					//if (index != -1)
 					//{
 					//	bool ok;
@@ -11223,14 +11251,14 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 					//	if (ok)
 					//	{
 					//		const float lineSize = 50;
-					//		godot::Vector3 end = mouseHitInMap + normal * lineSize;
+					//		godot::Vector3 end = mouseHitWorldPos + normal * lineSize;
 					//		float radAngleWithVertical = acos(normal.dot(Vector3Up));
 					//		float slope = (radAngleWithVertical * 180) / TheWorld_Utils::kPi;
 					//		
 					//		if (m_normalLineIdx != -1 && m_normalSphereIdx != -1)
 					//		{
 					//			_normalVisible = true;
-					//			m_normalDrawer->updateLine(m_normalLineIdx, mouseHitInMap, end, std::to_string(int32_t(slope)) + "°");
+					//			m_normalDrawer->updateLine(m_normalLineIdx, mouseHitWorldPos, end, std::to_string(int32_t(slope)) + "°");
 					//			m_normalDrawer->updateSphere(m_normalSphereIdx, end);
 					//		}
 					//	}
@@ -11249,36 +11277,36 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 					{
 						_positionVisible = true;
 
-						m_positionDrawer->updateLabel2d(m_labelPositionXIdx, mouseHitInMap, std::string("X=") + std::format("{:.2f}", mouseHitInMap.x));
-						m_positionDrawer->updateLabel2d(m_labelPositionZIdx, mouseHitInMap, std::string("Z=") + std::format("{:.2f}", mouseHitInMap.z));
-						m_positionDrawer->updateLabel2d(m_labelPositionYIdx, mouseHitInMap, std::string("H=") + std::format("{:.2f}", mouseHitInMap.y));
+						m_positionDrawer->updateLabel2d(m_labelPositionXIdx, mouseHitWorldPos, std::string("X=") + std::format("{:.2f}", mouseHitWorldPos.x));
+						m_positionDrawer->updateLabel2d(m_labelPositionZIdx, mouseHitWorldPos, std::string("Z=") + std::format("{:.2f}", mouseHitWorldPos.z));
+						m_positionDrawer->updateLabel2d(m_labelPositionYIdx, mouseHitWorldPos, std::string("H=") + std::format("{:.2f}", mouseHitWorldPos.y));
 
 						godot::Vector3 cameraPosInMap = globalPosToWorldPos(activeWorldCamera->get_global_position());
-						float distanceFromCamera = (float)cameraPosInMap.distance_to(mouseHitInMap);
+						float distanceFromCamera = (float)cameraPosInMap.distance_to(mouseHitWorldPos);
 						float distanceFromCameraInQuads = distanceFromCamera / Globals()->heightmapSizeInWUs();
-						m_positionDrawer->updateLabel2d(m_labelPositionDistIdx, mouseHitInMap, std::string("Dist=") + std::format("{:.2f}", distanceFromCamera) + " quads=" + std::format("{:.2f}", distanceFromCameraInQuads));
+						m_positionDrawer->updateLabel2d(m_labelPositionDistIdx, mouseHitWorldPos, std::string("Dist=") + std::format("{:.2f}", distanceFromCamera) + " quads=" + std::format("{:.2f}", distanceFromCameraInQuads));
 
-						godot::Vector3 hitDirection = (mouseHitInMap - cameraPosInMap).normalized();
+						godot::Vector3 hitDirection = (mouseHitWorldPos - cameraPosInMap).normalized();
 						godot::Vector3 northDirection(0, 0, -1);
 						float degreeWithNorthDirection = (northDirection.angle_to(godot::Vector3(hitDirection.x, 0, hitDirection.z)) * 180) / TheWorld_Utils::kPi;
-						if (mouseHitInMap.x < 0)
+						if (mouseHitWorldPos.x < 0)
 							degreeWithNorthDirection = 360 - degreeWithNorthDirection;
 
 						godot::Vector3 upDirection(0, 1, 0);
 						float pitch = 90 - (upDirection.angle_to(hitDirection) * 180) / TheWorld_Utils::kPi;
 
 						std::string text = "Deg=" + std::format("{:.2f}", degreeWithNorthDirection) + "° pitch=" + std::format("{:.2f}", pitch) + "°";
-						m_positionDrawer->updateLabel2d(m_labelPositionDirIdx, mouseHitInMap, text);
+						m_positionDrawer->updateLabel2d(m_labelPositionDirIdx, mouseHitWorldPos, text);
 					}
 
 					if (trackingDistance())
 					{
-						float distance = (float)mouseHitInMap.distance_to(m_savedPosForTrackingDistance);
+						float distance = (float)mouseHitWorldPos.distance_to(m_savedPosForTrackingDistance);
 						float distanceInQuads = distance / Globals()->heightmapSizeInWUs();
 						std::string text = "Dist=" + std::format("{:.2f}", distance) + " quads=" + std::format("{:.2f}", distanceInQuads);
-						m_positionDrawer->updateLine(m_linePositionIdx, m_savedPosForTrackingDistance, mouseHitInMap, text);
+						m_positionDrawer->updateLine(m_linePositionIdx, m_savedPosForTrackingDistance, mouseHitWorldPos, text);
 						m_positionDrawer->updateSphere(m_spherePositionStartIdx, m_savedPosForTrackingDistance, 5);
-						m_positionDrawer->updateSphere(m_spherePositionEndIdx, mouseHitInMap, 5);
+						m_positionDrawer->updateSphere(m_spherePositionEndIdx, mouseHitWorldPos, 5);
 					}
 				}
 
@@ -11290,12 +11318,12 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 				if (gizmoVisible())
 				{
 					m_gizmo->set_visible(true);
-					m_gizmo->set_global_position(worldPosToGlobalPos(mouseHitInMap));
+					m_gizmo->set_global_position(worldPosToGlobalPos(mouseHitWorldPos));
 				}
 				else
 					m_gizmo->set_visible(false);
 
-				m_previousTrackedMouseHitInMap = mouseHitInMap;
+				m_previousTrackedMouseHitWorldPos = mouseHitWorldPos;
 			}
 		}
 		else
@@ -12310,7 +12338,7 @@ void GDN_TheWorld_Viewer::process_materialParam(godot::Vector3& worldCameraWorld
 				loopCompleted = false;
 
 			if (materialParamsUpdated)
-				m_previousTrackedMouseHitInMap = godot::Vector3();
+				m_previousTrackedMouseHitWorldPos = godot::Vector3();
 
 			if ((materialParamsReset /* or materialParamsUpdated*/ or colliderUpdated) and !m_desideredLookDevChanged and numLoop > 10 /* and itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
 			{
@@ -12632,9 +12660,9 @@ void GDN_TheWorld_Viewer::_physics_process(double _delta)
 			m_shiftPressed = false;
 
 		if (input->is_action_pressed("ui_ctrl"))
-			m_ctrlPressed = true;
+			ctrlPressed(true);
 		else
-			m_ctrlPressed = false;
+			ctrlPressed(false);
 
 		if (input->is_action_pressed("ui_alt"))
 			m_altPressed = true;
@@ -12662,7 +12690,7 @@ void GDN_TheWorld_Viewer::clearQuadTreeMap(void)
 	//m_cameraQuadTree = nullptr;
 	m_quadrantHit = nullptr;
 	m_adjacentQuadrantsHit.clear();
-	m_previousTrackedMouseHitInMap = godot::Vector3();
+	m_previousTrackedMouseHitWorldPos = godot::Vector3();
 	m_selectedWorldQuadrantPos.reset();
 	m_selectedMapQuadrantPos.reset();
 }

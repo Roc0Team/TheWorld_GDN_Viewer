@@ -1926,7 +1926,8 @@ namespace godot
 		}
 		//void toggleFullScreen(void);
 		void toggleWorldQuadrantSelected(void);
-		void selectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void selectWorldQuadrant(TheWorld_Utils::QuadrantPos pos);
+		void selectWorldQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
 		void deselectWorldQuadrant(void);
 		void selectMapQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void deselectMapQuadrant(void);
@@ -2830,6 +2831,8 @@ namespace godot
 			return m_debugTrace;
 		}
 
+		void ctrlPressed(bool b);
+
 		bool ctrlPressed(void) const
 		{
 			return m_ctrlPressed;
@@ -2902,9 +2905,9 @@ namespace godot
 		bool m_isInEditorInitialized;
 		bool m_ready;
 		bool m_useVisualServer;
-		bool m_altPressed;
-		bool m_ctrlPressed;
-		bool m_shiftPressed;
+		bool m_altPressed = false;
+		bool m_ctrlPressed = false;
+		bool m_shiftPressed = false;
 		bool m_firstProcess;
 		int64_t m_timeElapsedFromLastDump;
 		bool m_initialWorldViewerPosSet;
@@ -3017,7 +3020,7 @@ namespace godot
 		int64_t m_timeElapsedFromLastMouseTrack = 0;
 		godot::Vector3 m_trackedMouseHitGlobalPos;
 		godot::Vector3 m_trackedMouseHitWorldPos;
-		godot::Vector3 m_previousTrackedMouseHitInMap;
+		godot::Vector3 m_previousTrackedMouseHitWorldPos;
 		bool m_mouseTrackedOnSomething = false;
 		bool m_mouseTrackedOnTerrain = false;
 		std::string m_mouseQuadrantHitName;
@@ -3155,7 +3158,7 @@ namespace godot
 		godot::Plane m_shaderParam_tileReduction;
 		float m_shaderParam_globalmapBlendStart;
 		float m_shaderParam_globalmapBlendDistance;
-		float m_shaderParam_quad_border_line_thickness = 0.005f;
+		float m_shaderParam_quad_border_line_thickness = 0.05f;	// 0.005f;
 		float m_shaderParam_mouse_hit_radius = 0.001f;
 		godot::Plane  m_shaderParam_colormapOpacity;
 		bool m_shaderParamChanged = false;

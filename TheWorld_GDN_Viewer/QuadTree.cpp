@@ -2092,8 +2092,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularSeaMaterial(bool reload
 		godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 		m_viewer->getMainProcessingMutex().unlock();
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-		String shaderPath = "res://addons/twviewer/shaders/water.gdshader";
-		//String shaderPath = "res://addons/twviewer/test/water.gdshader";
+		//String shaderPath = "res://addons/twviewer/shaders/water.gdshader";
+		String shaderPath = "res://addons/twviewer/test/water.gdshader";
 		godot::Ref<godot::Shader> shader;
 		if (reload)
 			shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
@@ -2103,7 +2103,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularSeaMaterial(bool reload
 		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
-		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, m_viewer->Globals()->gridStepInWU());
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		m_regularSeaMaterial = mat;
@@ -2131,7 +2131,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getGlobalmapSeaMaterial(bool relo
 		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
-		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, m_viewer->Globals()->gridStepInWU());
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		m_globalmapSeaMaterial = mat;
@@ -2168,7 +2168,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, m_viewer->Globals()->gridStepInWU());
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
-		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
@@ -2265,7 +2265,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevMaterial(enum class Sha
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
-		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
@@ -2317,7 +2317,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lo
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, numVerticesPerChuckSide + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_LOD_GRID_STEP, lodGridStepInWU);
 		mat->set_shader_parameter(SHADER_PARAM_LOD_CHUNK_SIZE, lodChunkSizeInWu);
-		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		m_lookDevChunkLodMaterials[lod] = mat;
@@ -2644,12 +2644,12 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 			{
 				if (m_viewer->showPositionOnCursorHit() or m_viewer->highlightHitQuadrant())
 				{
-					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
+					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, mouseHit);
 					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
 				}
 				else
 				{
-					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+					item.second->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 					//item.second->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 				}
 			}
@@ -2660,15 +2660,15 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 		godot::Ref<godot::ShaderMaterial> currentSeaMaterial = getRegularSeaMaterial();
 		if (currentMaterial != nullptr && (m_viewer->showPositionOnCursorHit() or m_viewer->highlightHitQuadrant()))
 		{
-			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
+			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, mouseHit);
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
-			currentSeaMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, mouseHit);
+			currentSeaMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, mouseHit);
 			currentSeaMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, m_viewer->gridOn());
 		}
 		else
 		{
-			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
-			currentSeaMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
+			currentSeaMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 			//currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		}
 	}

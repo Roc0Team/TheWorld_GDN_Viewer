@@ -424,6 +424,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	m_viewer = viewer;
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
 
+	holdBlending(false, true);
+
 	//TheWorld_Utils::WorldModifierPos pos(0, 4096, 4096, TheWorld_Utils::WMType::elevator, 0);
 	//m_wms[pos] = std::make_unique<TheWorld_Utils::WorldModifier>(pos, TheWorld_Utils::WMFunctionType::ConsiderMinMax, 10000.0f, 0.0f, 200.0f, TheWorld_Utils::WMOrder::MaxEffectOnWM);
 
@@ -3498,7 +3500,7 @@ void GDN_TheWorld_Edit::editModeSetTerrType(void)
 
 void GDN_TheWorld_Edit::editModeGenerate(void)
 {
-	bool ctrlPressed = m_viewer->ctrlPressed();
+	bool holdBlending = GDN_TheWorld_Edit::holdBlending();
 
 	m_viewer->getMainProcessingMutex().lock();
 	if (m_actionClock.counterStarted())
@@ -3706,15 +3708,42 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 	strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 
-	// 13. blend selected quadrant
-	if (ctrlPressed)
+	// 13. mark quadrant to be blended
+	addQuadToDelayedBlend(quadTreeSel->getQuadrant()->getPos());
+
+	// 14. blend selected quadrant
+	if (holdBlending)
 	{
-		addQuadToDelayedBlend(quadTreeSel->getQuadrant()->getPos());
+		m_completedItems++;
 	}
 	else
 	{
-		setMessage(godot::String("Heights generated, blending quadrants..."));
-		editModeBlendQuadrantAndNeighbours(quadTreeSel->getQuadrant()->getPos(), 2);
+		setMessage(godot::String("Heights generated, blending quadrant[s]..."));
+
+		std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
+		getQuadsToDelayedBlend(quadrantPos);
+
+		m_lastElapsed = 0;
+		m_allItems = quadrantPos.size();
+
+		for (auto& pos : quadrantPos)
+		{
+			TheWorld_Utils::GuardProfiler profiler(std::string("EditGenerate 1.3 ") + __FUNCTION__, "Single QuadTree");
+
+			if (m_actionStopRequested)
+			{
+				m_actionStopRequested = false;
+				break;
+			}
+
+			editModeBlendQuadrantAndNeighbours(pos, 2);
+
+			removeQuadToDelayedBlend(pos);
+
+			size_t partialCount = m_actionClock.partialDuration().count();
+			m_lastElapsed = partialCount - m_elapsedCompleted;
+			m_elapsedCompleted = partialCount;
+		}
 	}
 
 	// final actions

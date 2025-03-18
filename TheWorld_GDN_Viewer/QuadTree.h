@@ -796,7 +796,7 @@ namespace godot
 #define SHADER_PARAM_NEED_BLENDING_SOUTH			"u_need_blending_south"
 #define SHADER_PARAM_NEED_BLENDING_EAST				"u_need_blending_east"
 #define SHADER_PARAM_NEED_BLENDING_WEST				"u_need_blending_west"
-#define SHADER_PARAM_WIRE_ALBEDO					"u_wire_albedo"
+#define SHADER_PARAM_WIRE_ALBEDO					"u_wireframe_albedo"
 #define SHADER_PARAM_NEED_BLENDING_ALBEDO			"u_need_blending_albedo"
 #define SHADER_PARAM_SELECTED_ALBEDO				"u_selected_albedo"
 

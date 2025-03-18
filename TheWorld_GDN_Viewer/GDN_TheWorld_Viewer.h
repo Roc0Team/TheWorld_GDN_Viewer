@@ -2500,7 +2500,7 @@ namespace godot
 		godot::Ref<godot::Image> getQuadrantGlobalmapImage(void);
 		godot::Ref<godot::Image> getQuadrantColormapImage(void);
 		godot::Vector2 getQuadrantPos(void);
-		godot::Vector2 getQuadrantPosIndex(void);
+		godot::Vector2i getQuadrantPosIndex(void);
 		godot::String getGroundTextureName(int type);
 		godot::Ref<godot::ImageTexture> getGroundTextureAlbedoBump(godot::String texName);
 		godot::Ref<godot::ImageTexture> getGroundTextureNormalRoughness(godot::String texName);

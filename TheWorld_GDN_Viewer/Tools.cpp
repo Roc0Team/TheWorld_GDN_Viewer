@@ -396,7 +396,7 @@ void GDN_TheWorld_Drawer::_process(double _delta)
 								item.second->label3d = memnew(godot::Label3D);
 								add_child(item.second->label3d);
 								item.second->label3d->set_font_size(font_size);
-								item.second->label3d->set_pixel_size(pixel_size);
+								item.second->label3d->set_pixel_size(float(pixel_size));
 								item.second->label3d->set_outline_size(outline_size);
 								item.second->label3d->set_outline_modulate(godot::Color(0.27f, 0.27f, 0.27f, 1.0f));
 							}

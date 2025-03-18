@@ -2156,8 +2156,10 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 									//String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
 									//String shaderPath = "res://addons/twviewer/test/regularChunk.tres";
 		//String shaderPath = "res://addons/twviewer/shaders/terrain.gdshader";
-		String shaderPath = "res://addons/twviewer/test/terrain.gdshader";
-		m_sendTextureToShader = true;
+		//String shaderPath = "res://addons/twviewer/test/terrain.gdshader";
+		String shaderPath = "res://addons/twviewer/test/terrain_test.gdshader";
+		//String shaderPath = "res://addons/twviewer/test/terrain_old.gdshader";
+		//m_sendTextureToShader = true;		// ATTENZIONE: commentato perché sembra inutile mandare le singole texture allo shader quando gli mandiamo gli indici delle texture nell'array globale
 		godot::Ref<godot::Shader> shader;
 		if (reload)
 			shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
@@ -2180,6 +2182,18 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 		mat->set_shader_parameter(SHADER_PARAM_WIRE_ALBEDO, GDN_TheWorld_Globals::g_color_green1);
 		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_ALBEDO, GDN_TheWorld_Globals::g_color_light_cyan);
 		mat->set_shader_parameter(SHADER_PARAM_SELECTED_ALBEDO, GDN_TheWorld_Globals::g_color_cyan);
+
+		// SUPERDEBUGRIC
+		{
+			mat->set_shader_parameter("texture_albedo", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Color.png"));
+			mat->set_shader_parameter("texture_roughness", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Roughness.png"));
+			mat->set_shader_parameter("texture_normal", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_NormalGL.png"));
+			mat->set_shader_parameter("texture_ambient_occlusion", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_AmbientOcclusion.png"));
+			mat->set_shader_parameter("texture_displacement", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Displacement.png"));
+
+		}
+		// SUPERDEBUGRIC
+
 		m_regularTerrainMaterial = mat;
 	}
 	

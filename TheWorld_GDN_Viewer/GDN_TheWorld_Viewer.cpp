@@ -1491,7 +1491,7 @@ void GDN_TheWorld_Map::resizeRuler(godot::Vector2 newSize)
 		m_rulerGroupCustomMinimumSize = godot::Vector2(TheWorld_Utils::Utils::max2(minimumRulerLabelSize.x, minimumRulerSize.x), TheWorld_Utils::Utils::max2(minimumRulerLabelSize.y, minimumRulerSize.y));
 
 		godot::Vector2 rulerGroupSize = m_rulerGroupCustomMinimumSize;
-		m_rulerGroup->set_anchor(godot::Side::SIDE_LEFT, 0.8);
+		m_rulerGroup->set_anchor(godot::Side::SIDE_LEFT, 0.8f);
 		m_rulerGroup->set_offset(SIDE_LEFT, 0.0);
 		m_rulerGroup->set_anchor(godot::Side::SIDE_TOP, 1.0);
 		m_rulerGroup->set_offset(SIDE_TOP, -(rulerGroupSize.y + 20));
@@ -3497,7 +3497,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			m_camera->set_projection(godot::Camera3D::ProjectionType::PROJECTION_PERSPECTIVE);
 			godot::Vector2i viewportSize = m_mapModderViewport->get_size();
 			m_cameraAltitude = (float)m_tileSize * 1.3f;
-			m_camera->set_size(viewportSize.x);
+			m_camera->set_size(float(viewportSize.x));
 			m_camera->set_near(0.5f);		// 0.1f
 			m_camera->set_far(m_viewer->Globals()->heightmapSizeInWUs() + m_cameraAltitude);	// 20000.0f
 			m_camera->set_current(true);
@@ -5086,7 +5086,7 @@ void GDN_TheWorld_Viewer::setPosHud(godot::Size2& windowSize)
 	// Message Box
 	if (m_hudMessageContainer != nullptr)
 	{
-		m_hudMessageContainer->set_anchor(godot::Side::SIDE_LEFT, 0.3);
+		m_hudMessageContainer->set_anchor(godot::Side::SIDE_LEFT, 0.3f);
 		m_hudMessageContainer->set_offset(SIDE_LEFT, 0);
 		m_hudMessageContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
 		m_hudMessageContainer->set_offset(SIDE_TOP, 0);
@@ -5095,7 +5095,7 @@ void GDN_TheWorld_Viewer::setPosHud(godot::Size2& windowSize)
 	// Streaming Info Box
 	if (m_hudStreamingInfoContainer != nullptr)
 	{
-		m_hudStreamingInfoContainer->set_anchor(godot::Side::SIDE_LEFT, 0.65);
+		m_hudStreamingInfoContainer->set_anchor(godot::Side::SIDE_LEFT, 0.65f);
 		m_hudStreamingInfoContainer->set_offset(SIDE_LEFT, 0);
 		m_hudStreamingInfoContainer->set_anchor(godot::Side::SIDE_TOP, 0.0);
 		m_hudStreamingInfoContainer->set_offset(SIDE_TOP, 0);
@@ -10850,7 +10850,7 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 				lowerNumVisibleQuadrantOnEachSide = m_numVisibleQuadrantOnPerimeterOnWestSide;
 			
 			double fov = 40.5 + (lowerNumVisibleQuadrantOnEachSide * 5.75);
-			m_satelliteCamera->set_fov(fov);
+			m_satelliteCamera->set_fov(float(fov));
 		}
 	}
 }
@@ -11284,7 +11284,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 						godot::Vector3 cameraPosInMap = globalPosToWorldPos(activeWorldCamera->get_global_position());
 						float distanceFromCamera = (float)cameraPosInMap.distance_to(mouseHitWorldPos);
 						float distanceFromCameraInQuads = distanceFromCamera / Globals()->heightmapSizeInWUs();
-						m_positionDrawer->updateLabel2d(m_labelPositionDistIdx, mouseHitWorldPos, std::string("Dist=") + std::format("{:.2f}", distanceFromCamera) + " quads=" + std::format("{:.2f}", distanceFromCameraInQuads));
+						m_positionDrawer->updateLabel2d(m_labelPositionDistIdx, mouseHitWorldPos, std::string("Dist=") + std::format("{:.2f}", distanceFromCamera) + "m (" + std::format("{:.2f}", distanceFromCamera/1000) + "km) quads=" + std::format("{:.2f}", distanceFromCameraInQuads));
 
 						godot::Vector3 hitDirection = (mouseHitWorldPos - cameraPosInMap).normalized();
 						godot::Vector3 northDirection(0, 0, -1);
@@ -11303,7 +11303,7 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 					{
 						float distance = (float)mouseHitWorldPos.distance_to(m_savedPosForTrackingDistance);
 						float distanceInQuads = distance / Globals()->heightmapSizeInWUs();
-						std::string text = "Dist=" + std::format("{:.2f}", distance) + " quads=" + std::format("{:.2f}", distanceInQuads);
+						std::string text = "Dist=" + std::format("{:.2f}", distance) + "m (" + std::format("{:.2f}", distance / 1000)  + "km) quads=" + std::format("{:.2f}", distanceInQuads);
 						m_positionDrawer->updateLine(m_linePositionIdx, m_savedPosForTrackingDistance, mouseHitWorldPos, text);
 						m_positionDrawer->updateSphere(m_spherePositionStartIdx, m_savedPosForTrackingDistance, 5);
 						m_positionDrawer->updateSphere(m_spherePositionEndIdx, mouseHitWorldPos, 5);
@@ -15215,9 +15215,9 @@ godot::Vector2 GDN_TheWorld_Viewer::getQuadrantPos(void)
 	return godot::Vector2(m_tempPos.getLowerXGridVertex(), m_tempPos.getLowerZGridVertex());
 }
 
-godot::Vector2 GDN_TheWorld_Viewer::getQuadrantPosIndex(void)
+godot::Vector2i GDN_TheWorld_Viewer::getQuadrantPosIndex(void)
 {
-	return godot::Vector2((float)m_tempPos.getIndexPosX(), (float)m_tempPos.getIndexPosZ());
+	return godot::Vector2i(m_tempPos.getIndexPosX(), m_tempPos.getIndexPosZ());
 }
 
 godot::String GDN_TheWorld_Viewer::getGroundTextureName(int type)

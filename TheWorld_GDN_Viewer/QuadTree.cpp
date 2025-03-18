@@ -2183,16 +2183,16 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_ALBEDO, GDN_TheWorld_Globals::g_color_light_cyan);
 		mat->set_shader_parameter(SHADER_PARAM_SELECTED_ALBEDO, GDN_TheWorld_Globals::g_color_cyan);
 
-		// SUPERDEBUGRIC
-		{
-			mat->set_shader_parameter("texture_albedo", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Color.png"));
-			mat->set_shader_parameter("texture_roughness", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Roughness.png"));
-			mat->set_shader_parameter("texture_normal", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_NormalGL.png"));
-			mat->set_shader_parameter("texture_ambient_occlusion", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_AmbientOcclusion.png"));
-			mat->set_shader_parameter("texture_displacement", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Displacement.png"));
+		//// SUPERDEBUGRIC
+		//{
+		//	mat->set_shader_parameter("texture_albedo", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Color.png"));
+		//	mat->set_shader_parameter("texture_roughness", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Roughness.png"));
+		//	mat->set_shader_parameter("texture_normal", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_NormalGL.png"));
+		//	mat->set_shader_parameter("texture_ambient_occlusion", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_AmbientOcclusion.png"));
+		//	mat->set_shader_parameter("texture_displacement", resLoader->load("res://assets/textures/ground/src/Ground037_1K-PNG/Ground037_1K-PNG_Displacement.png"));
 
-		}
-		// SUPERDEBUGRIC
+		//}
+		//// SUPERDEBUGRIC
 
 		m_regularTerrainMaterial = mat;
 	}

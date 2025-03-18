@@ -3643,64 +3643,64 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 							godot::Vector4 v = quadrant->quadrantTextureLayers();
 							currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
 
-							if (m_sendTextureToShader)
-							{
-								godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_albedo_bump_tex;
-								if (lowElevation_albedo_bump_tex != nullptr)
-								{
-									//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_0));
-									currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
-								}
+							//if (m_sendTextureToShader)
+							//{
+							//	godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_albedo_bump_tex;
+							//	if (lowElevation_albedo_bump_tex != nullptr)
+							//	{
+							//		//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_0));
+							//		currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
+							//	}
 
-								godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_normal_roughness_tex;
-								if (lowElevation_normal_roughness_tex != nullptr)
-								{
-									//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0));
-									currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
-								}
+							//	godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.lowElevationTexName_r]->m_normal_roughness_tex;
+							//	if (lowElevation_normal_roughness_tex != nullptr)
+							//	{
+							//		//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0));
+							//		currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
+							//	}
 
-								godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_albedo_bump_tex;
-								if (highElevation_albedo_bump_tex != nullptr)
-								{
-									//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_1));
-									currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
-								}
+							//	godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_albedo_bump_tex;
+							//	if (highElevation_albedo_bump_tex != nullptr)
+							//	{
+							//		//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_1));
+							//		currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
+							//	}
 
-								godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_normal_roughness_tex;
-								if (highElevation_normal_roughness_tex != nullptr)
-								{
-									//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1));
-									currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
-								}
+							//	godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.highElevationTexName_g]->m_normal_roughness_tex;
+							//	if (highElevation_normal_roughness_tex != nullptr)
+							//	{
+							//		//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1));
+							//		currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
+							//	}
 
-								godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_albedo_bump_tex;
-								if (dirt_albedo_bump_tex != nullptr)
-								{
-									//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_2));
-									currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
-								}
+							//	godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_albedo_bump_tex;
+							//	if (dirt_albedo_bump_tex != nullptr)
+							//	{
+							//		//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_2));
+							//		currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
+							//	}
 
-								godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_normal_roughness_tex;
-								if (dirt_normal_roughness_tex != nullptr)
-								{
-									//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2));
-									currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
-								}
+							//	godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.dirtTexName_b]->m_normal_roughness_tex;
+							//	if (dirt_normal_roughness_tex != nullptr)
+							//	{
+							//		//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2));
+							//		currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
+							//	}
 
-								godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_albedo_bump_tex;
-								if (rocks_albedo_bump_tex != nullptr)
-								{
-									//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_3));
-									currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
-								}
+							//	godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_albedo_bump_tex;
+							//	if (rocks_albedo_bump_tex != nullptr)
+							//	{
+							//		//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_ALBEDO_BUMP_3));
+							//		currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
+							//	}
 
-								godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_normal_roughness_tex;
-								if (rocks_normal_roughness_tex != nullptr)
-								{
-									//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3));
-									currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
-								}
-							}
+							//	godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = s_groundTextures[terrainEdit->extraValues.rocksTexName_a]->m_normal_roughness_tex;
+							//	if (rocks_normal_roughness_tex != nullptr)
+							//	{
+							//		//m_viewer->Globals()->debugPrint("setting terrain shader_param=" + String(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3));
+							//		currentMaterial->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
+							//	}
+							//}
 
 							quadrant->setTextureUpdated(false);
 						}

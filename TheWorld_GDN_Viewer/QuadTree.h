@@ -873,15 +873,15 @@ namespace godot
 #define	SHADER_PARAM_LOD_GRID_STEP					"u_lod_grid_step"
 #define	SHADER_PARAM_LOD_CHUNK_SIZE					"u_lod_chunk_size"
 
-#define SHADER_PARAM_GROUND_ALBEDO_BUMP_0			"u_ground_albedo_bump_0"
-#define SHADER_PARAM_GROUND_ALBEDO_BUMP_1			"u_ground_albedo_bump_1"
-#define SHADER_PARAM_GROUND_ALBEDO_BUMP_2			"u_ground_albedo_bump_2"
-#define SHADER_PARAM_GROUND_ALBEDO_BUMP_3			"u_ground_albedo_bump_3"
+//#define SHADER_PARAM_GROUND_ALBEDO_BUMP_0			"u_ground_albedo_bump_0"
+//#define SHADER_PARAM_GROUND_ALBEDO_BUMP_1			"u_ground_albedo_bump_1"
+//#define SHADER_PARAM_GROUND_ALBEDO_BUMP_2			"u_ground_albedo_bump_2"
+//#define SHADER_PARAM_GROUND_ALBEDO_BUMP_3			"u_ground_albedo_bump_3"
 
-#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0		"u_ground_normal_roughness_0"
-#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1		"u_ground_normal_roughness_1"
-#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2		"u_ground_normal_roughness_2"
-#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3		"u_ground_normal_roughness_3"
+//#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0		"u_ground_normal_roughness_0"
+//#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1		"u_ground_normal_roughness_1"
+//#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2		"u_ground_normal_roughness_2"
+//#define SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3		"u_ground_normal_roughness_3"
 
 #define SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE	"u_ground_uv_scale_per_texture"
 #define SHADER_PARAM_DEPTH_BLENDING					"u_depth_blending"
@@ -1136,7 +1136,7 @@ namespace godot
 
 		//static godot::Ref<godot::ShaderMaterial> s_seaMat;
 
-		bool m_sendTextureToShader = false;
+		//bool m_sendTextureToShader = false;
 	};
 	
 	class Quad

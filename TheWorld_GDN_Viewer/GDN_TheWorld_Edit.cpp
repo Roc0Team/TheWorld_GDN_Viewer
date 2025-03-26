@@ -1291,28 +1291,28 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(it->first);
 		m_innerData->m_lowElevationTexName->set_text(s.c_str());
-		m_innerData->m_lowElevationTex->set_texture(it->second->m_tex);
+		m_innerData->m_lowElevationTex->set_texture(it->second->m_texture_preview);
 	}
 	it = groundTextures.find(terrainEdit.extraValues.highElevationTexName_g);
 	if (it != groundTextures.end())
 	{
 		std::string s(it->first);
 		m_innerData->m_highElevationTexName->set_text(s.c_str());
-		m_innerData->m_highElevationTex->set_texture(it->second->m_tex);
+		m_innerData->m_highElevationTex->set_texture(it->second->m_texture_preview);
 	}
 	it = groundTextures.find(terrainEdit.extraValues.dirtTexName_b);
 	if (it != groundTextures.end())
 	{
 		std::string s(it->first);
 		m_innerData->m_dirtTexName->set_text(s.c_str());
-		m_innerData->m_dirtTex->set_texture(it->second->m_tex);
+		m_innerData->m_dirtTex->set_texture(it->second->m_texture_preview);
 	}
 	it = groundTextures.find(terrainEdit.extraValues.rocksTexName_a);
 	if (it != groundTextures.end())
 	{
 		std::string s(it->first);
 		m_innerData->m_rocksTexName->set_text(s.c_str());
-		m_innerData->m_rocksTex->set_texture(it->second->m_tex);
+		m_innerData->m_rocksTex->set_texture(it->second->m_texture_preview);
 	}
 
 	m_innerData->m_selQuadSeaCheckBox->set_disabled(false);
@@ -2484,25 +2484,25 @@ void GDN_TheWorld_Edit::changeTextureAction()
 	{
 		strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_lowElevationTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_lowElevationTex->set_texture(it->second->m_tex);
+		m_innerData->m_lowElevationTex->set_texture(it->second->m_texture_preview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_highElevationEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_highElevationTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_highElevationTex->set_texture(it->second->m_tex);
+		m_innerData->m_highElevationTex->set_texture(it->second->m_texture_preview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_dirtEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_dirtTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_dirtTex->set_texture(it->second->m_tex);
+		m_innerData->m_dirtTex->set_texture(it->second->m_texture_preview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_rocksEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_rocksTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_rocksTex->set_texture(it->second->m_tex);
+		m_innerData->m_rocksTex->set_texture(it->second->m_texture_preview);
 	}
 
 	// Quadrant has to be saved and uploaded
@@ -2561,7 +2561,7 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 	int32_t idx = 0;
 	for (const auto& groundTexture : groundTextures)
 	{
-		if (groundTexture.second->initialized)
+		//if (groundTexture.second->initialized)
 		{
 			m_innerData->m_selTexturePanel->m_textureItems[std::string(groundTexture.first)] = std::make_unique<InnerData::SelTexturePanel::TextureItemPanel>();
 			InnerData::SelTexturePanel::TextureItemPanel* texItemPanel = m_innerData->m_selTexturePanel->m_textureItems[std::string(groundTexture.first)].get();
@@ -2583,7 +2583,7 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 			tex->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
 			tex->set_custom_minimum_size(size);
 			tex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
-			tex->set_texture(groundTexture.second->m_tex);
+			tex->set_texture(groundTexture.second->m_texture_preview);
 			godot::Label* label = createControl<godot::Label>(hBoxContainer, "", s.c_str());
 
 			idx++;

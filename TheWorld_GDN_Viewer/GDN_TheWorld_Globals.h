@@ -144,8 +144,8 @@ namespace godot
 
 	public:
 		//static const std::string c_groundTexturesDir;
-		static const std::string c_albedo_bump_file_ext;
-		static const std::string c_normal_roughness_file_ext;
+		//static const std::string c_albedo_bump_file_ext;
+		//static const std::string c_normal_roughness_file_ext;
 
 	protected:
 		static void _bind_methods();
@@ -156,6 +156,15 @@ namespace godot
 		static std::string moduleLoadPath(void);
 		static std::string configFilePath(void);
 		static void printGlobalShaderParameters(void);
+		static bool isAlbedoDisplTexture(std::string filename);
+		static bool isNormalRoughnessTexture(std::string filename);
+		static bool isImageExt(std::string filename);
+		static bool isAlbedoTexture(std::string filename);
+		static bool isNormalTexture(std::string filename);
+		static bool isRoughnessTexture(std::string filename);
+		static bool isDisplacementTexture(std::string filename);
+		static bool isAmbientOcclusionTexture(std::string filename);
+		static bool isTexturePreview(std::string filename);
 
 	public:
 		const static Color g_color_white;
@@ -780,21 +789,21 @@ namespace godot
 		}
 		void setParamFogDistanceFactor(float f);
 
-		void setTextureBlendingSize(float f)
+		void setTextureOverflowSize(float f)
 		{
-			m_textureBlendingSize = f;
+			m_textureOverflowSize = f;
 		}
-		float getTextureBlendingSize(void) const
+		float getTextureOverflowSize(void) const
 		{
-			return m_textureBlendingSize;
+			return m_textureOverflowSize;
 		}
-		void setSplatmapBlendingSize(float f)
+		void setSplatmapOverflowSize(float f)
 		{
-			m_splatmapBlendingSize = f;
+			m_splatmapOverflowSize = f;
 		}
-		float getSplatmapBlendingSize(void) const
+		float getSplatmapOverflowSize(void) const
 		{
-			return m_splatmapBlendingSize;
+			return m_splatmapOverflowSize;
 		}
 
 		uint64_t elapsedFromStart(void)
@@ -889,8 +898,8 @@ namespace godot
 		size_t m_totElementToInitialize;
 		size_t m_numElementInitialized;
 
-		float m_textureBlendingSize = 0.0f;
-		float m_splatmapBlendingSize = 0.0f;
+		float m_textureOverflowSize = 0.0f;
+		float m_splatmapOverflowSize = 0.0f;
 		
 		// Node cache
 		GDN_TheWorld_Viewer* m_viewer = nullptr;

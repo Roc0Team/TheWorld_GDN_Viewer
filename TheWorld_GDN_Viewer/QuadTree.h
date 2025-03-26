@@ -764,16 +764,18 @@ namespace godot
 		public:
 			GroundTexture()
 			{
-				//m_albedo_bump_tex = nullptr;
-				//m_normal_roughness_tex = nullptr;
-				initialized = false;
 			}
 
 		public:
-			bool initialized;
-			godot::Ref<godot::ImageTexture> m_albedo_bump_tex;
-			godot::Ref<godot::ImageTexture> m_normal_roughness_tex;
-			godot::Ref<godot::Texture2D> m_tex;
+			//bool initialized = false;
+			//godot::Ref<godot::ImageTexture> m_albedo_displ_tex;
+			//godot::Ref<godot::ImageTexture> m_normal_roughness_tex;
+			godot::Ref<godot::Texture2D> m_albedo_tex;
+			godot::Ref<godot::Texture2D> m_normal_tex;
+			godot::Ref<godot::Texture2D> m_roughness_tex;
+			godot::Ref<godot::Texture2D> m_ambient_occlusion_tex;
+			godot::Ref<godot::Texture2D> m_displacement_tex;
+			godot::Ref<godot::Texture2D> m_texture_preview;
 		};
 
 		// Shader Params
@@ -781,14 +783,14 @@ namespace godot
 #define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
 #define SHADER_PARAM_TERRAIN_SPLATMAP				"u_terrain_splatmap"
 #define SHADER_PARAM_TERRAIN_COLORMAP				"u_terrain_colormap"
-#define SHADER_PARAM_TERRAIN_GLOBALMAP				"u_terrain_globalmap"
+//#define SHADER_PARAM_TERRAIN_GLOBALMAP				"u_terrain_globalmap"
 
 #define SHADER_PARAM_INVERSE_TRANSFORM				"u_terrain_inverse_transform"
 #define SHADER_PARAM_NORMAL_BASIS					"u_terrain_normal_basis"
 #define SHADER_PARAM_QUADRANT_SIZE					"u_quadrant_size"
 #define SHADER_PARAM_GRID_STEP						"u_grid_step"
 #define SHADER_PARAM_FORCE_ELEVATION_0				"u_force_height_0"
-#define SHADER_PARAM_USE_GLOBALMAP					"u_use_globalmap"
+//#define SHADER_PARAM_USE_GLOBALMAP					"u_use_globalmap"
 #define SHADER_PARAM_OPTIMIZATION_LEVEL				"u_optimization_level"
 
 #define SHADER_PARAM_NEED_BLENDING					"u_need_blending"
@@ -802,8 +804,15 @@ namespace godot
 
 #define GLOBAL_SHADER_PARAM_TIME					"gu_time"
 #define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
-#define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY		"gu_ground_albedo_bump_array"
-#define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
+
+//#define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY			"gu_ground_albedo_bump_array"
+//#define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
+#define GLOBAL_SHADER_PARAM_GROUND_ALBEDO_ARRAY		"gu_ground_albedo_array"
+#define GLOBAL_SHADER_PARAM_GROUND_NORMAL_ARRAY		"gu_ground_normal_array"
+#define GLOBAL_SHADER_PARAM_GROUND_ROUGHNESS_ARRAY	"gu_ground_roughness_array"
+#define GLOBAL_SHADER_PARAM_GROUND_DISPL_ARRAY		"gu_ground_displ_array"
+#define GLOBAL_SHADER_PARAM_GROUND_AO_ARRAY			"gu_ground_ao_array"
+
 #define GLOBAL_SHADER_PARAM_CAM_ALTITUDE			"gu_camera_altitude_from_terrain"
 #define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
 #define GLOBAL_SHADER_PARAM_CAM_ON_SEA				"gu_camera_on_sea"
@@ -814,7 +823,7 @@ namespace godot
 #define GLOBAL_SHADER_PARAM_SHOW_WIREFRAME			"gu_show_wireframe"
 #define GLOBAL_SHADER_PARAM_SHOW_NEED_BLENDING		"gu_show_need_blending"
 //#define GLOBAL_SHADER_PARAM_INVERSE_TRANSFORM		"gu_terrain_inverse_transform"
-//#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_texture_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
+//#define GLOBAL_SHADER_PARAM_TEXTURE_OVERFLOW_SIZE	"gu_texture_overflow_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_textureBlendingSize to avoid reading it from RenderingServer (slow operation)
 //#define GLOBAL_SHADER_PARAM_TEXTURE_BLENDING_SIZE	"gu_splatmap_blending_size"				// actual value must be set in internal member variable GDN_TheWorld_Globals::m_splatmapBlendingSize to avoid reading it from RenderingServer (slow operation)
 #define GLOBAL_SHADER_PARAM_FORCE_ELEVATION_0		"gu_force_height_0"
 #define GLOBAL_SHADER_PARAM_HIGHLIGHT_HIT_QUAD		"gu_highlight_hit_quadrant"
@@ -927,8 +936,8 @@ namespace godot
 		ShaderTerrainData(GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 		~ShaderTerrainData();
 		void init(void);
-		static godot::Ref<godot::Image> readGroundTexture(godot::String fileName, bool& ok, GDN_TheWorld_Viewer* viewer = nullptr);
-		static void getGroundTexture(godot::String fileName, GroundTexture* groundTexture, GDN_TheWorld_Viewer* viewer = nullptr);
+		//static godot::Ref<godot::Image> readGroundTexture(godot::String fileName, bool& ok, GDN_TheWorld_Viewer* viewer = nullptr);
+		//static void getGroundTexture(godot::String fileName, GroundTexture* groundTexture, GDN_TheWorld_Viewer* viewer = nullptr);
 		bool materialParamsNeedReset(void) const
 		{
 			return m_materialParamsNeedReset;
@@ -968,25 +977,26 @@ namespace godot
 		static void freeLookDevSubViewport(void);
 		static void releaseGlobals(void);
 		static std::string getGroundTexturesDir(void);
-		static void getGroundTextures(godot::String dirName, GDN_TheWorld_Viewer* viewer = nullptr);
+		static godot::Ref<godot::Texture2D> loadGroundTexture(std::string filePath, std::string mapType, std::string groundTexturename, int desiredImageSize, godot::Image::Format desiredImageFormat, bool returnEmpty, GDN_TheWorld_Viewer* viewer = nullptr);
+		static void loadGroundTextures(godot::String dirName, GDN_TheWorld_Viewer* viewer = nullptr);
 		static std::map<std::string, std::unique_ptr<GroundTexture>>& getGroundTextures(void)
 		{
 			return s_groundTextures;
 		}
-		static bool groundTexturesNeedProcessing(void)
-		{
-			return s_groundTexturesNeedProcessing;
-		}
-		static void groundTexturesNeedProcessing(bool b)
-		{
-			s_groundTexturesNeedProcessing = b;
-		}
+		//static bool groundTexturesNeedProcessing(void)
+		//{
+		//	return s_groundTexturesNeedProcessing;
+		//}
+		//static void groundTexturesNeedProcessing(bool b)
+		//{
+		//	s_groundTexturesNeedProcessing = b;
+		//}
 		static std::map<std::string, int32_t>& getGroundTextureLayers(void)
 		{
 			return s_groundTextureLayers;
 		}
-		godot::Ref<godot::ImageTexture> getAlbedoBumpTexture(std::string textureName);
-		godot::Ref<godot::ImageTexture> getNormalRoughnessTexture(std::string textureName);
+		//godot::Ref<godot::ImageTexture> getAlbedoBumpTexture(std::string textureName);
+		//godot::Ref<godot::ImageTexture> getNormalRoughnessTexture(std::string textureName);
 
 		void mouseHitChanged(godot::Vector2 mouseHit);
 
@@ -1130,7 +1140,7 @@ namespace godot
 		std::map<size_t, godot::Ref<godot::Image>> m_resizedGlobalmapImageMap;
 
 		static std::map<std::string, std::unique_ptr<GroundTexture>> s_groundTextures;
-		static bool s_groundTexturesNeedProcessing;
+		//static bool s_groundTexturesNeedProcessing;
 		//static std::recursive_mutex s_groundTexturesMutex;
 		static std::map<std::string, int32_t> s_groundTextureLayers;
 

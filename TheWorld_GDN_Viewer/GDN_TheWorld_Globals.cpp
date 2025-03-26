@@ -53,8 +53,8 @@ const godot::Color godot::GDN_TheWorld_Globals::g_color_black = godot::Color(0.0
 //size_t godot::GDN_TheWorld_Globals::s_elapsed5 = 0;
 
 //const std::string godot::GDN_TheWorld_Globals::c_groundTexturesDir = "res://assets/textures/ground/";
-const std::string godot::GDN_TheWorld_Globals::c_albedo_bump_file_ext = "_albedo_bump.ground";
-const std::string godot::GDN_TheWorld_Globals::c_normal_roughness_file_ext = "_normal_roughness.ground";
+//const std::string godot::GDN_TheWorld_Globals::c_albedo_bump_file_ext = "_albedo_bump.ground";
+//const std::string godot::GDN_TheWorld_Globals::c_normal_roughness_file_ext = "_normal_roughness.ground";
 
 namespace godot
 {
@@ -454,8 +454,8 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("quadrant_size_in_wus"), &GDN_TheWorld_Globals::heightmapSizeInWUs);
 		ClassDB::bind_method(D_METHOD("quadrant_step_in_wus"), &GDN_TheWorld_Globals::gridStepInWU);
 
-		ClassDB::bind_method(D_METHOD("set_texture_blending_size"), &GDN_TheWorld_Globals::setTextureBlendingSize);
-		ClassDB::bind_method(D_METHOD("set_splatmap_blending_size"), &GDN_TheWorld_Globals::setSplatmapBlendingSize);
+		ClassDB::bind_method(D_METHOD("set_texture_overflow_size"), &GDN_TheWorld_Globals::setTextureOverflowSize);
+		ClassDB::bind_method(D_METHOD("set_splatmap_overflow_size"), &GDN_TheWorld_Globals::setSplatmapOverflowSize);
 
 		// perfparam_
 		ClassDB::bind_method(D_METHOD("set_perfparam_stream_world"), &GDN_TheWorld_Globals::setStreamWorld);
@@ -754,6 +754,111 @@ namespace godot
 		m_initialized = true;
 		setStatus(TheWorldStatus::initialized);
 		PLOG_INFO << "TheWorld Globals Initialized!";
+	}
+
+	const std::string albedo_displ_ext = ".albedo_displ";
+	const std::string normal_roughness_ext = ".normal_roughness";
+
+	bool GDN_TheWorld_Globals::isAlbedoDisplTexture(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (filename.ends_with(albedo_displ_ext))
+			return true;
+		else
+			return false;
+	}
+
+	bool GDN_TheWorld_Globals::isNormalRoughnessTexture(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (filename.ends_with(".normal_roughness"))
+			return true;
+		else
+			return false;
+	}
+
+	bool GDN_TheWorld_Globals::isImageExt(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (filename.ends_with(".png") || filename.ends_with(".jpg") || filename.ends_with(".exr"))
+			return true;
+		else
+			return false;
+	}
+	
+	bool GDN_TheWorld_Globals::isAlbedoTexture(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (GDN_TheWorld_Globals::isImageExt(filename) &&
+			(TheWorld_Utils::Utils::StringContains(filename, "_diff_") || TheWorld_Utils::Utils::StringContains(filename, "_diff.")
+			|| TheWorld_Utils::Utils::StringContains(filename, "_color_") || TheWorld_Utils::Utils::StringContains(filename, "_color.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_col_") || TheWorld_Utils::Utils::StringContains(filename, "_col.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_albedo_") || TheWorld_Utils::Utils::StringContains(filename, "_albedo.")))
+			return true;
+		else
+			return false;
+	}
+
+	bool GDN_TheWorld_Globals::isNormalTexture(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (GDN_TheWorld_Globals::isImageExt(filename) &&
+			(TheWorld_Utils::Utils::StringContains(filename, "_nor_gl_") || TheWorld_Utils::Utils::StringContains(filename, "_nor_gl.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_normalgl_") || TheWorld_Utils::Utils::StringContains(filename, "_normalgl.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_nrm_") || TheWorld_Utils::Utils::StringContains(filename, "_nrm.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_normal_") || TheWorld_Utils::Utils::StringContains(filename, "_normal.")))
+			return true;
+		else
+			return false;
+	}
+
+	bool GDN_TheWorld_Globals::isRoughnessTexture(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (GDN_TheWorld_Globals::isImageExt(filename) &&
+			(TheWorld_Utils::Utils::StringContains(filename, "_rough_") || TheWorld_Utils::Utils::StringContains(filename, "_rough.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_rgh_") || TheWorld_Utils::Utils::StringContains(filename, "_rgh.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_roughness_") || TheWorld_Utils::Utils::StringContains(filename, "_roughness.")))
+			return true;
+		else
+			return false;
+	}
+
+	bool GDN_TheWorld_Globals::isDisplacementTexture(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (GDN_TheWorld_Globals::isImageExt(filename) &&
+			(TheWorld_Utils::Utils::StringContains(filename, "_disp_") || TheWorld_Utils::Utils::StringContains(filename, "_disp.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_displacement_") || TheWorld_Utils::Utils::StringContains(filename, "_displacement.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_disp_") || TheWorld_Utils::Utils::StringContains(filename, "_disp.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_height_") || TheWorld_Utils::Utils::StringContains(filename, "_height.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_depth_") || TheWorld_Utils::Utils::StringContains(filename, "_depth.")))
+			return true;
+		else
+			return false;
+	}
+
+	bool GDN_TheWorld_Globals::isAmbientOcclusionTexture(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (GDN_TheWorld_Globals::isImageExt(filename) &&
+			(TheWorld_Utils::Utils::StringContains(filename, "_ao_") || TheWorld_Utils::Utils::StringContains(filename, "_ao.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_ambientocclusion_") || TheWorld_Utils::Utils::StringContains(filename, "_ambientocclusion.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_ambient occlusion_") || TheWorld_Utils::Utils::StringContains(filename, "_ambient occlusion.")
+				|| TheWorld_Utils::Utils::StringContains(filename, "_albedo_") || TheWorld_Utils::Utils::StringContains(filename, "_albedo.")))
+			return true;
+		else
+			return false;
+	}
+
+	bool GDN_TheWorld_Globals::isTexturePreview(std::string filename)
+	{
+		TheWorld_Utils::to_lower_implace(filename);
+		if (GDN_TheWorld_Globals::isImageExt(filename) &&
+			(TheWorld_Utils::Utils::StringContains(filename, "_texture_preview")))
+			return true;
+		else
+			return false;
 	}
 
 	void GDN_TheWorld_Globals::printGlobalShaderParameters(void)

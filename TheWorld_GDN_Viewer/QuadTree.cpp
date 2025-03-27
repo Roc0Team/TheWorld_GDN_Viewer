@@ -2602,8 +2602,8 @@ void ShaderTerrainData::loadGroundTextures(godot::String dirName, GDN_TheWorld_V
 	groundTextureLayers.clear();
 
 	const int desiredImageSize = 1024;
+	const int texturePreviewDesiredImageSize = 512;
 	const godot::Image::Format desiredImageFormat = godot::Image::Format::FORMAT_RGB8;
-	//const godot::Image::Format desiredNormalImageFormat = godot::Image::Format::FORMAT_RGB16;
 
 	int layer = 0;
 	for (const auto& texture : textures)
@@ -2677,17 +2677,17 @@ void ShaderTerrainData::loadGroundTextures(godot::String dirName, GDN_TheWorld_V
 
 			if (texturePreviewFilePath.size() > 0)
 			{
-				groundTexture->m_texture_preview = loadGroundTexture(texturePreviewFilePath, "TEXTURE PREVIEW", texture.first, desiredImageSize, desiredImageFormat, false, viewer);
+				groundTexture->m_texture_preview = loadGroundTexture(texturePreviewFilePath, "TEXTURE PREVIEW", texture.first, texturePreviewDesiredImageSize, desiredImageFormat, false, viewer);
 				my_assert(groundTexture->m_texture_preview != nullptr);
 			}
 			else
 			{
-				godot::Ref<godot::Image> image = godot::Image::create_from_data(desiredImageSize, desiredImageSize, false, groundTexture->m_albedo_tex->get_image()->get_format(), groundTexture->m_albedo_tex->get_image()->get_data());
+				godot::Ref<godot::Image> image = godot::Image::create_from_data(texturePreviewDesiredImageSize, texturePreviewDesiredImageSize, false, groundTexture->m_albedo_tex->get_image()->get_format(), groundTexture->m_albedo_tex->get_image()->get_data());
 				/*if (ambientOcclusionFilePath.size() > 0)
 				{
 					if (not groundTexture->m_ambient_occlusion_tex.is_valid())
 					{
-						groundTexture->m_ambient_occlusion_tex = loadGroundTexture(ambientOcclusionFilePath, "AMBIENT OCCLUSION", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
+						groundTexture->m_ambient_occlusion_tex = loadGroundTexture(ambientOcclusionFilePath, "AMBIENT OCCLUSION", texture.first, texturePreviewDesiredImageSize, desiredImageFormat, true, viewer);
 						my_assert(groundTexture->m_ambient_occlusion_tex != nullptr);
 					}
 					

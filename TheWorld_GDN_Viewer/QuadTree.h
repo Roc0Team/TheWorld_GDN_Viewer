@@ -770,11 +770,11 @@ namespace godot
 			//bool initialized = false;
 			//godot::Ref<godot::ImageTexture> m_albedo_displ_tex;
 			//godot::Ref<godot::ImageTexture> m_normal_roughness_tex;
-			godot::Ref<godot::Texture2D> m_albedo_tex;
-			godot::Ref<godot::Texture2D> m_normal_tex;
-			godot::Ref<godot::Texture2D> m_roughness_tex;
-			godot::Ref<godot::Texture2D> m_ambient_occlusion_tex;
-			godot::Ref<godot::Texture2D> m_displacement_tex;
+			//godot::Ref<godot::Texture2D> m_albedo_tex;
+			//godot::Ref<godot::Texture2D> m_normal_tex;
+			//godot::Ref<godot::Texture2D> m_roughness_tex;
+			//godot::Ref<godot::Texture2D> m_ambient_occlusion_tex;
+			//godot::Ref<godot::Texture2D> m_displacement_tex;
 			godot::Ref<godot::Texture2D> m_texture_preview;
 		};
 
@@ -805,13 +805,14 @@ namespace godot
 #define GLOBAL_SHADER_PARAM_TIME					"gu_time"
 #define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
 
-//#define GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY			"gu_ground_albedo_bump_array"
-//#define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
-#define GLOBAL_SHADER_PARAM_GROUND_ALBEDO_ARRAY		"gu_ground_albedo_array"
-#define GLOBAL_SHADER_PARAM_GROUND_NORMAL_ARRAY		"gu_ground_normal_array"
-#define GLOBAL_SHADER_PARAM_GROUND_ROUGHNESS_ARRAY	"gu_ground_roughness_array"
-#define GLOBAL_SHADER_PARAM_GROUND_DISPL_ARRAY		"gu_ground_displ_array"
-#define GLOBAL_SHADER_PARAM_GROUND_AO_ARRAY			"gu_ground_ao_array"
+#define GLOBAL_SHADER_PARAM_ALBEDO_DISPL_ARRAY		"gu_ground_albedo_displ_array"
+#define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
+#define GLOBAL_SHADER_PARAM_BASE_VALUES_ARRAY		"gu_ground_base_values_array"
+//#define GLOBAL_SHADER_PARAM_GROUND_ALBEDO_ARRAY		"gu_ground_albedo_array"
+//#define GLOBAL_SHADER_PARAM_GROUND_NORMAL_ARRAY		"gu_ground_normal_array"
+//#define GLOBAL_SHADER_PARAM_GROUND_ROUGHNESS_ARRAY	"gu_ground_roughness_array"
+//#define GLOBAL_SHADER_PARAM_GROUND_DISPL_ARRAY		"gu_ground_displ_array"
+//#define GLOBAL_SHADER_PARAM_GROUND_AO_ARRAY			"gu_ground_ao_array"
 
 #define GLOBAL_SHADER_PARAM_CAM_ALTITUDE			"gu_camera_altitude_from_terrain"
 #define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
@@ -977,8 +978,10 @@ namespace godot
 		static void freeLookDevSubViewport(void);
 		static void releaseGlobals(void);
 		static std::string getGroundTexturesDir(void);
-		static godot::Ref<godot::Texture2D> loadGroundTexture(std::string filePath, std::string mapType, std::string groundTexturename, int desiredImageSize, godot::Image::Format desiredImageFormat, bool returnEmpty, GDN_TheWorld_Viewer* viewer = nullptr);
-		static void loadGroundTextures(godot::String dirName, GDN_TheWorld_Viewer* viewer = nullptr);
+		static godot::Ref<godot::Image> loadGroundImage(std::string filePath, std::string mapType, std::string groundImageName, int desiredImageSize, godot::Image::Format desiredImageFormat, bool returnEmpty, GDN_TheWorld_Viewer* viewer = nullptr);
+		static godot::Ref<godot::Texture2D> loadGroundTexture(std::string filePath, std::string mapType, std::string groundImageName, int desiredImageSize, godot::Image::Format desiredImageFormat, bool returnEmpty, GDN_TheWorld_Viewer* viewer = nullptr);
+		static void loadAllGroundTextures(std::string groundTexturesDir, GDN_TheWorld_Viewer* viewer);
+		static bool loadGroundImagesByName(std::string imagesDirPath, std::string imagesDirName, std::string textureName, GDN_TheWorld_Viewer* viewer, godot::Ref<godot::Image>& albedoDisplImage, godot::Ref<godot::Image>& normalRoughnessImage, godot::Ref<godot::Texture2D>& texturePreview);
 		static std::map<std::string, std::unique_ptr<GroundTexture>>& getGroundTextures(void)
 		{
 			return s_groundTextures;

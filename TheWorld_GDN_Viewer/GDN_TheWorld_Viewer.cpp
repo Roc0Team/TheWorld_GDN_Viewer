@@ -5263,7 +5263,7 @@ bool GDN_TheWorld_Viewer::init(void)
 		m_shaderParam_colormapOpacity.d = 1.0f;
 
 		//ShaderTerrainData::getGroundTextures(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()), this);
-		ShaderTerrainData::loadGroundTextures("", this);
+		ShaderTerrainData::loadAllGroundTextures("", this);
 		std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
 		globals->addElementToInitialize((int)groundTextures.size());
 	}

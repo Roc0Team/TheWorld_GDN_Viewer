@@ -207,3 +207,222 @@
 //
 //	idx++;
 //}
+
+//void ShaderTerrainData::loadGroundTextures(godot::String dirName, GDN_TheWorld_Viewer* viewer)
+//{
+//	TheWorld_Utils::GuardProfiler profiler(std::string("getGroundTextures 1 ") + __FUNCTION__, "all");
+//
+//	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+//
+//	if (viewer != nullptr)
+//		viewer->Globals()->debugPrint("Reading ground textures");
+//
+//	godot::String _dirName = dirName;
+//	if (_dirName.length() == 0)
+//	{
+//		_dirName = ShaderTerrainData::getGroundTexturesDir().c_str();
+//	}
+//
+//	godot::String globalizedDirName = ProjectSettings::get_singleton()->globalize_path(_dirName);
+//
+//	std::map<std::string, bool> textures;
+//
+//	std::string scanningDir = std::string(globalizedDirName.utf8().get_data());
+//	if (!fs::exists(scanningDir))
+//		return;
+//
+//	for (const auto& entry : fs::directory_iterator(scanningDir))
+//		if (entry.is_directory())
+//		{
+//			std::string dirname = entry.path().filename().generic_string();
+//			if (not dirname.starts_with("_"))
+//				textures[dirname] = true;
+//		}
+//
+//	godot::Ref<godot::Texture2DArray> albedoTexture2DArray = memnew(godot::Texture2DArray);
+//	godot::Ref<godot::Texture2DArray> normalTexture2DArray = memnew(godot::Texture2DArray);
+//	godot::Ref<godot::Texture2DArray> roughnessTexture2DArray = memnew(godot::Texture2DArray);
+//	godot::Ref<godot::Texture2DArray> displacementTexture2DArray = memnew(godot::Texture2DArray);
+//	godot::Ref<godot::Texture2DArray> ambientOcclusionTexture2DArray = memnew(godot::Texture2DArray);
+//	godot::TypedArray<godot::Image> albedoImageArray, normalImageArray, roughnessImageArray, displacementImageArray/*, ambientOcclusionImageArray*/;
+//
+//	std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
+//	groundTextureLayers.clear();
+//
+//	const int desiredImageSize = 1024;
+//	const int texturePreviewDesiredImageSize = 512;
+//	const godot::Image::Format desiredImageFormat = godot::Image::Format::FORMAT_RGB8;
+//
+//	int layer = 0;
+//	for (const auto& texture : textures)
+//	{
+//		std::string textureDir = scanningDir + texture.first;
+//		//std::string albedoDisplTextureFilePath, normalRoughnessTextureFilePath;
+//		std::string albedoTextureFilePath, normalTextureFilePath, roughnessTextureFilePath, displacementTextureFilePath, ambientOcclusionFilePath, texturePreviewFilePath;
+//
+//		for (const auto& entry : fs::directory_iterator(textureDir))
+//		{
+//			if (entry.is_regular_file())
+//			{
+//				std::string filename = entry.path().filename().generic_string();
+//
+//				if (GDN_TheWorld_Globals::isImageExt(filename))
+//				{
+//					if (GDN_TheWorld_Globals::isAlbedoTexture(filename))
+//					{
+//						albedoTextureFilePath = textureDir + "/" + filename;
+//					}
+//					else if (GDN_TheWorld_Globals::isNormalTexture(filename))
+//					{
+//						normalTextureFilePath = textureDir + "/" + filename;
+//					}
+//					else if (GDN_TheWorld_Globals::isRoughnessTexture(filename))
+//					{
+//						roughnessTextureFilePath = textureDir + "/" + filename;
+//					}
+//					else if (GDN_TheWorld_Globals::isDisplacementTexture(filename))
+//					{
+//						displacementTextureFilePath = textureDir + "/" + filename;
+//					}
+//					else if (GDN_TheWorld_Globals::isAmbientOcclusionTexture(filename))
+//					{
+//						ambientOcclusionFilePath = textureDir + "/" + filename;
+//					}
+//					else if (GDN_TheWorld_Globals::isTexturePreview(filename))
+//					{
+//						texturePreviewFilePath = textureDir + "/" + filename;
+//					}
+//				}
+//			}
+//		}
+//
+//		if (albedoTextureFilePath.size() > 0)
+//		{
+//			TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+//
+//			s_groundTextures[texture.first] = std::make_unique<ShaderTerrainData::GroundTexture>();
+//			ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[texture.first].get();
+//
+//			groundTexture->m_albedo_tex = loadGroundTexture(albedoTextureFilePath, "ALBEDO", texture.first, desiredImageSize, desiredImageFormat, false, viewer);
+//			my_assert(groundTexture->m_albedo_tex != nullptr);
+//			albedoImageArray.push_back(groundTexture->m_albedo_tex->get_image());
+//
+//			groundTexture->m_normal_tex = loadGroundTexture(normalTextureFilePath, "NORMAL", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
+//			my_assert(groundTexture->m_normal_tex != nullptr);
+//			normalImageArray.push_back(groundTexture->m_normal_tex->get_image());
+//
+//			groundTexture->m_roughness_tex = loadGroundTexture(roughnessTextureFilePath, "ROUGHNESS", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
+//			my_assert(groundTexture->m_roughness_tex != nullptr);
+//			roughnessImageArray.push_back(groundTexture->m_roughness_tex->get_image());
+//
+//			groundTexture->m_displacement_tex = loadGroundTexture(displacementTextureFilePath, "DISPLACEMENT", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
+//			my_assert(groundTexture->m_displacement_tex != nullptr);
+//			displacementImageArray.push_back(groundTexture->m_displacement_tex->get_image());
+//
+//			//groundTexture->m_ambient_occlusion_tex = loadGroundTexture(ambientOcclusionFilePath, "AMBIENT OCCLUSION", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
+//			//my_assert(groundTexture->m_ambient_occlusion_tex != nullptr);
+//			//ambientOcclusionImageArray.push_back(groundTexture->m_ambient_occlusion_tex->get_image());
+//
+//			if (texturePreviewFilePath.size() > 0)
+//			{
+//				groundTexture->m_texture_preview = loadGroundTexture(texturePreviewFilePath, "TEXTURE PREVIEW", texture.first, texturePreviewDesiredImageSize, desiredImageFormat, false, viewer);
+//				my_assert(groundTexture->m_texture_preview != nullptr);
+//			}
+//			else
+//			{
+//				godot::Ref<godot::Image> image = godot::Image::create_from_data(texturePreviewDesiredImageSize, texturePreviewDesiredImageSize, false, groundTexture->m_albedo_tex->get_image()->get_format(), groundTexture->m_albedo_tex->get_image()->get_data());
+//				/*if (ambientOcclusionFilePath.size() > 0)
+//				{
+//					if (not groundTexture->m_ambient_occlusion_tex.is_valid())
+//					{
+//						groundTexture->m_ambient_occlusion_tex = loadGroundTexture(ambientOcclusionFilePath, "AMBIENT OCCLUSION", texture.first, texturePreviewDesiredImageSize, desiredImageFormat, true, viewer);
+//						my_assert(groundTexture->m_ambient_occlusion_tex != nullptr);
+//					}
+//
+//					godot::Ref<godot::Image> aoImage = groundTexture->m_ambient_occlusion_tex->get_image();
+//					godot::Rect2i sourceBlendingRect(0, 0, image->get_width(), image->get_height());
+//					godot::Vector2i destBlendingRect(0, 0);
+//
+//					//aoImage->blend_rect(image, sourceBlendingRect, destBlendingRect);		// Alpha-blending is not what I want
+//					//image = aoImage;
+//					for(int y = 0; y < image->get_height(); y++)
+//						for (int x = 0; x < image->get_width(); x++)
+//						{
+//							godot::Color color = image->get_pixel(x, y);
+//							godot::Color aoImageColor = aoImage->get_pixel(x, y);
+//							godot::Color mixedColor = color * aoImageColor;
+//							image->set_pixel(x, y, mixedColor);
+//						}
+//				}*/
+//
+//				texturePreviewFilePath = textureDir + "/" + texture.first + "_texture_preview" + ".png";
+//				//if (not godot::Engine::get_singleton()->is_editor_hint())
+//				image->save_png(texturePreviewFilePath.c_str());
+//				groundTexture->m_texture_preview = godot::ImageTexture::create_from_image(image);
+//			}
+//
+//			groundTextureLayers[texture.first] = layer;
+//
+//			TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+//			long long elapsed = (now - start).count();
+//			if (viewer != nullptr)
+//				viewer->Globals()->debugPrint((std::string("Loaded ground_texture [") + texture.first + "] ==> layer = " + std::to_string(layer) + " - Elapsed = " + std::to_string(elapsed) + " ms").c_str());
+//
+//			layer++;
+//		}
+//		else
+//		{
+//			if (viewer != nullptr)
+//			{
+//				std::string msg = std::string("Ground texture ") + texture.first + " discarded";
+//				viewer->Globals()->debugPrint(msg.c_str());
+//			}
+//
+//		}
+//	}
+//
+//	my_assert(albedoImageArray.size() == normalImageArray.size());
+//	my_assert(albedoImageArray.size() == roughnessImageArray.size());
+//	my_assert(albedoImageArray.size() == displacementImageArray.size());
+//	//my_assert(albedoImageArray.size() == ambientOcclusionImageArray.size());
+//
+//	godot::Error e = albedoTexture2DArray->create_from_images(albedoImageArray);
+//	my_assert(e == godot::Error::OK);
+//	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GROUND_ALBEDO_ARRAY, albedoTexture2DArray);
+//	e = normalTexture2DArray->create_from_images(normalImageArray);
+//	my_assert(e == godot::Error::OK);
+//	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GROUND_NORMAL_ARRAY, normalTexture2DArray);
+//	e = roughnessTexture2DArray->create_from_images(roughnessImageArray);
+//	my_assert(e == godot::Error::OK);
+//	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GROUND_ROUGHNESS_ARRAY, roughnessTexture2DArray);
+//	e = displacementTexture2DArray->create_from_images(displacementImageArray);
+//	my_assert(e == godot::Error::OK);
+//	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GROUND_DISPL_ARRAY, displacementTexture2DArray);
+//	//e = ambientOcclusionTexture2DArray->create_from_images(ambientOcclusionImageArray);
+//	//my_assert(e == godot::Error::OK);
+//	//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_GROUND_AO_ARRAY, ambientOcclusionTexture2DArray);
+//
+//	// Free PBR Textures because they are already sent to the global shader variables
+//	for (auto& groundTexture : s_groundTextures)
+//	{
+//		if (groundTexture.second->m_albedo_tex.is_valid())
+//			groundTexture.second->m_albedo_tex.unref();
+//		if (groundTexture.second->m_normal_tex.is_valid())
+//			groundTexture.second->m_normal_tex.unref();
+//		if (groundTexture.second->m_roughness_tex.is_valid())
+//			groundTexture.second->m_roughness_tex.unref();
+//		if (groundTexture.second->m_ambient_occlusion_tex.is_valid())
+//			groundTexture.second->m_ambient_occlusion_tex.unref();
+//		if (groundTexture.second->m_displacement_tex.is_valid())
+//			groundTexture.second->m_displacement_tex.unref();
+//	}
+//
+//	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+//	long long elapsed = (now - start).count();
+//
+//	if (viewer != nullptr)
+//		viewer->Globals()->debugPrint((std::string("Reading ground textures done! - Elapsed ") + std::to_string(elapsed) + " ms").c_str());
+//
+//	//String materialPath = "res://addons/twviewer/shaders/m_sea.tres";
+//	//s_seaMat = godot::ResourceLoader::get_singleton()->load(materialPath);
+//}

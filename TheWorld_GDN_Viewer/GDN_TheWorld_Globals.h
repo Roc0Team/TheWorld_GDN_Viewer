@@ -868,6 +868,10 @@ namespace godot
 		//static size_t s_elapsed4;
 		//static size_t s_elapsed5;
 
+	public:
+		static const std::string s_albedo_displ_ext;
+		static const std::string s_normal_roughness_ext;
+
 	private:
 		static std::string s_moduleLoadPath;
 		static std::string s_configFilePath;

@@ -756,13 +756,13 @@ namespace godot
 		PLOG_INFO << "TheWorld Globals Initialized!";
 	}
 
-	const std::string albedo_displ_ext = ".albedo_displ";
-	const std::string normal_roughness_ext = ".normal_roughness";
+	const std::string GDN_TheWorld_Globals::s_albedo_displ_ext = ".albedo_displ.webp";
+	const std::string GDN_TheWorld_Globals::s_normal_roughness_ext = ".normal_roughness.webp";
 
 	bool GDN_TheWorld_Globals::isAlbedoDisplTexture(std::string filename)
 	{
 		TheWorld_Utils::to_lower_implace(filename);
-		if (filename.ends_with(albedo_displ_ext))
+		if (filename.ends_with(s_albedo_displ_ext))
 			return true;
 		else
 			return false;
@@ -771,7 +771,7 @@ namespace godot
 	bool GDN_TheWorld_Globals::isNormalRoughnessTexture(std::string filename)
 	{
 		TheWorld_Utils::to_lower_implace(filename);
-		if (filename.ends_with(".normal_roughness"))
+		if (filename.ends_with(s_normal_roughness_ext))
 			return true;
 		else
 			return false;
@@ -780,7 +780,7 @@ namespace godot
 	bool GDN_TheWorld_Globals::isImageExt(std::string filename)
 	{
 		TheWorld_Utils::to_lower_implace(filename);
-		if (filename.ends_with(".png") || filename.ends_with(".jpg") || filename.ends_with(".exr"))
+		if (filename.ends_with(".png") || filename.ends_with(".jpg") || filename.ends_with(".exr") || filename.ends_with(".webp"))
 			return true;
 		else
 			return false;

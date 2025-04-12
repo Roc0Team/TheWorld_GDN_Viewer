@@ -1,9 +1,11 @@
+* test creazione global map
+* squadrettizzazione
+* suddivisione dei quadranti in continenti e possibilità di definire differenti scenari in ground.json e di assegnarli ai continenti
 * ***OK*** visualizzazione della velocità del movimento della camera
+* ***OK*** migliorata acquisizione e rendering delle texture PBR anche se attualmente il displacement risulta ininfluente
 * velocità del movimento della camera nell'hud che diventa evidenziato (rosso lampeggiante se la velocità della camera supera la velocità di streaming della mappa)
-* import delle texture direttamente dallo zip di https://ambientcg.com/
-* miglior effetto visivo della sabbia e in generale delle texture a media distanza (paesaggio nebbioso)
+* ***OK*** nei dati relativi ai quadranti non viene più scritto il nome della texture ma un nome simbolico descritto nel file ground.json
 * Nubi volumetriche e nebbia in 3d (se si sale più in alto si devono vedere in basso e si devono poter attraversare)
-* vegetazione e costruzioni
 * architettura client-server con software di rete
 * profiler should aliment a que dequeued by a dedicated thread
 * la mappa (globalmap) deve avere un aspetto più verosimile
@@ -11,6 +13,8 @@
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde
 
+* vegetazione
+* costruzioni
 * strade
 * laghi
 * fiumi

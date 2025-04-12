@@ -2890,11 +2890,12 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 
 	struct TextureEntry
 	{
-		godot::Color baseAlbedo = godot::Color(1.0, 1.0, 1.0);
-		float baseHeight = 0;			// r to shader
-		float baseNormal = 1;			// g to shader
-		float baseRoughness = 1;		// b to shder
-		float baseUV = 1;				// a to shader
+		godot::Color baseAlbedo = godot::Color(1.0, 1.0, 1.0);		// in shader base_values0.rgb 
+		float unused_1 = 1;											// in shader base_values0.a to shader
+		float baseScaleHeight = 1;									// in shader base_values1.r to shader irrelevant in actual shader implementation 
+		float baseScaleNormal = 1;									// in shader base_values1.g to shader
+		float baseScaleRoughness = 1;								// in shader base_values1.b to shder
+		float baseScaleUV = 1;										// in shader base_values1.a to shader
 		std::string folder;
 	};
 	std::map<std::string, TextureEntry> textures;
@@ -2964,26 +2965,35 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 					std::vector<std::string> vect = TheWorld_Utils::Utils::split(v.asString(), ',');
 					if (vect.size() == 3)
 					{
-						textureEntry.baseAlbedo.r = std::stof(vect[0]);
-						textureEntry.baseAlbedo.g = std::stof(vect[1]);
-						textureEntry.baseAlbedo.b = std::stof(vect[2]);
+						if (TheWorld_Utils::Utils::StringContains(vect[0], "."))
+							textureEntry.baseAlbedo.r = std::stof(vect[0]);
+						else
+							textureEntry.baseAlbedo.r = std::stof(vect[0]) / 255.0f;
+						if (TheWorld_Utils::Utils::StringContains(vect[1], "."))
+							textureEntry.baseAlbedo.g = std::stof(vect[1]);
+						else
+							textureEntry.baseAlbedo.g = std::stof(vect[1]) / 255.0f;
+						if (TheWorld_Utils::Utils::StringContains(vect[2], "."))
+							textureEntry.baseAlbedo.b = std::stof(vect[2]);
+						else
+							textureEntry.baseAlbedo.b = std::stof(vect[2]) / 255.0f;
 					}
 					else
 						if (viewer != nullptr)
 							viewer->Globals()->debugPrint((std::string("Base-albedo syntax error for texture <") + textureName + ">!").c_str());
 				}
-				v = jsonTextureSubTypeObject["base-height"];
+				v = jsonTextureSubTypeObject["base-scale-height"];
 				if (not v.isNull())
-					textureEntry.baseHeight = float(v.asDouble());
-				v = jsonTextureSubTypeObject["base-normal"];
+					textureEntry.baseScaleHeight = float(v.asDouble()) / 16.0f;
+				v = jsonTextureSubTypeObject["base-scale-normal"];
 				if (not v.isNull())
-					textureEntry.baseNormal = float(v.asDouble());
-				v = jsonTextureSubTypeObject["base-roughness"];
+					textureEntry.baseScaleNormal = float(v.asDouble()) / 16.0f;
+				v = jsonTextureSubTypeObject["base-scale-roughness"];
 				if (not v.isNull())
-					textureEntry.baseRoughness = float(v.asDouble());
-				v = jsonTextureSubTypeObject["base-uv"];
+					textureEntry.baseScaleRoughness = float(v.asDouble()) / 16.0f;
+				v = jsonTextureSubTypeObject["base-scale-uv"];
 				if (not v.isNull())
-					textureEntry.baseUV = float(v.asDouble());
+					textureEntry.baseScaleUV = float(v.asDouble()) / 16.0f;
 				textures[textureName] = textureEntry;
 			}
 		}
@@ -3007,8 +3017,8 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 		{
 			albedoDisplImageArray.push_back(albedoDisplImage);
 			normalRoughnessImageArray.push_back(normalRoughnessImage);
-			baseValues0Array.push_back(texture.second.baseAlbedo);
-			baseValues1Array.push_back(godot::Color(texture.second.baseHeight, texture.second.baseNormal, texture.second.baseRoughness, texture.second.baseUV));
+			baseValues0Array.push_back(texture.second.baseAlbedo);	// ATM only rgb values are used, a channel is free for future implementations
+			baseValues1Array.push_back(godot::Color(texture.second.baseScaleHeight, texture.second.baseScaleNormal, texture.second.baseScaleRoughness, texture.second.baseScaleUV));
 
 			s_groundTextures[texture.first] = std::make_unique<ShaderTerrainData::GroundTexture>();
 			ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[texture.first].get();
@@ -3049,10 +3059,14 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 	godot::Ref<godot::Image> baseValuesImage = godot::Image::create_empty(layer, 2, false, godot::Image::Format::FORMAT_RGBA8);
 	for (int x = 0; x < layer; x++)
 	{
-		baseValuesImage->set_pixel(x, 0, baseValues0Array[x]);
-		baseValuesImage->set_pixel(x, 1, baseValues1Array[x]);
+		godot::Color c0 = baseValues0Array[x];
+		godot::Color c1 = baseValues1Array[x];
+		baseValuesImage->set_pixel(x, 0, c0);
+		baseValuesImage->set_pixel(x, 1, c1);
 	}
-	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_BASE_VALUES_ARRAY, baseValuesImage);
+	baseValuesImage->save_png("C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\a.png");
+	godot::Ref<godot::Texture2D> tex = godot::ImageTexture::create_from_image(baseValuesImage);
+	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_BASE_VALUES_ARRAY, tex);
 
 	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 	long long elapsed = (now - start).count();

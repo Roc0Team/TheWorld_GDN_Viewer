@@ -2521,6 +2521,8 @@ void GDN_TheWorld_Edit::changeTextureAction()
 	quadTreeSel->getQuadrant()->southQuadrantData().initialized(false);
 	quadTreeSel->getQuadrant()->westQuadrantData().initialized(false);
 	quadTreeSel->getQuadrant()->eastQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->northWestQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->southEastQuadrantData().initialized(false);
 }
 
 godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
@@ -3693,6 +3695,8 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->southQuadrantData().initialized(false);
 	quadTreeSel->getQuadrant()->westQuadrantData().initialized(false);
 	quadTreeSel->getQuadrant()->eastQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->northWestQuadrantData().initialized(false);
+	quadTreeSel->getQuadrant()->southEastQuadrantData().initialized(false);
 
 	// 11. unlock internal datas so that they can be passed to the shader/collider
 	quadTreeSel->getQuadrant()->unlockInternalData();

@@ -5912,6 +5912,8 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 									quadTree->getQuadrant()->southQuadrantData().initialized(false);
 									quadTree->getQuadrant()->westQuadrantData().initialized(false);
 									quadTree->getQuadrant()->eastQuadrantData().initialized(false);
+									quadTree->getQuadrant()->northWestQuadrantData().initialized(false);
+									quadTree->getQuadrant()->southEastQuadrantData().initialized(false);
 								}
 
 								quadTree->getQuadrant()->mapModderWorkDone(false);
@@ -12364,6 +12366,38 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 		Quadrant* quadrant = quadTree->getQuadrant();
 		TheWorld_Utils::QuadrantPos quadrantPos = quadrant->getPos();
 
+		Quadrant::NeighbourQuadrantData& southEastQuadrantData = quadrant->southEastQuadrantData();
+		if (!southEastQuadrantData.initialized())
+		{
+
+			TheWorld_Utils::QuadrantPos southEastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus);
+			if (m_worldQuadrantsMap.contains(southEastPos))
+			{
+				QuadTree* southEastQuadTree = m_worldQuadrantsMap[southEastPos].get();
+				if (!southEastQuadTree->statusToErase() && southEastQuadTree->statusInitialized())
+				{
+					southEastQuadrantData.init(southEastQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, southEastPos);
+					southEastQuadTree->getQuadrant()->northWestQuadrantData().init(quadrant->quadrantTextureLayers(), southEastPos, quadrantPos);
+				}
+			}
+		}
+
+		Quadrant::NeighbourQuadrantData& northWestQuadrantData = quadrant->northWestQuadrantData();
+		if (!northWestQuadrantData.initialized())
+		{
+
+			TheWorld_Utils::QuadrantPos northWestPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus);
+			if (m_worldQuadrantsMap.contains(northWestPos))
+			{
+				QuadTree* northWestQuadTree = m_worldQuadrantsMap[northWestPos].get();
+				if (!northWestQuadTree->statusToErase() && northWestQuadTree->statusInitialized())
+				{
+					northWestQuadrantData.init(northWestQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, northWestPos);
+					northWestQuadTree->getQuadrant()->southEastQuadrantData().init(quadrant->quadrantTextureLayers(), northWestPos, quadrantPos);
+				}
+			}
+		}
+
 		Quadrant::NeighbourQuadrantData& northQuadrantData = quadrant->northQuadrantData();
 		if (!northQuadrantData.initialized())
 		{
@@ -12427,6 +12461,20 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 
 		if (is_inside_tree() && quadTree->getLookDev() == ShaderTerrainData::LookDev::NotSet)
 		{
+			//if (southEastQuadrantData.initialized() && !southEastQuadrantData.shaderUpdated())
+			//{
+			//	godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
+			//	currentMaterial->set_shader_parameter(SHADER_PARAM_SOUTH_EAST_GROUND_LAYERS, southEastQuadrantData.groundTextureLayers());
+			//	southEastQuadrantData.shaderUpdated(true);
+			//}
+
+			if (northWestQuadrantData.initialized() && !northWestQuadrantData.shaderUpdated())
+			{
+				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
+				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, northWestQuadrantData.groundTextureLayers());
+				northWestQuadrantData.shaderUpdated(true);
+			}
+
 			if (northQuadrantData.initialized() && !northQuadrantData.shaderUpdated())
 			{
 				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
@@ -12434,12 +12482,12 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				northQuadrantData.shaderUpdated(true);
 			}
 
-			if (southQuadrantData.initialized() && !southQuadrantData.shaderUpdated())
-			{
-				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
-				currentMaterial->set_shader_parameter(SHADER_PARAM_SOUTH_GROUND_LAYERS, southQuadrantData.groundTextureLayers());
-				southQuadrantData.shaderUpdated(true);
-			}
+			//if (southQuadrantData.initialized() && !southQuadrantData.shaderUpdated())
+			//{
+			//	godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
+			//	currentMaterial->set_shader_parameter(SHADER_PARAM_SOUTH_GROUND_LAYERS, southQuadrantData.groundTextureLayers());
+			//	southQuadrantData.shaderUpdated(true);
+			//}
 
 			if (westQuadrantData.initialized() && !westQuadrantData.shaderUpdated())
 			{
@@ -12448,12 +12496,12 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				westQuadrantData.shaderUpdated(true);
 			}
 
-			if (eastQuadrantData.initialized() && !eastQuadrantData.shaderUpdated())
-			{
-				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
-				currentMaterial->set_shader_parameter(SHADER_PARAM_EAST_GROUND_LAYERS, eastQuadrantData.groundTextureLayers());
-				eastQuadrantData.shaderUpdated(true);
-			}
+			//if (eastQuadrantData.initialized() && !eastQuadrantData.shaderUpdated())
+			//{
+			//	godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
+			//	currentMaterial->set_shader_parameter(SHADER_PARAM_EAST_GROUND_LAYERS, eastQuadrantData.groundTextureLayers());
+			//	eastQuadrantData.shaderUpdated(true);
+			//}
 		}
 	}
 }

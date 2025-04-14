@@ -756,8 +756,8 @@ namespace godot
 		PLOG_INFO << "TheWorld Globals Initialized!";
 	}
 
-	const std::string GDN_TheWorld_Globals::s_albedo_displ_ext = ".albedo_displ.webp";
-	const std::string GDN_TheWorld_Globals::s_normal_roughness_ext = ".normal_roughness.webp";
+	const std::string GDN_TheWorld_Globals::s_albedo_displ_ext = ".albedo_displ.png";
+	const std::string GDN_TheWorld_Globals::s_normal_roughness_ext = ".normal_roughness.png";
 
 	bool GDN_TheWorld_Globals::isAlbedoDisplTexture(std::string filename)
 	{

@@ -1446,6 +1446,8 @@ void QuadTree::setRegularMaterial(enum class QuadType type, bool reload)
 		getQuadrant()->southQuadrantData().shaderUpdated(false);
 		getQuadrant()->westQuadrantData().shaderUpdated(false);
 		getQuadrant()->eastQuadrantData().shaderUpdated(false);
+		getQuadrant()->northWestQuadrantData().shaderUpdated(false);
+		getQuadrant()->southEastQuadrantData().shaderUpdated(false);
 
 		Chunk::SetMaterialChunkAction action(getQuadrant()->getShaderTerrainData()->getRegularTerrainMaterial(reload));
 		ForAllChunk(action, type);
@@ -2632,7 +2634,7 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 	}
 
 	// check if albedo_displ texture need to be recreated
-	if (albedoDisplTextureFilePath.size() > 0 and (albedoTextureFilePath.size() > 0 or displacementTextureFilePath.size() > 0))
+	if (albedoDisplTextureFilePath.size() > 0 and (albedoTextureFilePath.size() > 0 or displacementTextureFilePath.size() > 0 or ambientOcclusionFilePath.size() > 0))
 	{
 		std::chrono::system_clock::time_point albedoDisplTextureTime = TheWorld_Utils::last_write_time_point_utc(albedoDisplTextureFilePath);
 		if (albedoTextureFilePath.size() > 0)
@@ -2645,6 +2647,12 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 		{
 			std::chrono::system_clock::time_point displacementTextureTime = TheWorld_Utils::last_write_time_point_utc(displacementTextureFilePath);
 			if (displacementTextureTime > albedoDisplTextureTime)
+				albedoDisplTextureFilePath.clear();
+		}
+		if (ambientOcclusionFilePath.size() > 0)
+		{
+			std::chrono::system_clock::time_point ambientOcclusionTextureTime = TheWorld_Utils::last_write_time_point_utc(ambientOcclusionFilePath);
+			if (ambientOcclusionTextureTime > albedoDisplTextureTime)
 				albedoDisplTextureFilePath.clear();
 		}
 	}
@@ -2681,49 +2689,25 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 	{
 		// we have albedo_displ, normal_roughness and preview textures and all are up to date
 		
-		//godot::Ref<godot::FileAccess> file = godot::FileAccess::open(albedoDisplTextureFilePath.c_str(), godot::FileAccess::READ);
-		//if (file == nullptr)
-		//	throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("Error reading file ") + albedoDisplTextureFilePath + " error " + std::to_string(int(godot::FileAccess::get_open_error()))).c_str()));
-		//godot::PackedByteArray array = file->get_buffer(file->get_length());
-		//file->close();
-		//godot::Ref<godot::Image> image1 = memnew(godot::Image);
-		//godot::Error e = image1->load_webp_from_buffer(array);
-		//my_assert(e == godot::Error::OK);
 		godot::Ref<godot::Image> image1 = godot::Image::load_from_file(albedoDisplTextureFilePath.c_str());
 		my_assert(image1 != nullptr);
-		int32_t w = image1->get_width();				// DEBUG
-		int32_t h = image1->get_height();				// DEBUG
-		godot::Image::Format f = image1->get_format();	// DEBUG
+		//int32_t w = image1->get_width();				// DEBUG
+		//int32_t h = image1->get_height();				// DEBUG
+		//godot::Image::Format f = image1->get_format();	// DEBUG
 		albedoDisplImage = image1;
 
-		//file = godot::FileAccess::open(normalRoughnessTextureFilePath.c_str(), godot::FileAccess::READ);
-		//if (file == nullptr)
-		//	throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("Error reading file ") + normalRoughnessTextureFilePath + " error " + std::to_string(int(godot::FileAccess::get_open_error()))).c_str()));
-		//array = file->get_buffer(file->get_length());
-		//file->close();
-		//godot::Ref<godot::Image> image2 = memnew(godot::Image);
-		//e = image2->load_webp_from_buffer(array);
-		//my_assert(e == godot::Error::OK);
 		godot::Ref<godot::Image> image2 = godot::Image::load_from_file(normalRoughnessTextureFilePath.c_str());
 		my_assert(image2 != nullptr);
-		w = image2->get_width();	// DEBUG
-		h = image2->get_height();	// DEBUG
-		f = image2->get_format();	// DEBUG
+		//w = image2->get_width();	// DEBUG
+		//h = image2->get_height();	// DEBUG
+		//f = image2->get_format();	// DEBUG
 		normalRoughnessImage = image2;
 
-		//file = godot::FileAccess::open(texturePreviewFilePath.c_str(), godot::FileAccess::READ);
-		//if (file == nullptr)
-		//	throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("Error reading file ") + texturePreviewFilePath + " error " + std::to_string(int(godot::FileAccess::get_open_error()))).c_str()));
-		//array = file->get_buffer(file->get_length());
-		//file->close();
-		//godot::Ref<godot::Image> image3 = memnew(godot::Image);
-		//e = image3->load_webp_from_buffer(array);
-		//my_assert(e == godot::Error::OK);
 		godot::Ref<godot::Image> image3 = godot::Image::load_from_file(texturePreviewFilePath.c_str());
 		my_assert(image3 != nullptr);
-		w = image3->get_width();	// DEBUG
-		h = image3->get_height();	// DEBUG
-		f = image3->get_format();	// DEBUG
+		//w = image3->get_width();	// DEBUG
+		//h = image3->get_height();	// DEBUG
+		//f = image3->get_format();	// DEBUG
 		godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image3);
 		texturePreview = tex;
 	}
@@ -2733,25 +2717,32 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 	
 		if (albedoTextureFilePath.size() > 0)
 		{
+			// AlbedoDispl image contains as forth color (a) the value from ambient occlusion map istead of the value from displacement map
 			godot::Ref<godot::Image> albedoImage = loadGroundImage(albedoTextureFilePath, "ALBEDO", textureName, desiredImageSize, godot::Image::Format(-1), false, viewer);
 			my_assert(albedoImage != nullptr);
-			godot::Ref<godot::Image> displImage = loadGroundImage(displacementTextureFilePath, "DISPLACEMENT", textureName, desiredImageSize, godot::Image::Format(-1), true, viewer);
-			my_assert(displImage != nullptr);
-			
+			//godot::Ref<godot::Image> displImage = loadGroundImage(displacementTextureFilePath, "DISPLACEMENT", textureName, desiredImageSize, godot::Image::Format(-1), true, viewer);
+			//my_assert(displImage != nullptr);
+			godot::Ref<godot::Image> aoImage = loadGroundImage(ambientOcclusionFilePath, "AMBIENTOCCLUSION", textureName, desiredImageSize, godot::Image::Format(-1), true, viewer);
+			my_assert(aoImage != nullptr);
+
 			godot::Ref<godot::Image> image = godot::Image::create_empty(desiredImageSize, desiredImageSize, false, godot::Image::Format::FORMAT_RGBA8);
 			for(int y = 0; y < desiredImageSize; y++)
 				for (int x = 0; x < desiredImageSize; x++)
 				{
 					godot::Color color = albedoImage->get_pixel(x, y);
-					if (displImage->is_empty())
-						color.a = 0;
+					//if (displImage->is_empty())
+					//	color.a = 0;
+					//else
+					//	color.a = displImage->get_pixel(x, y).r;
+					if (aoImage->is_empty())
+						color.a = 1;
 					else
-						color.a = displImage->get_pixel(x, y).r;
+						color.a = aoImage->get_pixel(x, y).r;
 					image->set_pixel(x, y, color);
 				}
 			albedoDisplImage = image;
 			std::string s = searchingDirPath + "/" + imagesDirName + GDN_TheWorld_Globals::s_albedo_displ_ext;
-			godot::Error e = image->save_webp(s.c_str());
+			godot::Error e = image->save_png(s.c_str());
 			my_assert(e == godot::Error::OK);
 
 			godot::Ref<godot::Image> normalImage = loadGroundImage(normalTextureFilePath, "NORMAL", textureName, desiredImageSize, godot::Image::Format(-1), true, viewer);
@@ -2775,7 +2766,7 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 				}
 			normalRoughnessImage = image;
 			s = searchingDirPath + "/" + imagesDirName + GDN_TheWorld_Globals::s_normal_roughness_ext;
-			e = image->save_webp(s.c_str());
+			e = image->save_png(s.c_str());
 			my_assert(e == godot::Error::OK);
 
 			godot::Ref<godot::Image> previewImage = godot::Image::create_from_data(albedoImage->get_width(), albedoImage->get_height(), false, albedoImage->get_format(), albedoImage->get_data());;
@@ -2785,8 +2776,8 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 				previewImage->convert(desiredImageFormat);
 			godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(previewImage);
 			texturePreview = tex;
-			s = searchingDirPath + "/" + imagesDirName + "_texture_preview.webp";
-			e = previewImage->save_webp(s.c_str());
+			s = searchingDirPath + "/" + imagesDirName + "_texture_preview.png";
+			e = previewImage->save_png(s.c_str());
 			my_assert(e == godot::Error::OK);
 		}
 		else
@@ -2891,7 +2882,7 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 	{
 		godot::Color baseAlbedo = godot::Color(1.0, 1.0, 1.0);		// in shader base_values0.rgb 
 		float unused_1 = 1;											// in shader base_values0.a to shader
-		float baseScaleHeight = 1;									// in shader base_values1.r to shader irrelevant in actual shader implementation 
+		float baseScaleAO	 = 1;									// in shader base_values1.r to shader
 		float baseScaleNormal = 1;									// in shader base_values1.g to shader
 		float baseScaleRoughness = 1;								// in shader base_values1.b to shder
 		float baseScaleUV = 1;										// in shader base_values1.a to shader
@@ -2981,9 +2972,9 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 						if (viewer != nullptr)
 							viewer->Globals()->debugPrint((std::string("Base-albedo syntax error for texture <") + textureName + ">!").c_str());
 				}
-				v = jsonTextureSubTypeObject["base-scale-height"];
+				v = jsonTextureSubTypeObject["base-scale-ao"];
 				if (not v.isNull())
-					textureEntry.baseScaleHeight = float(v.asDouble()) / 16.0f;
+					textureEntry.baseScaleAO = float(v.asDouble()) / 16.0f;
 				v = jsonTextureSubTypeObject["base-scale-normal"];
 				if (not v.isNull())
 					textureEntry.baseScaleNormal = float(v.asDouble()) / 16.0f;
@@ -3014,10 +3005,16 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 		bool loaded = loadGroundImagesByName(globalizedGroundTexturesDir, texture.second.folder, texture.first, viewer, albedoDisplImage, normalRoughnessImage, texturePreview);
 		if (loaded)
 		{
+			//{
+			//	int32_t w = albedoDisplImage->get_width();
+			//	int32_t h = albedoDisplImage->get_height();
+			//	godot::Image::Format f = albedoDisplImage->get_format();
+			//	viewer->Globals()->debugPrint((std::string("size ") + std::to_string(w) + "x" + std::to_string(h) + " format " + std::to_string(int(f))).c_str());
+			//}
 			albedoDisplImageArray.push_back(albedoDisplImage);
 			normalRoughnessImageArray.push_back(normalRoughnessImage);
 			baseValues0Array.push_back(texture.second.baseAlbedo);	// ATM only rgb values are used, a channel is free for future implementations
-			baseValues1Array.push_back(godot::Color(texture.second.baseScaleHeight, texture.second.baseScaleNormal, texture.second.baseScaleRoughness, texture.second.baseScaleUV));
+			baseValues1Array.push_back(godot::Color(texture.second.baseScaleAO, texture.second.baseScaleNormal, texture.second.baseScaleRoughness, texture.second.baseScaleUV));
 
 			s_groundTextures[texture.first] = std::make_unique<ShaderTerrainData::GroundTexture>();
 			ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[texture.first].get();
@@ -3063,7 +3060,7 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 		baseValuesImage->set_pixel(x, 0, c0);
 		baseValuesImage->set_pixel(x, 1, c1);
 	}
-	baseValuesImage->save_png("C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\a.png");
+	//baseValuesImage->save_png("C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\a.png");	// DEBUG
 	godot::Ref<godot::Texture2D> tex = godot::ImageTexture::create_from_image(baseValuesImage);
 	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_BASE_VALUES_ARRAY, tex);
 

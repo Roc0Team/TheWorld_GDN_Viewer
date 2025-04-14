@@ -174,8 +174,8 @@ namespace godot
 				m_groundTextureLayers = layers;
 				initialized(true);
 				shaderUpdated(false);
-				m_quadrantPos = quadrantPos;
-				m_neighbourQuadrantPos = neighbourQuadrantPos;
+				//m_quadrantPos = quadrantPos;
+				//m_neighbourQuadrantPos = neighbourQuadrantPos;
 
 				//// #####
 				//if (m_quadrantPos.getIndexPosX() == 5 and m_quadrantPos.getIndexPosZ() == 12 and m_neighbourQuadrantPos.getIndexPosX() == 4 and m_neighbourQuadrantPos.getIndexPosZ() == 12)
@@ -186,8 +186,8 @@ namespace godot
 			bool m_initialized = false;
 			godot::Vector4 m_groundTextureLayers;
 			bool m_shaderUpdated = false;
-			TheWorld_Utils::QuadrantPos m_quadrantPos;
-			TheWorld_Utils::QuadrantPos m_neighbourQuadrantPos;
+			//TheWorld_Utils::QuadrantPos m_quadrantPos;
+			//TheWorld_Utils::QuadrantPos m_neighbourQuadrantPos;
 		};
 
 	public:
@@ -626,6 +626,14 @@ namespace godot
 		{
 			return m_eastQuadrantData;
 		}
+		NeighbourQuadrantData& northWestQuadrantData(void)
+		{
+			return m_northWestQuadrantData;
+		}
+		NeighbourQuadrantData& southEastQuadrantData(void)
+		{
+			return m_southEastQuadrantData;
+		}
 
 		godot::Ref<godot::Image> getMapImage(void) const
 		{
@@ -727,6 +735,9 @@ namespace godot
 		NeighbourQuadrantData m_southQuadrantData;
 		NeighbourQuadrantData m_westQuadrantData;
 		NeighbourQuadrantData m_eastQuadrantData;
+
+		NeighbourQuadrantData m_northWestQuadrantData;
+		NeighbourQuadrantData m_southEastQuadrantData;
 
 		bool m_heightsUpdated;
 		bool m_normalsUpdated;
@@ -866,9 +877,11 @@ namespace godot
 
 #define SHADER_PARAM_GROUND_LAYERS					"u_ground_layers"	// godot::Plane (vec4) ==> normal_x (vec4 x) = low, normal_y (vec4 y) = high, normal_z (vec4 z) = dirt, d (vec4 w) = rock
 #define SHADER_PARAM_NORTH_GROUND_LAYERS			"u_north_ground_layers"
-#define SHADER_PARAM_SOUTH_GROUND_LAYERS			"u_south_ground_layers"
+//#define SHADER_PARAM_SOUTH_GROUND_LAYERS			"u_south_ground_layers"
 #define SHADER_PARAM_WEST_GROUND_LAYERS				"u_west_ground_layers"
-#define SHADER_PARAM_EAST_GROUND_LAYERS				"u_east_ground_layers"
+//#define SHADER_PARAM_EAST_GROUND_LAYERS			"u_east_ground_layers"
+#define SHADER_PARAM_NORTH_WEST_GROUND_LAYERS		"u_north_west_ground_layers"
+#define SHADER_PARAM_SOUTH_EAST_GROUND_LAYERS		"u_south_east_ground_layers"
 
 #define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT_UV_QUADRANT			"u_mouse_hit_uv_quadrant"

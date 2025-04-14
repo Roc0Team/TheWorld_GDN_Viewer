@@ -2158,9 +2158,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 									//String shaderPath = "res://addons/twviewer/shaders/regularChunk.tres";
 									//String shaderPath = "res://addons/twviewer/test/regularChunk.tres";
 		//String shaderPath = "res://addons/twviewer/shaders/terrain.gdshader";
-		//String shaderPath = "res://addons/twviewer/test/terrain.gdshader";
-		String shaderPath = "res://addons/twviewer/test/terrain_test.gdshader";
-		//String shaderPath = "res://addons/twviewer/test/terrain_old.gdshader";
+		String shaderPath = "res://addons/twviewer/test/terrain.gdshader";
+		//String shaderPath = "res://addons/twviewer/test/terrain_test.gdshader";
 		//m_sendTextureToShader = true;		// ATTENZIONE: commentato perché sembra inutile mandare le singole texture allo shader quando gli mandiamo gli indici delle texture nell'array globale
 		godot::Ref<godot::Shader> shader;
 		if (reload)

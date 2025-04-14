@@ -1,4 +1,5 @@
 * test creazione global map
+* test_quadrant
 * squadrettizzazione
 * suddivisione dei quadranti in continenti e possibilità di definire differenti scenari in ground.json e di assegnarli ai continenti
 * ***OK*** visualizzazione della velocità del movimento della camera

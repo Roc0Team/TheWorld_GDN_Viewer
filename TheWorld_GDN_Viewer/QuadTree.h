@@ -698,6 +698,8 @@ namespace godot
 		TheWorld_Utils::QuadrantPos m_quadrantPos;
 		GDN_TheWorld_Viewer* m_viewer;
 		QuadTree* m_quadTree;
+		static const std::string c_defaultTextureLayout;
+		std::string m_textureLayout = c_defaultTextureLayout;
 		bool m_lockInternalDataUntilCompleteProcessExecution = false;
 		TheWorld_Utils::MeshCacheBuffer m_cache;
 		godot::AABB m_globalCoordAABB;
@@ -770,25 +772,6 @@ namespace godot
 	class ShaderTerrainData
 	{
 	public:
-		class GroundTexture
-		{
-		public:
-			GroundTexture()
-			{
-			}
-
-		public:
-			//bool initialized = false;
-			//godot::Ref<godot::ImageTexture> m_albedo_displ_tex;
-			//godot::Ref<godot::ImageTexture> m_normal_roughness_tex;
-			//godot::Ref<godot::Texture2D> m_albedo_tex;
-			//godot::Ref<godot::Texture2D> m_normal_tex;
-			//godot::Ref<godot::Texture2D> m_roughness_tex;
-			//godot::Ref<godot::Texture2D> m_ambient_occlusion_tex;
-			//godot::Ref<godot::Texture2D> m_displacement_tex;
-			godot::Ref<godot::Texture2D> m_texture_preview;
-		};
-
 		// Shader Params
 #define SHADER_PARAM_TERRAIN_HEIGHTMAP				"u_terrain_heightmap"
 #define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
@@ -995,24 +978,71 @@ namespace godot
 		static godot::Ref<godot::Texture2D> loadGroundTexture(std::string filePath, std::string mapType, std::string groundImageName, int desiredImageSize, godot::Image::Format desiredImageFormat, bool returnEmpty, GDN_TheWorld_Viewer* viewer = nullptr);
 		static void loadAllGroundTextures(std::string groundTexturesDir, GDN_TheWorld_Viewer* viewer);
 		static bool loadGroundImagesByName(std::string imagesDirPath, std::string imagesDirName, std::string textureName, GDN_TheWorld_Viewer* viewer, godot::Ref<godot::Image>& albedoDisplImage, godot::Ref<godot::Image>& normalRoughnessImage, godot::Ref<godot::Texture2D>& texturePreview);
-		static std::map<std::string, std::unique_ptr<GroundTexture>>& getGroundTextures(void)
+		class GroundTexture
+		{
+		public:
+			GroundTexture(int32_t idx, std::string layout, std::string textureName, godot::Ref<godot::Texture2D> texturePreview)
+			{
+				m_idx = idx;
+				m_layout = layout;
+				m_textureName = textureName;
+				m_texturePreview = texturePreview;
+			}
+			int32_t idx(void) const
+			{
+				return m_idx;
+			}
+			godot::Ref<godot::Texture2D> texturePreview(void) const
+			{
+				return m_texturePreview;
+			}
+
+		private:
+			int32_t m_idx;
+			std::string m_layout;
+			std::string m_textureName;
+			godot::Ref<godot::Texture2D> m_texturePreview;
+		};
+		class GroundTextures : public std::map<std::string, std::unique_ptr<GroundTexture>>
+		{
+		public:
+			godot::Ref<godot::Texture2D> getTexturePreview(std::string layout, std::string textureName, std::string& textureLayout)
+			{
+				GroundTexture* g = getGroundTexture(layout, textureName, textureLayout);
+				if (g == nullptr)
+					return nullptr;
+				return g->texturePreview();
+			}
+			int32_t getTextureIdx(std::string layout, std::string textureName, std::string& textureLayout)
+			{
+				GroundTexture* g = getGroundTexture(layout, textureName, textureLayout);
+				if (g == nullptr)
+					return -1;
+				return g->idx();
+			}
+
+		private:
+			GroundTexture* getGroundTexture(std::string layout, std::string textureName, std::string& textureLayout)
+			{
+				GroundTexture* g = nullptr;
+				textureLayout = "";
+				if (contains(layout + "_" + textureName))
+				{
+					g = (*this)[layout + "_" + textureName].get();
+					textureLayout = layout;
+				}
+				else if (contains(Quadrant::c_defaultTextureLayout + "_" + textureName))
+				{
+					g = (*this)[Quadrant::c_defaultTextureLayout + "_" + textureName].get();
+					textureLayout = Quadrant::c_defaultTextureLayout;
+				}
+				return g;
+			}
+		};
+		static GroundTextures& getGroundTextures(void)
 		{
 			return s_groundTextures;
 		}
-		//static bool groundTexturesNeedProcessing(void)
-		//{
-		//	return s_groundTexturesNeedProcessing;
-		//}
-		//static void groundTexturesNeedProcessing(bool b)
-		//{
-		//	s_groundTexturesNeedProcessing = b;
-		//}
-		static std::map<std::string, int32_t>& getGroundTextureLayers(void)
-		{
-			return s_groundTextureLayers;
-		}
-		//godot::Ref<godot::ImageTexture> getAlbedoBumpTexture(std::string textureName);
-		//godot::Ref<godot::ImageTexture> getNormalRoughnessTexture(std::string textureName);
 
 		void mouseHitChanged(godot::Vector2 mouseHit);
 
@@ -1107,6 +1137,8 @@ namespace godot
 
 		//void clearCachedTexture(void);
 
+		static std::string layoutFromContinentId(int32_t id);
+
 	private:
 		//void debugPrintTexture(std::string tex_name, Ref<Texture> tex);
 		//Color encodeNormal(Vector3 normal);
@@ -1155,14 +1187,31 @@ namespace godot
 		godot::Ref<godot::Image> m_globalmapImage;
 		std::map<size_t, godot::Ref<godot::Image>> m_resizedGlobalmapImageMap;
 
-		static std::map<std::string, std::unique_ptr<GroundTexture>> s_groundTextures;
-		//static bool s_groundTexturesNeedProcessing;
-		//static std::recursive_mutex s_groundTexturesMutex;
-		static std::map<std::string, int32_t> s_groundTextureLayers;
-
-		//static godot::Ref<godot::ShaderMaterial> s_seaMat;
-
-		//bool m_sendTextureToShader = false;
+		static std::recursive_mutex s_mtxStaticData;
+		static GroundTextures s_groundTextures;
+		class Continent
+		{
+		public:
+			Continent(int32_t id, std::string name, std::string layout)
+			{
+				m_id = id;
+				m_name = name;
+				m_layout = layout;
+			}
+			std::string name()
+			{
+				return m_name;
+			}
+			std::string layout()
+			{
+				return m_layout;
+			}
+		private:
+			int32_t m_id;
+			std::string m_name;
+			std::string m_layout;
+		};
+		static std::map<int32_t, std::unique_ptr<Continent>> s_continents;
 	};
 	
 	class Quad

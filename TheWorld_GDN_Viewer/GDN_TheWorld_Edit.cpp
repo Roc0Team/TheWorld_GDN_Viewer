@@ -277,6 +277,7 @@ void GDN_TheWorld_Edit::setUIAcceptFocus(bool b)
 	m_innerData->m_highElevationFactor->set_focus_mode(focusMode);
 	m_innerData->m_lowElevationFactor->set_focus_mode(focusMode);
 	m_innerData->m_splatMapMode->set_focus_mode(focusMode);
+	m_innerData->m_groundLayout->set_focus_mode(focusMode);
 	m_innerData->m_showGizmo->set_focus_mode(focusMode);
 	m_innerData->m_showNormal->set_focus_mode(focusMode);
 
@@ -930,6 +931,10 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		label = createControl<godot::Label>(hBoxContainer, "", "Splatmap Mode");
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_splatMapMode = createControl<godot::LineEdit>(hBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "Ground Layout");
+		label->set_custom_minimum_size(labelMinimumSize);
+		m_innerData->m_groundLayout = createControl<godot::LineEdit>(hBoxContainer);
 
 		separator = createControl<HSeparator>(m_innerData->m_quadrantTextureEditVBoxContainer);
 
@@ -944,6 +949,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_lowElevationTex->set_custom_minimum_size(size);
 		m_innerData->m_lowElevationTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_lowElevationTexName = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_lowElevationLayoutName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
 		//button->set_self_modulate(BUTTON_COLOR);
 
@@ -958,6 +964,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_highElevationTex->set_custom_minimum_size(size);
 		m_innerData->m_highElevationTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_highElevationTexName = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_highElevationLayoutName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
 		//button->set_self_modulate(BUTTON_COLOR);
 
@@ -972,6 +979,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_dirtTex->set_custom_minimum_size(size);
 		m_innerData->m_dirtTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_dirtTexName = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_dirtLayoutName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
 		//button->set_self_modulate(BUTTON_COLOR);
 
@@ -986,6 +994,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_rocksTex->set_custom_minimum_size(size);
 		m_innerData->m_rocksTex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
 		m_innerData->m_rocksTexName = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_rocksLayoutName = createControl<godot::Label>(hBoxContainer);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Change", "pressed", this, "void_signal_manager");
 		//button->set_self_modulate(BUTTON_COLOR);
 
@@ -1207,11 +1216,16 @@ void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 	setHighElevationFactor(0.0f);
 	setLowElevationFactor(0.0f);
 	setSplatMapMode(1);
+	setGroundLayout("");
 
 	m_innerData->m_lowElevationTexName->set_text("");
 	m_innerData->m_highElevationTexName->set_text("");
 	m_innerData->m_dirtTexName->set_text("");
 	m_innerData->m_rocksTexName->set_text("");
+	m_innerData->m_lowElevationLayoutName->set_text("");
+	m_innerData->m_highElevationLayoutName->set_text("");
+	m_innerData->m_dirtLayoutName->set_text("");
+	m_innerData->m_rocksLayoutName->set_text("");
 	m_innerData->m_lowElevationTex->set_texture(emptyTexture);
 	m_innerData->m_highElevationTex->set_texture(emptyTexture);
 	m_innerData->m_dirtTex->set_texture(emptyTexture);
@@ -1283,36 +1297,42 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	setHighElevationFactor(terrainEdit.extraValues.highElevationFactor);
 	setLowElevationFactor(terrainEdit.extraValues.lowElevationFactor);
 	setSplatMapMode(terrainEdit.extraValues.splatMapMode);
+	std::string layout = ShaderTerrainData::layoutFromContinentId(terrainEdit.extraValues1.continentId);
+	setGroundLayout(layout);
 
-	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
-
-	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>::iterator it = groundTextures.find(terrainEdit.extraValues.lowElevationTexName_r);
-	if (it != groundTextures.end())
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+	std::string textureLayout;
+	godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.lowElevationTexName_r, textureLayout);
+	if (t != nullptr)
 	{
-		std::string s(it->first);
+		std::string s(terrainEdit.extraValues.lowElevationTexName_r);
 		m_innerData->m_lowElevationTexName->set_text(s.c_str());
-		m_innerData->m_lowElevationTex->set_texture(it->second->m_texture_preview);
+		m_innerData->m_lowElevationLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_lowElevationTex->set_texture(t);
 	}
-	it = groundTextures.find(terrainEdit.extraValues.highElevationTexName_g);
-	if (it != groundTextures.end())
+	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.highElevationTexName_g, textureLayout);
+	if (t != nullptr)
 	{
-		std::string s(it->first);
+		std::string s(terrainEdit.extraValues.highElevationTexName_g);
 		m_innerData->m_highElevationTexName->set_text(s.c_str());
-		m_innerData->m_highElevationTex->set_texture(it->second->m_texture_preview);
+		m_innerData->m_highElevationLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_highElevationTex->set_texture(t);
 	}
-	it = groundTextures.find(terrainEdit.extraValues.dirtTexName_b);
-	if (it != groundTextures.end())
+	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.dirtTexName_b, textureLayout);
+	if (t != nullptr)
 	{
-		std::string s(it->first);
+		std::string s(terrainEdit.extraValues.dirtTexName_b);
 		m_innerData->m_dirtTexName->set_text(s.c_str());
-		m_innerData->m_dirtTex->set_texture(it->second->m_texture_preview);
+		m_innerData->m_dirtLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_dirtTex->set_texture(t);
 	}
-	it = groundTextures.find(terrainEdit.extraValues.rocksTexName_a);
-	if (it != groundTextures.end())
+	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.rocksTexName_a, textureLayout);
+	if (t != nullptr)
 	{
-		std::string s(it->first);
+		std::string s(terrainEdit.extraValues.rocksTexName_a);
 		m_innerData->m_rocksTexName->set_text(s.c_str());
-		m_innerData->m_rocksTex->set_texture(it->second->m_texture_preview);
+		m_innerData->m_rocksLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_rocksTex->set_texture(t);
 	}
 
 	m_innerData->m_selQuadSeaCheckBox->set_disabled(false);
@@ -1539,9 +1559,6 @@ void GDN_TheWorld_Edit::setSlopeVerticalFactor(float value)
 
 float GDN_TheWorld_Edit::slopeVerticalFactor(void)
 {
-	//godot::String s = m_innerData->m_slopeVerticalFactor->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
 	float ret = std::stof(std::string(m_innerData->m_slopeVerticalFactor->get_text().utf8().get_data()));
 	return ret;
 }
@@ -1553,9 +1570,6 @@ void GDN_TheWorld_Edit::setSlopeFlatFactor(float value)
 
 float GDN_TheWorld_Edit::slopeFlatFactor(void)
 {
-	//godot::String s = m_innerData->m_slopeFlatFactor->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
 	float ret = std::stof(std::string(m_innerData->m_slopeFlatFactor->get_text().utf8().get_data()));
 	return ret;
 }
@@ -1567,9 +1581,6 @@ void GDN_TheWorld_Edit::setDirtOnRocksFactor(float value)
 
 float GDN_TheWorld_Edit::dirtOnRocksFactor(void)
 {
-	//godot::String s = m_innerData->m_dirtOnRocksFactor->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
 	float ret = std::stof(std::string(m_innerData->m_dirtOnRocksFactor->get_text().utf8().get_data()));
 	return ret;
 }
@@ -1581,9 +1592,6 @@ void GDN_TheWorld_Edit::setHighElevationFactor(float value)
 
 float GDN_TheWorld_Edit::highElevationFactor(void)
 {
-	//godot::String s = m_innerData->m_highElevationFactor->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
 	float ret = std::stof(std::string(m_innerData->m_highElevationFactor->get_text().utf8().get_data()));
 	return ret;
 }
@@ -1595,9 +1603,6 @@ void GDN_TheWorld_Edit::setLowElevationFactor(float value)
 
 float GDN_TheWorld_Edit::lowElevationFactor(void)
 {
-	//godot::String s = m_innerData->m_lowElevationFactor->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
 	float ret = std::stof(std::string(m_innerData->m_lowElevationFactor->get_text().utf8().get_data()));
 	return ret;
 }
@@ -1609,11 +1614,17 @@ void GDN_TheWorld_Edit::setSplatMapMode(size_t value)
 
 size_t GDN_TheWorld_Edit::splatMapMode(void)
 {
-	//godot::String s = m_innerData->m_splatMapMode->get_text();
-	//const char* str = s.utf8().get_data();
-	//size_t ret = size_t(std::stoi(std::string(str)));
 	size_t ret = size_t(std::stoi(std::string(m_innerData->m_splatMapMode->get_text().utf8().get_data())));
 	return ret;
+}
+void GDN_TheWorld_Edit::setGroundLayout(std::string layout)
+{
+	m_innerData->m_groundLayout->set_text(layout.c_str());
+}
+
+std::string GDN_TheWorld_Edit::groundLayout(void)
+{
+	return m_innerData->m_groundLayout->get_text().utf8().get_data();
 }
 
 void GDN_TheWorld_Edit::setMinHeight(float minHeight)
@@ -2467,7 +2478,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 
 void GDN_TheWorld_Edit::changeTextureAction()
 {
-	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
 	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>::iterator it = groundTextures.find(m_innerData->m_selTexturePanel->m_newTexName);
 	if (it == groundTextures.end())
 		return;
@@ -2484,25 +2495,25 @@ void GDN_TheWorld_Edit::changeTextureAction()
 	{
 		strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_lowElevationTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_lowElevationTex->set_texture(it->second->m_texture_preview);
+		m_innerData->m_lowElevationTex->set_texture(it->second->texturePreview());
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_highElevationEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_highElevationTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_highElevationTex->set_texture(it->second->m_texture_preview);
+		m_innerData->m_highElevationTex->set_texture(it->second->texturePreview());
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_dirtEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_dirtTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_dirtTex->set_texture(it->second->m_texture_preview);
+		m_innerData->m_dirtTex->set_texture(it->second->texturePreview());
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_rocksEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_rocksTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_rocksTex->set_texture(it->second->m_texture_preview);
+		m_innerData->m_rocksTex->set_texture(it->second->texturePreview());
 	}
 
 	// Quadrant has to be saved and uploaded
@@ -2559,7 +2570,7 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 
 	godot::Vector2 size(70, 70);
 
-	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
 	int32_t idx = 0;
 	for (const auto& groundTexture : groundTextures)
 	{
@@ -2585,7 +2596,7 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 			tex->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
 			tex->set_custom_minimum_size(size);
 			tex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
-			tex->set_texture(groundTexture.second->m_texture_preview);
+			tex->set_texture(groundTexture.second->texturePreview());
 			godot::Label* label = createControl<godot::Label>(hBoxContainer, "", s.c_str());
 
 			idx++;
@@ -2934,7 +2945,7 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 				//accept_event();
 
 				std::string selectedTextureName = godot::String(custom2).utf8().get_data();
-				std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
+				ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
 				int32_t idx = int32_t(custom3);
 				if (groundTextures.contains(selectedTextureName))
 				{
@@ -2958,7 +2969,7 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 				//accept_event();
 				
 				std::string selectedTextureName = godot::String(custom2).utf8().get_data();
-				std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
+				ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
 				int32_t idx = int32_t(custom3);
 				if (groundTextures.contains(selectedTextureName))
 				{

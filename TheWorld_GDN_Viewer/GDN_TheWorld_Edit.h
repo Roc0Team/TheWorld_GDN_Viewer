@@ -117,10 +117,6 @@ namespace godot
 				m_highElevationTex = nullptr;
 				m_dirtTex = nullptr;
 				m_rocksTex = nullptr;
-				m_lowElevationTexName = nullptr;
-				m_highElevationTexName = nullptr;
-				m_dirtTexName = nullptr;
-				m_rocksTexName = nullptr;
 				m_lowElevationTexSelected = false;
 				m_highElevationTexSelected = false;
 				m_dirtTexSelected = false;
@@ -232,6 +228,7 @@ namespace godot
 			godot::LineEdit* m_highElevationFactor;
 			godot::LineEdit* m_lowElevationFactor;
 			godot::LineEdit* m_splatMapMode;
+			godot::LineEdit* m_groundLayout = nullptr;
 			godot::PanelContainer* m_lowElevationTexPanel;
 			godot::PanelContainer* m_highElevationTexPanel;
 			godot::PanelContainer* m_dirtTexPanel;
@@ -240,10 +237,14 @@ namespace godot
 			godot::TextureRect* m_highElevationTex;
 			godot::TextureRect* m_dirtTex;
 			godot::TextureRect* m_rocksTex;
-			godot::Label* m_lowElevationTexName;
-			godot::Label* m_highElevationTexName;
-			godot::Label* m_dirtTexName;
-			godot::Label* m_rocksTexName;
+			godot::Label* m_lowElevationTexName = nullptr;
+			godot::Label* m_highElevationTexName = nullptr;
+			godot::Label* m_dirtTexName = nullptr;
+			godot::Label* m_rocksTexName = nullptr;
+			godot::Label* m_lowElevationLayoutName = nullptr;
+			godot::Label* m_highElevationLayoutName = nullptr;
+			godot::Label* m_dirtLayoutName = nullptr;
+			godot::Label* m_rocksLayoutName = nullptr;
 			bool m_lowElevationTexSelected;
 			bool m_highElevationTexSelected;
 			bool m_dirtTexSelected;
@@ -462,6 +463,8 @@ namespace godot
 		float lowElevationFactor(void);
 		void setSplatMapMode(size_t value);
 		size_t splatMapMode(void);
+		void setGroundLayout(std::string layout);
+		std::string groundLayout(void);
 
 		bool actionInProgress(void) const
 		{

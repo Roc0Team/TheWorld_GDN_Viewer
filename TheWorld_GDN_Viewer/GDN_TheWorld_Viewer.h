@@ -2502,10 +2502,8 @@ namespace godot
 		godot::Vector2 getQuadrantPos(void);
 		godot::Vector2i getQuadrantPosIndex(void);
 		godot::String getGroundTextureName(int type);
-		//godot::Ref<godot::ImageTexture> getGroundTextureAlbedoBump(godot::String texName);
-		//godot::Ref<godot::ImageTexture> getGroundTextureNormalRoughness(godot::String texName);
-		int getGroundTextureLayer(godot::String texName);
-		godot::Vector4 getGroundTextureLayers(void);
+		int getGroundTextureIdx(godot::String& layout, godot::String texName);
+		godot::Vector4 getGroundTextureIdxs(godot::String layput);
 
 		godot::Transform3D globalToWorld3d(godot::Transform3D global) const;
 		godot::Transform3D globalToWorld(godot::Transform3D global) const;

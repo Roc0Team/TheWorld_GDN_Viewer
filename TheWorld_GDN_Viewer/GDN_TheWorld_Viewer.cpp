@@ -4315,9 +4315,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_shader_param_triplanar"), &GDN_TheWorld_Viewer::getShaderParamTriplanar);
 	ClassDB::bind_method(D_METHOD("get_shader_param_tile_reduction"), &GDN_TheWorld_Viewer::getShaderParamTileReduction);
 	ClassDB::bind_method(D_METHOD("get_ground_texture_name"), &GDN_TheWorld_Viewer::getGroundTextureName);
-	//ClassDB::bind_method(D_METHOD("get_ground_texture_albedo_bump"), &GDN_TheWorld_Viewer::getGroundTextureAlbedoBump);
-	//ClassDB::bind_method(D_METHOD("get_ground_texture_normal_roughness"), &GDN_TheWorld_Viewer::getGroundTextureNormalRoughness);
-	ClassDB::bind_method(D_METHOD("get_ground_texture_layers"), &GDN_TheWorld_Viewer::getGroundTextureLayers);
+	ClassDB::bind_method(D_METHOD("get_ground_texture_layers", "p_layer_name"), &GDN_TheWorld_Viewer::getGroundTextureIdxs);
 	ClassDB::bind_method(D_METHOD("pause_mouse_movement"), &GDN_TheWorld_Viewer::pauseMouseMovement);
 	ClassDB::bind_method(D_METHOD("resume_mouse_movement"), &GDN_TheWorld_Viewer::resumeMouseMovement);
 
@@ -5264,7 +5262,7 @@ bool GDN_TheWorld_Viewer::init(void)
 
 		//ShaderTerrainData::getGroundTextures(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()), this);
 		ShaderTerrainData::loadAllGroundTextures("", this);
-		std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
+		ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
 		globals->addElementToInitialize((int)groundTextures.size());
 	}
 
@@ -8592,8 +8590,7 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		if (initRequired())
 		{
 			init();
-			//if (!ShaderTerrainData::groundTexturesNeedProcessing())
-				globals->setStatus(TheWorldStatus::sessionInitialized);
+			globals->setStatus(TheWorldStatus::sessionInitialized);
 		}
 
 		//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);		// WARNING
@@ -8605,54 +8602,6 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 		}
 
 		compressTrackedInputEvents();
-
-		//if (ShaderTerrainData::groundTexturesNeedProcessing())
-		//{
-		//	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>& groundTextures = ShaderTerrainData::getGroundTextures();
-
-		//	bool resetgroundTexturesProcessing = true;
-
-		//	for (const auto& groundTexture : groundTextures)
-		//	{
-		//		if (!groundTexture.second->initialized)
-		//		{
-		//			std::string s(groundTexture.first);
-		//			std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
-		//			//ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + s.c_str(), groundTexture.second.get(), this);
-		//			ShaderTerrainData::getGroundTexture(godot::String(groundTexturesDir.c_str()) + s.c_str(), groundTexture.second.get(), this);
-		//			globals->addNumElementInitialized();
-		//			resetgroundTexturesProcessing = false;
-		//			break;
-		//		}
-		//	}
-
-		//	if (resetgroundTexturesProcessing)
-		//	{
-		//		godot::Ref<godot::Texture2DArray> albedoBumpTexture2DArray = memnew(godot::Texture2DArray);
-		//		godot::TypedArray<godot::Image> albedoBumpImageArray;
-		//		godot::Ref<godot::Texture2DArray> normalRoughnessTexture2DArray = memnew(godot::Texture2DArray);
-		//		godot::TypedArray<godot::Image> normalRoughnessImageArray;
-		//		std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
-		//		groundTextureLayers.clear();
-		//		int layer = 0;
-		//		for (const auto& groundTexture : groundTextures)
-		//		{
-		//			albedoBumpImageArray.push_back(groundTexture.second->m_albedo_bump_tex->get_image());
-		//			normalRoughnessImageArray.push_back(groundTexture.second->m_normal_roughness_tex->get_image());
-		//			groundTextureLayers[groundTexture.first] = layer;
-		//			globals->debugPrint((std::string("Ground_texture [") + groundTexture.first + "] ==> layer = " + std::to_string(layer)).c_str());
-		//			layer++;
-		//		}
-		//		godot::Error e = albedoBumpTexture2DArray->create_from_images(albedoBumpImageArray);
-		//		e = normalRoughnessTexture2DArray->create_from_images(normalRoughnessImageArray);
-		//		godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
-		//		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_ALBEDO_BUMP_ARRAY, albedoBumpTexture2DArray);
-		//		rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY, normalRoughnessTexture2DArray);
-
-		//		ShaderTerrainData::groundTexturesNeedProcessing(false);
-		//		globals->setStatus(TheWorldStatus::sessionInitialized);
-		//	}
-		//}
 
 		if ((int)globals->status() < (int)TheWorldStatus::sessionInitialized)
 			return;
@@ -15292,41 +15241,22 @@ godot::String GDN_TheWorld_Viewer::getGroundTextureName(int type)
 	return "";
 }
 
-//godot::Ref<godot::ImageTexture> GDN_TheWorld_Viewer::getGroundTextureAlbedoBump(godot::String texName)
-//{
-//	ShaderTerrainData::GroundTexture groundTexture;
-//	std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
-//	//ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + texName, &groundTexture);
-//	ShaderTerrainData::getGroundTexture(godot::String(groundTexturesDir.c_str()) + texName, &groundTexture);
-//	return groundTexture.m_albedo_bump_tex;
-//}
-//
-//godot::Ref<godot::ImageTexture> GDN_TheWorld_Viewer::getGroundTextureNormalRoughness(godot::String texName)
-//{
-//	ShaderTerrainData::GroundTexture groundTexture;
-//	std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
-//	//ShaderTerrainData::getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + texName, &groundTexture);
-//	ShaderTerrainData::getGroundTexture(godot::String(groundTexturesDir.c_str()) + texName, &groundTexture);
-//	return groundTexture.m_normal_roughness_tex;
-//}
-
-int GDN_TheWorld_Viewer::getGroundTextureLayer(godot::String texName)
+int GDN_TheWorld_Viewer::getGroundTextureIdx(godot::String& layout, godot::String texName)
 {
+	std::string _layout = layout.utf8().get_data();
 	std::string _texName = texName.utf8().get_data();
-	std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
-	if (groundTextureLayers.contains(_texName))
-		return groundTextureLayers[_texName];
-	else
-		return -1;
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+	std::string textureLayout;
+	return groundTextures.getTextureIdx(_layout, _texName, textureLayout);
 }
 
-godot::Vector4 GDN_TheWorld_Viewer::getGroundTextureLayers(void)
+godot::Vector4 GDN_TheWorld_Viewer::getGroundTextureIdxs(godot::String layout)
 {
 	godot::Vector4 v(
-		(float)getGroundTextureLayer(m_tempTerrainEdit.extraValues.lowElevationTexName_r),
-		(float)getGroundTextureLayer(m_tempTerrainEdit.extraValues.highElevationTexName_g),
-		(float)getGroundTextureLayer(m_tempTerrainEdit.extraValues.dirtTexName_b),
-		(float)getGroundTextureLayer(m_tempTerrainEdit.extraValues.rocksTexName_a)
+		(float)getGroundTextureIdx(layout, m_tempTerrainEdit.extraValues.lowElevationTexName_r),
+		(float)getGroundTextureIdx(layout, m_tempTerrainEdit.extraValues.highElevationTexName_g),
+		(float)getGroundTextureIdx(layout, m_tempTerrainEdit.extraValues.dirtTexName_b),
+		(float)getGroundTextureIdx(layout, m_tempTerrainEdit.extraValues.rocksTexName_a)
 		);
 	return v;
 }

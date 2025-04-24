@@ -37,6 +37,7 @@ using namespace godot;
 namespace fs = std::filesystem;
 
 GDN_TheWorld_ShaderTexture* ShaderTerrainData::g_lookDevShaderTexture = nullptr;
+const std::string Quadrant::c_defaultTextureLayout = "default";
 
 //extern int g_num = 0;
 
@@ -2342,11 +2343,18 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lo
 	return m_lookDevChunkLodMaterials[lod];
 }
 
-std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>> ShaderTerrainData::s_groundTextures;
-//godot::Ref<godot::ShaderMaterial> ShaderTerrainData::s_seaMat;
-//bool ShaderTerrainData::s_groundTexturesNeedProcessing = false;
-//std::recursive_mutex ShaderTerrainData::s_groundTexturesMutex;
-std::map<std::string, int32_t> ShaderTerrainData::s_groundTextureLayers;
+ShaderTerrainData::GroundTextures ShaderTerrainData::s_groundTextures;
+std::recursive_mutex ShaderTerrainData::s_mtxStaticData;
+std::map<int32_t, std::unique_ptr<ShaderTerrainData::Continent>> ShaderTerrainData::s_continents;
+
+std::string ShaderTerrainData::layoutFromContinentId(int32_t id)
+{
+	if (s_continents.contains(id))
+		return s_continents[id]->layout();
+	else
+		return "";
+}
+
 
 //godot::Ref<godot::Image> ShaderTerrainData::readGroundTexture(godot::String fileName, bool& ok, GDN_TheWorld_Viewer* viewer)
 //{
@@ -2790,75 +2798,6 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 		}
 	}
 
-
-
-	//	if (albedoTextureFilePath.size() > 0)
-	//	{
-	//		TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-
-	//		s_groundTextures[texture.first] = std::make_unique<ShaderTerrainData::GroundTexture>();
-	//		ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[texture.first].get();
-	//		
-	//		groundTexture->m_albedo_tex = loadGroundTexture(albedoTextureFilePath, "ALBEDO", texture.first, desiredImageSize, desiredImageFormat, false, viewer);
-	//		my_assert(groundTexture->m_albedo_tex != nullptr);
-	//		albedoImageArray.push_back(groundTexture->m_albedo_tex->get_image());
-	//		
-	//		groundTexture->m_normal_tex = loadGroundTexture(normalTextureFilePath, "NORMAL", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
-	//		my_assert(groundTexture->m_normal_tex != nullptr);
-	//		normalImageArray.push_back(groundTexture->m_normal_tex->get_image());
-
-	//		groundTexture->m_roughness_tex = loadGroundTexture(roughnessTextureFilePath, "ROUGHNESS", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
-	//		my_assert(groundTexture->m_roughness_tex != nullptr);
-	//		roughnessImageArray.push_back(groundTexture->m_roughness_tex->get_image());
-
-	//		groundTexture->m_displacement_tex = loadGroundTexture(displacementTextureFilePath, "DISPLACEMENT", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
-	//		my_assert(groundTexture->m_displacement_tex != nullptr);
-	//		displacementImageArray.push_back(groundTexture->m_displacement_tex->get_image());
-
-	//		//groundTexture->m_ambient_occlusion_tex = loadGroundTexture(ambientOcclusionFilePath, "AMBIENT OCCLUSION", texture.first, desiredImageSize, desiredImageFormat, true, viewer);
-	//		//my_assert(groundTexture->m_ambient_occlusion_tex != nullptr);
-	//		//ambientOcclusionImageArray.push_back(groundTexture->m_ambient_occlusion_tex->get_image());
-
-	//		if (texturePreviewFilePath.size() > 0)
-	//		{
-	//			groundTexture->m_texture_preview = loadGroundTexture(texturePreviewFilePath, "TEXTURE PREVIEW", texture.first, texturePreviewDesiredImageSize, desiredImageFormat, false, viewer);
-	//			my_assert(groundTexture->m_texture_preview != nullptr);
-	//		}
-	//		else
-	//		{
-	//			godot::Ref<godot::Image> image = godot::Image::create_from_data(texturePreviewDesiredImageSize, texturePreviewDesiredImageSize, false, groundTexture->m_albedo_tex->get_image()->get_format(), groundTexture->m_albedo_tex->get_image()->get_data());
-	//			/*if (ambientOcclusionFilePath.size() > 0)
-	//			{
-	//				if (not groundTexture->m_ambient_occlusion_tex.is_valid())
-	//				{
-	//					groundTexture->m_ambient_occlusion_tex = loadGroundTexture(ambientOcclusionFilePath, "AMBIENT OCCLUSION", texture.first, texturePreviewDesiredImageSize, desiredImageFormat, true, viewer);
-	//					my_assert(groundTexture->m_ambient_occlusion_tex != nullptr);
-	//				}
-	//				
-	//				godot::Ref<godot::Image> aoImage = groundTexture->m_ambient_occlusion_tex->get_image();
-	//				godot::Rect2i sourceBlendingRect(0, 0, image->get_width(), image->get_height());
-	//				godot::Vector2i destBlendingRect(0, 0);
-	//				
-	//				//aoImage->blend_rect(image, sourceBlendingRect, destBlendingRect);		// Alpha-blending is not what I want
-	//				//image = aoImage;
-	//				for(int y = 0; y < image->get_height(); y++)
-	//					for (int x = 0; x < image->get_width(); x++)
-	//					{
-	//						godot::Color color = image->get_pixel(x, y);
-	//						godot::Color aoImageColor = aoImage->get_pixel(x, y);
-	//						godot::Color mixedColor = color * aoImageColor;
-	//						image->set_pixel(x, y, mixedColor);
-	//					}
-	//			}*/
-
-	//			texturePreviewFilePath = textureDir + "/" + texture.first + "_texture_preview" + ".png";
-	//			//if (not godot::Engine::get_singleton()->is_editor_hint())
-	//			image->save_png(texturePreviewFilePath.c_str());
-	//			groundTexture->m_texture_preview = godot::ImageTexture::create_from_image(image);
-	//		}
-
-	//	}
-
 	return loaded;
 }
 
@@ -2867,6 +2806,11 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 	TheWorld_Utils::GuardProfiler profiler(std::string("getGroundTextures 1 ") + __FUNCTION__, "all");
 	
 	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+
+	std::lock_guard<std::recursive_mutex> lock(s_mtxStaticData);
+
+	s_groundTextures.clear();
+	s_continents.clear();
 
 	if (viewer != nullptr)
 		viewer->Globals()->debugPrint("Reading ground textures");
@@ -2887,6 +2831,8 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 		float baseScaleRoughness = 1;								// in shader base_values1.b to shder
 		float baseScaleUV = 1;										// in shader base_values1.a to shader
 		std::string folder;
+		std::string layout;
+		std::string textureName;
 	};
 	std::map<std::string, TextureEntry> textures;
 
@@ -2927,73 +2873,89 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 	}
 
 	// iterating json
-	const Json::Value jsonGroundTextureArray = root["ground-textures"];
-	Json::Value::UInt size = jsonGroundTextureArray.size();
-	for (Json::Value::UInt textureIdx = 0; textureIdx < jsonGroundTextureArray.size(); ++textureIdx)
+	const Json::Value jsonContinentsArray = root["continents"];
+	Json::Value::UInt size = jsonContinentsArray.size();
+	for (Json::Value::UInt idx = 0; idx < jsonContinentsArray.size(); idx++)
 	{
-		const std::string textureType = jsonGroundTextureArray[textureIdx]["type"].asString();
-		const Json::Value jsonTextureTypeQualifierArray = jsonGroundTextureArray[textureIdx]["sub-types"];
-		size = jsonTextureTypeQualifierArray.size();
-		for (Json::Value::UInt textureTypeQualifierIdx = 0; textureTypeQualifierIdx < jsonTextureTypeQualifierArray.size(); ++textureTypeQualifierIdx)
+		const int32_t id = jsonContinentsArray[idx]["id"].asInt();
+		const std::string name = jsonContinentsArray[idx]["name"].asString();
+		const std::string layout = jsonContinentsArray[idx]["layout"].asString();
+		s_continents[id] = std::make_unique<Continent>(id, name, layout);
+	}
+
+	const Json::Value jsonGroundTextureLayoutsArray = root["ground-texture-layouts"];
+	size = jsonGroundTextureLayoutsArray.size();
+	for (Json::Value::UInt idxLayout = 0; idxLayout < jsonGroundTextureLayoutsArray.size(); idxLayout++)
+	{
+		const std::string layoutName = jsonGroundTextureLayoutsArray[idxLayout]["layout-name"].asString();
+		const Json::Value jsonGroundTexturesForLayoutArray = jsonGroundTextureLayoutsArray[idxLayout]["layout-textures"];
+		size = jsonGroundTexturesForLayoutArray.size();
+		for (Json::Value::UInt idxTexturesForLayout = 0; idxTexturesForLayout < jsonGroundTexturesForLayoutArray.size(); idxTexturesForLayout++)
 		{
-			const Json::Value jsonTextureSubTypeObject = jsonTextureTypeQualifierArray[textureTypeQualifierIdx];
-			const std::string textureSubTypeQualifier = jsonTextureSubTypeObject["qualifier"].asString();
-			struct TextureEntry textureEntry;
-			Json::Value v = jsonTextureSubTypeObject["folder"];
-			const std::string textureName = textureType + "_" + textureSubTypeQualifier;
-			if (v.isNull())
+			const std::string textureType = jsonGroundTexturesForLayoutArray[idxTexturesForLayout]["type"].asString();
+			const Json::Value jsonTextureTypeQualifierArray = jsonGroundTexturesForLayoutArray[idxTexturesForLayout]["sub-types"];
+			size = jsonTextureTypeQualifierArray.size();
+			for (Json::Value::UInt textureTypeQualifierIdx = 0; textureTypeQualifierIdx < jsonTextureTypeQualifierArray.size(); textureTypeQualifierIdx++)
 			{
-				if (viewer != nullptr)
-					viewer->Globals()->debugPrint((std::string("Missing folder filed for texture <") + textureName + ">!").c_str());
-			}
-			else
-			{
-				textureEntry.folder = v.asString();
-				v = jsonTextureSubTypeObject["base-albedo"];
-				if (not v.isNull())
+				const Json::Value jsonTextureSubTypeObject = jsonTextureTypeQualifierArray[textureTypeQualifierIdx];
+				const std::string textureSubTypeQualifier = jsonTextureSubTypeObject["qualifier"].asString();
+				struct TextureEntry textureEntry;
+				Json::Value v = jsonTextureSubTypeObject["folder"];
+				const std::string textureName = textureType + "_" + textureSubTypeQualifier;
+				const std::string textureKey = layoutName + "_" + textureName;
+				if (v.isNull())
 				{
-					std::vector<std::string> vect = TheWorld_Utils::Utils::split(v.asString(), ',');
-					if (vect.size() == 3)
-					{
-						if (TheWorld_Utils::Utils::StringContains(vect[0], "."))
-							textureEntry.baseAlbedo.r = std::stof(vect[0]);
-						else
-							textureEntry.baseAlbedo.r = std::stof(vect[0]) / 255.0f;
-						if (TheWorld_Utils::Utils::StringContains(vect[1], "."))
-							textureEntry.baseAlbedo.g = std::stof(vect[1]);
-						else
-							textureEntry.baseAlbedo.g = std::stof(vect[1]) / 255.0f;
-						if (TheWorld_Utils::Utils::StringContains(vect[2], "."))
-							textureEntry.baseAlbedo.b = std::stof(vect[2]);
-						else
-							textureEntry.baseAlbedo.b = std::stof(vect[2]) / 255.0f;
-					}
-					else
-						if (viewer != nullptr)
-							viewer->Globals()->debugPrint((std::string("Base-albedo syntax error for texture <") + textureName + ">!").c_str());
+					if (viewer != nullptr)
+						viewer->Globals()->debugPrint((std::string("Missing folder file for texture <") + textureName + "> layout <" + layoutName + ">!").c_str());
 				}
-				v = jsonTextureSubTypeObject["base-scale-ao"];
-				if (not v.isNull())
-					textureEntry.baseScaleAO = float(v.asDouble()) / 16.0f;
-				v = jsonTextureSubTypeObject["base-scale-normal"];
-				if (not v.isNull())
-					textureEntry.baseScaleNormal = float(v.asDouble()) / 16.0f;
-				v = jsonTextureSubTypeObject["base-scale-roughness"];
-				if (not v.isNull())
-					textureEntry.baseScaleRoughness = float(v.asDouble()) / 16.0f;
-				v = jsonTextureSubTypeObject["base-scale-uv"];
-				if (not v.isNull())
-					textureEntry.baseScaleUV = float(v.asDouble()) / 16.0f;
-				textures[textureName] = textureEntry;
+				else
+				{
+					textureEntry.layout = layoutName;
+					textureEntry.textureName = textureName;
+					textureEntry.folder = v.asString();
+					v = jsonTextureSubTypeObject["base-albedo"];
+					if (not v.isNull())
+					{
+						std::vector<std::string> vect = TheWorld_Utils::Utils::split(v.asString(), ',');
+						if (vect.size() == 3)
+						{
+							if (TheWorld_Utils::Utils::StringContains(vect[0], "."))
+								textureEntry.baseAlbedo.r = std::stof(vect[0]);
+							else
+								textureEntry.baseAlbedo.r = std::stof(vect[0]) / 255.0f;
+							if (TheWorld_Utils::Utils::StringContains(vect[1], "."))
+								textureEntry.baseAlbedo.g = std::stof(vect[1]);
+							else
+								textureEntry.baseAlbedo.g = std::stof(vect[1]) / 255.0f;
+							if (TheWorld_Utils::Utils::StringContains(vect[2], "."))
+								textureEntry.baseAlbedo.b = std::stof(vect[2]);
+							else
+								textureEntry.baseAlbedo.b = std::stof(vect[2]) / 255.0f;
+						}
+						else
+							if (viewer != nullptr)
+								viewer->Globals()->debugPrint((std::string("Base-albedo syntax error for texture <") + textureName + "> layout <" + layoutName + ">!").c_str());
+					}
+					v = jsonTextureSubTypeObject["base-scale-ao"];
+					if (not v.isNull())
+						textureEntry.baseScaleAO = float(v.asDouble()) / 16.0f;
+					v = jsonTextureSubTypeObject["base-scale-normal"];
+					if (not v.isNull())
+						textureEntry.baseScaleNormal = float(v.asDouble()) / 16.0f;
+					v = jsonTextureSubTypeObject["base-scale-roughness"];
+					if (not v.isNull())
+						textureEntry.baseScaleRoughness = float(v.asDouble()) / 16.0f;
+					v = jsonTextureSubTypeObject["base-scale-uv"];
+					if (not v.isNull())
+						textureEntry.baseScaleUV = float(v.asDouble()) / 16.0f;
+					textures[textureKey] = textureEntry;
+				}
 			}
 		}
 	}
 
-	std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
-	groundTextureLayers.clear();
-
 	// loading images and assigning a layer index
-	int layer = 0;
+	int idx = 0;
 	godot::TypedArray<godot::Image> albedoDisplImageArray, normalRoughnessImageArray;
 	godot::TypedArray<godot::Color> baseValues0Array, baseValues1Array;
 	for (auto& texture : textures)
@@ -3016,18 +2978,14 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 			baseValues0Array.push_back(texture.second.baseAlbedo);	// ATM only rgb values are used, a channel is free for future implementations
 			baseValues1Array.push_back(godot::Color(texture.second.baseScaleAO, texture.second.baseScaleNormal, texture.second.baseScaleRoughness, texture.second.baseScaleUV));
 
-			s_groundTextures[texture.first] = std::make_unique<ShaderTerrainData::GroundTexture>();
-			ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[texture.first].get();
-			groundTexture->m_texture_preview = texturePreview;
-
-			groundTextureLayers[texture.first] = layer;
+			s_groundTextures[texture.first] = std::make_unique<ShaderTerrainData::GroundTexture>(idx, texture.second.layout, texture.second.textureName, texturePreview);
 
 			TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 			long long elapsed = (now - start).count();
 			if (viewer != nullptr)
-				viewer->Globals()->debugPrint((std::string("Loaded ground_texture [") + texture.first + "] ==> layer = " + std::to_string(layer) + " - Elapsed = " + std::to_string(elapsed) + " ms").c_str());
+				viewer->Globals()->debugPrint((std::string("Loaded ground_texture [") + texture.first + "] ==> idx = " + std::to_string(idx) + " - Elapsed = " + std::to_string(elapsed) + " ms").c_str());
 
-			layer++;
+			idx++;
 		}
 		else
 		{
@@ -3052,8 +3010,8 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY, normalRoughnessTexture2DArray);
 
 	// sending textures to shader: GLOBAL_SHADER_PARAM_BASE_VALUES_ARRAY
-	godot::Ref<godot::Image> baseValuesImage = godot::Image::create_empty(layer, 2, false, godot::Image::Format::FORMAT_RGBA8);
-	for (int x = 0; x < layer; x++)
+	godot::Ref<godot::Image> baseValuesImage = godot::Image::create_empty(idx, 2, false, godot::Image::Format::FORMAT_RGBA8);
+	for (int x = 0; x < idx; x++)
 	{
 		godot::Color c0 = baseValues0Array[x];
 		godot::Color c1 = baseValues1Array[x];
@@ -3189,62 +3147,9 @@ void ShaderTerrainData::mouseHitChanged(godot::Vector2 mouseHit)
 
 void ShaderTerrainData::releaseGlobals(void)
 {
-	//std::lock_guard<std::recursive_mutex> lock(s_groundTexturesMutex);
-
-	for (auto& it : s_groundTextures)
-	{
-		//it.second->m_albedo_bump_tex.unref();
-		//it.second->m_normal_roughness_tex.unref();
-		//if (it.second->m_albedo_tex.is_valid())
-		//	it.second->m_albedo_tex.unref();
-		//if (it.second->m_normal_tex.is_valid())
-		//	it.second->m_normal_tex.unref();
-		//if (it.second->m_roughness_tex.is_valid())
-		//	it.second->m_roughness_tex.unref();
-		//if (it.second->m_ambient_occlusion_tex.is_valid())
-		//	it.second->m_ambient_occlusion_tex.unref();
-		//if (it.second->m_displacement_tex.is_valid())
-		//	it.second->m_displacement_tex.unref();
-		if (it.second->m_texture_preview.is_valid())	// Useless
-			it.second->m_texture_preview.unref();
-	}
-
+	std::lock_guard<std::recursive_mutex> lock(s_mtxStaticData);
 	s_groundTextures.clear();
 }
-
-//godot::Ref<godot::ImageTexture> ShaderTerrainData::getAlbedoBumpTexture(std::string textureName)
-//{
-//	std::recursive_mutex& viewerMainProcessingMutex = m_viewer->getMainProcessingMutex();
-//	std::lock_guard<std::recursive_mutex> lock(viewerMainProcessingMutex);
-//	
-//	if (!s_groundTextures.contains(textureName) || !s_groundTextures[textureName]->initialized)
-//	{
-//		s_groundTextures[textureName] = std::make_unique<ShaderTerrainData::GroundTexture>();
-//		ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[textureName].get();
-//		std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
-//		//getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
-//		getGroundTexture(godot::String(groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
-//	}
-//
-//	return s_groundTextures[textureName]->m_albedo_bump_tex;
-//}
-
-//godot::Ref<godot::ImageTexture> ShaderTerrainData::getNormalRoughnessTexture(std::string textureName)
-//{
-//	std::recursive_mutex& viewerMainProcessingMutex = m_viewer->getMainProcessingMutex();
-//	std::lock_guard<std::recursive_mutex> lock(viewerMainProcessingMutex);
-//
-//	if (!s_groundTextures.contains(textureName) || !s_groundTextures[textureName]->initialized)
-//	{
-//		s_groundTextures[textureName] = std::make_unique<ShaderTerrainData::GroundTexture>();
-//		ShaderTerrainData::GroundTexture* groundTexture = s_groundTextures[textureName].get();
-//		std::string groundTexturesDir = ShaderTerrainData::getGroundTexturesDir();
-//		//getGroundTexture(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
-//		getGroundTexture(godot::String(groundTexturesDir.c_str()) + textureName.c_str(), groundTexture, m_viewer);
-//	}
-//
-//	return s_groundTextures[textureName]->m_normal_roughness_tex;
-//}
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 {
@@ -5634,15 +5539,12 @@ bool Quadrant::canHaveHiResCollisionInfo(void)
 godot::Vector4 Quadrant::quadrantTextureLayers(void) const
 {
 	godot::Vector4 v(-1, -1, -1, -1);
-	std::map<std::string, int32_t>& groundTextureLayers = ShaderTerrainData::getGroundTextureLayers();
-	if (groundTextureLayers.contains(m_terrainEdit->extraValues.lowElevationTexName_r))
-		v.x = (float)groundTextureLayers[m_terrainEdit->extraValues.lowElevationTexName_r];
-	if (groundTextureLayers.contains(m_terrainEdit->extraValues.highElevationTexName_g))
-		v.y = (float)groundTextureLayers[m_terrainEdit->extraValues.highElevationTexName_g];
-	if (groundTextureLayers.contains(m_terrainEdit->extraValues.dirtTexName_b))
-		v.z = (float)groundTextureLayers[m_terrainEdit->extraValues.dirtTexName_b];
-	if (groundTextureLayers.contains(m_terrainEdit->extraValues.rocksTexName_a))
-		v.w = (float)groundTextureLayers[m_terrainEdit->extraValues.rocksTexName_a];
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+	std::string textureLayout;
+	v.x = (float)groundTextures.getTextureIdx(m_textureLayout, m_terrainEdit->extraValues.lowElevationTexName_r, textureLayout);
+	v.y = (float)groundTextures.getTextureIdx(m_textureLayout, m_terrainEdit->extraValues.highElevationTexName_g, textureLayout);
+	v.z = (float)groundTextures.getTextureIdx(m_textureLayout, m_terrainEdit->extraValues.dirtTexName_b, textureLayout);
+	v.w = (float)groundTextures.getTextureIdx(m_textureLayout, m_terrainEdit->extraValues.rocksTexName_a, textureLayout);
 
 	return v;
 }

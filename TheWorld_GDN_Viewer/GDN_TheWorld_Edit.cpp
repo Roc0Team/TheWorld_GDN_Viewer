@@ -1307,7 +1307,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(terrainEdit.extraValues.lowElevationTexName_r);
 		m_innerData->m_lowElevationTexName->set_text(s.c_str());
-		m_innerData->m_lowElevationLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_lowElevationLayoutName->set_text((std::string("(") + textureLayout + ")").c_str());
 		m_innerData->m_lowElevationTex->set_texture(t);
 	}
 	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.highElevationTexName_g, textureLayout);
@@ -1315,7 +1315,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(terrainEdit.extraValues.highElevationTexName_g);
 		m_innerData->m_highElevationTexName->set_text(s.c_str());
-		m_innerData->m_highElevationLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_highElevationLayoutName->set_text((std::string("(") + textureLayout + ")").c_str());
 		m_innerData->m_highElevationTex->set_texture(t);
 	}
 	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.dirtTexName_b, textureLayout);
@@ -1323,7 +1323,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(terrainEdit.extraValues.dirtTexName_b);
 		m_innerData->m_dirtTexName->set_text(s.c_str());
-		m_innerData->m_dirtLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_dirtLayoutName->set_text((std::string("(") + textureLayout + ")").c_str());
 		m_innerData->m_dirtTex->set_texture(t);
 	}
 	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.rocksTexName_a, textureLayout);
@@ -1331,7 +1331,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(terrainEdit.extraValues.rocksTexName_a);
 		m_innerData->m_rocksTexName->set_text(s.c_str());
-		m_innerData->m_rocksLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_rocksLayoutName->set_text((std::string("(") + textureLayout + ")").c_str());
 		m_innerData->m_rocksTex->set_texture(t);
 	}
 
@@ -2478,15 +2478,17 @@ void GDN_TheWorld_Edit::_process(double _delta)
 
 void GDN_TheWorld_Edit::changeTextureAction()
 {
-	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-	std::map<std::string, std::unique_ptr<ShaderTerrainData::GroundTexture>>::iterator it = groundTextures.find(m_innerData->m_selTexturePanel->m_newTexName);
-	if (it == groundTextures.end())
-		return;
-
 	QuadTree* quadTreeSel = nullptr;
 	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
-
 	if (quadTreeSel == nullptr)
+		return;
+
+	std::string selectedLayout = groundLayout();
+
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+	std::string textureLayout;
+	godot::Ref<godot::Texture2D> texturePreview = groundTextures.getTexturePreview(selectedLayout, m_innerData->m_selTexturePanel->m_newTexName, textureLayout);
+	if (texturePreview == nullptr)
 		return;
 
 	TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
@@ -2495,25 +2497,29 @@ void GDN_TheWorld_Edit::changeTextureAction()
 	{
 		strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_lowElevationTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_lowElevationTex->set_texture(it->second->texturePreview());
+		m_innerData->m_lowElevationLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_lowElevationTex->set_texture(texturePreview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_highElevationEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_highElevationTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_highElevationTex->set_texture(it->second->texturePreview());
+		m_innerData->m_highElevationLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_highElevationTex->set_texture(texturePreview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_dirtEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_dirtTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_dirtTex->set_texture(it->second->texturePreview());
+		m_innerData->m_dirtLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_dirtTex->set_texture(texturePreview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_rocksEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_rocksTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_rocksTex->set_texture(it->second->texturePreview());
+		m_innerData->m_rocksLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_rocksTex->set_texture(texturePreview);
 	}
 
 	// Quadrant has to be saved and uploaded
@@ -2570,34 +2576,41 @@ godot::Window* GDN_TheWorld_Edit::initSelTexturePanel(void)
 
 	godot::Vector2 size(70, 70);
 
+	std::string selectedLayout = groundLayout();
+
+
 	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-	int32_t idx = 0;
+	std::map<std::string, bool> textures;
 	for (const auto& groundTexture : groundTextures)
+		textures[groundTexture.second->textureName()] = true;
+
+	int32_t idx = 0;
+	for (const auto& texture : textures)
 	{
-		//if (groundTexture.second->initialized)
 		{
-			m_innerData->m_selTexturePanel->m_textureItems[std::string(groundTexture.first)] = std::make_unique<InnerData::SelTexturePanel::TextureItemPanel>();
-			InnerData::SelTexturePanel::TextureItemPanel* texItemPanel = m_innerData->m_selTexturePanel->m_textureItems[std::string(groundTexture.first)].get();
+			m_innerData->m_selTexturePanel->m_textureItems[texture.first] = std::make_unique<InnerData::SelTexturePanel::TextureItemPanel>();
+			InnerData::SelTexturePanel::TextureItemPanel* texItemPanel = m_innerData->m_selTexturePanel->m_textureItems[texture.first].get();
 
 			texItemPanel->m_panel = createControl<godot::PanelContainer>(vBoxContainer, (std::string("SelTexturePanel_TexFrame_") + std::to_string(idx)).c_str());
 			texItemPanel->m_idx = idx;
-			if (m_innerData->m_selTexturePanel->m_selectedTexName == groundTexture.first)
+			if (m_innerData->m_selTexturePanel->m_selectedTexName == texture.first)
 			{
 				texItemPanel->m_panel->add_theme_stylebox_override("panel", m_innerData->m_styleBoxSelectedFrame);
 				texItemPanel->m_selected = true;
 			}
-			std::string s(groundTexture.first);
-			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "gui_input", this, "gui_input_event", "SelTexturePanel_ItemPanelGuiInput", s.c_str(), idx);
-			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", "SelTexturePanel_ItemPanelGuiInput", s.c_str(), idx);
-			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "mouse_exited", this, "void_signal_manager", "SelTexturePanel_ItemPanelGuiInput", s.c_str(), idx);
+			//std::string s(groundTexture.second->textureName());
+			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "gui_input", this, "gui_input_event", "SelTexturePanel_ItemPanelGuiInput", texture.first.c_str(), idx);
+			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "mouse_entered", this, "void_signal_manager", "SelTexturePanel_ItemPanelGuiInput", texture.first.c_str(), idx);
+			e = GDN_TheWorld_Globals::connectSignal(texItemPanel->m_panel, "godot::PanelContainer", "mouse_exited", this, "void_signal_manager", "SelTexturePanel_ItemPanelGuiInput", texture.first.c_str(), idx);
 			godot::HBoxContainer* hBoxContainer = createControl<godot::HBoxContainer>(texItemPanel->m_panel);
 			//int i = hBoxContainer->get_theme_constant("separation");
 			godot::TextureRect* tex = createControl<godot::TextureRect>(hBoxContainer);
 			tex->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
 			tex->set_custom_minimum_size(size);
 			tex->set_stretch_mode(godot::TextureRect::STRETCH_SCALE);
-			tex->set_texture(groundTexture.second->texturePreview());
-			godot::Label* label = createControl<godot::Label>(hBoxContainer, "", s.c_str());
+			std::string textureLayout;
+			tex->set_texture(groundTextures.getTexturePreview(selectedLayout, texture.first, textureLayout));
+			godot::Label* label = createControl<godot::Label>(hBoxContainer, "", texture.first.c_str());
 
 			idx++;
 		}
@@ -2944,10 +2957,12 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 			{
 				//accept_event();
 
+				std::string selectedLayout = groundLayout();
+
 				std::string selectedTextureName = godot::String(custom2).utf8().get_data();
 				ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-				int32_t idx = int32_t(custom3);
-				if (groundTextures.contains(selectedTextureName))
+				int32_t idx = int32_t(custom3);		// DEBUG ONLY
+				if (groundTextures.containTexture(selectedLayout, selectedTextureName))
 				{
 					for (auto& texturePanel : m_innerData->m_selTexturePanel->m_textureItems)
 					{
@@ -2968,10 +2983,12 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 			{
 				//accept_event();
 				
+				std::string selectedLayout = groundLayout();
+
 				std::string selectedTextureName = godot::String(custom2).utf8().get_data();
 				ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-				int32_t idx = int32_t(custom3);
-				if (groundTextures.contains(selectedTextureName))
+				int32_t idx = int32_t(custom3);			// DEBUG ONLY
+				if (groundTextures.containTexture(selectedLayout, selectedTextureName))
 				{
 					if (m_innerData->m_selTexturePanel->m_textureItems.contains(selectedTextureName) && !m_innerData->m_selTexturePanel->m_textureItems[selectedTextureName]->m_selected)
 					{

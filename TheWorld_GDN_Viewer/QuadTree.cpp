@@ -2352,7 +2352,7 @@ std::string ShaderTerrainData::layoutFromContinentId(int32_t id)
 	if (s_continents.contains(id))
 		return s_continents[id]->layout();
 	else
-		return "";
+		return Quadrant::c_defaultTextureLayout;
 }
 
 
@@ -5753,7 +5753,10 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 
 		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, updateCache);
 		if (terrainEditValuesBuffer.size() > 0)
+		{
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);
+			m_textureLayout = ShaderTerrainData::layoutFromContinentId(getTerrainEdit()->extraValues1.continentId);
+		}
 	}
 
 	if (outMeshIdFromBuffer.size() > 0)
@@ -5776,7 +5779,10 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 
 		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
 		if (terrainEditValuesBuffer.size() > 0)
+		{
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);
+			m_textureLayout = ShaderTerrainData::layoutFromContinentId(getTerrainEdit()->extraValues1.continentId);
+		}
 
 		//if (empty)
 		//	setEmpty(true);

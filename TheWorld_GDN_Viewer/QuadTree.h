@@ -996,6 +996,21 @@ namespace godot
 			{
 				return m_texturePreview;
 			}
+			std::string layout(void) const
+			{
+				return m_layout;
+			}
+			std::string textureName(void) const
+			{
+				return m_textureName;
+			}
+			bool isDefaultLayout(void)
+			{
+				if (m_layout.length() == 0 or m_layout == Quadrant::c_defaultTextureLayout)
+					return true;
+				else
+					return false;
+			}
 
 		private:
 			int32_t m_idx;
@@ -1019,6 +1034,15 @@ namespace godot
 				if (g == nullptr)
 					return -1;
 				return g->idx();
+			}
+			bool containTexture(std::string layout, std::string textureName)
+			{
+				std::string textureLayout;
+				GroundTexture* g = getGroundTexture(layout, textureName, textureLayout);
+				if (g == nullptr)
+					return false;
+				else
+					return true;;
 			}
 
 		private:
@@ -1204,7 +1228,10 @@ namespace godot
 			}
 			std::string layout()
 			{
-				return m_layout;
+				if (m_layout.length() > 0)
+					return m_layout;
+				else
+					return Quadrant::c_defaultTextureLayout;
 			}
 		private:
 			int32_t m_id;

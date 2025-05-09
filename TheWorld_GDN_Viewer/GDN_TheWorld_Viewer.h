@@ -64,7 +64,7 @@ namespace godot
 		void init(GDN_TheWorld_Viewer* viewer);
 
 	private:
-		GDN_TheWorld_Viewer* m_viewer;
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
 	};
 
 	class MapQuadrantImagesMap : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantImage>>
@@ -154,7 +154,7 @@ namespace godot
 
 	private:
 		//std::recursive_mutex m_internalMutex;
-		GDN_TheWorld_Viewer* m_viewer;
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		//godot::Vector2i m_mapImageSize;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_updatedQuadrants;
 		std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<UpdatingInfo>> m_updatingQuadrants;

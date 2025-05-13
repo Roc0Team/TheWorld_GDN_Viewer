@@ -399,7 +399,7 @@ namespace godot
 		godot::Ref<godot::Texture2D> getTextureByTerrainType(TheWorld_Utils::TerrainEdit::TerrainType terrainType);
 
 		void setEmptyTerrainEditValues(void);
-		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit, bool activateEditingMap = true);
+		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit, TheWorld_Utils::QuadrantPos quadrantPos, bool activateEditingMap = true);
 
 		void editModeMouseEnteredEditPanel(void);
 		void editModeMouseExitedEditPanel(void);

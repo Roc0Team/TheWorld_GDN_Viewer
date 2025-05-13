@@ -466,6 +466,11 @@ namespace godot
 				m_blendNeeded = b;
 			}
 
+			TheWorld_Utils::QuadrantPos getPos(void) const
+			{
+				return m_quadrantPos;
+			}
+
 		private:
 			GDN_TheWorld_Map* m_map = nullptr;
 			TheWorld_Utils::QuadrantPos m_quadrantPos;

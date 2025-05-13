@@ -242,6 +242,8 @@ namespace godot
 		static std::string getClientDataDir(void);
 		godot::String getCacheDir(int level);
 		godot::String getConfigFilename(int level);
+		std::string getGroundJsonFilePath(void);
+
 
 		virtual void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply) override;
 		

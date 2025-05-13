@@ -2347,13 +2347,55 @@ ShaderTerrainData::GroundTextures ShaderTerrainData::s_groundTextures;
 std::recursive_mutex ShaderTerrainData::s_mtxStaticData;
 std::map<int32_t, std::unique_ptr<ShaderTerrainData::Continent>> ShaderTerrainData::s_continents;
 
-std::string ShaderTerrainData::layoutFromContinentId(int32_t id)
+std::string ShaderTerrainData::layoutFromQuadrantPos(TheWorld_Utils::QuadrantPos pos, std::string& continentName)
 {
-	if (s_continents.contains(id))
-		return s_continents[id]->layout();
-	else
-		return Quadrant::c_defaultTextureLayout;
+	std::lock_guard<std::recursive_mutex> lock(s_mtxStaticData);
+
+	std::string ret = Quadrant::c_defaultTextureLayout;
+	continentName = "";
+	
+	if (pos.empty())
+		return ret;
+
+	int quadrantPosX = pos.getIndexPosX();
+	int quadrantPosZ = pos.getIndexPosZ();
+
+	for (auto& continent : s_continents)
+	{
+		for (int idx = 0; ; idx++)
+		{
+			Continent::Margin* margin = continent.second->getMargin(idx);
+			if (margin == nullptr)
+				break;
+
+			Continent::Margin::Delimiter* delimiter = margin->getDelimiter(Continent::Margin::Delimiter::DelimiterType::NW);
+			if (delimiter == nullptr)
+				break;
+			Continent::Margin::Delimiter NW_delimiter = *delimiter;
+			delimiter = margin->getDelimiter(Continent::Margin::Delimiter::DelimiterType::SE);
+			if (delimiter == nullptr)
+				break;
+			Continent::Margin::Delimiter SE_delimiter = *delimiter;
+
+			if (quadrantPosX >= NW_delimiter.quadrantPosX() and quadrantPosX <= SE_delimiter.quadrantPosX()
+				and quadrantPosZ >= NW_delimiter.quadrantPosZ() and quadrantPosZ <= SE_delimiter.quadrantPosZ())
+			{
+				continentName = continent.second->name();
+				return continent.second->layout();
+			}
+		}
+	}
+
+	return ret;
 }
+
+//std::string ShaderTerrainData::layoutFromContinentId(int32_t id)
+//{
+//	if (s_continents.contains(id))
+//		return s_continents[id]->layout();
+//	else
+//		return Quadrant::c_defaultTextureLayout;
+//}
 
 
 //godot::Ref<godot::Image> ShaderTerrainData::readGroundTexture(godot::String fileName, bool& ok, GDN_TheWorld_Viewer* viewer)
@@ -2844,7 +2886,7 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 		return;
 	}
 
-	std::string groundTexturesJsonPath = globalizedGroundTexturesDir + "ground.json";
+	std::string groundTexturesJsonPath = viewer->Globals()->getGroundJsonFilePath();
 	if (!fs::exists(groundTexturesJsonPath))
 	{
 		if (viewer != nullptr)
@@ -2874,27 +2916,40 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 
 	// iterating json
 	const Json::Value jsonContinentsArray = root["continents"];
-	Json::Value::UInt size = jsonContinentsArray.size();
+	Json::Value::UInt size = jsonContinentsArray.size();	// DEBUG
 	for (Json::Value::UInt idx = 0; idx < jsonContinentsArray.size(); idx++)
 	{
 		const int32_t id = jsonContinentsArray[idx]["id"].asInt();
 		const std::string name = jsonContinentsArray[idx]["name"].asString();
 		const std::string layout = jsonContinentsArray[idx]["layout"].asString();
 		s_continents[id] = std::make_unique<Continent>(id, name, layout);
+		for (int i = 1; ; i++)
+		{
+			char buffer[10];
+			sprintf_s<sizeof(buffer)>(buffer, "%02d", i);
+			const std::string marginName = std::string("margin_") + buffer;
+			const std::string marginAsString = jsonContinentsArray[idx][marginName].asString();
+			if (marginAsString.length() == 0)
+				break;
+			bool ok = s_continents[id]->addMargin(marginAsString);
+			if (not ok)
+				if (viewer != nullptr)
+					viewer->Globals()->debugPrint((std::string("Margin value syntax is not correct <") + marginAsString + "> for continent <" + name + " (" + std::to_string(id)  + ")>").c_str());
+		}
 	}
 
 	const Json::Value jsonGroundTextureLayoutsArray = root["ground-texture-layouts"];
-	size = jsonGroundTextureLayoutsArray.size();
+	size = jsonGroundTextureLayoutsArray.size();	// DEBUG
 	for (Json::Value::UInt idxLayout = 0; idxLayout < jsonGroundTextureLayoutsArray.size(); idxLayout++)
 	{
 		const std::string layoutName = jsonGroundTextureLayoutsArray[idxLayout]["layout-name"].asString();
 		const Json::Value jsonGroundTexturesForLayoutArray = jsonGroundTextureLayoutsArray[idxLayout]["layout-textures"];
-		size = jsonGroundTexturesForLayoutArray.size();
+		size = jsonGroundTexturesForLayoutArray.size();	// DEBUG
 		for (Json::Value::UInt idxTexturesForLayout = 0; idxTexturesForLayout < jsonGroundTexturesForLayoutArray.size(); idxTexturesForLayout++)
 		{
 			const std::string textureType = jsonGroundTexturesForLayoutArray[idxTexturesForLayout]["type"].asString();
 			const Json::Value jsonTextureTypeQualifierArray = jsonGroundTexturesForLayoutArray[idxTexturesForLayout]["sub-types"];
-			size = jsonTextureTypeQualifierArray.size();
+			size = jsonTextureTypeQualifierArray.size();	// DEBUG
 			for (Json::Value::UInt textureTypeQualifierIdx = 0; textureTypeQualifierIdx < jsonTextureTypeQualifierArray.size(); textureTypeQualifierIdx++)
 			{
 				const Json::Value jsonTextureSubTypeObject = jsonTextureTypeQualifierArray[textureTypeQualifierIdx];
@@ -4569,6 +4624,8 @@ Quadrant::Quadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer
 	godot::Error e = m_mapModder->connect("tw_modder_work_done", Callable(m_viewer, "quadrant_modder_work_done"));
 
 	m_quadrantCenter = godot::Vector3(m_quadrantPos.getLowerXGridVertex(), 0, m_quadrantPos.getLowerZGridVertex()) + godot::Vector3(m_viewer->Globals()->heightmapSizeInWUs(), 0, m_viewer->Globals()->heightmapSizeInWUs()) / 2;
+
+	m_textureLayout = ShaderTerrainData::layoutFromQuadrantPos(m_quadrantPos, m_continentName);
 }
 
 Quadrant::~Quadrant()
@@ -5755,7 +5812,8 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		if (terrainEditValuesBuffer.size() > 0)
 		{
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);
-			m_textureLayout = ShaderTerrainData::layoutFromContinentId(getTerrainEdit()->extraValues1.continentId);
+			//m_textureLayout = ShaderTerrainData::layoutFromContinentId(getTerrainEdit()->extraValues1.continentId);
+			//m_textureLayout = ShaderTerrainData::layoutFromQuadrantPos(m_cache.getQuadrantPos());
 		}
 	}
 
@@ -5781,7 +5839,8 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		if (terrainEditValuesBuffer.size() > 0)
 		{
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);
-			m_textureLayout = ShaderTerrainData::layoutFromContinentId(getTerrainEdit()->extraValues1.continentId);
+			//m_textureLayout = ShaderTerrainData::layoutFromContinentId(getTerrainEdit()->extraValues1.continentId);
+			//m_textureLayout = ShaderTerrainData::layoutFromQuadrantPos(m_cache.getQuadrantPos());
 		}
 
 		//if (empty)

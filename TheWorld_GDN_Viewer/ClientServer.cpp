@@ -485,9 +485,13 @@ namespace TheWorld_ClientServer
 				TheWorld_MapManager::MapManager::setLogMaxSeverity(sev);
 
 				float gridStepInWU = m_threadContextPool->getCurrentContext()->getMapManager()->gridStepInWU();
-				std::string mapName = m_threadContextPool->getCurrentContext()->getMapManager()->getMapName();
 				reply->replyParam(gridStepInWU);
+				std::string mapName = m_threadContextPool->getCurrentContext()->getMapManager()->getMapName();
 				reply->replyParam(mapName);
+				std::chrono::system_clock::time_point groundJsonUtc;
+				std::string groundJson = m_threadContextPool->getCurrentContext()->getMapManager()->getGroundJson(groundJsonUtc);
+				reply->replyParam(groundJson);
+				reply->replyParam(TheWorld_Utils::time_point_to_str_time(groundJsonUtc));
 				reply->replyComplete();
 			}
 			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER)

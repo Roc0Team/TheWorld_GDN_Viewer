@@ -690,6 +690,15 @@ namespace godot
 			return m_quadTree;
 		}
 
+		std::string textureLayout(void) const
+		{
+			return m_textureLayout;
+		}
+		std::string continentName(void) const
+		{
+			return m_continentName;
+		}
+
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getInternalMeshCacheBuffer(void);
 		void loadTerrainDataFromCache(void);
@@ -700,6 +709,7 @@ namespace godot
 		QuadTree* m_quadTree;
 		static const std::string c_defaultTextureLayout;
 		std::string m_textureLayout = c_defaultTextureLayout;
+		std::string m_continentName;
 		bool m_lockInternalDataUntilCompleteProcessExecution = false;
 		TheWorld_Utils::MeshCacheBuffer m_cache;
 		godot::AABB m_globalCoordAABB;
@@ -1161,7 +1171,8 @@ namespace godot
 
 		//void clearCachedTexture(void);
 
-		static std::string layoutFromContinentId(int32_t id);
+		//static std::string layoutFromContinentId(int32_t id);
+		static std::string layoutFromQuadrantPos(TheWorld_Utils::QuadrantPos pos, std::string& continentName);
 
 	private:
 		//void debugPrintTexture(std::string tex_name, Ref<Texture> tex);
@@ -1213,8 +1224,70 @@ namespace godot
 
 		static std::recursive_mutex s_mtxStaticData;
 		static GroundTextures s_groundTextures;
+		
 		class Continent
 		{
+		public:
+			class Margin
+			{
+			public:
+				class Delimiter
+				{
+				public:
+					enum class DelimiterType
+					{
+						NotSet = -1,
+						NW = 0,
+						SE = 1
+					};
+
+				public:
+					void setDelimiter(enum class DelimiterType delimiterType, int32_t quadrantPosX, int32_t quadrantPosZ)
+					{
+						m_delimiterType = delimiterType;
+						m_quadrantPosX = quadrantPosX;
+						m_quadrantPosZ = quadrantPosZ;
+					}
+					enum class DelimiterType delimiterType(void) const
+					{
+						return m_delimiterType;
+					}
+					int32_t quadrantPosX(void) const
+					{
+						return m_quadrantPosX;
+					}
+					int32_t quadrantPosZ(void) const
+					{
+						return m_quadrantPosZ;
+					}
+
+				private:
+					enum class DelimiterType m_delimiterType = DelimiterType::NotSet;
+					int32_t m_quadrantPosX = 0;
+					int32_t m_quadrantPosZ = 0;
+				};
+
+			public:
+				Margin(void)
+				{
+					m_delimiters[Delimiter::DelimiterType::NW] = std::make_unique<Delimiter>();
+					m_delimiters[Delimiter::DelimiterType::SE] = std::make_unique<Delimiter>();
+				}
+				void setDelimiter(enum class Delimiter::DelimiterType delimiterType, int32_t quadrantPosX, int32_t quadrantPosZ)
+				{
+					m_delimiters[delimiterType]->setDelimiter(delimiterType, quadrantPosX, quadrantPosZ);
+				}
+				Delimiter* getDelimiter(Delimiter::DelimiterType delimiterType)
+				{
+					if (not m_delimiters.contains(delimiterType) or m_delimiters[delimiterType]->delimiterType() == Delimiter::DelimiterType::NotSet)
+						return nullptr;
+					return m_delimiters[delimiterType].get();
+				}
+
+			private:
+				std::map<Delimiter::DelimiterType, std::unique_ptr<Delimiter>> m_delimiters;
+			};
+
 		public:
 			Continent(int32_t id, std::string name, std::string layout)
 			{
@@ -1233,11 +1306,58 @@ namespace godot
 				else
 					return Quadrant::c_defaultTextureLayout;
 			}
+			bool addMargin(std::string marginAsString)
+			{
+				int32_t NW_quadrantPosX = 0, NW_quadrantPosZ = 0;
+				int32_t SE_quadrantPosX = 0, SE_quadrantPosZ = 0;
+
+				std::vector<std::string> v = TheWorld_Utils::Utils::split(marginAsString, ';');
+				if (v.size() != 2)
+					return false;
+				for (int i = 0; i < v.size(); i++)
+				{
+					std::vector<std::string> v1 = TheWorld_Utils::Utils::split(v[i], ':');
+					if (v1.size() != 2)
+						return false;
+					std::vector<std::string> v2 = TheWorld_Utils::Utils::split(v1[1], ',');
+					if (v2.size() != 2)
+						return false;
+					if (v1[0] == "NW")
+					{
+						NW_quadrantPosX = std::stoi(v2[0]);
+						NW_quadrantPosZ = std::stoi(v2[1]);
+					}
+					else if (v1[0] == "SE")
+					{
+						SE_quadrantPosX = std::stoi(v2[0]);
+						SE_quadrantPosZ = std::stoi(v2[1]);
+					}
+					else
+						return false;
+				}
+				
+				m_margins.push_back(std::make_unique<Margin>());
+				m_margins.back()->setDelimiter(Margin::Delimiter::DelimiterType::NW, NW_quadrantPosX, NW_quadrantPosZ);
+				m_margins.back()->setDelimiter(Margin::Delimiter::DelimiterType::SE, SE_quadrantPosX, SE_quadrantPosZ);
+
+				return true;
+			}
+
+			Margin* getMargin(size_t idx)
+			{
+				if (idx < m_margins.size())
+					return m_margins[idx].get();
+				else
+					return nullptr;
+			}
+
 		private:
 			int32_t m_id;
 			std::string m_name;
 			std::string m_layout;
+			std::vector<std::unique_ptr<Margin>> m_margins;
 		};
+		
 		static std::map<int32_t, std::unique_ptr<Continent>> s_continents;
 	};
 	

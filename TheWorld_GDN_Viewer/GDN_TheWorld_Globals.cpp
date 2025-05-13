@@ -11,6 +11,8 @@
 #include <godot_cpp/classes/time.hpp>
 #pragma warning(pop)
 
+namespace fs = std::filesystem; 
+
 static bool g_plogInitialized = false;
 
 //#include <MapManager.h>
@@ -102,6 +104,21 @@ namespace godot
 		return cacheDir + "\\TheWorldConfig.cfg";
 	}
 
+
+	std::string GDN_TheWorld_Globals::getGroundJsonFilePath(void)
+	{
+		std::string clientDataDir = GDN_TheWorld_Globals::getClientDataDir();
+		if (clientDataDir.length() == 0)
+			return "";
+
+		std::string mapName = getMapName();
+		if (mapName.length() == 0)
+			return "";
+
+		std::string groundJsonFileName = clientDataDir + "\\Cache\\maps\\" + mapName + "\\ground.json";
+
+		return groundJsonFileName;
+	}
 
 	godot::Error GDN_TheWorld_Globals::connectSignal(godot::Node* node, godot::String nodeType, godot::String signal, godot::Object* callableObject, godot::String callableMethod, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
 	{
@@ -633,29 +650,66 @@ namespace godot
 		{
 			if (method == THEWORLD_CLIENTSERVER_METHOD_SERVER_INITIALIZATION)
 			{
-				if (reply.getNumReplyParams() != 2)
+				if (reply.getNumReplyParams() != 4)
 				{
 					std::string m = std::string("Server::initializeSession: error reply params ");
 					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", 0));
 				}
 
 				ClientServerVariant v = reply.getReplyParam(0);
-				const auto ptr(std::get_if<float>(&v));
-				if (ptr == NULL)
+				const auto ptr0(std::get_if<float>(&v));
+				if (ptr0 == NULL)
 				{
 					std::string m = std::string("Server::initializeSession did not return a float as first param");
 					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 				}
-				m_gridStepInWU = *ptr;
+				m_gridStepInWU = *ptr0;
 
 				v = reply.getReplyParam(1);
 				const auto ptr1(std::get_if<std::string>(&v));
-				if (ptr == NULL)
+				if (ptr1 == NULL)
 				{
 					std::string m = std::string("Server::initializeSession did not return a string as second param");
 					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 				}
 				m_mapName = *ptr1;
+
+				v = reply.getReplyParam(2);
+				const auto ptr2(std::get_if<std::string>(&v));
+				if (ptr2 == NULL)
+				{
+					std::string m = std::string("Server::initializeSession did not return a string as third param");
+					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+				}
+				std::string serverGroundJson = *ptr2;
+
+				v = reply.getReplyParam(3);
+				const auto ptr3(std::get_if<std::string>(&v));
+				if (ptr3 == NULL)
+				{
+					std::string m = std::string("Server::initializeSession did not return a string as fourth param");
+					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+				}
+				std::string s = *ptr3;
+				std::chrono::system_clock::time_point serverGroundJsonUtc = TheWorld_Utils::str_time_to_time_point(s);
+
+				std::string jsonFilePath = getGroundJsonFilePath();
+				std::chrono::system_clock::time_point groundJsonUtc;
+				if (fs::exists(jsonFilePath))
+					groundJsonUtc = TheWorld_Utils::last_write_time_point_utc(jsonFilePath);
+				if (serverGroundJsonUtc > groundJsonUtc)
+				{
+					FILE* outFile = nullptr;
+					errno_t err = fopen_s(&outFile, jsonFilePath.c_str(), "w");
+					if (err != 0)
+					{
+						std::string m = std::string("Server::initializeSession cannot open client cache json.ground ==> ") + jsonFilePath;
+						throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+					}
+					fwrite(serverGroundJson.c_str(), serverGroundJson.size(), 1, outFile);
+					fclose(outFile);
+					TheWorld_Utils::last_write_time_point_utc(jsonFilePath, serverGroundJsonUtc);
+				}
 
 				Viewer()->initRequired(true);
 

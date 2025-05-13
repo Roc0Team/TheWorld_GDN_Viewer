@@ -6853,7 +6853,7 @@ void GDN_TheWorld_Viewer::doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos
 				eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 			terrainEdit->adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);
 
-			editModeUIControl->setTerrainEditValues(*terrainEdit);
+			editModeUIControl->setTerrainEditValues(*terrainEdit, quadTreeSel->getQuadrant()->getPos());
 		}
 	}
 }
@@ -9264,7 +9264,7 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 					if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
 					{
 						TheWorld_Utils::TerrainEdit terrainEdit = MapQuadrantOverride->terrainEdit();
-						editModeUIControl->setTerrainEditValues(terrainEdit, false);
+						editModeUIControl->setTerrainEditValues(terrainEdit, MapQuadrantOverride->getPos(), false);
 					}
 				}
 			}
@@ -9353,7 +9353,7 @@ void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 
 		if (MapQuadrantOverride != nullptr and terrainEdit.terrainType != TheWorld_Utils::TerrainEdit::TerrainType::notset)
 		{
-			editModeUIControl->setTerrainEditValues(terrainEdit);
+			editModeUIControl->setTerrainEditValues(terrainEdit, MapQuadrantOverride->getPos());
 			if (not sameQuadrant)		// if double click on previously selected quadrant quit edit mode but not reactivate it
 			{
 				map->editMode(pos, true);

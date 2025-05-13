@@ -1,13 +1,7 @@
-* suddivisione dei quadranti in continenti e possibilità di definire differenti scenari in ground.json e di assegnarli ai continenti
 * la mappa (globalmap) deve avere un aspetto più verosimile che tenga conto anche dei quadranti adiacenti
-* velocità del movimento della camera nell'hud che diventa evidenziato (rosso lampeggiante se la velocità della camera supera la velocità di streaming della mappa)
 * Nubi volumetriche e nebbia in 3d (se si sale più in alto si devono vedere in basso e si devono poter attraversare)
 * architettura client-server con software di rete
-* profiler should aliment a que dequeued by a dedicated thread
-* ottimizzazione: eliminare cache heightmap 32 precalcolando min max height per ogni chunk e salvandolo insieme alle heightmap
-* globalmap deve comprendere tutto quello che si vede: mare etc.
-* riconoscimento laghi e adeguamento movimento onde
-* test_quadrant
+* velocità del movimento della camera nell'hud che diventa evidenziato (rosso lampeggiante se la velocità della camera supera la velocità di streaming della mappa)
 
 * vegetazione
 * costruzioni
@@ -18,6 +12,15 @@
 * Visibilità che sfuma in 2D come mappa: a comando ed oltre una certa altezza
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
+
+* profiler should aliment a que dequeued by a dedicated thread
+* ottimizzazione: eliminare cache heightmap 32 precalcolando min max height per ogni chunk e salvandolo insieme alle heightmap
+* globalmap deve comprendere tutto quello che si vede: mare etc.
+* riconoscimento laghi e adeguamento movimento onde
+* test_quadrant
+
+Tag 2025/05/13
+* ***OK*** suddivisione dei quadranti in continenti e possibilità di definire differenti scenari in ground.json e di assegnarli ai continenti; ground.json scaricato dal server
 
 Tag 2025/04/14
 * ***OK*** migliorata acquisizione e rendering delle texture PBR anche se attualmente il displacement risulta ininfluente

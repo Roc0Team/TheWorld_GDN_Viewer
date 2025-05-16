@@ -4619,8 +4619,8 @@ Quadrant::Quadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer
 	m_internalDataLocked = false;
 
 	m_mapModder = memnew(GDN_TheWorld_MapModder);
-	//m_mapModder->custom_ready(m_viewer, m_viewer, true);	// With DEBUG
-	m_mapModder->custom_ready(m_viewer, m_viewer, false);	// Without DEBUG
+	bool mapModderWithDebug = false;
+	m_mapModder->custom_ready(m_viewer, m_viewer, mapModderWithDebug);
 	godot::Error e = m_mapModder->connect("tw_modder_work_done", Callable(m_viewer, "quadrant_modder_work_done"));
 
 	m_quadrantCenter = godot::Vector3(m_quadrantPos.getLowerXGridVertex(), 0, m_quadrantPos.getLowerZGridVertex()) + godot::Vector3(m_viewer->Globals()->heightmapSizeInWUs(), 0, m_viewer->Globals()->heightmapSizeInWUs()) / 2;

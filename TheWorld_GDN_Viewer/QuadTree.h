@@ -819,6 +819,7 @@ namespace godot
 //#define GLOBAL_SHADER_PARAM_GROUND_AO_ARRAY			"gu_ground_ao_array"
 
 #define GLOBAL_SHADER_PARAM_CAM_ALTITUDE			"gu_camera_altitude_from_terrain"
+#define SHADER_PARAM_OVERRIDE_CAM_ALTITUDE			"u_override_camera_altitude_from_terrain"
 #define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
 #define GLOBAL_SHADER_PARAM_CAM_ON_SEA				"gu_camera_on_sea"
 #define GLOBAL_SHADER_PARAM_CAM_UNDER_WATER			"gu_camera_under_water"
@@ -874,7 +875,7 @@ namespace godot
 #define SHADER_PARAM_WEST_GROUND_LAYERS				"u_west_ground_layers"
 //#define SHADER_PARAM_EAST_GROUND_LAYERS			"u_east_ground_layers"
 #define SHADER_PARAM_NORTH_WEST_GROUND_LAYERS		"u_north_west_ground_layers"
-#define SHADER_PARAM_SOUTH_EAST_GROUND_LAYERS		"u_south_east_ground_layers"
+//#define SHADER_PARAM_SOUTH_EAST_GROUND_LAYERS		"u_south_east_ground_layers"
 
 #define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT_UV_QUADRANT			"u_mouse_hit_uv_quadrant"

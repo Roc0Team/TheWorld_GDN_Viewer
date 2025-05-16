@@ -1309,7 +1309,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(terrainEdit.extraValues.lowElevationTexName_r);
 		m_innerData->m_lowElevationTexName->set_text(s.c_str());
-		m_innerData->m_lowElevationLayoutName->set_text((std::string("(") + textureLayout + ")").c_str());
+		m_innerData->m_lowElevationLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 		m_innerData->m_lowElevationTex->set_texture(t);
 	}
 	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.highElevationTexName_g, textureLayout);
@@ -1317,7 +1317,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(terrainEdit.extraValues.highElevationTexName_g);
 		m_innerData->m_highElevationTexName->set_text(s.c_str());
-		m_innerData->m_highElevationLayoutName->set_text((std::string("(") + textureLayout + ")").c_str());
+		m_innerData->m_highElevationLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 		m_innerData->m_highElevationTex->set_texture(t);
 	}
 	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.dirtTexName_b, textureLayout);
@@ -1325,7 +1325,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(terrainEdit.extraValues.dirtTexName_b);
 		m_innerData->m_dirtTexName->set_text(s.c_str());
-		m_innerData->m_dirtLayoutName->set_text((std::string("(") + textureLayout + ")").c_str());
+		m_innerData->m_dirtLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 		m_innerData->m_dirtTex->set_texture(t);
 	}
 	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.rocksTexName_a, textureLayout);
@@ -1333,7 +1333,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	{
 		std::string s(terrainEdit.extraValues.rocksTexName_a);
 		m_innerData->m_rocksTexName->set_text(s.c_str());
-		m_innerData->m_rocksLayoutName->set_text((std::string("(") + textureLayout + ")").c_str());
+		m_innerData->m_rocksLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 		m_innerData->m_rocksTex->set_texture(t);
 	}
 

@@ -3660,6 +3660,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			godot::Vector4 v = m_quadTree->getQuadrant()->quadrantTextureLayers();
 			material->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
+			material->set_shader_parameter(SHADER_PARAM_OVERRIDE_CAM_ALTITUDE, -1);
+						
 			//std::string lowElevationTexName = terrainEdit->extraValues.lowElevationTexName_r;
 			//if (lowElevationTexName.size() > 0)
 			//{
@@ -6910,10 +6912,23 @@ void GDN_TheWorld_Viewer::toggleWorldQuadrantSelected(void)
 		}
 		else
 		{
-			if (!m_quadrantHitPos.empty())
+			if (mapMode())
 			{
-				selectWorldQuadrantRef(m_quadrantHitPos);
-				selectMapQuadrant(m_quadrantHitPos);
+				GDN_TheWorld_Map* map = Map();
+				godot::Vector2 mousePosInViewport = getMousePosInViewport();;
+				godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
+				godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+				TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+				selectMapQuadrant(pos);
+				selectWorldQuadrantRef(pos);
+			}
+			else
+			{
+				if (!m_quadrantHitPos.empty())
+				{
+					selectWorldQuadrantRef(m_quadrantHitPos);
+					selectMapQuadrant(m_quadrantHitPos);
+				}
 			}
 		}
 	}
@@ -9271,12 +9286,15 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 
 			if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_LEFT, &trackedInputEvent))
 			{
-				godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
-				godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
-				godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
-				TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-				selectMapQuadrant(pos);
-				selectWorldQuadrantRef(pos);
+				if (mapMode())
+				{
+					godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
+					godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
+					godot::Vector2 mouseWorldPos = map->globalPosToWorldPos(mouseGlobalPos);
+					TheWorld_Utils::QuadrantPos pos(mouseWorldPos.x, mouseWorldPos.y, m_worldViewerLevel, (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+					selectMapQuadrant(pos);
+					selectWorldQuadrantRef(pos);
+				}
 			}
 
 			if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_DOUBLE_BUTTON_RIGHT, &trackedInputEvent))

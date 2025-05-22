@@ -3660,6 +3660,16 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			godot::Vector4 v = m_quadTree->getQuadrant()->quadrantTextureLayers();
 			material->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
+			int32_t layer1 = -1, layer2 = -1, layer3 = -1, layer4 = -1;
+			terrainEdit->getNorthGroundTextureLayers(layer1, layer2, layer3, layer4);
+			godot::Vector4 textureLayer((float)layer1, (float)layer2, (float)layer3, (float)layer4);
+			material->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, textureLayer);
+			terrainEdit->getWestGroundTextureLayers(layer1, layer2, layer3, layer4);
+			textureLayer = godot::Vector4((float)layer1, (float)layer2, (float)layer3, (float)layer4);
+			material->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, textureLayer);
+			terrainEdit->getNorthwestGroundTextureLayers(layer1, layer2, layer3, layer4);
+			textureLayer = godot::Vector4((float)layer1, (float)layer2, (float)layer3, (float)layer4);
+			material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, textureLayer);
 			material->set_shader_parameter(SHADER_PARAM_OVERRIDE_CAM_ALTITUDE, -1);
 						
 			//std::string lowElevationTexName = terrainEdit->extraValues.lowElevationTexName_r;

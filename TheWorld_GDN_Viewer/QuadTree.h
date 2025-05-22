@@ -699,6 +699,8 @@ namespace godot
 			return m_continentName;
 		}
 
+		void updateTerrainEditTextureLayers(void);
+
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getInternalMeshCacheBuffer(void);
 		void loadTerrainDataFromCache(void);

@@ -352,8 +352,6 @@ namespace godot
 		bool hiResCollisionGridEnabled(void);
 		bool lowResCollisionGridEnabled(void);
 		void editModeResetNormalsSplatmapAction(void);
-		//void editModeGenNormalsAction(void);
-		//void editModeApplyTexturesAction(void);
 		void editModeSaveAction(void);
 		void editModeUploadAction(void);
 		void editModeStopAction(void);
@@ -365,29 +363,8 @@ namespace godot
 		void editModeBlend(void);
 		void editModeBlendNew(void);
 		void editModeResetNormalsSplatmap(void);
-		void editModeGenNormals(void);
-		void editModeGenNormals_1(bool forceGenSelectedQuad, bool evaluateSelectedQuadOnly);
-		void editModeGenNormals_2(QuadTree* quadTree);
-		void editModeApplyTextures(void);
-		void editModeApplyTextures_1(bool forceApplySelectedQuad, bool evaluateSelectedQuadOnly);
-		void editModeApplyTextures_2(QuadTree* quadTree);
 		void editModeSave(void);
 		void editModeUpload(void);
-		void generateNormals(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer);
-		void generateSplatmapForBlendedQuadrants(QuadTree* quadtree, size_t numVerticesPerSize, float gridStepInWU,
-			float x, float z, float distance,
-			TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer, TheWorld_Utils::MemoryBuffer* splatmapBuffer, TheWorld_Utils::TerrainEdit* terrainEdit,
-			TheWorld_Utils::MemoryBuffer* west_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* west_normalsBuffer, TheWorld_Utils::MemoryBuffer* west_splatmapBuffer, TheWorld_Utils::TerrainEdit* west_terrainEdit,
-			TheWorld_Utils::MemoryBuffer* east_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* east_normalsBuffer, TheWorld_Utils::MemoryBuffer* east_splatmapBuffer, TheWorld_Utils::TerrainEdit* east_terrainEdit,
-			TheWorld_Utils::MemoryBuffer* north_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* north_normalsBuffer, TheWorld_Utils::MemoryBuffer* north_splatmapBuffer, TheWorld_Utils::TerrainEdit* north_terrainEdit,
-			TheWorld_Utils::MemoryBuffer* south_float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* south_normalsBuffer, TheWorld_Utils::MemoryBuffer* south_splatmapBuffer, TheWorld_Utils::TerrainEdit* south_terrainEdit,
-			float slopeVerticalFactor,	// if higher slope will have higher maximum and so rocks will be more diffuse on slopes
-			float slopeFlatFactor,		// if higher slope will have lesser mininum and maximum so rocks will be less diffuse on slopes
-			float dirtOnRocksFactor,	// if higher dirt will be more diffuse on rocks
-			float highElevationFactor,	// if higher high elevation amount will be higher at lower altitude
-			float lowElevationFactor,	// if higher low elevation amount will be higher at higher altitude
-			size_t splatMapMode);
-		void generateGlobalmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* globalmapBuffer);
 		
 		//void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
 		void prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters);

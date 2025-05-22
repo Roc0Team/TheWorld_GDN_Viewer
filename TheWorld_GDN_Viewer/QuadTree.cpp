@@ -4924,6 +4924,17 @@ void Quadrant::checkInternalData(double _delta)
 	//}
 }
 
+void Quadrant::updateTerrainEditTextureLayers(void)
+{
+	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
+	godot::Vector4 northTextureLayers = northQuadrantData().groundTextureLayers();
+	terrainEdit->setNorthGroundTextureLayers((int32_t)northTextureLayers.x, (int32_t)northTextureLayers.y, (int32_t)northTextureLayers.z, (int32_t)northTextureLayers.w);
+	godot::Vector4 westTextureLayers = westQuadrantData().groundTextureLayers();
+	terrainEdit->setWestGroundTextureLayers((int32_t)westTextureLayers.x, (int32_t)westTextureLayers.y, (int32_t)westTextureLayers.z, (int32_t)westTextureLayers.w);
+	godot::Vector4 northwestTextureLayers = northWestQuadrantData().groundTextureLayers();
+	terrainEdit->setNorthwestGroundTextureLayers((int32_t)northwestTextureLayers.x, (int32_t)northwestTextureLayers.y, (int32_t)northwestTextureLayers.z, (int32_t)northwestTextureLayers.w);
+}
+
 void Quadrant::setBlendNeeded(bool blendNeeded, bool northSideBlendNeeded, bool southSideBlendNeeded, bool eastSideBlendNeeded, bool westSideBlendNeeded)
 {
 	if (m_blendNeeded != blendNeeded or m_northSideBlendNeeded != northSideBlendNeeded or m_southSideBlendNeeded != southSideBlendNeeded or m_eastSideBlendNeeded != eastSideBlendNeeded or m_westSideBlendNeeded != westSideBlendNeeded)

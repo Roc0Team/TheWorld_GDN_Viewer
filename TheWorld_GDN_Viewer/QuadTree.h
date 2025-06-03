@@ -165,29 +165,37 @@ namespace godot
 			{
 				m_shaderUpdated = b;
 			}
+			std::string textureLayout(void) const
+			{
+				return m_textureLayout;
+			}
 			godot::Vector4 groundTextureLayers(void) const
 			{
 				return m_groundTextureLayers;
 			}
-			void init(godot::Vector4 layers, TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::QuadrantPos& neighbourQuadrantPos)
+			void init(Quadrant* neighbourQuadrant, TheWorld_Utils::QuadrantPos& owningQuadrantPos)
 			{
-				m_groundTextureLayers = layers;
+				m_textureLayout = neighbourQuadrant->textureLayout();
+				m_groundTextureLayers = neighbourQuadrant->quadrantTextureLayers();
 				initialized(true);
 				shaderUpdated(false);
-				//m_quadrantPos = quadrantPos;
-				//m_neighbourQuadrantPos = neighbourQuadrantPos;
 
 				//// #####
-				//if (m_quadrantPos.getIndexPosX() == 5 and m_quadrantPos.getIndexPosZ() == 12 and m_neighbourQuadrantPos.getIndexPosX() == 4 and m_neighbourQuadrantPos.getIndexPosZ() == 12)
-				//	assert(m_quadrantPos.getIndexPosX() == 5);
+				//m_owningQuadrantPos = owningQuadrantPos;
+				//m_neighbourQuadrantPos = neighbourQuadrant->getPos();
+				//if (m_owningQuadrantPos.getIndexPosX() == 5 and m_owningQuadrantPos.getIndexPosZ() == 12 and m_neighbourQuadrantPos.getIndexPosX() == 4 and m_neighbourQuadrantPos.getIndexPosZ() == 12)
+				//	assert(m_owningQuadrantPos.getIndexPosX() == 5);
 				//// #####
 			}
 		private:
 			bool m_initialized = false;
+			std::string m_textureLayout;
 			godot::Vector4 m_groundTextureLayers;
 			bool m_shaderUpdated = false;
-			//TheWorld_Utils::QuadrantPos m_quadrantPos;
+			//// #####
+			//TheWorld_Utils::QuadrantPos m_owningQuadrantPos;
 			//TheWorld_Utils::QuadrantPos m_neighbourQuadrantPos;
+			//// #####
 		};
 
 	public:
@@ -609,6 +617,9 @@ namespace godot
 			m_terrainDataJustLoaded = b;
 		}
 		
+		godot::Vector4 northQuadrantTextureLayersFromTerrainData(void);
+		godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
+		godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
 		godot::Vector4 quadrantTextureLayers(void) const;
 		NeighbourQuadrantData& northQuadrantData(void)
 		{
@@ -1041,12 +1052,32 @@ namespace godot
 					return nullptr;
 				return g->texturePreview();
 			}
-			int32_t getTextureIdx(std::string layout, std::string textureName, std::string& textureLayout)
+			int32_t getTextureIdx(std::string layout, std::string textureName, std::string& layoutForFoundTexture)
 			{
-				GroundTexture* g = getGroundTexture(layout, textureName, textureLayout);
+				GroundTexture* g = getGroundTexture(layout, textureName, layoutForFoundTexture);
 				if (g == nullptr)
 					return -1;
 				return g->idx();
+			}
+			std::string getTextureName(int32_t idx)
+			{
+				std::string layout;
+				return getTextureName(idx, layout);
+			}
+			std::string getTextureName(int32_t idx, std::string& layout)
+			{
+				layout.clear();
+				std::string textureName;
+				for (auto& groundTexture : *this)
+				{
+					if (groundTexture.second->idx() == idx)
+					{
+						textureName = groundTexture.second->textureName();
+						layout = groundTexture.second->layout();
+						break;
+					}
+				}
+				return textureName;
 			}
 			bool containTexture(std::string layout, std::string textureName)
 			{
@@ -1059,19 +1090,19 @@ namespace godot
 			}
 
 		private:
-			GroundTexture* getGroundTexture(std::string layout, std::string textureName, std::string& textureLayout)
+			GroundTexture* getGroundTexture(std::string layout, std::string textureName, std::string& layoutForFoundTexture)
 			{
 				GroundTexture* g = nullptr;
-				textureLayout = "";
+				layoutForFoundTexture = "";
 				if (contains(layout + "_" + textureName))
 				{
 					g = (*this)[layout + "_" + textureName].get();
-					textureLayout = layout;
+					layoutForFoundTexture = layout;
 				}
 				else if (contains(Quadrant::c_defaultTextureLayout + "_" + textureName))
 				{
 					g = (*this)[Quadrant::c_defaultTextureLayout + "_" + textureName].get();
-					textureLayout = Quadrant::c_defaultTextureLayout;
+					layoutForFoundTexture = Quadrant::c_defaultTextureLayout;
 				}
 				return g;
 			}
@@ -1176,6 +1207,7 @@ namespace godot
 
 		//static std::string layoutFromContinentId(int32_t id);
 		static std::string layoutFromQuadrantPos(TheWorld_Utils::QuadrantPos pos, std::string& continentName);
+		static std::string layoutFromQuadrantPos(TheWorld_Utils::QuadrantPos pos);
 
 	private:
 		//void debugPrintTexture(std::string tex_name, Ref<Texture> tex);

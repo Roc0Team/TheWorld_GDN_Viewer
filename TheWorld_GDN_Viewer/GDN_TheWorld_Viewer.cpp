@@ -3660,17 +3660,14 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			godot::Vector4 v = m_quadTree->getQuadrant()->quadrantTextureLayers();
 			material->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
-			int32_t layer1 = -1, layer2 = -1, layer3 = -1, layer4 = -1;
-			terrainEdit->getNorthGroundTextureLayers(layer1, layer2, layer3, layer4);
-			godot::Vector4 textureLayer((float)layer1, (float)layer2, (float)layer3, (float)layer4);
-			material->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, textureLayer);
-			terrainEdit->getWestGroundTextureLayers(layer1, layer2, layer3, layer4);
-			textureLayer = godot::Vector4((float)layer1, (float)layer2, (float)layer3, (float)layer4);
-			material->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, textureLayer);
-			terrainEdit->getNorthwestGroundTextureLayers(layer1, layer2, layer3, layer4);
-			textureLayer = godot::Vector4((float)layer1, (float)layer2, (float)layer3, (float)layer4);
-			material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, textureLayer);
-			material->set_shader_parameter(SHADER_PARAM_OVERRIDE_CAM_ALTITUDE, -1);
+			v = m_quadTree->getQuadrant()->northQuadrantTextureLayersFromTerrainData();
+			material->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, v);
+			v = m_quadTree->getQuadrant()->westQuadrantTextureLayersFromTerrainData();
+			material->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, v);
+			v = m_quadTree->getQuadrant()->northwestQuadrantTextureLayersFromTerrainData();
+			material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, v);
+			
+			material->set_shader_parameter(SHADER_PARAM_OVERRIDE_CAM_ALTITUDE, -1);		// we force, as override for this quadrant, camera altitude from terrain to -1 so the shader will not consider the real camera altitude which is expressed as a global shader param valid for every quadrant
 						
 			//std::string lowElevationTexName = terrainEdit->extraValues.lowElevationTexName_r;
 			//if (lowElevationTexName.size() > 0)
@@ -12353,8 +12350,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* southEastQuadTree = m_worldQuadrantsMap[southEastPos].get();
 				if (!southEastQuadTree->statusToErase() && southEastQuadTree->statusInitialized())
 				{
-					southEastQuadrantData.init(southEastQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, southEastPos);
-					southEastQuadTree->getQuadrant()->northWestQuadrantData().init(quadrant->quadrantTextureLayers(), southEastPos, quadrantPos);
+					southEastQuadrantData.init(southEastQuadTree->getQuadrant(), quadrantPos);
+					southEastQuadTree->getQuadrant()->northWestQuadrantData().init(quadrant, southEastPos);
 				}
 			}
 		}
@@ -12369,8 +12366,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* northWestQuadTree = m_worldQuadrantsMap[northWestPos].get();
 				if (!northWestQuadTree->statusToErase() && northWestQuadTree->statusInitialized())
 				{
-					northWestQuadrantData.init(northWestQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, northWestPos);
-					northWestQuadTree->getQuadrant()->southEastQuadrantData().init(quadrant->quadrantTextureLayers(), northWestPos, quadrantPos);
+					northWestQuadrantData.init(northWestQuadTree->getQuadrant(), quadrantPos);
+					northWestQuadTree->getQuadrant()->southEastQuadrantData().init(quadrant, northWestPos);
 				}
 			}
 		}
@@ -12385,8 +12382,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* northQuadTree = m_worldQuadrantsMap[northPos].get();
 				if (!northQuadTree->statusToErase() && northQuadTree->statusInitialized())
 				{
-					northQuadrantData.init(northQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, northPos);
-					northQuadTree->getQuadrant()->southQuadrantData().init(quadrant->quadrantTextureLayers(), northPos, quadrantPos);
+					northQuadrantData.init(northQuadTree->getQuadrant(), quadrantPos);
+					northQuadTree->getQuadrant()->southQuadrantData().init(quadrant, northPos);
 				}
 			}
 		}
@@ -12400,8 +12397,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* southQuadTree = m_worldQuadrantsMap[southPos].get();
 				if (!southQuadTree->statusToErase() && southQuadTree->statusInitialized())
 				{
-					southQuadrantData.init(southQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, southPos);
-					southQuadTree->getQuadrant()->northQuadrantData().init(quadrant->quadrantTextureLayers(), southPos, quadrantPos);
+					southQuadrantData.init(southQuadTree->getQuadrant(), quadrantPos);
+					southQuadTree->getQuadrant()->northQuadrantData().init(quadrant, southPos);
 				}
 			}
 		}
@@ -12415,8 +12412,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* westQuadTree = m_worldQuadrantsMap[westPos].get();
 				if (!westQuadTree->statusToErase() && westQuadTree->statusInitialized())
 				{
-					westQuadrantData.init(westQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, westPos);
-					westQuadTree->getQuadrant()->eastQuadrantData().init(quadrant->quadrantTextureLayers(), westPos, quadrantPos);
+					westQuadrantData.init(westQuadTree->getQuadrant(), quadrantPos);
+					westQuadTree->getQuadrant()->eastQuadrantData().init(quadrant, westPos);
 				}
 			}
 		}
@@ -12430,8 +12427,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* eastQuadTree = m_worldQuadrantsMap[eastPos].get();
 				if (!eastQuadTree->statusToErase() && eastQuadTree->statusInitialized())
 				{
-					eastQuadrantData.init(eastQuadTree->getQuadrant()->quadrantTextureLayers(), quadrantPos, eastPos);
-					eastQuadTree->getQuadrant()->westQuadrantData().init(quadrant->quadrantTextureLayers(), eastPos, quadrantPos);
+					eastQuadrantData.init(eastQuadTree->getQuadrant(), quadrantPos);
+					eastQuadTree->getQuadrant()->westQuadrantData().init(quadrant, eastPos);
 				}
 			}
 		}

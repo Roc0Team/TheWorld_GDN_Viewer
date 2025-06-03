@@ -5003,9 +5003,9 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 			eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		}
 		terrainEdit.adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);
-	}
 
-	setTerrainEditValues(terrainEdit, selectedQuadTree->getQuadrant()->getPos());
+		setTerrainEditValues(terrainEdit, selectedQuadTree->getQuadrant()->getPos());
+	}
 
 	if (!selectedQuadrantPos.empty() && selectedQuadTree != nullptr and m_viewer->worldMode())
 		editModeGenerateAction();

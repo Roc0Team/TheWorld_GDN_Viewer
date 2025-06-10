@@ -1944,6 +1944,7 @@ namespace godot
 		void selectWorldQuadrant(TheWorld_Utils::QuadrantPos pos);
 		void selectWorldQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
 		void deselectWorldQuadrant(void);
+		void selectMapQuadrant(TheWorld_Utils::QuadrantPos pos);
 		void selectMapQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
 		void deselectMapQuadrant(void);
 		godot::Camera3D* getWorldCamera(void);
@@ -2853,6 +2854,7 @@ namespace godot
 
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void _doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void doDeselectWorldQuadrant(void);
 		void doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void doDeselectMapQuadrant(void);

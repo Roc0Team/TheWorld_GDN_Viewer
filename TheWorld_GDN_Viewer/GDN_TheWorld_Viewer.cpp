@@ -6820,6 +6820,11 @@ void GDN_TheWorld_Viewer::selectWorldQuadrant(TheWorld_Utils::QuadrantPos pos)
 
 void GDN_TheWorld_Viewer::selectWorldQuadrantRef(TheWorld_Utils::QuadrantPos& pos)
 {
+	doSelectWorldQuadrant(pos);
+}
+
+void GDN_TheWorld_Viewer::doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos)
+{
 	bool sameQuadrant = false;
 	if (isWorldQuadrantSelectedForEdit())
 	{
@@ -6836,12 +6841,12 @@ void GDN_TheWorld_Viewer::selectWorldQuadrantRef(TheWorld_Utils::QuadrantPos& po
 		WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(pos);
 		if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
 		{
-			doSelectWorldQuadrant(pos);
+			_doSelectWorldQuadrant(pos);
 		}
 	}
 }
 
-void GDN_TheWorld_Viewer::doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos)
+void GDN_TheWorld_Viewer::_doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
 	QuadTree* quadTreeSel = nullptr;
 
@@ -9375,6 +9380,11 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 			}
 		}
 	}
+}
+
+void GDN_TheWorld_Viewer::selectMapQuadrant(TheWorld_Utils::QuadrantPos pos)
+{
+	selectMapQuadrantRef(pos);
 }
 
 void GDN_TheWorld_Viewer::selectMapQuadrantRef(TheWorld_Utils::QuadrantPos& pos)

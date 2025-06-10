@@ -83,9 +83,7 @@ godot::Ref<godot::Image> MapQuadrantImage::getMapImage(void)
 	{
 		m_mapImage = godot::Image::create(getImageResolution(), getImageResolution(), false, godot::Image::Format::FORMAT_RGB8);
 		//m_mapImage->fill(godot::Color(GDN_TheWorld_Globals::g_color_white));
-#define water_globalmap_gdshader_u_sea_color	godot::Color(0.10f, 0.19f, 0.32f)
-#define water_globalmap_gdshader_u_sea_color2	godot::Color(0.25f, 0.32f, 0.43f)
-		m_mapImage->fill(godot::Color(43.0F / 255.0F, 57.0F / 255.0F, 73.0F / 255.0F));
+		m_mapImage->fill(water_globalmap_gdshader_u_sea_color);
 	}
 
 	return m_mapImage;
@@ -2125,8 +2123,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getGlobalmapSeaMaterial(bool relo
 		godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 		m_viewer->getMainProcessingMutex().unlock();
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-		String shaderPath = "res://addons/twviewer/shaders/water_globalmap.gdshader";
-		//String shaderPath = "res://addons/twviewer/test/water_globalmap.gdshader";
+		//String shaderPath = "res://addons/twviewer/shaders/water_globalmap.gdshader";
+		String shaderPath = "res://addons/twviewer/test/water_globalmap.gdshader";
 		godot::Ref<godot::Shader> shader;
 		if (reload)
 			shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);
@@ -4625,7 +4623,7 @@ Quadrant::Quadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer
 	m_internalDataLocked = false;
 
 	m_mapModder = memnew(GDN_TheWorld_MapModder);
-	bool mapModderWithDebug = true;
+	bool mapModderWithDebug = false;
 	m_mapModder->custom_ready(m_viewer, m_viewer, mapModderWithDebug);
 	godot::Error e = m_mapModder->connect("tw_modder_work_done", Callable(m_viewer, "quadrant_modder_work_done"));
 
@@ -5025,6 +5023,22 @@ void Quadrant::process_checkBlendNeeded(double _delta)
 	}
 
 	editModeUIControl->terrainDataLocked(false);
+}
+
+bool Quadrant::mapModdingRequired(void)
+{
+	if (!m_quadTree->isValid())
+		return false;
+
+	if (m_quadTree->getQuadrant()->empty())
+		return false;
+
+	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
+
+	if (terrainEdit->normalsNeedRegen or terrainEdit->splatmapNeedRegen() or terrainEdit->globalmapNeedRegen)
+		return true;
+
+	return false;
 }
 
 void Quadrant::process_mapModder(double _delta)

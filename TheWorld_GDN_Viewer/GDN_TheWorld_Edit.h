@@ -311,6 +311,7 @@ namespace godot
 		//
 		virtual void _ready(void) override;
 		virtual void _process(double _delta) override;
+		virtual void _physics_process(double _delta) override;
 		virtual void _input(const Ref<InputEvent>& event) override;
 		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
 
@@ -329,6 +330,7 @@ namespace godot
 			return m_initialized;
 		}
 		godot::Window* initSelTexturePanel(void);
+		void setAllChecked(bool allChecked);
 		void expandServerInfoPanel(void);
 		void compressServerInfoPanel(void);
 		void expandTerrainGenerationPanel(void);
@@ -365,7 +367,11 @@ namespace godot
 		void editModeResetNormalsSplatmap(void);
 		void editModeSave(void);
 		void editModeUpload(void);
+		bool editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* map);
+		void editModeUploadMapQuadrantOverrides(GDN_TheWorld_Map* map);
 		
+		size_t numQuadrantsRequiringMapModding(void);
+
 		//void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
 		void prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters);
 		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
@@ -628,6 +634,8 @@ namespace godot
 			return m_holdBlending;
 		}
 
+		bool uploadToServerInProgress(void) const;
+
 	private:
 		void blendExecution(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder,
 			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder,
@@ -652,13 +660,14 @@ namespace godot
 
 		map<TheWorld_Utils::WorldModifierPos, std::unique_ptr<TheWorld_Utils::WorldModifier>> m_wms;
 		
+		bool m_uploadModifiedWorldQuadrantsInProgress = false;
 		bool m_actionInProgress;
 		bool m_actionStopRequested;
 		TimerMs m_actionClock;
 		TimerMs m_refreshUI;
 		bool m_onGoingElapsedLabel;
 		//Color m_elapsedLabelNormalColor;
-		bool m_uploadQuadrantOverridesInProgress = false;;
+		bool m_uploadMapQuadrantOverridesInProgress = false;
 		size_t m_completedItems;
 		size_t m_elapsedCompleted;
 		size_t m_allItems;

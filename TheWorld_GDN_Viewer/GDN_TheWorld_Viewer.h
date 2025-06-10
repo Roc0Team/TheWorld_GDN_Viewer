@@ -398,7 +398,15 @@ namespace godot
 
 			bool overrideTerrainTypeNull(void) const
 			{
-				return m_terrainEdit.terrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset;
+				if (m_terrainEdit.terrainType == TheWorld_Utils::TerrainEdit::TerrainType::notset)
+					return true;
+				if (m_terrainEdit.terrainType == TheWorld_Utils::TerrainEdit::TerrainType::unknown)
+					return true;
+				return false;
+			}
+			bool overrideTerrainTypeUnknown(void) const
+			{
+				return m_terrainEdit.terrainType == TheWorld_Utils::TerrainEdit::TerrainType::unknown;
 			}
 			bool overrideTerrainTypeSet(void) const
 			{
@@ -826,6 +834,8 @@ namespace godot
 	public:
 		static int32_t numImagesForTexture(void);
 		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
+		void enterMapMode(void);
+		void exitMapMode(void);
 		void setMapGridLineThickness(float thickness);
 		bool mapGridOn(void) const
 		{
@@ -1934,7 +1944,7 @@ namespace godot
 		void selectWorldQuadrant(TheWorld_Utils::QuadrantPos pos);
 		void selectWorldQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
 		void deselectWorldQuadrant(void);
-		void selectMapQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void selectMapQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
 		void deselectMapQuadrant(void);
 		godot::Camera3D* getWorldCamera(void);
 		godot::Camera3D* getWorldCamera2(bool force = false);

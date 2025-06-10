@@ -529,6 +529,7 @@ namespace godot
 		void process_checkBlendNeeded(double _delta);
 		void process_mapModder(double _delta);
 		bool process_blend(void);
+		bool mapModdingRequired(void);
 		
 		GDN_TheWorld_MapModder* getMapModder(void)
 		{
@@ -795,6 +796,8 @@ namespace godot
 	class ShaderTerrainData
 	{
 	public:
+#define water_globalmap_gdshader_u_sea_color		godot::Color(43.0F / 255.0F, 57.0F / 255.0F, 73.0F / 255.0F)	// 0,16863, 0,22353, 0,28627
+
 		// Shader Params
 #define SHADER_PARAM_TERRAIN_HEIGHTMAP				"u_terrain_heightmap"
 #define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
@@ -809,6 +812,7 @@ namespace godot
 #define SHADER_PARAM_FORCE_ELEVATION_0				"u_force_height_0"
 //#define SHADER_PARAM_USE_GLOBALMAP					"u_use_globalmap"
 #define SHADER_PARAM_OPTIMIZATION_LEVEL				"u_optimization_level"
+
 
 #define SHADER_PARAM_NEED_BLENDING					"u_need_blending"
 #define SHADER_PARAM_NEED_BLENDING_NORTH			"u_need_blending_north"

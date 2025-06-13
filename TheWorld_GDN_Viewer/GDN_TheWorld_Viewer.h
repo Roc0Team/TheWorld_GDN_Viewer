@@ -2854,7 +2854,7 @@ namespace godot
 
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
-		void _doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
+		void _doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos, QuadTree* quadTreeSel);
 		void doDeselectWorldQuadrant(void);
 		void doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void doDeselectMapQuadrant(void);

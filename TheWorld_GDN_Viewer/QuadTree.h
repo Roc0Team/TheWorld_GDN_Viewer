@@ -527,7 +527,7 @@ namespace godot
 		void checkInternalData(double _delta);
 
 		void process_checkBlendNeeded(double _delta);
-		void process_mapModder(double _delta);
+		void process_mapModder(double _delta, bool worldQuadrant);
 		bool process_blend(void);
 		bool mapModdingRequired(void);
 		

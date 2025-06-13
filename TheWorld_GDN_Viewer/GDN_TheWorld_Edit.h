@@ -660,6 +660,7 @@ namespace godot
 
 		map<TheWorld_Utils::WorldModifierPos, std::unique_ptr<TheWorld_Utils::WorldModifier>> m_wms;
 		
+		bool m_editorUploadInProgress = false;
 		bool m_uploadModifiedWorldQuadrantsInProgress = false;
 		bool m_actionInProgress;
 		bool m_actionStopRequested;

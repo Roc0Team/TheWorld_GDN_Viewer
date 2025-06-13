@@ -6841,64 +6841,92 @@ void GDN_TheWorld_Viewer::doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos
 		WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(pos);
 		if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
 		{
-			_doSelectWorldQuadrant(pos);
+			_doSelectWorldQuadrant(pos, it->second.get());
 		}
 	}
 }
 
-void GDN_TheWorld_Viewer::_doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos)
+void GDN_TheWorld_Viewer::_doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos, QuadTree* quadTreeSel)
 {
-	QuadTree* quadTreeSel = nullptr;
+	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 	m_selectedWorldQuadrantPos = pos;
 
-	{
-		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
-		WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(m_selectedWorldQuadrantPos);
-		if (it != m_worldQuadrantsMap.end() && !it->second->statusToErase())
-		{
-			quadTreeSel = it->second.get();
-			it->second->setEditModeQuadrantSelected(true);
-			it->second->materialParamsNeedReset(true);
-			call_deferred("emit_signal", "tw_quadrant_selected_for_edit", true);
-		}
-	}
+	quadTreeSel->setEditModeQuadrantSelected(true);
+	quadTreeSel->materialParamsNeedReset(true);
+	call_deferred("emit_signal", "tw_quadrant_selected_for_edit", true);
 
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
-	if (editModeUIControl == nullptr || !editModeUIControl->initialized())
-	{
-		createEditModeUI();
-		editModeUIControl = EditModeUIControl();
-		editModeUIControl->set_visible(false);
-	}
+	//if (editModeUIControl == nullptr || !editModeUIControl->initialized())
+	//{
+	//	createEditModeUI();
+	//	editModeUIControl = EditModeUIControl();
+	//	editModeUIControl->set_visible(false);
+	//}
 	if (editModeUIControl != nullptr and editModeUIControl->initialized())
 	{
 		editModeUIControl->setMouseQuadSelLabelText(m_selectedWorldQuadrantPos.getName() + " " + m_selectedWorldQuadrantPos.getTag());
 		editModeUIControl->setMouseQuadSelPosLabelText(std::string("X=") + std::format("{:.2f}", m_selectedWorldQuadrantPos.getLowerXGridVertex()) + " Z=" + std::format("{:.2f}", m_selectedWorldQuadrantPos.getLowerZGridVertex()) + " " + std::format("{:.2f}", m_selectedWorldQuadrantPos.getSizeInWU()));
-		if (quadTreeSel != nullptr)
-		{
-			TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
+		
+		TheWorld_Utils::TerrainEdit* terrainEdit = nullptr;
+		TheWorld_Utils::TerrainEdit _terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
 
+		if (worldMode())
+		{
+			// in world mode we use current world terrain edit values
+			quadTreeSel->getQuadrant()->getTerrainEdit();
+		}
+		else
+		{
+			// in map mode we get override terrain values if an override exists
+			GDN_TheWorld_Map* map = Map();
+			if (map != nullptr)
+			{
+				GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
+				if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
+				{
+					_terrainEdit = MapQuadrantOverride->terrainEdit();
+					terrainEdit = &_terrainEdit;
+				}
+				else
+				{
+					// in map mode we use current world terrain edit values if an override does not exist
+					quadTreeSel->getQuadrant()->getTerrainEdit();
+				}
+			}
+			else
+			{
+				// in map mode we use current world terrain edit values if map does not exist
+				quadTreeSel->getQuadrant()->getTerrainEdit();
+			}
+		}
+
+		if (terrainEdit != nullptr)
+		{
 			TheWorld_Utils::TerrainEdit* northSideTerrainEdit = nullptr;
 			TheWorld_Utils::QuadrantPos pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
 			QuadTree* q = getQuadTree(pos);
 			if (q != nullptr /*&& !q->getQuadrant()->empty()*/)
 				northSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+			
 			TheWorld_Utils::TerrainEdit* southSideTerrainEdit = nullptr;
 			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
 			q = getQuadTree(pos);
 			if (q != nullptr /* && !q->getQuadrant()->empty()*/)
 				southSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+			
 			TheWorld_Utils::TerrainEdit* westSideTerrainEdit = nullptr;
 			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
 			q = getQuadTree(pos);
 			if (q != nullptr /* && !q->getQuadrant()->empty()*/)
 				westSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+			
 			TheWorld_Utils::TerrainEdit* eastSideTerrainEdit = nullptr;
 			pos = m_selectedWorldQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
 			q = getQuadTree(pos);
 			if (q != nullptr /*&& !q->getQuadrant()->empty()*/)
 				eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
+			
 			terrainEdit->adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);
 
 			editModeUIControl->setTerrainEditValues(*terrainEdit, quadTreeSel->getQuadrant()->getPos());
@@ -9411,7 +9439,9 @@ void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
 		GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
 		if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
+		{
 			terrainEdit = MapQuadrantOverride->terrainEdit();
+		}
 		else if (m_worldQuadrantsMap.contains(pos) and m_worldQuadrantsMap[pos]->statusInitialized())
 		{
 			TheWorld_Utils::TerrainEdit* t = m_worldQuadrantsMap[pos]->getQuadrant()->getTerrainEdit(false);
@@ -9601,7 +9631,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 		
 		quadrant->lockInternalDataUntilCompleteProcessExecution(false);
 
-		quadrant->process_mapModder(_delta);
+		quadrant->process_mapModder(_delta, true);
 
 		quadrant->process_checkBlendNeeded(_delta);
 		if (quadrant->blendNeeded())
@@ -9672,7 +9702,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 					item.second->initDelayed(forced);
 				}
 
-				item.second->getQuadrant()->process_mapModder(_delta);
+				item.second->getQuadrant()->process_mapModder(_delta, false);
 			}
 		}
 	}
@@ -14958,9 +14988,16 @@ void GDN_TheWorld_Viewer::streamer(void)
 				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 				if ((now - lastSyncTime).count() > STREAMER_SYNC_PERIOD_TIME)
 				{
+					bool editorUploadToServerInProgress = false;
+					GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+					if (editModeUIControl != nullptr and editModeUIControl->initialized())
+						editorUploadToServerInProgress = editModeUIControl->uploadToServerInProgress();
+					if (editorUploadToServerInProgress)
+						editorUploadToServerInProgress = true;
+					
 					std::string quadrants;
 					std::string mapTextureRects;
-					if (!m_quadrantSyncInProgress && (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
+					if (not m_quadrantSyncInProgress and not editorUploadToServerInProgress and (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
 					{
 						std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 						if (lock.owns_lock())

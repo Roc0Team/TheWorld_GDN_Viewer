@@ -5041,7 +5041,7 @@ bool Quadrant::mapModdingRequired(void)
 	return false;
 }
 
-void Quadrant::process_mapModder(double _delta)
+void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 {
 	if (m_mapModder == nullptr)
 		return;
@@ -5067,7 +5067,7 @@ void Quadrant::process_mapModder(double _delta)
 	if (internalDataLocked())
 		return;
 
-	if (m_quadTree->materialParamsNeedReset())
+	if (worldQuadrant and m_quadTree->materialParamsNeedReset())
 		return;
 
 	//if (m_quadTree->currentStatus() != QuadrantStatus::initialized)

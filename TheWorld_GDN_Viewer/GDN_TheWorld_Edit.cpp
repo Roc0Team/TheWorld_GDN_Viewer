@@ -1298,44 +1298,77 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	setLowElevationFactor(terrainEdit.extraValues.lowElevationFactor);
 	setSplatMapMode(terrainEdit.extraValues.splatMapMode);
 	//std::string layout = ShaderTerrainData::layoutFromContinentId(terrainEdit.extraValues1.continentId);
-	std::string continentName;
-	std::string layout = ShaderTerrainData::layoutFromQuadrantPos(quadrantPos, continentName);
-	setGroundLayout(layout);
+	
+	std::string layout;
+	if (not quadrantPos.empty())
+	{
+		std::string continentName;
+		layout = ShaderTerrainData::layoutFromQuadrantPos(quadrantPos, continentName);
+		setGroundLayout(layout);
+	}
 
 	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
 	std::string textureLayout;
-	godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.lowElevationTexName_r, textureLayout);
-	if (t != nullptr)
+
+	textureLayout = "";
+	if (layout.size() > 0)
 	{
-		std::string s(terrainEdit.extraValues.lowElevationTexName_r);
-		m_innerData->m_lowElevationTexName->set_text(s.c_str());
-		m_innerData->m_lowElevationLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
-		m_innerData->m_lowElevationTex->set_texture(t);
+		godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.lowElevationTexName_r, textureLayout);
+		if (t != nullptr)
+		{
+			m_innerData->m_lowElevationTex->set_texture(t);
+		}
 	}
-	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.highElevationTexName_g, textureLayout);
-	if (t != nullptr)
+	std::string s(terrainEdit.extraValues.lowElevationTexName_r);
+	m_innerData->m_lowElevationTexName->set_text(s.c_str());
+	if (textureLayout.size() == 0)
+		textureLayout = "unknown";
+	m_innerData->m_lowElevationLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
+
+	textureLayout = "";
+	if (layout.size() > 0)
 	{
-		std::string s(terrainEdit.extraValues.highElevationTexName_g);
-		m_innerData->m_highElevationTexName->set_text(s.c_str());
-		m_innerData->m_highElevationLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
-		m_innerData->m_highElevationTex->set_texture(t);
+		godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.highElevationTexName_g, textureLayout);
+		if (t != nullptr)
+		{
+			m_innerData->m_highElevationTex->set_texture(t);
+		}
 	}
-	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.dirtTexName_b, textureLayout);
-	if (t != nullptr)
+	s = terrainEdit.extraValues.highElevationTexName_g;
+	m_innerData->m_highElevationTexName->set_text(s.c_str());
+	if (textureLayout.size() == 0)
+		textureLayout = "unknown";
+	m_innerData->m_highElevationLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
+
+	textureLayout = "";
+	if (layout.size() > 0)
 	{
-		std::string s(terrainEdit.extraValues.dirtTexName_b);
-		m_innerData->m_dirtTexName->set_text(s.c_str());
-		m_innerData->m_dirtLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
-		m_innerData->m_dirtTex->set_texture(t);
+		godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.dirtTexName_b, textureLayout);
+		if (t != nullptr)
+		{
+			m_innerData->m_dirtTex->set_texture(t);
+		}
 	}
-	t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.rocksTexName_a, textureLayout);
-	if (t != nullptr)
+	s = terrainEdit.extraValues.dirtTexName_b;
+	m_innerData->m_dirtTexName->set_text(s.c_str());
+	if (textureLayout.size() == 0)
+		textureLayout = "unknown";
+	m_innerData->m_dirtLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
+
+	textureLayout = "";
+	if (layout.size() > 0)
 	{
-		std::string s(terrainEdit.extraValues.rocksTexName_a);
-		m_innerData->m_rocksTexName->set_text(s.c_str());
-		m_innerData->m_rocksLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
-		m_innerData->m_rocksTex->set_texture(t);
+		godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.rocksTexName_a, textureLayout);
+		if (t != nullptr)
+		{
+			m_innerData->m_rocksTex->set_texture(t);
+		}
 	}
+	s = terrainEdit.extraValues.rocksTexName_a;
+	m_innerData->m_rocksTexName->set_text(s.c_str());
+	if (textureLayout.size() == 0)
+		textureLayout = "unknown";
+	m_innerData->m_rocksLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 
 	m_innerData->m_selQuadSeaCheckBox->set_disabled(false);
 }
@@ -3521,15 +3554,15 @@ bool GDN_TheWorld_Edit::editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* m
 			}
 		}
 
-		std::list<TheWorld_Utils::QuadrantPos> list;
-		map->getAllMapQuadrantOverridePos(list, true);
-		if (list.size() > 0)
-		{
-			for (auto& item : list)
-			{
-				map->removeEditedMapQuadrantOverride(item);
-			}
-		}
+		//std::list<TheWorld_Utils::QuadrantPos> list;
+		//map->getAllMapQuadrantOverridePos(list, true);
+		//if (list.size() > 0)
+		//{
+		//	for (auto& item : list)
+		//	{
+		//		map->removeEditedMapQuadrantOverride(item);
+		//	}
+		//}
 	}
 
 	size_t completedItems = 0;
@@ -3670,8 +3703,9 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 		return;
 	}
 
+	m_editorUploadInProgress = true;
+
 	GDN_TheWorld_Map* map = m_viewer->Map();
-		
 	if (m_viewer->worldMode())
 	{
 		editModeUploadModifiedWorldQuadrants(map);
@@ -3681,6 +3715,8 @@ void GDN_TheWorld_Edit::editModeUpload(void)
 		editModeUploadModifiedWorldQuadrants(map);
 		editModeUploadMapQuadrantOverrides(map);
 	}
+
+	m_editorUploadInProgress = false;
 }
 
 void GDN_TheWorld_Edit::editModeGenerateAction(void)
@@ -4243,7 +4279,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 
 bool GDN_TheWorld_Edit::uploadToServerInProgress(void) const
 {
-	if (m_uploadModifiedWorldQuadrantsInProgress or m_uploadMapQuadrantOverridesInProgress)
+	if (m_editorUploadInProgress or m_uploadModifiedWorldQuadrantsInProgress or m_uploadMapQuadrantOverridesInProgress)
 		return true;
 	else
 		return false;
@@ -5165,6 +5201,7 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 
 	QuadTree* selectedQuadTree = nullptr;
 	TheWorld_Utils::QuadrantPos selectedQuadrantPos = m_viewer->getWorldQuadrantSelForEdit(&selectedQuadTree);
+		
 	Quadrant* quadrant = nullptr;
 	if (!selectedQuadrantPos.empty() && selectedQuadTree != nullptr)
 	{
@@ -5197,9 +5234,12 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 			eastSideTerrainEdit = q->getQuadrant()->getTerrainEdit();
 		}
 		terrainEdit.adjustValues(northSideTerrainEdit, southSideTerrainEdit, westSideTerrainEdit, eastSideTerrainEdit);
-
-		setTerrainEditValues(terrainEdit, selectedQuadTree->getQuadrant()->getPos());
 	}
+
+	TheWorld_Utils::QuadrantPos p;
+	if (selectedQuadTree != nullptr)
+		p = selectedQuadTree->getQuadrant()->getPos();
+	setTerrainEditValues(terrainEdit, p);
 
 	if (!selectedQuadrantPos.empty() && selectedQuadTree != nullptr and m_viewer->worldMode())
 		editModeGenerateAction();

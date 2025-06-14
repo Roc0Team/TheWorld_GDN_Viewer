@@ -4004,6 +4004,12 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		}
 	}
 
+	GDN_TheWorld_Map* map = m_viewer->Map();
+	if (map != nullptr)
+	{
+		map->removeEditedMapQuadrantOverride(quadrantSelPos);
+	}
+
 	// final actions
 	setMinHeight(terrainEdit->minHeight);
 	setMaxHeight(terrainEdit->maxHeight);
@@ -5241,6 +5247,7 @@ void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 		p = selectedQuadTree->getQuadrant()->getPos();
 	setTerrainEditValues(terrainEdit, p);
 
+	// auto generate of terrain on terrain type selection
 	if (!selectedQuadrantPos.empty() && selectedQuadTree != nullptr and m_viewer->worldMode())
 		editModeGenerateAction();
 }

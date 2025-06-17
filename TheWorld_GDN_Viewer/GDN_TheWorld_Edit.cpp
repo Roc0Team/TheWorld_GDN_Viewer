@@ -2596,6 +2596,14 @@ void GDN_TheWorld_Edit::changeTextureAction()
 		addQuadToSave(quadrantSelPos, manual);
 	}
 
+	GDN_TheWorld_Map* map = m_viewer->Map();
+	GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(quadrantSelPos);
+	if (MapQuadrantOverride != nullptr)
+	{
+		MapQuadrantOverride->terrainEdit(*terrainEdit);
+	}
+
+
 	// Shader need refresh
 	quadTreeSel->getQuadrant()->setTextureUpdated(true);
 	quadTreeSel->getQuadrant()->getShaderTerrainData()->materialParamsNeedReset(true);

@@ -173,25 +173,18 @@ namespace godot
 			{
 				return m_groundTextureLayers;
 			}
-			void init(Quadrant* neighbourQuadrant, TheWorld_Utils::QuadrantPos& owningQuadrantPos)
-			{
-				m_textureLayout = neighbourQuadrant->textureLayout();
-				m_groundTextureLayers = neighbourQuadrant->quadrantTextureLayers();
-				initialized(true);
-				shaderUpdated(false);
+			void init(Quadrant* owningQuadrant, Quadrant* neighbourQuadrant, TheWorld_Utils::QuadrantPos::DirectionSlot neighbourQuadrantDir, TheWorld_Utils::QuadrantPos& owningQuadrantPos);
 
-				//// #####
-				//m_owningQuadrantPos = owningQuadrantPos;
-				//m_neighbourQuadrantPos = neighbourQuadrant->getPos();
-				//if (m_owningQuadrantPos.getIndexPosX() == 5 and m_owningQuadrantPos.getIndexPosZ() == 12 and m_neighbourQuadrantPos.getIndexPosX() == 4 and m_neighbourQuadrantPos.getIndexPosZ() == 12)
-				//	assert(m_owningQuadrantPos.getIndexPosX() == 5);
-				//// #####
-			}
+			godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(void);
+
 		private:
+			Quadrant* m_owningQuadrant = nullptr;
 			bool m_initialized = false;
 			std::string m_textureLayout;
 			godot::Vector4 m_groundTextureLayers;
 			bool m_shaderUpdated = false;
+			TheWorld_Utils::MemoryBuffer m_splatmapBorderRow;
+			std::chrono::system_clock::time_point m_lastBorderRefreshTs;
 			//// #####
 			//TheWorld_Utils::QuadrantPos m_owningQuadrantPos;
 			//TheWorld_Utils::QuadrantPos m_neighbourQuadrantPos;
@@ -257,6 +250,8 @@ namespace godot
 		void setMeshId(std::string meshId);
 
 		void refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache);
+
+		void refreshSplatmapBorderRows(void);
 
 		AABB& getGlobalCoordAABB(void)
 		{
@@ -621,6 +616,7 @@ namespace godot
 		godot::Vector4 northQuadrantTextureLayersFromTerrainData(void);
 		godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
 		godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
+		void getSplatmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& splatmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		godot::Vector4 quadrantTextureLayers(void) const;
 		NeighbourQuadrantData& northQuadrantData(void)
 		{
@@ -749,6 +745,13 @@ namespace godot
 		TheWorld_Utils::MemoryBuffer m_colormapBuffer;			// Vertices color
 		TheWorld_Utils::MemoryBuffer m_globalmapBuffer;
 		std::unique_ptr<TheWorld_Utils::TerrainEdit> m_terrainEdit;
+
+		TheWorld_Utils::MemoryBuffer m_splatmapNorthBorderRow;		// north border row of the splatmap
+		TheWorld_Utils::MemoryBuffer m_splatmapSouthBorderRow;		// south border row of the splatmap
+		TheWorld_Utils::MemoryBuffer m_splatmapWestBorderRow;		// west border row of the splatmap
+		TheWorld_Utils::MemoryBuffer m_splatmapEastBorderRow;		// east border row of the splatmap
+		std::chrono::system_clock::time_point m_lastBorderRefreshTs;
+
 #ifdef REAL_T_IS_DOUBLE
 		godot::PackedFloat64Array m_heightsForCollider;
 #else
@@ -893,6 +896,9 @@ namespace godot
 //#define SHADER_PARAM_EAST_GROUND_LAYERS			"u_east_ground_layers"
 #define SHADER_PARAM_NORTH_WEST_GROUND_LAYERS		"u_north_west_ground_layers"
 //#define SHADER_PARAM_SOUTH_EAST_GROUND_LAYERS		"u_south_east_ground_layers"
+
+#define SHADER_PARAM_NORTH_BORDER_SPLATMAP			"u_north_border_splatmap"
+#define SHADER_PARAM_WEST_BORDER_SPLATMAP			"u_west_border_splatmap"
 
 #define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT_UV_QUADRANT			"u_mouse_hit_uv_quadrant"

@@ -4545,6 +4545,8 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 
 		quadTree->getQuadrant()->unlockInternalData();
 
+		quadTree->getQuadrant()->refreshSplatmapBorderRows();
+
 		save = true;
 
 		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadTree->getQuadrant()->getPos().getIndexPosX() << "," << quadTree->getQuadrant()->getPos().getIndexPosZ() << " Work Done";
@@ -12427,8 +12429,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* southEastQuadTree = m_worldQuadrantsMap[southEastPos].get();
 				if (!southEastQuadTree->statusToErase() && southEastQuadTree->statusInitialized())
 				{
-					southEastQuadrantData.init(southEastQuadTree->getQuadrant(), quadrantPos);
-					southEastQuadTree->getQuadrant()->northWestQuadrantData().init(quadrant, southEastPos);
+					southEastQuadrantData.init(quadrant, southEastQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus, quadrantPos);
+					southEastQuadTree->getQuadrant()->northWestQuadrantData().init(southEastQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus, southEastPos);
 				}
 			}
 		}
@@ -12443,8 +12445,8 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				QuadTree* northWestQuadTree = m_worldQuadrantsMap[northWestPos].get();
 				if (!northWestQuadTree->statusToErase() && northWestQuadTree->statusInitialized())
 				{
-					northWestQuadrantData.init(northWestQuadTree->getQuadrant(), quadrantPos);
-					northWestQuadTree->getQuadrant()->southEastQuadrantData().init(quadrant, northWestPos);
+					northWestQuadrantData.init(quadrant, northWestQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus, quadrantPos);
+					northWestQuadTree->getQuadrant()->southEastQuadrantData().init(northWestQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus, northWestPos);
 				}
 			}
 		}
@@ -12453,14 +12455,14 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 		if (!northQuadrantData.initialized())
 		{
 
-			TheWorld_Utils::QuadrantPos northPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
+			TheWorld_Utils::QuadrantPos northPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
 			if (m_worldQuadrantsMap.contains(northPos))
 			{
 				QuadTree* northQuadTree = m_worldQuadrantsMap[northPos].get();
 				if (!northQuadTree->statusToErase() && northQuadTree->statusInitialized())
 				{
-					northQuadrantData.init(northQuadTree->getQuadrant(), quadrantPos);
-					northQuadTree->getQuadrant()->southQuadrantData().init(quadrant, northPos);
+					northQuadrantData.init(quadrant, northQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus, quadrantPos);
+					northQuadTree->getQuadrant()->southQuadrantData().init(northQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus, northPos);
 				}
 			}
 		}
@@ -12468,14 +12470,14 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 		Quadrant::NeighbourQuadrantData& southQuadrantData = quadrant->southQuadrantData();
 		if (!southQuadrantData.initialized())
 		{
-			TheWorld_Utils::QuadrantPos southPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
+			TheWorld_Utils::QuadrantPos southPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
 			if (m_worldQuadrantsMap.contains(southPos))
 			{
 				QuadTree* southQuadTree = m_worldQuadrantsMap[southPos].get();
 				if (!southQuadTree->statusToErase() && southQuadTree->statusInitialized())
 				{
-					southQuadrantData.init(southQuadTree->getQuadrant(), quadrantPos);
-					southQuadTree->getQuadrant()->northQuadrantData().init(quadrant, southPos);
+					southQuadrantData.init(quadrant, southQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus, quadrantPos);
+					southQuadTree->getQuadrant()->northQuadrantData().init(southQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus, southPos);
 				}
 			}
 		}
@@ -12483,14 +12485,14 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 		Quadrant::NeighbourQuadrantData& westQuadrantData = quadrant->westQuadrantData();
 		if (!westQuadrantData.initialized())
 		{
-			TheWorld_Utils::QuadrantPos westPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
+			TheWorld_Utils::QuadrantPos westPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
 			if (m_worldQuadrantsMap.contains(westPos))
 			{
 				QuadTree* westQuadTree = m_worldQuadrantsMap[westPos].get();
 				if (!westQuadTree->statusToErase() && westQuadTree->statusInitialized())
 				{
-					westQuadrantData.init(westQuadTree->getQuadrant(), quadrantPos);
-					westQuadTree->getQuadrant()->eastQuadrantData().init(quadrant, westPos);
+					westQuadrantData.init(quadrant, westQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus, quadrantPos);
+					westQuadTree->getQuadrant()->eastQuadrantData().init(westQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus, westPos);
 				}
 			}
 		}
@@ -12498,14 +12500,14 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 		Quadrant::NeighbourQuadrantData& eastQuadrantData = quadrant->eastQuadrantData();
 		if (!eastQuadrantData.initialized())
 		{
-			TheWorld_Utils::QuadrantPos eastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);
+			TheWorld_Utils::QuadrantPos eastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
 			if (m_worldQuadrantsMap.contains(eastPos))
 			{
 				QuadTree* eastQuadTree = m_worldQuadrantsMap[eastPos].get();
 				if (!eastQuadTree->statusToErase() && eastQuadTree->statusInitialized())
 				{
-					eastQuadrantData.init(eastQuadTree->getQuadrant(), quadrantPos);
-					eastQuadTree->getQuadrant()->westQuadrantData().init(quadrant, eastPos);
+					eastQuadrantData.init(quadrant, eastQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus, quadrantPos);
+					eastQuadTree->getQuadrant()->westQuadrantData().init(eastQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus, eastPos);
 				}
 			}
 		}
@@ -12530,6 +12532,7 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 			{
 				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
 				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, northQuadrantData.groundTextureLayers());
+				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_BORDER_SPLATMAP, northQuadrantData.getSplatmapBorderRowTexture());
 				northQuadrantData.shaderUpdated(true);
 			}
 
@@ -12544,6 +12547,7 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 			{
 				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
 				currentMaterial->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, westQuadrantData.groundTextureLayers());
+				currentMaterial->set_shader_parameter(SHADER_PARAM_WEST_BORDER_SPLATMAP, westQuadrantData.getSplatmapBorderRowTexture());
 				westQuadrantData.shaderUpdated(true);
 			}
 

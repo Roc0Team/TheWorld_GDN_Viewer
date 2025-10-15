@@ -5709,6 +5709,53 @@ godot::Vector4 Quadrant::northwestQuadrantTextureLayersFromTerrainData(void)
 	return v;
 }
 
+void Quadrant::getSplatmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& splatmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir)
+{
+	TheWorld_Utils::MemoryBuffer* requiredSplatmapBorderRow = nullptr;
+	//std::chrono::system_clock::time_point m_lastBorderRefreshTs;
+
+	switch (requiredBorderDir)
+	{
+		case TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus:
+		{
+			requiredSplatmapBorderRow = &m_splatmapNorthBorderRow;
+		}
+		break;
+		case TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus:
+		{
+			requiredSplatmapBorderRow = &m_splatmapSouthBorderRow;
+		}
+		break;
+		case TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus:
+		{
+			requiredSplatmapBorderRow = &m_splatmapWestBorderRow;
+		}
+		break;
+		case TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus:
+		{
+			requiredSplatmapBorderRow = &m_splatmapEastBorderRow;
+		}
+		break;
+	}
+
+	if (requiredSplatmapBorderRow != nullptr)
+	{
+		if (TheWorld_Utils::null_time_point(m_lastBorderRefreshTs))
+		{
+			splatmapBorderRow.clear();
+			lastBorderRefreshTs = m_lastBorderRefreshTs;
+		}
+		else
+		{
+			if (m_lastBorderRefreshTs > lastBorderRefreshTs)
+			{
+				splatmapBorderRow = *requiredSplatmapBorderRow;
+				lastBorderRefreshTs = m_lastBorderRefreshTs;
+			}
+		}
+	}
+}
+
 godot::Vector4 Quadrant::quadrantTextureLayers(void) const
 {
 	godot::Vector4 v(-1, -1, -1, -1);
@@ -5912,6 +5959,115 @@ void Quadrant::setMeshId(std::string meshId)
 	m_meshId = meshId;
 }
 
+void Quadrant::refreshSplatmapBorderRows(void)
+{
+	size_t borderMapSize = m_viewer->Globals()->numVerticesPerQuadrantSize();
+	
+	if (m_splatmapBuffer.size() != borderMapSize * borderMapSize * sizeof(struct TheWorld_Utils::_RGBA))
+	{
+		m_splatmapNorthBorderRow.clear();
+		m_splatmapSouthBorderRow.clear();
+		m_splatmapWestBorderRow.clear();
+		m_splatmapEastBorderRow.clear();
+		m_lastBorderRefreshTs = TheWorld_Utils::null_time_point();
+		return;
+	}
+	
+	BYTE* splatmapBufferPtr = m_splatmapBuffer.ptr();
+
+	// Splatmap North Border Row
+	{
+		m_splatmapNorthBorderRow.set(splatmapBufferPtr, borderMapSize * sizeof(struct TheWorld_Utils::_RGBA));
+	}
+
+	// Splatmap South Border Row
+	{
+		BYTE* offset = splatmapBufferPtr + (borderMapSize * (borderMapSize - 1) * sizeof(struct TheWorld_Utils::_RGBA));
+		m_splatmapSouthBorderRow.set(offset, borderMapSize * sizeof(struct TheWorld_Utils::_RGBA));
+	}
+
+	// Splatmap West Border Row
+	{
+		m_splatmapWestBorderRow.reserve(borderMapSize * sizeof(struct TheWorld_Utils::_RGBA));
+		for (int idx = 0; idx < borderMapSize; idx++)
+		{
+			struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.at_ptr<struct TheWorld_Utils::_RGBA>(0, idx, borderMapSize);
+			m_splatmapWestBorderRow.set_at<struct TheWorld_Utils::_RGBA>(*element, idx, 0, borderMapSize);
+		}
+		m_splatmapWestBorderRow.adjustSize(borderMapSize * sizeof(struct TheWorld_Utils::_RGBA));
+	}
+
+	// Splatmap East Border Row
+	{
+		m_splatmapEastBorderRow.reserve(borderMapSize * sizeof(struct TheWorld_Utils::_RGBA));
+		for (int idx = 0; idx < borderMapSize; idx++)
+		{
+			struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.at_ptr<struct TheWorld_Utils::_RGBA>(borderMapSize - 1, idx, borderMapSize);
+			m_splatmapEastBorderRow.set_at<struct TheWorld_Utils::_RGBA>(*element, idx, 0, borderMapSize);
+		}
+		m_splatmapEastBorderRow.adjustSize(borderMapSize * sizeof(struct TheWorld_Utils::_RGBA));
+	}
+
+	m_lastBorderRefreshTs = TheWorld_Utils::current_utc_time_point();
+
+	// $$$$$$
+	/*
+	{
+		if (getPos().getIndexPosX() == 15 and getPos().getIndexPosZ() == 1)
+		{
+			// North Side
+			godot::PackedByteArray dataNorth;
+			size_t splatmapBufferSizeRowInBytes = (size_t)borderMapSize * sizeof(struct TheWorld_Utils::_RGBA);
+			dataNorth.resize((int)splatmapBufferSizeRowInBytes);
+			assert(splatmapBufferSizeRowInBytes == m_splatmapNorthBorderRow.size());
+			{
+				memcpy((char*)dataNorth.ptrw(), m_splatmapNorthBorderRow.ptr(), splatmapBufferSizeRowInBytes);
+			}
+			Ref<godot::Image> imageNorth = godot::Image::create_from_data((int32_t)borderMapSize, 1, false, godot::Image::Format::FORMAT_RGBA8, dataNorth);
+			std::string name = "C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\Quadrant_" + std::to_string(getPos().getIndexPosX()) + "-" + std::to_string(getPos().getIndexPosZ()) + "_North_Border.png";
+			imageNorth->save_png(name.c_str());
+
+			// South Side
+			godot::PackedByteArray dataSouth;
+			splatmapBufferSizeRowInBytes = (size_t)borderMapSize * sizeof(struct TheWorld_Utils::_RGBA);
+			dataSouth.resize((int)splatmapBufferSizeRowInBytes);
+			assert(splatmapBufferSizeRowInBytes == m_splatmapSouthBorderRow.size());
+			{
+				memcpy((char*)dataSouth.ptrw(), m_splatmapSouthBorderRow.ptr(), splatmapBufferSizeRowInBytes);
+			}
+			Ref<godot::Image> imageSouth = godot::Image::create_from_data((int32_t)borderMapSize, 1, false, godot::Image::Format::FORMAT_RGBA8, dataSouth);
+			name = "C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\Quadrant_" + std::to_string(getPos().getIndexPosX()) + "-" + std::to_string(getPos().getIndexPosZ()) + "_South_Border.png";
+			imageSouth->save_png(name.c_str());
+
+			// West Side
+			godot::PackedByteArray dataWest;
+			splatmapBufferSizeRowInBytes = (size_t)borderMapSize * sizeof(struct TheWorld_Utils::_RGBA);
+			dataWest.resize((int)splatmapBufferSizeRowInBytes);
+			assert(splatmapBufferSizeRowInBytes == m_splatmapWestBorderRow.size());
+			{
+				memcpy((char*)dataWest.ptrw(), m_splatmapWestBorderRow.ptr(), splatmapBufferSizeRowInBytes);
+			}
+			Ref<godot::Image> imageWest = godot::Image::create_from_data((int32_t)borderMapSize, 1, false, godot::Image::Format::FORMAT_RGBA8, dataWest);
+			name = "C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\Quadrant_" + std::to_string(getPos().getIndexPosX()) + "-" + std::to_string(getPos().getIndexPosZ()) + "_West_Border.png";
+			imageWest->save_png(name.c_str());
+
+			// East Side
+			godot::PackedByteArray dataEast;
+			splatmapBufferSizeRowInBytes = (size_t)borderMapSize * sizeof(struct TheWorld_Utils::_RGBA);
+			dataEast.resize((int)splatmapBufferSizeRowInBytes);
+			assert(splatmapBufferSizeRowInBytes == m_splatmapEastBorderRow.size());
+			{
+				memcpy((char*)dataEast.ptrw(), m_splatmapEastBorderRow.ptr(), splatmapBufferSizeRowInBytes);
+			}
+			Ref<godot::Image> imageEast = godot::Image::create_from_data((int32_t)borderMapSize, 1, false, godot::Image::Format::FORMAT_RGBA8, dataEast);
+			name = "C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\Quadrant_" + std::to_string(getPos().getIndexPosX()) + "-" + std::to_string(getPos().getIndexPosZ()) + "_East_Border.png";
+			imageEast->save_png(name.c_str());
+		}
+	}
+	*/
+	// $$$$$$
+}
+
 void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache)
 {
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
@@ -5980,6 +6136,8 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 			}
 		}
 	}
+	
+	refreshSplatmapBorderRows();
 
 	//assert(!m_float16HeigthsBuffer.empty());
 	if (m_float16HeigthsBuffer.empty())
@@ -6199,4 +6357,78 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	m_meshId = meshIdFromServer;
 
 	//m_collider->setData();
+}
+
+void Quadrant::NeighbourQuadrantData::init(Quadrant* owningQuadrant, Quadrant* neighbourQuadrant, TheWorld_Utils::QuadrantPos::DirectionSlot neighbourQuadrantDir, TheWorld_Utils::QuadrantPos& owningQuadrantPos)
+{
+	m_owningQuadrant = owningQuadrant;
+
+	TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderRow = TheWorld_Utils::QuadrantPos::DirectionSlot::Center;
+
+	switch (neighbourQuadrantDir)
+	{
+	case TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus:
+	{
+		requiredBorderRow = TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus;
+	}
+	break;
+	case TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus:
+	{
+		requiredBorderRow = TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus;
+	}
+	break;
+	case TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus:
+	{
+		requiredBorderRow = TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus;
+	}
+	break;
+	case TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus:
+	{
+		requiredBorderRow = TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus;
+	}
+	break;
+	}
+	if (requiredBorderRow != TheWorld_Utils::QuadrantPos::DirectionSlot::Center)
+		neighbourQuadrant->getSplatmapBorderRow(m_lastBorderRefreshTs, m_splatmapBorderRow, requiredBorderRow);
+
+	m_textureLayout = neighbourQuadrant->textureLayout();
+	m_groundTextureLayers = neighbourQuadrant->quadrantTextureLayers();
+
+	initialized(true);
+	shaderUpdated(false);
+
+	//// #####
+	//m_owningQuadrantPos = owningQuadrantPos;
+	//m_neighbourQuadrantPos = neighbourQuadrant->getPos();
+	//if (m_owningQuadrantPos.getIndexPosX() == 5 and m_owningQuadrantPos.getIndexPosZ() == 12 and m_neighbourQuadrantPos.getIndexPosX() == 4 and m_neighbourQuadrantPos.getIndexPosZ() == 12)
+	//	assert(m_owningQuadrantPos.getIndexPosX() == 5);
+	//// #####
+}
+
+godot::Ref<godot::Texture2D> Quadrant::NeighbourQuadrantData::getSplatmapBorderRowTexture(void)
+{
+	int numVerticesPerQuadrantSize = (int)m_owningQuadrant->getQuadTree()->Viewer()->Globals()->numVerticesPerQuadrantSize();
+
+	godot::Ref<godot::Texture2D> tex;
+
+	if (TheWorld_Utils::null_time_point(m_lastBorderRefreshTs))
+	{
+		Ref<godot::Image> image = godot::Image::create(numVerticesPerQuadrantSize, 1, false, godot::Image::Format::FORMAT_RGBA8);
+		image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
+		tex = godot::ImageTexture::create_from_image(image);
+	}
+	else
+	{
+		godot::PackedByteArray data;
+		size_t splatmapBufferSizeRowInBytes = (size_t)numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+		data.resize((int)splatmapBufferSizeRowInBytes);
+		assert(splatmapBufferSizeRowInBytes == m_splatmapBorderRow.size());
+		{
+			memcpy((char*)data.ptrw(), m_splatmapBorderRow.ptr(), splatmapBufferSizeRowInBytes);
+		}
+		Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, 1, false, godot::Image::Format::FORMAT_RGBA8, data);
+		tex = godot::ImageTexture::create_from_image(image);
+	}
+
+	return tex;
 }

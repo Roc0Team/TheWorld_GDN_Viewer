@@ -471,7 +471,9 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("quadrant_size_in_wus"), &GDN_TheWorld_Globals::heightmapSizeInWUs);
 		ClassDB::bind_method(D_METHOD("quadrant_step_in_wus"), &GDN_TheWorld_Globals::gridStepInWU);
 
+		ClassDB::bind_method(D_METHOD("set_debug_texture_overflow"), &GDN_TheWorld_Globals::setDebugTextureOverflow);
 		ClassDB::bind_method(D_METHOD("set_texture_overflow_size"), &GDN_TheWorld_Globals::setTextureOverflowSize);
+
 		ClassDB::bind_method(D_METHOD("set_splatmap_overflow_size"), &GDN_TheWorld_Globals::setSplatmapOverflowSize);
 
 		// perfparam_

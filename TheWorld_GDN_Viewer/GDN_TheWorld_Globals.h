@@ -791,6 +791,14 @@ namespace godot
 		}
 		void setParamFogDistanceFactor(float f);
 
+		void setDebugTextureOverflow(bool b)
+		{
+			m_debugTextureOverflow = b;
+		}
+		bool getDebugTextureOverflow(void) const
+		{
+			return m_debugTextureOverflow;
+		}
 		void setTextureOverflowSize(float f)
 		{
 			m_textureOverflowSize = f;
@@ -799,6 +807,7 @@ namespace godot
 		{
 			return m_textureOverflowSize;
 		}
+		
 		void setSplatmapOverflowSize(float f)
 		{
 			m_splatmapOverflowSize = f;
@@ -904,6 +913,7 @@ namespace godot
 		size_t m_totElementToInitialize;
 		size_t m_numElementInitialized;
 
+		bool m_debugTextureOverflow = false;
 		float m_textureOverflowSize = 0.0f;
 		float m_splatmapOverflowSize = 0.0f;
 		

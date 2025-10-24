@@ -251,9 +251,9 @@ void GDN_TheWorld_Edit::setUIAcceptFocus(bool b)
 	//else
 	//	setSeed(0);
 
-	m_innerData->m_allCheckBox->set_focus_mode(focusMode);
-	m_innerData->m_collisonHiResGridCheckBox->set_focus_mode(focusMode);
-	m_innerData->m_collisonLowResGridCheckBox->set_focus_mode(focusMode);
+	//m_innerData->m_allCheckBox->set_focus_mode(focusMode);
+	//m_innerData->m_collisonHiResGridCheckBox->set_focus_mode(focusMode);
+	//m_innerData->m_collisonLowResGridCheckBox->set_focus_mode(focusMode);
 	m_innerData->m_seed->set_focus_mode(focusMode);
 	m_innerData->m_frequency->set_focus_mode(focusMode);
 	m_innerData->m_fractalOctaves->set_focus_mode(focusMode);
@@ -563,23 +563,23 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		button->set_self_modulate(BUTTON_COLOR);
 		button = createControl<godot::Button>(hBoxContainer, "", "Reload shader", "pressed", this, "edit_mode_reload_shader");
 		button->set_self_modulate(BUTTON_COLOR);
-		button = createControl<godot::Button>(hBoxContainer, "", "Reset Normals/Textures", "pressed", this, "edit_mode_reset_normals_splatmap");
+		button = createControl<godot::Button>(hBoxContainer, "", "Reset Norm/Tex", "pressed", this, "edit_mode_reset_normals_splatmap");
 		button->set_self_modulate(BUTTON_COLOR);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Apply Texs", "pressed", this, "edit_mode_apply_textures");
 		//button->set_self_modulate(BUTTON_COLOR);
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
-		m_innerData->m_allCheckBox = createControl<godot::CheckBox>(hBoxContainer);
-		m_innerData->m_allCheckBox->set_text("All");
-		m_innerData->m_allCheckBox->set_toggle_mode(true);
 		//hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
-		m_innerData->m_collisonHiResGridCheckBox = createControl<godot::CheckBox>(hBoxContainer, "CollisonHiResGridCheckBox");
-		m_innerData->m_collisonHiResGridCheckBox->set_text("Coll. High Res Grid");
-		m_innerData->m_collisonHiResGridCheckBox->set_toggle_mode(true);
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_collisonHiResGridCheckBox, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
-		m_innerData->m_collisonLowResGridCheckBox = createControl<godot::CheckBox>(hBoxContainer, "CollisonLowResGridCheckBox");
-		m_innerData->m_collisonLowResGridCheckBox->set_text("Coll. Low Res Grid");
-		m_innerData->m_collisonLowResGridCheckBox->set_toggle_mode(true);
-		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_collisonLowResGridCheckBox, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		//m_innerData->m_allCheckBox = createControl<godot::CheckBox>(hBoxContainer);
+		//m_innerData->m_allCheckBox->set_text("All");
+		//m_innerData->m_allCheckBox->set_toggle_mode(true);
+		//hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
+		//m_innerData->m_collisonHiResGridCheckBox = createControl<godot::CheckBox>(hBoxContainer, "CollisonHiResGridCheckBox");
+		//m_innerData->m_collisonHiResGridCheckBox->set_text("Coll. High Res Grid");
+		//m_innerData->m_collisonHiResGridCheckBox->set_toggle_mode(true);
+		//e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_collisonHiResGridCheckBox, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		//m_innerData->m_collisonLowResGridCheckBox = createControl<godot::CheckBox>(hBoxContainer, "CollisonLowResGridCheckBox");
+		//m_innerData->m_collisonLowResGridCheckBox->set_text("Coll. Low Res Grid");
+		//m_innerData->m_collisonLowResGridCheckBox->set_toggle_mode(true);
+		//e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_collisonLowResGridCheckBox, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		m_innerData->m_message = createControl<godot::Label>(hBoxContainer);
@@ -785,48 +785,62 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_3).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::sea_abyss_3);
 		m_innerData->m_terrTypeOptionButton->add_separator();
 		m_innerData->m_terrTypeOptionButton->add_item(TheWorld_Utils::TerrainEdit::terrainTypeString(TheWorld_Utils::TerrainEdit::TerrainType::noise_1).c_str(), (int64_t)TheWorld_Utils::TerrainEdit::TerrainType::noise_1);
+		m_innerData->m_terrTypeOptionButton->set_disabled(true);
 
 		separator = createControl<godot::VSeparator>(hBoxContainer);
-		button = createControl<godot::Button>(hBoxContainer, "", "Generate", "pressed", this, "edit_mode_generate");
-		button->set_self_modulate(BUTTON_COLOR);
+		m_innerData->m_generateTerrButton = createControl<godot::Button>(hBoxContainer, "", "Generate", "pressed", this, "edit_mode_generate");
+		m_innerData->m_generateTerrButton->set_self_modulate(BUTTON_COLOR);
+		m_innerData->m_generateTerrButton->set_disabled(true);
 		separator = createControl<godot::VSeparator>(hBoxContainer);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Seed");
 		m_innerData->m_seed = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_seed->set_editable(false);
 		label = createControl<godot::Label>(hBoxContainer, "", "Frequency");
 		m_innerData->m_frequency = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_frequency->set_editable(false);
 		label = createControl<godot::Label>(hBoxContainer, "", "Gain");
 		m_innerData->m_fractalGain = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_fractalGain->set_editable(false);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Octaves");
 		m_innerData->m_fractalOctaves = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_fractalOctaves->set_editable(false);
 		label = createControl<godot::Label>(hBoxContainer, "", "Lacunarity");
 		m_innerData->m_fractalLacunarity = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_fractalLacunarity->set_editable(false);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Weighted Str.");
 		m_innerData->m_fractalWeightedStrength = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_fractalWeightedStrength->set_editable(false);
 		label = createControl<godot::Label>(hBoxContainer, "", "Ping Pong Str.");
 		m_innerData->m_fractalPingPongStrength = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_fractalPingPongStrength->set_editable(false);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Ampl.");
 		m_innerData->m_amplitudeLabel = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_amplitudeLabel->set_editable(false);
 		label = createControl<godot::Label>(hBoxContainer, "", "Jag Int.");
 		m_innerData->m_scaleFactorLabel = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_scaleFactorLabel->set_editable(false);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Min Height");
 		m_innerData->m_desideredMinHeightLabel = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_desideredMinHeightLabel->set_editable(false);
 		m_innerData->m_ignoreDesideredMinHeightLabel = createControl<godot::CheckBox>(hBoxContainer);
+		m_innerData->m_ignoreDesideredMinHeightLabel->set_disabled(true);
 		m_innerData->m_ignoreDesideredMinHeightLabel->set_text("Ignore Min Height");
 		m_innerData->m_ignoreDesideredMinHeightLabel->set_toggle_mode(true);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrGenerationVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Post Generate Elevation");
 		m_innerData->m_postGenerateElevationLabel = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_postGenerateElevationLabel->set_editable(false);
 
 		separator = createControl<HSeparator>(m_innerData->m_terrGenerationVBoxContainer);
 	}
@@ -911,30 +925,37 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		label = createControl<godot::Label>(hBoxContainer, "", "High Elev. Factor");
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_highElevationFactor = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_highElevationFactor->set_editable(false);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Low Elev. Factor");
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_lowElevationFactor = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_lowElevationFactor->set_editable(false);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Slope Vert. Factor");
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_slopeVerticalFactor = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_slopeVerticalFactor->set_editable(false);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Slope Flat Factor");
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_slopeFlatFactor = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_slopeFlatFactor->set_editable(false);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Dirt On Rocks Factor");
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_dirtOnRocksFactor = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_dirtOnRocksFactor->set_editable(false);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Splatmap Mode");
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_splatMapMode = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_splatMapMode->set_editable(false);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Ground Layout");
 		label->set_custom_minimum_size(labelMinimumSize);
 		m_innerData->m_groundLayout = createControl<godot::LineEdit>(hBoxContainer);
+		m_innerData->m_groundLayout->set_editable(false);
 
 		separator = createControl<HSeparator>(m_innerData->m_quadrantTextureEditVBoxContainer);
 
@@ -1186,7 +1207,8 @@ void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
 	godot::Ref<godot::Texture2D> emptyTexture;
 	m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
 	editingMap(false);
-	m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
+	//m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
+	setSelectedTerrainType(TheWorld_Utils::TerrainEdit::TerrainType::notset);
 
 	m_infoLabelTextChanged = true;
 
@@ -1245,8 +1267,9 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 			//std::string text = TheWorld_Utils::TerrainEdit::terrainTypeString(terrainEdit.terrainType);
 			//m_terrTypeOptionButton->set_text(text.c_str());
 			m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)terrainEdit.terrainType));
-			m_innerData->m_selectedTerrainType = terrainEdit.terrainType;
+			//m_innerData->m_selectedTerrainType = terrainEdit.terrainType;
 		}
+		setSelectedTerrainType(terrainEdit.terrainType);
 	}
 
 	godot::Ref<godot::Texture2D> emptyTexture;
@@ -1314,10 +1337,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	if (layout.size() > 0)
 	{
 		godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.lowElevationTexName_r, textureLayout);
-		if (t != nullptr)
-		{
-			m_innerData->m_lowElevationTex->set_texture(t);
-		}
+		m_innerData->m_lowElevationTex->set_texture(t);
 	}
 	std::string s(terrainEdit.extraValues.lowElevationTexName_r);
 	m_innerData->m_lowElevationTexName->set_text(s.c_str());
@@ -1329,10 +1349,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	if (layout.size() > 0)
 	{
 		godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.highElevationTexName_g, textureLayout);
-		if (t != nullptr)
-		{
-			m_innerData->m_highElevationTex->set_texture(t);
-		}
+		m_innerData->m_highElevationTex->set_texture(t);
 	}
 	s = terrainEdit.extraValues.highElevationTexName_g;
 	m_innerData->m_highElevationTexName->set_text(s.c_str());
@@ -1344,10 +1361,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	if (layout.size() > 0)
 	{
 		godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.dirtTexName_b, textureLayout);
-		if (t != nullptr)
-		{
-			m_innerData->m_dirtTex->set_texture(t);
-		}
+		m_innerData->m_dirtTex->set_texture(t);
 	}
 	s = terrainEdit.extraValues.dirtTexName_b;
 	m_innerData->m_dirtTexName->set_text(s.c_str());
@@ -1359,10 +1373,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	if (layout.size() > 0)
 	{
 		godot::Ref<godot::Texture2D> t = groundTextures.getTexturePreview(layout, terrainEdit.extraValues.rocksTexName_a, textureLayout);
-		if (t != nullptr)
-		{
-			m_innerData->m_rocksTex->set_texture(t);
-		}
+		m_innerData->m_rocksTex->set_texture(t);
 	}
 	s = terrainEdit.extraValues.rocksTexName_a;
 	m_innerData->m_rocksTexName->set_text(s.c_str());
@@ -1373,191 +1384,350 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	m_innerData->m_selQuadSeaCheckBox->set_disabled(false);
 }
 
+void GDN_TheWorld_Edit::resetPanelsOnQuadrantDeselection()
+{
+	resetSelectedTerrainType();
+	resetSeed();
+	resetFrequency();
+	resetOctaves();
+	resetLacunarity();
+	resetGain();
+	resetWeightedStrength();
+	resetPingPongStrength();
+	resetAmplitudeBlendFactor();
+	resetBlendingCycles();
+	resetBlendingBendingFactor();
+	resetMinRandomBendingExtension();
+	resetMaxRandomBendingExtension();
+	resetAmplitude();
+	resetScaleFactor();
+	resetIgnoreDesideredMinHeight();
+	resetDesideredMinHeight();
+	resetPostGenerateElevation();
+
+	resetSlopeVerticalFactor();
+	resetSlopeFlatFactor();
+	resetDirtOnRocksFactor();
+	resetHighElevationFactor();
+	resetLowElevationFactor();
+	resetSplatMapMode();
+	resetGroundLayout();
+
+	resetTerrainBoxTextures();
+}
+
+void GDN_TheWorld_Edit::resetSeed(void)
+{
+	m_innerData->m_seed->set_text("");
+	m_innerData->m_seed->set_editable(false);
+}
+
 void GDN_TheWorld_Edit::setSeed(int seed)
 {
 	m_innerData->m_seed->set_text(std::to_string(seed).c_str());
+	m_innerData->m_seed->set_editable(true);
 }
 
 int GDN_TheWorld_Edit::seed(void)
 {
-	//godot::String s = m_innerData->m_seed->get_text();
-	//const char* str = s.utf8().get_data();
-	//int ret = std::stoi(std::string(str));
-	int ret = std::stoi(std::string(m_innerData->m_seed->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_seed->get_text().utf8().get_data());
+	int ret = 0;
+	if (s.length() > 0)
+		ret = std::stoi(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetFrequency(void)
+{
+	m_innerData->m_frequency->set_text("");
+	m_innerData->m_frequency->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setFrequency(float frequency)
 {
 	m_innerData->m_frequency->set_text(std::to_string(frequency).c_str());
+	m_innerData->m_frequency->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::frequency(void)
 {
-	//godot::String s = m_innerData->m_frequency->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
-	float ret = std::stof(std::string(m_innerData->m_frequency->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_frequency->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetOctaves(void)
+{
+	m_innerData->m_fractalOctaves->set_text("");
+	m_innerData->m_fractalOctaves->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setOctaves(int octaves)
 {
 	m_innerData->m_fractalOctaves->set_text(std::to_string(octaves).c_str());
+	m_innerData->m_fractalOctaves->set_editable(true);
 }
 
 int GDN_TheWorld_Edit::octaves(void)
 {
-	//godot::String s = m_innerData->m_fractalOctaves->get_text();
-	//const char* str = s.utf8().get_data();
-	//int ret = std::stoi(std::string(str));
-	int ret = std::stoi(std::string(m_innerData->m_fractalOctaves->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_fractalOctaves->get_text().utf8().get_data());
+	int ret = 0;
+	if (s.length() > 0)
+		ret = std::stoi(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetLacunarity(void)
+{
+	m_innerData->m_fractalLacunarity->set_text("");
+	m_innerData->m_fractalLacunarity->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setLacunarity(float lacunarity)
 {
 	m_innerData->m_fractalLacunarity->set_text(std::to_string(lacunarity).c_str());
+	m_innerData->m_fractalLacunarity->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::lacunarity(void)
 {
-	//godot::String s = m_innerData->m_fractalLacunarity->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
-	float ret = std::stof(std::string(m_innerData->m_fractalLacunarity->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_fractalLacunarity->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetGain(void)
+{
+	m_innerData->m_fractalGain->set_text("");
+	m_innerData->m_fractalGain->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setGain(float gain)
 {
 	m_innerData->m_fractalGain->set_text(std::to_string(gain).c_str());
+	m_innerData->m_fractalGain->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::gain(void)
 {
-	//godot::String s = m_innerData->m_fractalGain->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
-	float ret = std::stof(std::string(m_innerData->m_fractalGain->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_fractalGain->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetWeightedStrength(void)
+{
+	m_innerData->m_fractalWeightedStrength->set_text("");
+	m_innerData->m_fractalWeightedStrength->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setWeightedStrength(float weightedStrength)
 {
 	m_innerData->m_fractalWeightedStrength->set_text(std::to_string(weightedStrength).c_str());
+	m_innerData->m_fractalWeightedStrength->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::weightedStrength(void)
 {
-	//godot::String s = m_innerData->m_fractalWeightedStrength->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
-	float ret = std::stof(std::string(m_innerData->m_fractalWeightedStrength->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_fractalWeightedStrength->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetPingPongStrength(void)
+{
+	m_innerData->m_fractalPingPongStrength->set_text("");
+	m_innerData->m_fractalPingPongStrength->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setPingPongStrength(float pingPongStrength)
 {
 	m_innerData->m_fractalPingPongStrength->set_text(std::to_string(pingPongStrength).c_str());
+	m_innerData->m_fractalPingPongStrength->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::pingPongStrength(void)
 {
-	//godot::String s = m_innerData->m_fractalPingPongStrength->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
-	float ret = std::stof(std::string(m_innerData->m_fractalPingPongStrength->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_fractalPingPongStrength->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetAmplitudeBlendFactor(void)
+{
+	m_innerData->m_amplitudeBlendFactor->set_text("");
+	m_innerData->m_amplitudeBlendFactor->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setAmplitudeBlendFactor(float amplitudeBlendFactor)
 {
 	m_innerData->m_amplitudeBlendFactor->set_text(std::to_string(amplitudeBlendFactor).c_str());
+	m_innerData->m_amplitudeBlendFactor->set_editable(true);
+}
+
+bool GDN_TheWorld_Edit::amplitudeBlendFactorValid(void)
+{
+	if (strlen(m_innerData->m_amplitudeBlendFactor->get_text().utf8().get_data()) > 0)
+		return true;
+	else
+		return false;
 }
 
 float GDN_TheWorld_Edit::amplitudeBlendFactor(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_amplitudeBlendFactor->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_amplitudeBlendFactor->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetBlendingCycles(void)
+{
+	m_innerData->m_blendCycles->set_text("");
+	m_innerData->m_blendCycles->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setBlendingCycles(size_t blendingCycles)
 {
 	m_innerData->m_blendCycles->set_text(std::to_string(blendingCycles).c_str());
+	m_innerData->m_blendCycles->set_editable(true);
 }
 
 size_t GDN_TheWorld_Edit::blendingCycles(void)
 {
 	std::string s(m_innerData->m_blendCycles->get_text().utf8().get_data());
-	size_t ret = (size_t)std::stol(s);
+	size_t ret = 0;
+	if (s.length() > 0)
+		ret = (size_t)std::stol(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetBlendingBendingFactor(void)
+{
+	m_innerData->m_blendingBendingFactor->set_text("");
+	m_innerData->m_blendingBendingFactor->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setBlendingBendingFactor(float blendingBendingFactor)
 {
 	m_innerData->m_blendingBendingFactor->set_text(std::to_string(blendingBendingFactor).c_str());
+	m_innerData->m_blendingBendingFactor->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::blendingBendingFactor(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_blendingBendingFactor->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_blendingBendingFactor->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetMinRandomBendingExtension(void)
+{
+	m_innerData->m_minRandomBendingExtension->set_text("");
+	m_innerData->m_minRandomBendingExtension->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setMinRandomBendingExtension(float minRandomBendingExtension)
 {
 	m_innerData->m_minRandomBendingExtension->set_text(std::to_string(minRandomBendingExtension).c_str());
+	m_innerData->m_minRandomBendingExtension->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::minRandomBendingExtension(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_minRandomBendingExtension->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_minRandomBendingExtension->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetMaxRandomBendingExtension(void)
+{
+	m_innerData->m_maxRandomBendingExtension->set_text("");
+	m_innerData->m_maxRandomBendingExtension->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setMaxRandomBendingExtension(float maxRandomBendingExtension)
 {
 	m_innerData->m_maxRandomBendingExtension->set_text(std::to_string(maxRandomBendingExtension).c_str());
+	m_innerData->m_maxRandomBendingExtension->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::maxRandomBendingExtension(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_maxRandomBendingExtension->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_maxRandomBendingExtension->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetAmplitude(void)
+{
+	m_innerData->m_amplitudeLabel->set_text("");
+	m_innerData->m_amplitudeLabel->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setAmplitude(unsigned int amplitude)
 {
 	m_innerData->m_amplitudeLabel->set_text(std::to_string(amplitude).c_str());
+	m_innerData->m_amplitudeLabel->set_editable(true);
 }
 
 unsigned int GDN_TheWorld_Edit::amplitude(void)
 {
-	//godot::String s = m_innerData->m_amplitudeLabel->get_text();
-	//const char* str = s.utf8().get_data();
-	//unsigned int ret = std::stoi(std::string(str));
-	unsigned int ret = std::stoi(std::string(m_innerData->m_amplitudeLabel->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_amplitudeLabel->get_text().utf8().get_data());
+	unsigned int ret = 0;
+	if (s.length() > 0)
+		ret = std::stoi(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetScaleFactor(void)
+{
+	m_innerData->m_scaleFactorLabel->set_text("");
+	m_innerData->m_scaleFactorLabel->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setScaleFactor(float scaleFactor)
 {
 	m_innerData->m_scaleFactorLabel->set_text(std::to_string(scaleFactor).c_str());
+	m_innerData->m_scaleFactorLabel->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::scaleFactor(void)
 {
-	//godot::String s = m_innerData->m_scaleFactorLabel->get_text();
-	//const char* str = s.utf8().get_data();
-	//float ret = std::stof(std::string(str));
-	float ret = std::stof(std::string(m_innerData->m_scaleFactorLabel->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_scaleFactorLabel->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetIgnoreDesideredMinHeight(void)
+{
+	m_innerData->m_ignoreDesideredMinHeightLabel->set_pressed(false);
+	m_innerData->m_ignoreDesideredMinHeightLabel->set_disabled(true);
 }
 
 void GDN_TheWorld_Edit::setIgnoreDesideredMinHeight(bool ignoreDesideredMinHeight)
 {
 	m_innerData->m_ignoreDesideredMinHeightLabel->set_pressed(ignoreDesideredMinHeight);
+	m_innerData->m_ignoreDesideredMinHeightLabel->set_disabled(false);
 }
 
 bool GDN_TheWorld_Edit::ignoreDesideredMinHeight(void)
@@ -1565,101 +1735,199 @@ bool GDN_TheWorld_Edit::ignoreDesideredMinHeight(void)
 	return m_innerData->m_ignoreDesideredMinHeightLabel->is_pressed();
 }
 
+void GDN_TheWorld_Edit::resetDesideredMinHeight(void)
+{
+	m_innerData->m_desideredMinHeightLabel->set_text("");
+	m_innerData->m_desideredMinHeightLabel->set_editable(false);
+}
+
 void GDN_TheWorld_Edit::setDesideredMinHeight(float desideredMinHeight)
 {
 	m_innerData->m_desideredMinHeightLabel->set_text(std::to_string(desideredMinHeight).c_str());
+	m_innerData->m_desideredMinHeightLabel->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::desideredMinHeight(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_desideredMinHeightLabel->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_desideredMinHeightLabel->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetPostGenerateElevation(void)
+{
+	m_innerData->m_postGenerateElevationLabel->set_text("");
+	m_innerData->m_postGenerateElevationLabel->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setPostGenerateElevation(float postGenerateElevation)
 {
 	m_innerData->m_postGenerateElevationLabel->set_text(std::to_string(postGenerateElevation).c_str());
+	m_innerData->m_postGenerateElevationLabel->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::postGenerateElevation(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_postGenerateElevationLabel->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_postGenerateElevationLabel->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetSlopeVerticalFactor(void)
+{
+	m_innerData->m_slopeVerticalFactor->set_text("");
+	m_innerData->m_slopeVerticalFactor->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setSlopeVerticalFactor(float value)
 {
 	m_innerData->m_slopeVerticalFactor->set_text(std::to_string(value).c_str());
+	m_innerData->m_slopeVerticalFactor->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::slopeVerticalFactor(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_slopeVerticalFactor->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_slopeVerticalFactor->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetSlopeFlatFactor(void)
+{
+	m_innerData->m_slopeFlatFactor->set_text("");
+	m_innerData->m_slopeFlatFactor->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setSlopeFlatFactor(float value)
 {
 	m_innerData->m_slopeFlatFactor->set_text(std::to_string(value).c_str());
+	m_innerData->m_slopeFlatFactor->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::slopeFlatFactor(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_slopeFlatFactor->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_slopeFlatFactor->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetDirtOnRocksFactor(void)
+{
+	m_innerData->m_dirtOnRocksFactor->set_text("");
+	m_innerData->m_dirtOnRocksFactor->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setDirtOnRocksFactor(float value)
 {
 	m_innerData->m_dirtOnRocksFactor->set_text(std::to_string(value).c_str());
+	m_innerData->m_dirtOnRocksFactor->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::dirtOnRocksFactor(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_dirtOnRocksFactor->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_dirtOnRocksFactor->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetHighElevationFactor(void)
+{
+	m_innerData->m_highElevationFactor->set_text("");
+	m_innerData->m_highElevationFactor->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setHighElevationFactor(float value)
 {
 	m_innerData->m_highElevationFactor->set_text(std::to_string(value).c_str());
+	m_innerData->m_highElevationFactor->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::highElevationFactor(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_highElevationFactor->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_highElevationFactor->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() > 0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetLowElevationFactor(void)
+{
+	m_innerData->m_lowElevationFactor->set_text("");
+	m_innerData->m_lowElevationFactor->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setLowElevationFactor(float value)
 {
 	m_innerData->m_lowElevationFactor->set_text(std::to_string(value).c_str());
+	m_innerData->m_lowElevationFactor->set_editable(true);
 }
 
 float GDN_TheWorld_Edit::lowElevationFactor(void)
 {
-	float ret = std::stof(std::string(m_innerData->m_lowElevationFactor->get_text().utf8().get_data()));
+	std::string s(m_innerData->m_lowElevationFactor->get_text().utf8().get_data());
+	float ret = 0;
+	if (s.length() >0)
+		ret = std::stof(s);
 	return ret;
+}
+
+void GDN_TheWorld_Edit::resetSplatMapMode(void)
+{
+	m_innerData->m_splatMapMode->set_text("");
+	m_innerData->m_splatMapMode->set_editable(false);
 }
 
 void GDN_TheWorld_Edit::setSplatMapMode(size_t value)
 {
 	m_innerData->m_splatMapMode->set_text(std::to_string(value).c_str());
+	m_innerData->m_splatMapMode->set_editable(true);
 }
 
 size_t GDN_TheWorld_Edit::splatMapMode(void)
 {
-	size_t ret = size_t(std::stoi(std::string(m_innerData->m_splatMapMode->get_text().utf8().get_data())));
+	
+	std::string s(m_innerData->m_splatMapMode->get_text().utf8().get_data());
+	size_t ret = 0;
+	if (s.length() > 0)
+		ret = size_t(std::stoi(s));
 	return ret;
 }
+
+void GDN_TheWorld_Edit::resetGroundLayout(void)
+{
+	m_innerData->m_groundLayout->set_text("");
+	m_innerData->m_groundLayout->set_editable(false);
+}
+
 void GDN_TheWorld_Edit::setGroundLayout(std::string layout)
 {
 	m_innerData->m_groundLayout->set_text(layout.c_str());
+	m_innerData->m_groundLayout->set_editable(true);
 }
 
 std::string GDN_TheWorld_Edit::groundLayout(void)
 {
 	return m_innerData->m_groundLayout->get_text().utf8().get_data();
+}
+
+void GDN_TheWorld_Edit::resetTerrainBoxTextures(void)
+{
+	godot::Ref<godot::Texture2D> t;
+	m_innerData->m_lowElevationTex->set_texture(t);
+	m_innerData->m_highElevationTex->set_texture(t);
+	m_innerData->m_dirtTex->set_texture(t);
+	m_innerData->m_rocksTex->set_texture(t);
 }
 
 void GDN_TheWorld_Edit::setMinHeight(float minHeight)
@@ -1668,9 +1936,19 @@ void GDN_TheWorld_Edit::setMinHeight(float minHeight)
 	m_infoLabelTextChanged = true;
 }
 
+void GDN_TheWorld_Edit::resetSelectedTerrainType(void)
+{
+	m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
+	m_innerData->m_terrTypeOptionButton->set_disabled(true);
+	m_innerData->m_generateTerrButton->set_disabled(true);
+	m_infoLabelTextChanged = true;
+}
+
 void GDN_TheWorld_Edit::setSelectedTerrainType(enum class TheWorld_Utils::TerrainEdit::TerrainType terrainType)
 {
 	m_innerData->m_selectedTerrainType = terrainType;
+	m_innerData->m_terrTypeOptionButton->set_disabled(false);
+	m_innerData->m_generateTerrButton->set_disabled(false);
 	m_infoLabelTextChanged = true;
 }
 
@@ -1834,11 +2112,33 @@ void GDN_TheWorld_Edit::setNumQuadrantToUpload(size_t num)
 	m_innerData->m_numQuadrantToUploadLabel->set_text(std::to_string(num).c_str());
 }
 
-void GDN_TheWorld_Edit::setNumQuadrantToBlend(size_t num)
+void GDN_TheWorld_Edit::setQuadrantsToBlend(std::list<TheWorld_Utils::QuadrantPos> quadrantsToBlend)
 {
-	//m_innerData->m_numQuadrantToBlendLabel->set_text(std::to_string(num).c_str());
-	m_innerData->m_numQuadrantToBlend = num;
-	m_infoLabelTextChanged = true;
+	std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadrantsToBlend);
+	size_t numQuadrantsToBlend = m_innerData->m_mapQuadrantsToBlend.size();
+	m_innerData->m_mapQuadrantsToBlend.clear();
+	for (auto& quadrantToBlend : quadrantsToBlend)
+	{
+		m_innerData->m_mapQuadrantsToBlend[quadrantToBlend] = true;
+	}
+	if (numQuadrantsToBlend != m_innerData->m_mapQuadrantsToBlend.size())
+		m_infoLabelTextChanged = true;
+}
+
+void GDN_TheWorld_Edit::getQuadrantsToBlend(std::list<TheWorld_Utils::QuadrantPos>& quadrantsToBlend)
+{
+	quadrantsToBlend.clear();
+	std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadrantsToBlend);
+	for (auto& quadrantToBlendItem : m_innerData->m_mapQuadrantsToBlend)
+	{
+		quadrantsToBlend.push_back(quadrantToBlendItem.first);
+	}
+}
+
+size_t GDN_TheWorld_Edit::getNumQuadrantsToBlend(void)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadrantsToBlend);
+	return m_innerData->m_mapQuadrantsToBlend.size();
 }
 
 void GDN_TheWorld_Edit::setNumQuadrantLocked(size_t num)
@@ -2400,7 +2700,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 
 	if (m_infoLabelTextChanged && (m_viewer->Globals()->status() == TheWorldStatus::worldDeployInProgress || m_viewer->Globals()->status() == TheWorldStatus::minimalWorldDeployed || m_viewer->Globals()->status() == TheWorldStatus::worldDeployed) /* && m_innerData->m_quadTreeHit != nullptr*/)
 	{
-		m_innerData->m_numQuadrantToBlendLabel->set_text(std::to_string(m_innerData->m_numQuadrantToBlend + numQuadsToDelayedBlend()).c_str());
+		m_innerData->m_numQuadrantToBlendLabel->set_text(std::to_string(getNumQuadrantsToBlend() + numQuadsToDelayedBlend()).c_str());
 
 		std::string quadHitOptimizationLevelInfoStr, quadHitColliderInfoStr, quadHitCanContainSeaStr, quadHitTerrainTypeStr, quadHitMinHeightStr, quadHitMaxHeightStr, quadHitEmptyStr, quadHitContinentStr, needToUploadStr, needToSaveStr, DepthStr, quadsFromCameraQuadStr, numVisibleChunksStr;
 		enum class TheWorld_Utils::TerrainEdit::TerrainType quadHitTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
@@ -2487,6 +2787,12 @@ void GDN_TheWorld_Edit::_process(double _delta)
 				+ "To Upload: " + (quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False") + " To Save: " + (m_mapQuadToSave.contains(quadTreeSel->getQuadrant()->getPos()) ? "True" : "False") + " - Empty: " + (quadTreeSel->getQuadrant()->empty() ? "True" : "False");
 		}
 		m_innerData->m_selQuadInfoLabel->set_text(selQuadInfoLabelText.c_str());
+
+		if (m_lastQuadTreeSel != quadTreeSel and quadTreeSel == nullptr)
+		{
+			// DeSelection of quadrant
+			resetPanelsOnQuadrantDeselection();
+		}
 		
 		if (quadSelCanContainSea && !m_innerData->m_selQuadSeaCheckBox->is_pressed())	
 		{
@@ -2539,6 +2845,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	{
 		m_mapModder->debug_process(_delta);
 	}
+
+	m_lastQuadTreeSel = quadTreeSel;
 }
 
 void GDN_TheWorld_Edit::changeTextureAction()
@@ -2715,10 +3023,10 @@ void GDN_TheWorld_Edit::compressServerInfoPanel(void)
 	}
 }
 
-void GDN_TheWorld_Edit::setAllChecked(bool allChecked)
-{
-	m_innerData->m_allCheckBox->set_pressed(allChecked);
-}
+//void GDN_TheWorld_Edit::setAllChecked(bool allChecked)
+//{
+//	m_innerData->m_allCheckBox->set_pressed(allChecked);
+//}
 
 void GDN_TheWorld_Edit::expandTerrainGenerationPanel(void)
 {
@@ -3099,15 +3407,15 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 	}
 }
 
-bool GDN_TheWorld_Edit::hiResCollisionGridEnabled(void)
-{
-	return m_innerData->m_collisonHiResGridCheckBox->is_pressed();
-}
+//bool GDN_TheWorld_Edit::hiResCollisionGridEnabled(void)
+//{
+//	return m_innerData->m_collisonHiResGridCheckBox->is_pressed();
+//}
 
-bool GDN_TheWorld_Edit::lowResCollisionGridEnabled(void)
-{
-	return m_innerData->m_collisonLowResGridCheckBox->is_pressed();
-}
+//bool GDN_TheWorld_Edit::lowResCollisionGridEnabled(void)
+//{
+//	return m_innerData->m_collisonLowResGridCheckBox->is_pressed();
+//}
 
 void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
 {
@@ -3249,20 +3557,20 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 
 		m_innerData->m_pressedViaCode = false;
 	}
-	else if (_objectName == "CollisonHiResGridCheckBox")
-	{
-		if (pressed && m_innerData->m_collisonLowResGridCheckBox->is_pressed())
-			m_innerData->m_collisonLowResGridCheckBox->set_pressed(false);
+	//else if (_objectName == "CollisonHiResGridCheckBox")
+	//{
+	//	if (pressed && m_innerData->m_collisonLowResGridCheckBox->is_pressed())
+	//		m_innerData->m_collisonLowResGridCheckBox->set_pressed(false);
 
-		m_viewer->setColliderNeedUpdateForEveryQuadrant();
-	}
-	else if (_objectName == "CollisonLowResGridCheckBox")
-	{
-		if (pressed && m_innerData->m_collisonHiResGridCheckBox->is_pressed())
-			m_innerData->m_collisonHiResGridCheckBox->set_pressed(false);
+	//	m_viewer->setColliderNeedUpdateForEveryQuadrant();
+	//}
+	//else if (_objectName == "CollisonLowResGridCheckBox")
+	//{
+	//	if (pressed && m_innerData->m_collisonHiResGridCheckBox->is_pressed())
+	//		m_innerData->m_collisonHiResGridCheckBox->set_pressed(false);
 
-		m_viewer->setColliderNeedUpdateForEveryQuadrant();
-	}
+	//	m_viewer->setColliderNeedUpdateForEveryQuadrant();
+	//}
 }
 
 void GDN_TheWorld_Edit::editModeStopAction(void)
@@ -3275,7 +3583,8 @@ void GDN_TheWorld_Edit::editModeStopAction(void)
 
 void GDN_TheWorld_Edit::editModeReloadShader(void)
 {
-	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+	//bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+	bool allCheched = false;
 
 	if (allCheched)
 		m_viewer->ReloadAllShadersRequired(true);
@@ -3472,7 +3781,8 @@ bool GDN_TheWorld_Edit::editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* m
 
 			QuadTree* quadTreeSel = nullptr;
 			TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
-			bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+			//bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+			bool allCheched = true;
 			if (!allCheched && (quadrantSelPos.empty() or !quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer))
 			{
 				m_actionClock.tock();
@@ -3960,22 +4270,25 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->northWestQuadrantData().initialized(false);
 	quadTreeSel->getQuadrant()->southEastQuadrantData().initialized(false);
 
-	// 11. unlock internal datas so that they can be passed to the shader/collider
-	quadTreeSel->getQuadrant()->unlockInternalData();
-
+	// 12. set texture according to editor
+	//strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
+	//strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
+	//strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
+	//strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
+	strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_lowElevationTexName->get_text().utf8().get_data());
+	strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_highElevationTexName->get_text().utf8().get_data());
+	strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_dirtTexName->get_text().utf8().get_data());
+	strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_rocksTexName->get_text().utf8().get_data());
 	setMinHeight(terrainEdit->minHeight);
 	setMaxHeight(terrainEdit->maxHeight);
 	setSelectedTerrainType(terrainEdit->terrainType);
 	//setCanContainSea((terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 
-	// 12. set texture according to editor
-	strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
-	strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
-	strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
-	strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
-
 	// 13. mark quadrant to be blended
 	addQuadToDelayedBlend(quadTreeSel->getQuadrant()->getPos());
+
+	// 11. unlock internal datas so that they can be passed to the shader/collider
+	quadTreeSel->getQuadrant()->unlockInternalData();
 
 	// 14. blend selected quadrant
 	if (holdBlending)
@@ -3987,7 +4300,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		setMessage(godot::String("Heights generated, blending quadrant[s]..."));
 
 		std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
-		getQuadsToDelayedBlend(quadrantPos);
+		addQuadsToDelayedBlend(quadrantPos);
 
 		m_lastElapsed = 0;
 		m_allItems = quadrantPos.size();
@@ -4482,18 +4795,20 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 	QuadTree* quadTreeSel = nullptr;
 	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
-	if (quadrantSelPos.empty() and numQuadsToDelayedBlend() == 0)
+	if (quadrantSelPos.empty() and numQuadsToDelayedBlend() == 0 and getNumQuadrantsToBlend() == 0)
 	{
 		m_actionClock.tock();
 		m_actionInProgress = false;
 		setMessage(godot::String("No quadrant to blend!"), true);
+		terrainDataLocked(false);
 		return;
 	}
 
 	std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
 	if (not quadrantSelPos.empty())
 		quadrantPos.push_back(quadrantSelPos);
-	getQuadsToDelayedBlend(quadrantPos);
+	addQuadsToDelayedBlend(quadrantPos);
+	addQuadrantsToBlend(quadrantPos);
 
 	setMessage(godot::String("Blending quadrants..."));
 
@@ -4520,9 +4835,12 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 		m_elapsedCompleted = partialCount;
 	}
 
-	setMinHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->minHeight);
-	setMaxHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->maxHeight);
-	//setCanContainSea((quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
+	if (quadTreeSel != nullptr)
+	{
+		setMinHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->minHeight);
+		setMaxHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->maxHeight);
+		//setCanContainSea((quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
+	}
 
 	size_t partialCount = m_actionClock.partialDuration().count();
 	m_lastElapsed = partialCount - m_elapsedCompleted;
@@ -4870,7 +5188,7 @@ void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWo
 {
 	if (quadrant != nullptr)
 	{
-		if (overrideBlendingParameters)
+		if (overrideBlendingParameters and amplitudeBlendFactorValid())
 		{
 			quadrant->getTerrainEdit()->extraValues.amplitudeBlendFactor = amplitudeBlendFactor();
 			quadrant->getTerrainEdit()->extraValues.numBlendingCycles = blendingCycles();
@@ -5151,7 +5469,8 @@ void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
 
 	QuadTree* quadTreeSel = nullptr;
 	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
-	bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+	//bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+	bool allCheched = false;
 	if (!allCheched && quadrantSelPos.empty())
 	{
 		m_actionClock.tock();

@@ -5592,14 +5592,14 @@ void Quadrant::loadTerrainDataFromCache(void)
 
 bool Quadrant::canHaveHiResCollisionInfo(void)
 {
-	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
-	if (editModeUIControl != nullptr && editModeUIControl->initialized())
-	{
-		if (editModeUIControl->hiResCollisionGridEnabled())
-			return true;
-		if (editModeUIControl->lowResCollisionGridEnabled())
-			return false;
-	}
+	//GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
+	//if (editModeUIControl != nullptr && editModeUIControl->initialized())
+	//{
+	//	if (editModeUIControl->hiResCollisionGridEnabled())
+	//		return true;
+	//	if (editModeUIControl->lowResCollisionGridEnabled())
+	//		return false;
+	//}
 
 	bool colliderCanHaveHiResCollisionInfo = true;
 

@@ -106,7 +106,6 @@ namespace godot
 				m_elapsedLabel = nullptr;
 				m_elapsed1Label = nullptr;
 				m_message = nullptr;
-				m_allCheckBox = nullptr;
 				m_terrTypeOptionButton = nullptr;
 				m_lookDevOptionButton = nullptr;
 				m_lowElevationTexPanel = nullptr;
@@ -156,10 +155,11 @@ namespace godot
 			godot::Label* m_message;
 			godot::String m_lastMessage;
 
-			godot::CheckBox* m_allCheckBox;
-			godot::CheckBox* m_collisonHiResGridCheckBox = nullptr;
-			godot::CheckBox* m_collisonLowResGridCheckBox = nullptr;
+			//godot::CheckBox* m_allCheckBox = nullptr;
+			//godot::CheckBox* m_collisonHiResGridCheckBox = nullptr;
+			//godot::CheckBox* m_collisonLowResGridCheckBox = nullptr;
 			godot::OptionButton* m_terrTypeOptionButton;
+			godot::Button* m_generateTerrButton = nullptr;
 			godot::CheckButton* m_terrTypeButton = nullptr;
 			godot::OptionButton* m_lookDevOptionButton;
 
@@ -265,7 +265,8 @@ namespace godot
 			std::string m_mouseQuadHitPosStr;
 			std::string m_mouseQuadSelStr;
 			std::string m_mouseQuadSelPosStr;
-			size_t m_numQuadrantToBlend = 0;
+			std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadrantsToBlend;
+			std::recursive_mutex m_mtxMapQuadrantsToBlend;
 
 			std::unique_ptr<SelTexturePanel> m_selTexturePanel;
 
@@ -330,7 +331,7 @@ namespace godot
 			return m_initialized;
 		}
 		godot::Window* initSelTexturePanel(void);
-		void setAllChecked(bool allChecked);
+		//void setAllChecked(bool allChecked);
 		void expandServerInfoPanel(void);
 		void compressServerInfoPanel(void);
 		void expandTerrainGenerationPanel(void);
@@ -351,8 +352,8 @@ namespace godot
 		bool checkBlend(void);
 		bool autoBlendPermitted(void);
 		void editModeBlendAction(void);
-		bool hiResCollisionGridEnabled(void);
-		bool lowResCollisionGridEnabled(void);
+		//bool hiResCollisionGridEnabled(void);
+		//bool lowResCollisionGridEnabled(void);
 		void editModeResetNormalsSplatmapAction(void);
 		void editModeSaveAction(void);
 		void editModeUploadAction(void);
@@ -389,44 +390,65 @@ namespace godot
 		void setUIAcceptFocus(bool b);
 		bool UIAcceptingFocus(void) const;
 
+		void resetPanelsOnQuadrantDeselection(void);
+		
+		void resetSeed(void);
 		void setSeed(int seed);
 		int seed(void);
+		void resetFrequency(void);
 		void setFrequency(float frequency);
 		float frequency(void);
+		void resetOctaves(void);
 		void setOctaves(int octaves);
 		int octaves(void);
+		void resetLacunarity(void);
 		void setLacunarity(float lacunarity);
 		float lacunarity(void);
+		void resetGain(void);
 		void setGain(float gain);
 		float gain(void);
+		void resetWeightedStrength(void);
 		void setWeightedStrength(float weightedStrength);
 		float weightedStrength(void);
+		void resetPingPongStrength(void);
 		void setPingPongStrength(float pingPongStrength);
 		float pingPongStrength(void);
+		bool amplitudeBlendFactorValid(void);
+		void resetAmplitudeBlendFactor(void);
 		void setAmplitudeBlendFactor(float amplitudeBlendFactor);
 		float amplitudeBlendFactor(void);
+		void resetBlendingCycles(void);
 		void setBlendingCycles(size_t blendingCycles);
 		size_t blendingCycles(void);
+		void resetBlendingBendingFactor(void);
 		void setBlendingBendingFactor(float blendingBendingFactor);
 		float blendingBendingFactor(void);
+		void resetMinRandomBendingExtension(void);
 		void setMinRandomBendingExtension(float minRandomBendingExtension);
 		float minRandomBendingExtension(void);
+		void resetMaxRandomBendingExtension(void);
 		void setMaxRandomBendingExtension(float maxRandomBendingExtension);
 		float maxRandomBendingExtension(void);
+		void resetAmplitude(void);
 		void setAmplitude(unsigned int amplitude);
 		unsigned int amplitude(void);
+		void resetScaleFactor(void);
 		void setScaleFactor(float scaleFactor);
 		float scaleFactor(void);
+		void resetIgnoreDesideredMinHeight(void);
 		void setIgnoreDesideredMinHeight(bool ignoreDesideredMinHeight);
 		bool ignoreDesideredMinHeight(void);
+		void resetDesideredMinHeight(void);
 		void setDesideredMinHeight(float desideredMinHeight);
 		float desideredMinHeight(void);
+		void resetPostGenerateElevation(void);
 		void setPostGenerateElevation(float postGenerateElevation);
 		float postGenerateElevation(void);
 		void setMinHeight(float minHeight);
 		//float minHeight(void);
 		void setMaxHeight(float maxHeight);
 		//float maxHeight(void);
+		void resetSelectedTerrainType(void);
 		void setSelectedTerrainType(enum class TheWorld_Utils::TerrainEdit::TerrainType terrainType);
 		//void setCanContainSea(bool canContainSea);
 		void setElapsed(size_t elapsed, bool onGoing);
@@ -434,20 +456,28 @@ namespace godot
 		void setCounter(size_t curr, size_t all);
 		void setNote1(size_t num);
 		void setNote1(std::string msg);
+		void resetSlopeVerticalFactor(void);
 		void setSlopeVerticalFactor(float value);
 		float slopeVerticalFactor(void);
+		void resetSlopeFlatFactor(void);
 		void setSlopeFlatFactor(float value);
 		float slopeFlatFactor(void);
+		void resetDirtOnRocksFactor(void);
 		void setDirtOnRocksFactor(float value);
 		float dirtOnRocksFactor(void);
+		void resetHighElevationFactor(void);
 		void setHighElevationFactor(float value);
 		float highElevationFactor(void);
+		void resetLowElevationFactor(void);
 		void setLowElevationFactor(float value);
 		float lowElevationFactor(void);
+		void resetSplatMapMode(void);
 		void setSplatMapMode(size_t value);
 		size_t splatMapMode(void);
+		void resetGroundLayout(void);
 		void setGroundLayout(std::string layout);
 		std::string groundLayout(void);
+		void resetTerrainBoxTextures(void);
 
 		bool actionInProgress(void) const
 		{
@@ -464,8 +494,10 @@ namespace godot
 
 		void setNumQuadrantToSave(size_t num);
 		void setNumQuadrantToUpload(size_t num);
-		void setNumQuadrantToBlend(size_t num);
+		void setQuadrantsToBlend(std::list<TheWorld_Utils::QuadrantPos> quadrantsToBlend);
 		void setNumQuadrantLocked(size_t num);
+		void getQuadrantsToBlend(std::list<TheWorld_Utils::QuadrantPos>& quadrantsToBlend);
+		size_t getNumQuadrantsToBlend(void);
 
 		void refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numLocked);
 
@@ -511,7 +543,21 @@ namespace godot
 			return m_mapQuadToDelayedBlend.begin()->first;
 		}
 
-		void getQuadsToDelayedBlend(std::vector<TheWorld_Utils::QuadrantPos>& quadsToBlend)
+		void addQuadrantsToBlend(std::vector<TheWorld_Utils::QuadrantPos>& quadsToBlend)
+		{
+			std::map<TheWorld_Utils::QuadrantPos, bool> _quadsToBlend;
+			for (auto& item : quadsToBlend)
+				_quadsToBlend[item] = true;
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadrantsToBlend);
+			for (auto& item : m_innerData->m_mapQuadrantsToBlend)
+				_quadsToBlend[item.first] = true;
+
+			quadsToBlend.clear();
+			for (auto& item : _quadsToBlend)
+				quadsToBlend.push_back(item.first);
+		}
+
+		void addQuadsToDelayedBlend(std::vector<TheWorld_Utils::QuadrantPos>& quadsToBlend)
 		{
 			std::map<TheWorld_Utils::QuadrantPos, bool> _quadsToBlend;
 			for (auto& item : quadsToBlend)
@@ -683,6 +729,8 @@ namespace godot
 		bool m_scrollPanelsNeedResize;
 		
 		bool m_infoLabelTextChanged;
+
+		QuadTree* m_lastQuadTreeSel = nullptr;
 		// filler
 		//char filler[72];	// 72 OK (73 no) oppure 32 + 1 std::string (sembra che occupi 40 byte)
 		// filler

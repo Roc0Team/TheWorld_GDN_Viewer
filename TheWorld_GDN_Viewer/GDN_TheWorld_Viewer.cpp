@@ -6933,7 +6933,7 @@ void GDN_TheWorld_Viewer::_doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& po
 
 			editModeUIControl->setTerrainEditValues(*terrainEdit, quadTreeSel->getQuadrant()->getPos());
 
-			editModeUIControl->setAllChecked(false);
+			//editModeUIControl->setAllChecked(false);
 		}
 	}
 }
@@ -7578,75 +7578,118 @@ void GDN_TheWorld_Viewer::printKeyboardMapping(void)
 	Globals()->print("");
 	Globals()->print("KEYBOARD MAPPING");
 	Globals()->print("");
-	Globals()->print("      TOGGLE MAP VIEW					==>	M");
-	Globals()->print("      DROP PLAYER						==>	P");
-	Globals()->print("      CTRL-1/0						==>	SAVE VIEWPOINT 1/0");
-	Globals()->print("      ALT-1/0							==>	LOAD VIEWPOINT 1/0");
-	Globals()->print("      TOGGLE DEBUG STATS				==>	CTRL-ALT-D");
-	Globals()->print("      TOGGLE EDIT						==>	ALT-E");
-	Globals()->print("      TOGGLE TRACK MOUSE				==>	ALT-T");
-	Globals()->print("      DUMP							==>	ALT-D");
-	Globals()->print("      TOGGLE FULL SCREEN				==>	ALT-ENTER");
-	Globals()->print("      PRINT SCREEN					==>	ALT-C");
+	Globals()->print("      TOGGLE MAP VIEW                 ==> M");
+	Globals()->print("      DROP PLAYER                     ==> P");
+	Globals()->print("      CTRL-1/0                        ==> SAVE VIEWPOINT 1/0");
+	Globals()->print("      ALT-1/0                         ==> LOAD VIEWPOINT 1/0");
+	Globals()->print("      TOGGLE DEBUG STATS              ==> CTRL-ALT-D");
+	Globals()->print("      TOGGLE EDIT                     ==> ALT-E");
+	Globals()->print("      TOGGLE TRACK MOUSE              ==> ALT-T");
+	Globals()->print("      DUMP                            ==> ALT-D");
+	Globals()->print("      TOGGLE FULL SCREEN              ==> ALT-ENTER");
+	Globals()->print("      PRINT SCREEN                    ==> ALT-C");
 	Globals()->print("");
-	Globals()->print("      TOGGLE DEBUG VISIBILITY			==>	F1");
-	Globals()->print("      ROTATE CHUNK DEBUG MODE			==>	F2");
-	Globals()->print("      ROTATE DRAWING MODE				==>	F3");
-	Globals()->print("      REFRESH VIEW					==>	F4");
-	Globals()->print("      TOGGLE WIREFRAME				==>	F5");
+	Globals()->print("      TOGGLE DEBUG VISIBILITY         ==> F1");
+	Globals()->print("      ROTATE CHUNK DEBUG MODE         ==> F2");
+	Globals()->print("      ROTATE DRAWING MODE             ==> F3");
+	Globals()->print("      REFRESH VIEW                    ==> F4");
+	Globals()->print("      TOGGLE WIREFRAME                ==> F5");
 	Globals()->print("");
-	Globals()->print("      EXIT							==>	ESC");
+	Globals()->print("      EXIT                            ==> ESC");
 	Globals()->print("");
 	Globals()->print("   WORLD MODE");
 	Globals()->print("");
-	Globals()->print("      LEFT							==> A	MOUSE BUTTON LEFT");
-	Globals()->print("      RIGHT							==> D	MOUSE BUTTON LEFT");
-	Globals()->print("      FORWARD							==>	W	MOUSE BUTTON MID	MOUSE WHEEL UP (WITH ALT MOVE ON MAP, WITHOUT MOVE FORWARD IN THE DIRECTION OF CAMERA)");
-	Globals()->print("      BACKWARD						==>	S	MOUSE BUTTON MID	MOUSE WHEEL DOWN (WITH ALT MOVE ON MAP, WITHOUT MOVE BACKWARD IN THE DIRECTION OF CAMERA)");
-	Globals()->print("      UP								==>	Q");
-	Globals()->print("      DOWN							==>	E");
+	Globals()->print("      LEFT                            ==> A   MOUSE BUTTON LEFT");
+	Globals()->print("      RIGHT                           ==> D   MOUSE BUTTON LEFT");
+	Globals()->print("      FORWARD                         ==> W   MOUSE BUTTON MID / MOUSE WHEEL UP (WITH ALT MOVE ON MAP, WITHOUT MOVE FORWARD IN THE DIRECTION OF CAMERA)");
+	Globals()->print("      BACKWARD                        ==> S   MOUSE BUTTON MID / MOUSE WHEEL DOWN (WITH ALT MOVE ON MAP, WITHOUT MOVE BACKWARD IN THE DIRECTION OF CAMERA)");
+	Globals()->print("      UP                              ==> Q");
+	Globals()->print("      DOWN                            ==> E");
 	Globals()->print("");
-	Globals()->print("      SHIFT							==>	LOW MOVEMENT");
-	Globals()->print("      CTRL							==> FAST MOVEMENT");
+	Globals()->print("      SHIFT                           ==> LOW MOVEMENT");
+	Globals()->print("      CTRL                            ==> FAST MOVEMENT");
 	Globals()->print("");
-	Globals()->print("      ROTATE CAMERA					==>	MOUSE BUTTON RIGHT");
-	Globals()->print("      SHIFT ORI CAMERA				==>	MOUSE BUTTON LEFT");
-	Globals()->print("      SHIFT VERT CAMERA				==>	MOUSE BUTTON MID");
+	Globals()->print("      ROTATE CAMERA                   ==> MOUSE BUTTON RIGHT");
+	Globals()->print("      SHIFT ORI CAMERA                ==> MOUSE BUTTON LEFT");
+	Globals()->print("      SHIFT VERT CAMERA               ==> MOUSE BUTTON MID");
 	Globals()->print("");
-	Globals()->print("      TOGGLE TRACK PLAYER				==>	SHIFT-F");
-	Globals()->print("      TOGGLE BACK MIRROR				==>	B");
-	Globals()->print("      TOGGLE SATELLITE VIEW			==>	Y");
-	Globals()->print("");
-	Globals()->print("      SHOW MOUSE HIT POSITION SELECTED");
-	Globals()->print("");
-	Globals()->print("         SET INITIAL POS FOR DISTANCE CALC	==> MOUSE DOUBLE BUTTON LEFT");
-	Globals()->print("         CANCEL DISTANCE CALC				==> MOUSE DOUBLE BUTTON RIGHT");
-	Globals()->print("");
-	Globals()->print("   MAP MODE");
-	Globals()->print("");
-	Globals()->print("      LEFT							==> A");
-	Globals()->print("      RIGHT							==> D");
-	Globals()->print("      FORWARD							==>	W");
-	Globals()->print("      BACKWARD						==>	S");
-	Globals()->print("");
-	Globals()->print("      CTRL							==> FAST MOVEMENT");
-	Globals()->print("");
-	Globals()->print("      MOUSE BUTTON LEFT				==> DRAG MAP");
-	Globals()->print("");
-	Globals()->print("      TOGGLE MAP GRID					==>	ALT-G");
-	Globals()->print("");
-	Globals()->print("      EDIT MODE DISABLED ");
-	Globals()->print("         MOUSE DOUBLE LEFT CLICK		==> move camera on selected point (same direction) and switch to world mode");
+	Globals()->print("      TOGGLE TRACK PLAYER             ==> SHIFT-F");
+	Globals()->print("      TOGGLE BACK MIRROR              ==> B");
+	Globals()->print("      TOGGLE SATELLITE VIEW           ==> Y");
 	Globals()->print("");
 	Globals()->print("      EDIT MODE ENABLED");
 	Globals()->print("");
-	Globals()->print("         MOUSE DOUBLE LEFT CLICK		==> if pointed quadrant is already selected deselect it saving parameters from editor panel otherwise select pointed quadrant and activate the editing ");
+	Globals()->print("         SAVE                         ==> PERSIST LOCALLY ALL EDITED QUADRANTS");
+	Globals()->print("         UPLOAD                       ==> UPLOAD (UPLOAD IMPLIES AUTOMATIC SAVE) ALL EDITED QUADRANTS");
+	Globals()->print("                                          UPLOAD OPERATION START AN AUTOMATIC REFRESH OF THE MAP");
+	Globals()->print("         RELOAD SHADER                ==> RELOAD THE SHADER OF THE SELECTED QUADRANT");
+	Globals()->print("         RESET NORM/TEX               ==> RESET THE BORMALS AND THE TEXTURE OF THE SELECTED QUADRANT FORCING A REGENERATION AND A REPAINT");
+	Globals()->print("");
+	Globals()->print("");
+	Globals()->print("         SELECT/DESELECT QUADRANT            ==> ALT-ENTER (WARNING: IT IS MIRRORED IN MAP MODE AS FOR \"MOUSE DOUBLE LEFT CLICK\")");
+	Globals()->print("");
+	Globals()->print("         SHOW POSITION SELECTED");
+	Globals()->print("");
+	Globals()->print("            SET INITIAL POS FOR DISTANCE CALC   ==> MOUSE DOUBLE BUTTON LEFT");
+	Globals()->print("            CANCEL DISTANCE CALC                ==> MOUSE DOUBLE BUTTON RIGHT");
+	Globals()->print("");
+	Globals()->print("         HIGHLIGHT HIT QUAD                     ==> CHECK BOX IN EDIT MODE: HIGHLIGHT THE QUAD HIT BY THE MOUSE");
+	Globals()->print("");
+	Globals()->print("         SHOW CHUNKS                            ==> CHECK BOX IN EDIT MODE: SHOW CHUNK COLORED ACCORDING TO LOD: FROM MAXIMUM DETAIL OF THE MESH TO MINIMUM");
+	Globals()->print("                                                        YELLOW APPRICOT");
+	Globals()->print("                                                        AQUAMARINE GREEN");
+	Globals()->print("                                                        GREEN");
+	Globals()->print("                                                        CYAN");
+	Globals()->print("                                                        RED SALMON");
+	Globals()->print("                                                        BLUE");
+	Globals()->print("                                                        PINK AMARANTH");
+	Globals()->print("                                                        DARKSEA GREEN");
+	Globals()->print("                                                        RED");
+	Globals()->print("");
+	Globals()->print("         SHOW WIREFRAME                         ==> CHECK BOX IN EDIT MODE: QUADRANT BORDERS ARE BLACK BOLDED, LINES CROSS POINTS OF THE REAL GRID AT CURRENT LEVEL OF OPTIMIZATION");
+	Globals()->print("");
+	Globals()->print("         GRID ON                                ==> CHECK BOX IN EDIT MODE: DRAW A GRID FOR EVERY VIRTUAL POINT OF HE GRID NOT TAKING INTO ACCOUNT OPTIMIZATION LEVEL");
+	Globals()->print("");
+	Globals()->print("         CAST RAY                               ==> CHECK BOX IN EDIT MODE: CAST A RAY FROM THE CAMERA TO THE POINT IN WHICH THE MOUSE COLLIDES WITH THE TERRAIN");
+	Globals()->print("");
+	Globals()->print("         TERRAIN GENERATION:");
+	Globals()->print("            1) select a terrain quadrant moving the mouse over the terrain anc click \"Alt-Enter\"");
+	Globals()->print("            2) in the section \"TERRAIN GENERATION\" select the terrain type: the generation start instantly and the blending is automatic for all the generated quadrants. If the ctrl is pressed when the selection");
+	Globals()->print("               is made the blending is suspended and can be made successively usign the \"BLEND\" button in the \"TERRAIN BLENDING\" section. Eventually the parameters in both sections \"TERRAIN GENERATION\" and \"TERRAIN BLENDING\"");
+	Globals()->print("               can be modified from the current values (last used from previous generation of the quadrant or default values if new/empty quadrant) to generate/blend accordingly");
+	Globals()->print("");
+	Globals()->print("         BLENDING:");
+	Globals()->print("            - you can do a check to see which quadrants need blending using the relative check box in the \"TERRAIN BLENDING\" section: the red lines show the unblended sides");
+	Globals()->print("            - you can blen all the quadrants which have been newly generated plus the quadrants needing blending (if you highlight them with the check box \"Check Blend\") using the \"BLEND\" button");
+	Globals()->print("");
+	Globals()->print("   MAP MODE");
+	Globals()->print("");
+	Globals()->print("      WARNING: THE MAP IS AUTOMATICALLY REFRESHED WHEN ALL EDITED QUADRANTS ARE UPLOADED");
+	Globals()->print("");
+	Globals()->print("      LEFT                            ==> A");
+	Globals()->print("      RIGHT                           ==> D");
+	Globals()->print("      FORWARD                         ==> W");
+	Globals()->print("      BACKWARD                        ==> S");
+	Globals()->print("");
+	Globals()->print("      CTRL                            ==> FAST MOVEMENT");
+	Globals()->print("");
+	Globals()->print("      MOUSE BUTTON LEFT               ==> DRAG MAP");
+	Globals()->print("");
+	Globals()->print("      TOGGLE MAP GRID                 ==> ALT-G");
+	Globals()->print("");
+	Globals()->print("      EDIT MODE DISABLED ");
+	Globals()->print("         MOUSE DOUBLE LEFT CLICK      ==> move camera on selected point (same direction) and switch to world mode");
+	Globals()->print("");
+	Globals()->print("      EDIT MODE ENABLED");
+	Globals()->print("");
+	Globals()->print("         MOUSE DOUBLE LEFT CLICK      ==> if the pointed quadrant is already selected deselect it saving parameters from editor panel otherwise select pointed quadrant and activate the editing ");
 	Globals()->print("                                          of that quadrant setting editor panel parameter with its actual values, if it is not actually in world map editor panel parameters are used");
-	Globals()->print("         MOUSE DOUBLE RIGHT CLICK		==> if a quadrant is actually selected deselect it without modifying its parameters regardless which quadrant is pointed");
-	Globals()->print("         MOUSE LEFT CLICK				==> if exist an override for pointed quadrant its parameters are displayed in editor panel");
-	Globals()->print("         MOUSE RIGHT CLICK			==> if quadrant editing is active and no quadrant is selected do next things:");
-	Globals()->print("											   if pointed quadrant has an override remove it");
-	Globals()->print("											   if pointed quadrant does not have an override insert one using editor panel parameters");
+	Globals()->print("         MOUSE DOUBLE RIGHT CLICK     ==> if a quadrant is actually selected deselect it without modifying its parameters regardless which quadrant is pointed");
+	Globals()->print("         MOUSE LEFT CLICK             ==> if exist an override for pointed quadrant its parameters are displayed in editor panel");
+	Globals()->print("         MOUSE RIGHT CLICK            ==> if \"quadrant editing\" is active and no quadrant is selected do next things:");
+	Globals()->print("                                          if the pointed quadrant has an override remove it");
+	Globals()->print("                                          if the pointed quadrant does not have an override insert one using editor panel terrain type selected");
+	Globals()->print("         \"UPLOAD BUTTON\"              ==> upload edited quadrant and start server generation of terrain data then generated datas are streamed to the client\"");
 	Globals()->print("");
 	Globals()->print("===========================================================================");
 	Globals()->print("");
@@ -9478,7 +9521,7 @@ void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 			}
 		}
 
-		editModeUIControl->setAllChecked(false);
+		//editModeUIControl->setAllChecked(false);
 		editModeUIControl->expandTerrainGenerationPanel();
 	}
 }
@@ -9608,8 +9651,8 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	
 	GDN_TheWorld_Globals* globals = Globals();
 
-	//bool blendDone = false;
-	size_t numBlendNeeded = 0;
+	std::list<TheWorld_Utils::QuadrantPos> quadrantsToBlend;
+	
 	for (auto& item : m_worldQuadrantsMap)
 	{
 		Quadrant* quadrant = item.second->getQuadrant();
@@ -9637,7 +9680,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 
 		quadrant->process_checkBlendNeeded(_delta);
 		if (quadrant->blendNeeded())
-			numBlendNeeded++;
+			quadrantsToBlend.push_back(quadrant->getPos());;
 
 		if (item.second->statusLoadTerrainDataFromCacheNeeded())
 		{
@@ -9709,10 +9752,12 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 		}
 	}
 
-	//GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 	if (editModeUIControl != nullptr and editModeUIControl->initialized())
-		editModeUIControl->setNumQuadrantToBlend(numBlendNeeded);
+		editModeUIControl->setQuadrantsToBlend(quadrantsToBlend);
 
+	//size_t numBlendNeeded = 0;
+	//if (editModeUIControl != nullptr and editModeUIControl->initialized())
+	//	numBlendNeeded = editModeUIControl->getNumQuadrantsToBlend();
 	//if (numBlendNeeded > 0)
 	//	PLOG_DEBUG << "numBlendNeeded=" << numBlendNeeded;
 }

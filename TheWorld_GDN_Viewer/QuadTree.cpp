@@ -2997,16 +2997,16 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 					}
 					v = jsonTextureSubTypeObject["base-scale-ao"];
 					if (not v.isNull())
-						textureEntry.baseScaleAO = float(v.asDouble()) / 16.0f;
+						textureEntry.baseScaleAO = float(v.asDouble()) / 255.0f;
 					v = jsonTextureSubTypeObject["base-scale-normal"];
 					if (not v.isNull())
-						textureEntry.baseScaleNormal = float(v.asDouble()) / 16.0f;
+						textureEntry.baseScaleNormal = float(v.asDouble()) / 255.0f;
 					v = jsonTextureSubTypeObject["base-scale-roughness"];
 					if (not v.isNull())
-						textureEntry.baseScaleRoughness = float(v.asDouble()) / 16.0f;
+						textureEntry.baseScaleRoughness = float(v.asDouble()) / 255.0f;
 					v = jsonTextureSubTypeObject["base-scale-uv"];
 					if (not v.isNull())
-						textureEntry.baseScaleUV = float(v.asDouble()) / 16.0f;
+						textureEntry.baseScaleUV = float(v.asDouble()) / 255.0f;
 					textures[textureKey] = textureEntry;
 				}
 			}
@@ -3068,14 +3068,22 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 	my_assert(e == godot::Error::OK);
 	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY, normalRoughnessTexture2DArray);
 
+	if (viewer != nullptr)
+		viewer->Globals()->debugPrint((std::string("Loaded all ground_textures (") + std::to_string(albedoDisplImageArray.size()) + ")").c_str());
+
 	// sending textures to shader: GLOBAL_SHADER_PARAM_BASE_VALUES_ARRAY
-	godot::Ref<godot::Image> baseValuesImage = godot::Image::create_empty(idx, 2, false, godot::Image::Format::FORMAT_RGBA8);
+	//godot::Ref<godot::Image> baseValuesImage = godot::Image::create_empty(idx, 2, false, godot::Image::Format::FORMAT_RGBA8);
+	godot::Ref<godot::Image> baseValuesImage = godot::Image::create_empty(idx, 2, false, godot::Image::Format::FORMAT_RGBAF);
 	for (int x = 0; x < idx; x++)
 	{
 		godot::Color c0 = baseValues0Array[x];
 		godot::Color c1 = baseValues1Array[x];
 		baseValuesImage->set_pixel(x, 0, c0);
+		if (viewer != nullptr)
+			viewer->Globals()->debugPrint((std::string("BaseValueImage Row 0, Col ") + std::to_string(x) + " R=" + std::to_string(c0.r) + " G=" + std::to_string(c0.g) + " B=" + std::to_string(c0.b) + " A=" + std::to_string(c0.a)).c_str());
 		baseValuesImage->set_pixel(x, 1, c1);
+		if (viewer != nullptr)
+			viewer->Globals()->debugPrint((std::string("BaseValueImage Row 1, Col ") + std::to_string(x) + " R=" + std::to_string(c1.r) + " G=" + std::to_string(c1.g) + " B=" + std::to_string(c1.b) + " A=" + std::to_string(c1.a)).c_str());
 	}
 	//baseValuesImage->save_png("C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\a.png");	// DEBUG
 	godot::Ref<godot::Texture2D> tex = godot::ImageTexture::create_from_image(baseValuesImage);

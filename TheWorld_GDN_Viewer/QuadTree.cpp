@@ -3079,13 +3079,13 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 		godot::Color c0 = baseValues0Array[x];
 		godot::Color c1 = baseValues1Array[x];
 		baseValuesImage->set_pixel(x, 0, c0);
-		if (viewer != nullptr)
-			viewer->Globals()->debugPrint((std::string("BaseValueImage Row 0, Col ") + std::to_string(x) + " R=" + std::to_string(c0.r) + " G=" + std::to_string(c0.g) + " B=" + std::to_string(c0.b) + " A=" + std::to_string(c0.a)).c_str());
+		//if (viewer != nullptr)	// DEBUG
+		//	viewer->Globals()->debugPrint((std::string("BaseValueImage Row 0, Col ") + std::to_string(x) + " R=" + std::to_string(c0.r) + " G=" + std::to_string(c0.g) + " B=" + std::to_string(c0.b) + " A=" + std::to_string(c0.a)).c_str());	// DEBUG
 		baseValuesImage->set_pixel(x, 1, c1);
-		if (viewer != nullptr)
-			viewer->Globals()->debugPrint((std::string("BaseValueImage Row 1, Col ") + std::to_string(x) + " R=" + std::to_string(c1.r) + " G=" + std::to_string(c1.g) + " B=" + std::to_string(c1.b) + " A=" + std::to_string(c1.a)).c_str());
+		//if (viewer != nullptr)	// DEBUG
+		//	viewer->Globals()->debugPrint((std::string("BaseValueImage Row 1, Col ") + std::to_string(x) + " R=" + std::to_string(c1.r) + " G=" + std::to_string(c1.g) + " B=" + std::to_string(c1.b) + " A=" + std::to_string(c1.a)).c_str());	// DEBUG
 	}
-	//baseValuesImage->save_png("C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\a.png");	// DEBUG
+	//baseValuesImage->save_exr("C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\a.exr");		// DEBUG - WARNING: BEFORE SAVING PNG/WEBP/JPG GODOT TRANSFORM FORMAT_RGBAF to FORMAT_RGB8 SO THE SAVED IMAGE HAS LESS RESOLUTION, ONLY EXR IS SAVED WITH THE CORRECT RESOLUTION
 	godot::Ref<godot::Texture2D> tex = godot::ImageTexture::create_from_image(baseValuesImage);
 	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_BASE_VALUES_ARRAY, tex);
 

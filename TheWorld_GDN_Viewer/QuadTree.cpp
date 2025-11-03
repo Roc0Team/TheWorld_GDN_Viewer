@@ -5764,6 +5764,18 @@ void Quadrant::getSplatmapBorderRow(std::chrono::system_clock::time_point& lastB
 	}
 }
 
+godot::Color Quadrant::getLowerRightCornerSplatmapTexel(void)
+{
+	TheWorld_Utils::MemoryBuffer& splatmapBuffer = getSplatmapBuffer(false);
+	size_t numVerticesPerSize = m_quadrantPos.getNumVerticesPerSize();
+	if (splatmapBuffer.size() != (numVerticesPerSize * numVerticesPerSize * sizeof(struct TheWorld_Utils::_RGBA)))
+		return godot::Color(0.0, 0.0, 0.0, 0.0);
+	
+	struct TheWorld_Utils::_RGBA* rgba = splatmapBuffer.at_ptr<TheWorld_Utils::_RGBA>(numVerticesPerSize - 1, numVerticesPerSize - 1, numVerticesPerSize);
+	godot::Color c(float(rgba->r) / 255, float(rgba->g) / 255, float(rgba->b) / 255, float(rgba->a) / 255);
+	return c;
+}
+
 godot::Vector4 Quadrant::quadrantTextureLayers(void) const
 {
 	godot::Vector4 v(-1, -1, -1, -1);
@@ -6399,6 +6411,9 @@ void Quadrant::NeighbourQuadrantData::init(Quadrant* owningQuadrant, Quadrant* n
 	if (requiredBorderRow != TheWorld_Utils::QuadrantPos::DirectionSlot::Center)
 		neighbourQuadrant->getSplatmapBorderRow(m_lastBorderRefreshTs, m_splatmapBorderRow, requiredBorderRow);
 
+	if (neighbourQuadrantDir == TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus)
+		m_upperLeftCornerSplatmapTexel = neighbourQuadrant->getLowerRightCornerSplatmapTexel();
+	
 	m_textureLayout = neighbourQuadrant->textureLayout();
 	m_groundTextureLayers = neighbourQuadrant->quadrantTextureLayers();
 

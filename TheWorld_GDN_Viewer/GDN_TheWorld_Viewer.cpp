@@ -12570,6 +12570,7 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 			{
 				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
 				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, northWestQuadrantData.groundTextureLayers());
+				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL, northWestQuadrantData.getUpperLeftCornerSplatmapTexel());
 				northWestQuadrantData.shaderUpdated(true);
 			}
 

@@ -173,6 +173,10 @@ namespace godot
 			{
 				return m_groundTextureLayers;
 			}
+			godot::Color getUpperLeftCornerSplatmapTexel(void)
+			{
+				return m_upperLeftCornerSplatmapTexel;
+			}
 			void init(Quadrant* owningQuadrant, Quadrant* neighbourQuadrant, TheWorld_Utils::QuadrantPos::DirectionSlot neighbourQuadrantDir, TheWorld_Utils::QuadrantPos& owningQuadrantPos);
 
 			godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(void);
@@ -182,6 +186,7 @@ namespace godot
 			bool m_initialized = false;
 			std::string m_textureLayout;
 			godot::Vector4 m_groundTextureLayers;
+			godot::Color m_upperLeftCornerSplatmapTexel;
 			bool m_shaderUpdated = false;
 			TheWorld_Utils::MemoryBuffer m_splatmapBorderRow;
 			std::chrono::system_clock::time_point m_lastBorderRefreshTs;
@@ -617,6 +622,7 @@ namespace godot
 		godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
 		godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
 		void getSplatmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& splatmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
+		godot::Color getLowerRightCornerSplatmapTexel(void);
 		godot::Vector4 quadrantTextureLayers(void) const;
 		NeighbourQuadrantData& northQuadrantData(void)
 		{
@@ -897,6 +903,7 @@ namespace godot
 #define SHADER_PARAM_NORTH_WEST_GROUND_LAYERS		"u_north_west_ground_layers"
 //#define SHADER_PARAM_SOUTH_EAST_GROUND_LAYERS		"u_south_east_ground_layers"
 
+#define SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL	"u_north_west_corner_splatmap_texel"
 #define SHADER_PARAM_NORTH_BORDER_SPLATMAP			"u_north_border_splatmap"
 #define SHADER_PARAM_WEST_BORDER_SPLATMAP			"u_west_border_splatmap"
 

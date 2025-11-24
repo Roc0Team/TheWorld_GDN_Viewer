@@ -693,7 +693,7 @@ bool GDN_TheWorld_Map::MapTextureRect::renderInternalTexture(void)
 	if (not internalImageDataValid())
 		return rendered;
 	
-	godot::Ref<godot::Image> rectImage = godot::Image::create_from_data(int32_t(m_mapTextureRectPos.getGlobalSize()), int32_t(m_mapTextureRectPos.getGlobalSize()), false, godot::Image::Format::FORMAT_RGB8, m_internalImageData);
+	godot::Ref<godot::Image> rectImage = godot::Image::create_from_data(int32_t(m_mapTextureRectPos.getGlobalSize()), int32_t(m_mapTextureRectPos.getGlobalSize()), false, godot::Image::Format::FORMAT_RGBA8, m_internalImageData);
 	saveRectImage(rectImage, m_imageTime);
 	renderImage(rectImage);
 

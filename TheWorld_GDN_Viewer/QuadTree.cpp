@@ -3308,7 +3308,7 @@ godot::Ref<godot::Image> ShaderTerrainData::createNormalmapImage(TheWorld_Utils:
 	if (normalsBufferSize == 0)
 	{
 		godot::Ref<godot::Image> image = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8);
-		image->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
+		image->fill(godot::Color(0.5f, 0.5f, 1.0f, 1.0f));	// packed normal vertical pointing up
 		return image;
 	}
 	else

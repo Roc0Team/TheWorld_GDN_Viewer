@@ -652,6 +652,9 @@ namespace godot
 		{
 			if (method == THEWORLD_CLIENTSERVER_METHOD_SERVER_INITIALIZATION)
 			{
+				if (reply.error())
+					return;
+				
 				if (reply.getNumReplyParams() != 4)
 				{
 					std::string m = std::string("Server::initializeSession: error reply params ");
@@ -721,11 +724,13 @@ namespace godot
 			}
 			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_SETLOGMAXSEVERITY)
 			{
+				//setStatus(TheWorldStatus::error);
+				errorPrint((std::string("GDN_TheWorld_Globals::replyFromServer: unknow method ") + method).c_str());
 				method = "to remove";
 			}
 			else
 			{
-				setStatus(TheWorldStatus::error);
+				//setStatus(TheWorldStatus::error);
 				errorPrint((std::string("GDN_TheWorld_Globals::replyFromServer: unknow method ") + method).c_str());
 			}
 		}

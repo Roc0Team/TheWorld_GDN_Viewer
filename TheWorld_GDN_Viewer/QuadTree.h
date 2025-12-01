@@ -724,8 +724,9 @@ namespace godot
 		GDN_TheWorld_Viewer* m_viewer;
 		QuadTree* m_quadTree;
 		static const std::string c_defaultTextureLayout;
+		static const std::string c_defaultContinentName;
 		std::string m_textureLayout = c_defaultTextureLayout;
-		std::string m_continentName;
+		std::string m_continentName = c_defaultContinentName;
 		bool m_lockInternalDataUntilCompleteProcessExecution = false;
 		TheWorld_Utils::MeshCacheBuffer m_cache;
 		godot::AABB m_globalCoordAABB;
@@ -1138,7 +1139,7 @@ namespace godot
 		godot::Ref<godot::Image> getOrCreateSplatmapImage();
 		static godot::Ref<godot::Image> createSplatlmapImage(TheWorld_Utils::MemoryBuffer& splatmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateGlobalmapImage();
-		static godot::Ref<godot::Image> createGloablmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution);
+		static godot::Ref<godot::Image> createGlobalmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateColormapImage();
 		static godot::Ref<godot::Image> createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution);
 

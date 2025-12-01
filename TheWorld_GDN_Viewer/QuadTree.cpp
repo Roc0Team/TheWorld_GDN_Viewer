@@ -38,6 +38,7 @@ namespace fs = std::filesystem;
 
 GDN_TheWorld_ShaderTexture* ShaderTerrainData::g_lookDevShaderTexture = nullptr;
 const std::string Quadrant::c_defaultTextureLayout = "default";
+const std::string Quadrant::c_defaultContinentName = "Continent";
 
 //extern int g_num = 0;
 
@@ -2355,22 +2356,31 @@ std::string ShaderTerrainData::layoutFromQuadrantPos(TheWorld_Utils::QuadrantPos
 {
 	std::lock_guard<std::recursive_mutex> lock(s_mtxStaticData);
 
-	std::string ret = Quadrant::c_defaultTextureLayout;
-	continentName = "";
+	std::string defaultContinentName = Quadrant::c_defaultContinentName;
+	std::string defaultTextureLayout = Quadrant::c_defaultTextureLayout;
 	
 	if (pos.empty())
-		return ret;
+	{
+		continentName = "";
+		return defaultTextureLayout;
+	}
 
 	int quadrantPosX = pos.getIndexPosX();
 	int quadrantPosZ = pos.getIndexPosZ();
 
 	for (auto& continent : s_continents)
 	{
+		if (continent.second->layout() == Quadrant::c_defaultTextureLayout)
+			defaultContinentName = continent.second->name();
+
+		bool allMarginsNull = true;
 		for (int idx = 0; ; idx++)
 		{
 			Continent::Margin* margin = continent.second->getMargin(idx);
 			if (margin == nullptr)
 				break;
+
+			allMarginsNull = false;
 
 			Continent::Margin::Delimiter* delimiter = margin->getDelimiter(Continent::Margin::Delimiter::DelimiterType::NW);
 			if (delimiter == nullptr)
@@ -2388,156 +2398,17 @@ std::string ShaderTerrainData::layoutFromQuadrantPos(TheWorld_Utils::QuadrantPos
 				return continent.second->layout();
 			}
 		}
+
+		if (allMarginsNull)
+		{
+			defaultTextureLayout = continent.second->layout();
+			defaultContinentName = continent.second->name();
+		}
 	}
 
-	return ret;
+	continentName = defaultContinentName;
+	return defaultTextureLayout;
 }
-
-//std::string ShaderTerrainData::layoutFromContinentId(int32_t id)
-//{
-//	if (s_continents.contains(id))
-//		return s_continents[id]->layout();
-//	else
-//		return Quadrant::c_defaultTextureLayout;
-//}
-
-
-//godot::Ref<godot::Image> ShaderTerrainData::readGroundTexture(godot::String fileName, bool& ok, GDN_TheWorld_Viewer* viewer)
-//{
-//	TheWorld_Utils::GuardProfiler profiler(std::string("readGroundTexture 1 ") + __FUNCTION__, "ALL");
-//
-//	TheWorld_Viewer_Utils::MsTimePoint start = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-//
-//	godot::Error e;
-//
-//	ok = true;
-//	
-//	const char* s = fileName.utf8().get_data();
-//	std::string _fileName = std::string(s);
-//
-//	const godot::String webpFilename = fileName + ".cache_image";
-//	const char* s1 = webpFilename.utf8().get_data();
-//	std::string _webpFilename = std::string(s1);
-//
-//	const godot::String pngFilename = fileName + ".png";
-//	const char* s2 = pngFilename.utf8().get_data();
-//	std::string _pngFilename = std::string(s2);
-//
-//	if (viewer != nullptr)
-//		viewer->Globals()->debugPrint((std::string("Reading ground texture ") + _fileName + " ...").c_str());
-//
-//	if (viewer != nullptr)
-//		viewer->getMainProcessingMutex().lock();
-//	godot::Ref<godot::FileAccess> file = godot::FileAccess::open(fileName, godot::FileAccess::READ);
-//	if (file == nullptr)
-//		throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("Error reading file ") + _fileName + " error " + std::to_string(int(godot::FileAccess::get_open_error()))).c_str()));
-//	if (viewer != nullptr)
-//		viewer->getMainProcessingMutex().unlock();
-//
-//	int64_t fileSize = file->get_length();
-//	size_t imageSize = (size_t)sqrt(fileSize / sizeof(struct TheWorld_Utils::_RGBA));
-//	assert(imageSize * imageSize * sizeof(struct TheWorld_Utils::_RGBA) == fileSize);
-//	if (imageSize * imageSize * sizeof(struct TheWorld_Utils::_RGBA) != fileSize)
-//		throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("Wrong image size ") + std::to_string(imageSize) + " file size " + std::to_string(fileSize)).c_str()));
-//
-//	if (viewer != nullptr)
-//		viewer->getMainProcessingMutex().lock();
-//	godot::Ref<godot::Image> image = godot::Image::create((int32_t)imageSize, (int32_t)imageSize, true, godot::Image::Format::FORMAT_RGBA8);
-//	if (viewer != nullptr)
-//		viewer->getMainProcessingMutex().unlock();
-//
-//	if (godot::FileAccess::file_exists(webpFilename))
-//	{
-//		file->close();
-//
-//		//ResourceLoader* resLoader = ResourceLoader::get_singleton();
-//		//godot::Ref<godot::Texture2D> tex = resLoader->load(webpFilename);
-//		//image = tex->get_image();
-//		{
-//			if (viewer != nullptr)
-//				viewer->getMainProcessingMutex().lock();
-//			godot::Ref<godot::FileAccess> file = godot::FileAccess::open(webpFilename, godot::FileAccess::READ);
-//			if (file == nullptr)
-//				throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("Error reading file ") + _webpFilename + " error " + std::to_string(int(godot::FileAccess::get_open_error()))).c_str()));
-//			if (viewer != nullptr)
-//				viewer->getMainProcessingMutex().unlock();
-//			uint64_t size = file->get_64();
-//			godot::PackedByteArray array = file->get_buffer(size);
-//			file->close();
-//
-//			e = image->load_webp_from_buffer(array);
-//			if (e != godot::Error::OK)
-//				throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("reading image error ") + std::to_string(int(e))).c_str()));
-//		}
-//	}
-//	else
-//	{
-//		godot::PackedByteArray imageRowBuffer;
-//		size_t imageRowSize = imageSize * sizeof(struct TheWorld_Utils::_RGBA);
-//
-//		for (size_t y = 0; y < imageSize; y++)
-//		{
-//			{
-//				//TheWorld_Utils::GuardProfiler profiler(std::string("readGroundTexture 1.1 ") + __FUNCTION__, "read file from disk");
-//				imageRowBuffer = file->get_buffer(imageRowSize);
-//			}
-//			assert(imageRowBuffer.size() == imageRowSize);
-//
-//			{
-//				//TheWorld_Utils::GuardProfiler profiler(std::string("readGroundTexture 1.2 ") + __FUNCTION__, "set_pixel");
-//
-//				size_t idx = 0;
-//				for (size_t x = 0; x < imageSize; x++)
-//				{
-//					godot::Color c;
-//					c.r = float(imageRowBuffer[int(idx)]) / 255;
-//					c.g = float(imageRowBuffer[int(idx) + 1]) / 255;
-//					c.b = float(imageRowBuffer[int(idx) + 2]) / 255;
-//					c.a = float(imageRowBuffer[int(idx) + 3]) / 255;
-//					idx += 4;
-//					image->set_pixel((int32_t)x, (int32_t)y, c);
-//				}
-//			}
-//		}
-//
-//		file->close();
-//
-//		e = image->save_png(pngFilename);
-//
-//		//e = image->save_webp(webpFilename);
-//		{
-//			godot::PackedByteArray array = image->save_webp_to_buffer();
-//
-//			if (viewer != nullptr)
-//				viewer->getMainProcessingMutex().lock();
-//			godot::Ref<godot::FileAccess> file = godot::FileAccess::open(webpFilename, godot::FileAccess::WRITE);
-//			if (file == nullptr)
-//				throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("Error writing file ") + _webpFilename + " error " + std::to_string(int(godot::FileAccess::get_open_error()))).c_str()));
-//			if (viewer != nullptr)
-//				viewer->getMainProcessingMutex().unlock();
-//			uint64_t size = array.size();
-//			file->store_64(size);
-//			file->store_buffer(array);
-//			file->close();
-//		}
-//	}
-//	
-//	{
-//		//TheWorld_Utils::GuardProfiler profiler(std::string("readGroundTexture 1.3 ") + __FUNCTION__, "generate_mipmaps");
-//		e = image->generate_mipmaps();
-//		if (e != godot::Error::OK)
-//			throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("generate_mipmaps error ") + std::to_string(int(e))).c_str()));
-//
-//	}
-//
-//	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-//	long long elapsed = (now - start).count();
-//
-//	if (viewer != nullptr)
-//		viewer->Globals()->debugPrint((std::string("Reading ground texture ") + _fileName + " done! - Elapsed " + std::to_string(elapsed)  + " ms").c_str());
-//
-//	return image;
-//}
 
 std::string ShaderTerrainData::s_groundTexturesDir;
 std::recursive_mutex ShaderTerrainData::s_internalMutex;
@@ -2637,10 +2508,9 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 	
 	const int desiredImageSize = 1024;
 	const int texturePreviewDesiredImageSize = 512;
-	const godot::Image::Format desiredImageFormat = godot::Image::Format::FORMAT_RGB8;
 
 	std::string albedoDisplTextureFilePath, normalRoughnessTextureFilePath;
-	std::string albedoTextureFilePath, normalTextureFilePath, roughnessTextureFilePath, displacementTextureFilePath, ambientOcclusionFilePath, texturePreviewFilePath;
+	std::string albedoTextureFilePath, normalTextureFilePath, roughnessTextureFilePath, /*displacementTextureFilePath,*/ ambientOcclusionFilePath, texturePreviewFilePath;
 
 	// find all needed textures in input folder
 	for (const auto& entry : fs::directory_iterator(searchingDirPath))
@@ -2673,7 +2543,7 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 				}
 				else if (GDN_TheWorld_Globals::isDisplacementTexture(filename))
 				{
-					displacementTextureFilePath = searchingDirPath + "/" + filename;
+					//displacementTextureFilePath = searchingDirPath + "/" + filename;
 				}
 				else if (GDN_TheWorld_Globals::isAmbientOcclusionTexture(filename))
 				{
@@ -2688,7 +2558,7 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 	}
 
 	// check if albedo_displ texture need to be recreated
-	if (albedoDisplTextureFilePath.size() > 0 and (albedoTextureFilePath.size() > 0 or displacementTextureFilePath.size() > 0 or ambientOcclusionFilePath.size() > 0))
+	if (albedoDisplTextureFilePath.size() > 0 and (albedoTextureFilePath.size() > 0 /* or displacementTextureFilePath.size() > 0*/ or ambientOcclusionFilePath.size() > 0))
 	{
 		std::chrono::system_clock::time_point albedoDisplTextureTime = TheWorld_Utils::last_write_time_point_utc(albedoDisplTextureFilePath);
 		if (albedoTextureFilePath.size() > 0)
@@ -2697,12 +2567,12 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 			if (albedoTextureTime > albedoDisplTextureTime)
 				albedoDisplTextureFilePath.clear();
 		}
-		if (displacementTextureFilePath.size() > 0)
-		{
-			std::chrono::system_clock::time_point displacementTextureTime = TheWorld_Utils::last_write_time_point_utc(displacementTextureFilePath);
-			if (displacementTextureTime > albedoDisplTextureTime)
-				albedoDisplTextureFilePath.clear();
-		}
+		//if (displacementTextureFilePath.size() > 0)
+		//{
+		//	std::chrono::system_clock::time_point displacementTextureTime = TheWorld_Utils::last_write_time_point_utc(displacementTextureFilePath);
+		//	if (displacementTextureTime > albedoDisplTextureTime)
+		//		albedoDisplTextureFilePath.clear();
+		//}
 		if (ambientOcclusionFilePath.size() > 0)
 		{
 			std::chrono::system_clock::time_point ambientOcclusionTextureTime = TheWorld_Utils::last_write_time_point_utc(ambientOcclusionFilePath);
@@ -2738,6 +2608,8 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 			texturePreviewFilePath.clear();
 	}
 
+	//if (textureName == "default_grass_1")	// DEBUG
+	//	texturePreviewFilePath = "";		// DEBUG
 
 	if (albedoDisplTextureFilePath.size() > 0 and normalRoughnessTextureFilePath.size() > 0 and texturePreviewFilePath.size() > 0)
 	{
@@ -2826,8 +2698,9 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 			godot::Ref<godot::Image> previewImage = godot::Image::create_from_data(albedoImage->get_width(), albedoImage->get_height(), false, albedoImage->get_format(), albedoImage->get_data());;
 			if (previewImage->get_width() != texturePreviewDesiredImageSize or previewImage->get_height() != texturePreviewDesiredImageSize)
 				previewImage->resize(texturePreviewDesiredImageSize, texturePreviewDesiredImageSize, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
-			if (previewImage->get_format() != desiredImageFormat)
-				previewImage->convert(desiredImageFormat);
+			godot::Image::Format desiredPreviewImageFormat = godot::Image::Format::FORMAT_RGBA8;
+			if (previewImage->get_format() != desiredPreviewImageFormat)
+				previewImage->convert(desiredPreviewImageFormat);
 			godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(previewImage);
 			texturePreview = tex;
 			s = searchingDirPath + "/" + imagesDirName + "_texture_preview.png";
@@ -2919,6 +2792,7 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 	}
 
 	// iterating json
+	bool defaultFound = false;
 	const Json::Value jsonContinentsArray = root["continents"];
 	Json::Value::UInt size = jsonContinentsArray.size();	// DEBUG
 	for (Json::Value::UInt idx = 0; idx < jsonContinentsArray.size(); idx++)
@@ -2926,6 +2800,8 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 		const int32_t id = jsonContinentsArray[idx]["id"].asInt();
 		const std::string name = jsonContinentsArray[idx]["name"].asString();
 		const std::string layout = jsonContinentsArray[idx]["layout"].asString();
+		if (layout == Quadrant::c_defaultTextureLayout)
+			defaultFound = true;
 		s_continents[id] = std::make_unique<Continent>(id, name, layout);
 		for (int i = 1; ; i++)
 		{
@@ -2941,6 +2817,9 @@ void ShaderTerrainData::loadAllGroundTextures(std::string groundTexturesDir, GDN
 					viewer->Globals()->debugPrint((std::string("Margin value syntax is not correct <") + marginAsString + "> for continent <" + name + " (" + std::to_string(id)  + ")>").c_str());
 		}
 	}
+	if (not defaultFound)
+		if (viewer != nullptr)
+			viewer->Globals()->debugPrint((std::string("Missing default texture layout!").c_str()));
 
 	const Json::Value jsonGroundTextureLayoutsArray = root["ground-texture-layouts"];
 	size = jsonGroundTextureLayoutsArray.size();	// DEBUG
@@ -3307,7 +3186,7 @@ godot::Ref<godot::Image> ShaderTerrainData::createNormalmapImage(TheWorld_Utils:
 	size_t normalsBufferSize = normalmapBuffer.size();
 	if (normalsBufferSize == 0)
 	{
-		godot::Ref<godot::Image> image = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8);
+		godot::Ref<godot::Image> image = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8);
 		image->fill(godot::Color(0.5f, 0.5f, 1.0f, 1.0f));	// packed normal vertical pointing up
 		return image;
 	}
@@ -3320,16 +3199,9 @@ godot::Ref<godot::Image> ShaderTerrainData::createNormalmapImage(TheWorld_Utils:
 		{
 			memcpy((char*)data.ptrw(), normalmapBuffer.ptr(), normalsBufferSize);
 		}
-		return godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
-		//{
-		//	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
-		//	//image->lock();
-		//	Color c = image->get_pixel(0, 0);
-		//	size_t c_r = (size_t)(c.r * 255);
-		//	size_t c_g = (size_t)(c.g * 255);
-		//	size_t c_b = (size_t)(c.b * 255);
-		//	//image->unlock();
-		//}
+		godot::Ref<godot::Image> image = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
+		image->convert(godot::Image::Format::FORMAT_RGBA8);
+		return image;
 	}
 }
 
@@ -3404,7 +3276,7 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateGlobalmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateGlobalmapImage ") + s + __FUNCTION__, "create globalmap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& globalmapBuffer = m_quadTree->getQuadrant()->getGlobalmapBuffer();
-		m_globalmapImage = createGloablmapImage(globalmapBuffer, _resolution);
+		m_globalmapImage = createGlobalmapImage(globalmapBuffer, _resolution);
 		//size_t globalmapBufferSize = globalmapBuffer.size();
 		//if (globalmapBufferSize == 0)
 		//{
@@ -3426,7 +3298,7 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateGlobalmapImage()
 	return m_globalmapImage;
 }
 
-godot::Ref<godot::Image> ShaderTerrainData::createGloablmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution)
+godot::Ref<godot::Image> ShaderTerrainData::createGlobalmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution)
 {
 	size_t globalmapBufferSize = globalmapBuffer.size();
 	if (globalmapBufferSize == 0)

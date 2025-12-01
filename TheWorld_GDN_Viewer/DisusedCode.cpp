@@ -1170,3 +1170,107 @@
 	//	fclose(outFile);
 	//}
 
+		//int shaderType = 0;		// StandardMaterial3D
+		//int shaderType = 1;		// LookDev
+
+		//if (shaderType == 0)
+		//{
+		//	godot::Ref<godot::StandardMaterial3D> material = memnew(godot::StandardMaterial3D);
+		//	material->set_albedo(godot::Color(0.0f, 1.0f, 0.0f));
+		//	terrainPlaneMaterial = material;
+		//}
+		//else if (shaderType == 1)
+		//{
+		//	godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getLookDevMaterial(ShaderTerrainData::LookDev::Splat);		// SHADER_PARAM_LOOKDEV_MAP
+		//	godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
+		//	material->set_shader(currentMaterial->get_shader());
+
+		//	int numVerticesPerQuadrantSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
+
+		//	{
+		//		size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
+		//		godot::PackedByteArray data;
+		//		size_t heightmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
+		//		data.resize((int)heightmapBufferSizeInBytes);
+		//		size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
+		//		assert(heightmapBufferSizeInBytes == heightsBufferSize);
+		//		{
+		//			memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
+		//		}
+		//		godot::Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RH, data);
+		//		// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+		//		//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+		//		Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+		//		material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, tex);
+		//	}
+
+		//	{
+		//		godot::Ref<godot::Image> image;
+		//		size_t normalsBufferSize = 0;
+		//		normalsBufferSize = m_quadTree->getQuadrant()->getNormalsBuffer().size();
+		//		if (normalsBufferSize == 0)
+		//		{
+		//			godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGB8);
+		//			image->fill(godot::Color(0, 0, 0, 1.0));
+		//			image = im;
+		//		}
+		//		else
+		//		{
+		//			godot::PackedByteArray data;
+		//			size_t normalmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
+		//			data.resize((int)normalmapBufferSizeInBytes);
+		//			assert(normalmapBufferSizeInBytes == normalsBufferSize);
+		//			{
+		//				memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getNormalsBuffer().ptr(), normalsBufferSize);
+		//			}
+		//			godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGB8, data);
+		//			image = im;
+		//		}
+		//		// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+		//		//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+		//		Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+		//		material->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, tex);
+		//	}
+
+		//	{
+		//		Ref<godot::Image> image;
+		//		size_t splatmapBufferSize = 0;
+		//		splatmapBufferSize = m_quadTree->getQuadrant()->getSplatmapBuffer().size();
+		//		if (splatmapBufferSize == 0)
+		//		{
+		//			Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8);
+		//			image = im;
+		//			image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
+		//		}
+		//		else
+		//		{
+		//			godot::PackedByteArray data;
+		//			size_t splatmapBufferSizeInBytes = numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+		//			data.resize((int)splatmapBufferSizeInBytes);
+		//			assert(splatmapBufferSizeInBytes == splatmapBufferSize);
+		//			{
+		//				memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getSplatmapBuffer().ptr(), splatmapBufferSizeInBytes);
+		//			}
+		//			Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8, data);
+		//			image = im;
+		//			//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
+		//			//image->save_png(outFileName.c_str());
+		//		}
+		//		Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+		//		material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
+		//	}
+
+		//	godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
+		//	godot::Variant inverseTransform = t.affine_inverse();
+		//	material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
+		//	Basis normalBasis = t.basis.inverse().transposed();
+		//	material->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
+		//	material->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+		//	material->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, true);
+		//	//material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
+		//	//material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT, godot::Vector2(-1, -1));
+		//	//material->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
+
+		//	terrainPlaneMaterial = material;
+		//}
+		//else if (shaderType == 2)

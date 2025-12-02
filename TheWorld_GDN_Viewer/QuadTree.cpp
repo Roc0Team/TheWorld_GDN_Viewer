@@ -3200,7 +3200,11 @@ godot::Ref<godot::Image> ShaderTerrainData::createNormalmapImage(TheWorld_Utils:
 			memcpy((char*)data.ptrw(), normalmapBuffer.ptr(), normalsBufferSize);
 		}
 		godot::Ref<godot::Image> image = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
-		image->convert(godot::Image::Format::FORMAT_RGBA8);
+		{
+			//TheWorld_Utils::GuardProfiler profiler(std::string("Normal Map Convert ") + __FUNCTION__, std::string("Convert Normal Map to RGBA8"));
+			//average time = 6 ms
+			image->convert(godot::Image::Format::FORMAT_RGBA8);
+		}
 		return image;
 	}
 }

@@ -4436,10 +4436,13 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		quadTree->getQuadrant()->setSplatmapUpdated(true);
 		quadTree->materialParamsNeedReset(true);
 
-		//quadTree->getQuadrant()->northQuadrantData().initialized(false);
-		//quadTree->getQuadrant()->southQuadrantData().initialized(false);
-		//quadTree->getQuadrant()->westQuadrantData().initialized(false);
-		//quadTree->getQuadrant()->eastQuadrantData().initialized(false);
+		// CHECK these lines were remarks
+		quadTree->getQuadrant()->northQuadrantData().initialized(false);
+		quadTree->getQuadrant()->southQuadrantData().initialized(false);
+		quadTree->getQuadrant()->westQuadrantData().initialized(false);
+		quadTree->getQuadrant()->eastQuadrantData().initialized(false);
+		quadTree->getQuadrant()->northWestQuadrantData().initialized(false);
+		quadTree->getQuadrant()->southEastQuadrantData().initialized(false);
 
 		quadTree->getQuadrant()->unlockInternalData();
 

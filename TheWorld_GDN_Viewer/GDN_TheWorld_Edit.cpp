@@ -2824,7 +2824,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		m_innerData->m_elapsedLabel->set_text(m_innerData->m_elapsed.c_str());
 		m_innerData->m_elapsed1Label->set_text((m_innerData->m_counterStr + " " + m_innerData->m_note1Str).c_str());
 		
-		m_scrollPanelsNeedResize = true;
+		//m_scrollPanelsNeedResize = true;
 
 		m_infoLabelTextChanged = false;
 	}

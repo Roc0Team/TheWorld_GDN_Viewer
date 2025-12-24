@@ -1,5 +1,6 @@
+* CPU e GPU Time
+* Segnalare se streaming non tiene il ritmo del movimento nella mappa
 * creare nativamente le mappe di tipo normal e global (global serve ancora? color?) per gli shader con il canale alpha (RGB8 => RGBA8): occorre salvare in modo differente i quadranti
-* nella generazione del terreno non viene aggiornato correttamente lo shader riguardo alle texture dei quadranti adiacenti per cui l'effetto grafico vero si vede solo dopo un salvataggio dei quadranti e una ripartenza
 * nella mappa la divisione fra quadranti è troppo visibile: è troppo evidente l'effetto scacchiera
 * riorganizzazione del codice in modo che sia più pulito e razionale: ora è troppo confusionario ed è privo di una progettazione a priori
 * la mappa (globalmap) deve avere un aspetto più verosimile che tenga conto anche dei quadranti adiacenti
@@ -24,6 +25,9 @@
 * globalmap deve comprendere tutto quello che si vede: mare etc.
 * riconoscimento laghi e adeguamento movimento onde
 * test_quadrant
+
+BUGFIX:
+* nella generazione del terreno non viene aggiornato correttamente lo shader riguardo alle texture dei quadranti adiacenti per cui l'effetto grafico vero si vede solo dopo un salvataggio dei quadranti e una ripartenza
 
 Tag 2025/05/13
 * ***OK*** suddivisione dei quadranti in continenti e possibilità di definire differenti scenari in ground.json e di assegnarli ai continenti; ground.json scaricato dal server

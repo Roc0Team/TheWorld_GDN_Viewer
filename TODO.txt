@@ -1,4 +1,14 @@
-* CPU e GPU Time
+* Come funziona lo shader di Terrain3d?
+* Ridurre la dimensione del file che rappresenta un quadrante
+  * oltre alle altezze (4.096) è possibile eliminare:
+    * la normalmap (12.288)?
+    * la splatmap (16.384)?
+    * la colormap (12.288) ?
+    * la globalmap (?) ?
+* tutto in CPP come gdextension
+* importare automaticamente le textures con cui viene dipinto il terreno come vram_texture una volta create
+* Doc del plugin (https://docs.godotengine.org/en/4.4/tutorials/scripting/gdextension/gdextension_docs_system.html)
+
 * Segnalare se streaming non tiene il ritmo del movimento nella mappa
 * creare nativamente le mappe di tipo normal e global (global serve ancora? color?) per gli shader con il canale alpha (RGB8 => RGBA8): occorre salvare in modo differente i quadranti
 * nella mappa la divisione fra quadranti è troppo visibile: è troppo evidente l'effetto scacchiera

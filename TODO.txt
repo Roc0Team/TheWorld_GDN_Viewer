@@ -1,4 +1,5 @@
 * Come funziona lo shader di Terrain3d?
+* Conviene usare un materiale per region oppure sarebbe più efficiente usare un unico materiale per tutte le region? Come aggiorno le info sulle region durante lo streaming?
 * Ridurre la dimensione del file che rappresenta un quadrante
   * oltre alle altezze (4.096) è possibile eliminare:
     * la normalmap (12.288)?

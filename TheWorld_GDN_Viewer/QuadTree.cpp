@@ -2608,8 +2608,8 @@ bool ShaderTerrainData::loadGroundImagesByName(std::string imagesDirPath, std::s
 			texturePreviewFilePath.clear();
 	}
 
-	if (textureName == "default_rocks_3")	// DEBUG
-		texturePreviewFilePath = "";		// DEBUG
+	//if (textureName == "default_rocks_3")	// DEBUG
+	//	texturePreviewFilePath = "";		// DEBUG
 
 	if (albedoDisplTextureFilePath.size() > 0 and normalRoughnessTextureFilePath.size() > 0 and texturePreviewFilePath.size() > 0)
 	{

@@ -10905,13 +10905,13 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 			m_lastCameraAltitudeSetToShader = camAltitude;
 		}
 
-		godot::Vector3 cameraPos = cam->get_global_position();
-		if (!m_lastCameraPosSetToShaderInitialized || cameraPos != m_lastCameraPosSetToShader)
-		{
-			rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_POS, cameraPos);
-			m_lastCameraPosSetToShader = cameraPos;
-			m_lastCameraPosSetToShaderInitialized = true;
-		}
+		//godot::Vector3 cameraPos = cam->get_global_position();
+		//if (!m_lastCameraPosSetToShaderInitialized || cameraPos != m_lastCameraPosSetToShader)
+		//{
+		//	rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_POS, cameraPos);
+		//	m_lastCameraPosSetToShader = cameraPos;
+		//	m_lastCameraPosSetToShaderInitialized = true;
+		//}
 
 		bool cameraTerrainChunkContainsSea = false;
 		if (m_worldCameraTerrainChunk != nullptr)
@@ -13613,6 +13613,8 @@ godot::Camera3D* GDN_TheWorld_Viewer::getWorldCameraInEditor(void)
 
 	if (m_editorCamera != nullptr)
 		return m_editorCamera;
+	
+	//return EditorInterface::get_singleton()->get_editor_viewport_3d(0)->get_camera_3d();
 	
 	godot::Camera3D* editorCamera = nullptr;
 

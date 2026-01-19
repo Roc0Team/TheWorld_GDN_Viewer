@@ -1,4 +1,6 @@
-* Come funziona lo shader di Terrain3d?
+* Implementare il detiling come in Terrain3D e correggere il calcolo dell'UV
+* Implementare la tesselation e il displacement mapping come in Terrain3d
+* Valutare se usare il mouse picking come in Terrain 3d
 * Conviene usare un materiale per region oppure sarebbe più efficiente usare un unico materiale per tutte le region? Come aggiorno le info sulle region durante lo streaming?
 * Ridurre la dimensione del file che rappresenta un quadrante
   * oltre alle altezze (4.096) è possibile eliminare:
@@ -9,6 +11,7 @@
 * tutto in CPP come gdextension
 * importare automaticamente le textures con cui viene dipinto il terreno come vram_texture una volta create
 * Doc del plugin (https://docs.godotengine.org/en/4.4/tutorials/scripting/gdextension/gdextension_docs_system.html)
+* Nuovo progetto STerrain (StreamingLandscape) con Demo
 
 * Segnalare se streaming non tiene il ritmo del movimento nella mappa
 * creare nativamente le mappe di tipo normal e global (global serve ancora? color?) per gli shader con il canale alpha (RGB8 => RGBA8): occorre salvare in modo differente i quadranti

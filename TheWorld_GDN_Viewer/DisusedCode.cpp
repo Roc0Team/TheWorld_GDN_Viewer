@@ -1701,3 +1701,135 @@
 	//	normalsBuffer.adjustSize(usedBufferSize);
 	//}
 
+//class QuadrantControl
+//{
+//public:
+//	int32_t numOptLvlIncrements(void) const
+//	{
+//		return m_numOptLvlIncrements;
+//	}
+//	void numOptLvlIncrements(int32_t numOptLvlIncrements)
+//	{
+//		m_numOptLvlIncrements = numOptLvlIncrements;
+//	}
+//	int32_t lowLevelTextureIndex(void) const
+//	{
+//		return m_lowLevelTextureIndex;
+//	}
+//	void lowLevelTextureIndex(int32_t lowLevelTextureIndex)
+//	{
+//		m_lowLevelTextureIndex = lowLevelTextureIndex;
+//	}
+//	int32_t highLevelTextureIndex(void) const
+//	{
+//		return m_highLevelTextureIndex;
+//	}
+//	void highLevelTextureIndex(int32_t highLevelTextureIndex)
+//	{
+//		m_highLevelTextureIndex = highLevelTextureIndex;
+//	}
+//	int32_t dirtTextureIndex(void) const
+//	{
+//		return m_dirtTextureIndex;
+//	}
+//	void dirtTextureIndex(int32_t dirtTextureIndex)
+//	{
+//		m_dirtTextureIndex = dirtTextureIndex;
+//	}
+//	int32_t rockTextureIndex(void) const
+//	{
+//		return m_rockTextureIndex;
+//	}
+//	void rockTextureIndex(int32_t rockTextureIndex)
+//	{
+//		m_rockTextureIndex = rockTextureIndex;
+//	}
+//	float highElevationFactor(void) const
+//	{
+//		return m_highElevationFactor;
+//	}
+//	void highElevationFactor(float highElevationFactor)
+//	{
+//		m_highElevationFactor = highElevationFactor;
+//	}
+//	float lowElevationFactor(void) const
+//	{
+//		return m_lowElevationFactor;
+//	}
+//	void lowElevationFactor(float lowElevationFactor)
+//	{
+//		m_lowElevationFactor = lowElevationFactor;
+//	}
+//	float minHeight(void) const
+//	{
+//		return m_minHeight;
+//	}
+//	void minHeight(float minHeight)
+//	{
+//		m_minHeight = minHeight;
+//	}
+//	float maxHeight(void) const
+//	{
+//		return m_maxHeight;
+//	}
+//	void maxHeight(float maxHeight)
+//	{
+//		m_maxHeight = maxHeight;
+//	}
+//	float slopeVerticalFactor(void) const
+//	{
+//		return m_slopeVerticalFactor;
+//	}
+//	void slopeVerticalFactor(float slopeVerticalFactor)
+//	{
+//		m_slopeVerticalFactor = slopeVerticalFactor;
+//	}
+//	float slopeFlatFactor(void) const
+//	{
+//		return m_slopeFlatFactor;
+//	}
+//	void slopeFlatFactor(float slopeFlatFactor)
+//	{
+//		m_slopeFlatFactor = slopeFlatFactor;
+//	}
+//	float dirtOnRocksFactor(void) const
+//	{
+//		return m_dirtOnRocksFactor;
+//	}
+//	void dirtOnRocksFactor(float dirtOnRocksFactor)
+//	{
+//		m_dirtOnRocksFactor = dirtOnRocksFactor;
+//	}
+//
+//private:
+//	// u_quadrant_control_1
+//	int32_t m_numOptLvlIncrements = 0;
+//	int32_t m_lowLevelTextureIndex = 0;
+//	int32_t m_highLevelTextureIndex = 0;
+//	int32_t m_dirtTextureIndex = 0;
+//	int32_t m_rockTextureIndex = 0;
+//
+//	// u_quadrant_control_2
+//	float m_highElevationFactor = 0;
+//	float m_lowElevationFactor = 0;
+//	float m_minHeight = 0;
+//	float m_maxHeight = 0;
+//
+//	// u_quadrant_control_3
+//	float m_slopeVerticalFactor = 0;
+//	float m_slopeFlatFactor = 0;
+//	float m_dirtOnRocksFactor = 0;
+//};
+//
+//m_quadrantControl.numOptLvlIncrements(int32_t(optimizationLevel / m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement()));
+////m_quadrantControl.lowLevelTextureIndex(terrainEdit->)	calcolare l'index da terrainEdit->extraValues.lowElevationTexName_r
+////m_quadrantControl.highLevelTextureIndex(terrainEdit->)	calcolare l'index da terrainEdit->extraValues.highElevationTexName_g
+////m_quadrantControl.dirtTextureIndex(terrainEdit->)	calcolare l'index da terrainEdit->extraValues.dirtTexName_b
+////m_quadrantControl.rockTextureIndex(terrainEdit->)	calcolare l'index da terrainEdit->extraValues.rocksTexName_a
+//m_quadrantControl.highElevationFactor(terrainEdit->extraValues.amplitudeBlendFactor);
+//m_quadrantControl.lowElevationFactor(terrainEdit->extraValues.lowElevationFactor);
+//m_quadrantControl.minHeight(terrainEdit->minHeight);
+//m_quadrantControl.maxHeight(terrainEdit->maxHeight);
+//m_quadrantControl.slopeVerticalFactor(terrainEdit->extraValues.slopeVerticalFactor);
+//m_quadrantControl.slopeFlatFactor(terrainEdit->extraValues.slopeFlatFactor);
+//m_quadrantControl.dirtOnRocksFactor(terrainEdit->extraValues.dirtOnRocksFactor);

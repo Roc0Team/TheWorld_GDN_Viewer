@@ -2108,7 +2108,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularSeaMaterial(bool reload
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
-		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, m_viewer->Globals()->gridStepInWU());
+		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP_OPTLVL_ZERO, m_viewer->Globals()->gridStepInWU());
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		m_regularSeaMaterial = mat;
 	}
@@ -2136,7 +2136,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getGlobalmapSeaMaterial(bool relo
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
-		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, m_viewer->Globals()->gridStepInWU());
+		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP_OPTLVL_ZERO, m_viewer->Globals()->gridStepInWU());
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		m_globalmapSeaMaterial = mat;
 	}
@@ -2170,7 +2170,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 			shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
 		//mat->set_render_priority(0);
-		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, m_viewer->Globals()->gridStepInWU());
+		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP_OPTLVL_ZERO, m_viewer->Globals()->gridStepInWU());
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
@@ -2278,7 +2278,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevMaterial(enum class Sha
 		Ref<Shader> shader = resLoader->load(shaderPath);
 		mat->set_shader(shader);
 		float gridStepInWU = m_viewer->Globals()->gridStepInWU();
-		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP_OPTLVL_ZERO, gridStepInWU);
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
@@ -2327,7 +2327,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lo
 		float lodGridStepInWU = m_viewer->Globals()->gridStepInHeightmapWUs(lod);
 		float lodChunkSizeInWu = numVerticesPerChuckSide * lodGridStepInWU;
 		mat->set_shader_parameter(SHADER_PARAM_LOOKDEV_LOD, float(lod));
-		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP, gridStepInWU);
+		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP_OPTLVL_ZERO, gridStepInWU);
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, numVerticesPerChuckSide + 1.0f);
@@ -3404,6 +3404,12 @@ godot::Ref<godot::Image> ShaderTerrainData::createColormapImage(TheWorld_Utils::
 	}
 }
 
+godot::Ref<godot::Image> ShaderTerrainData::getImageAtOptimizationLevel(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel)
+{
+	size_t resolution = m_viewer->Globals()->resolutionForOptimizationLevel(optimizationLevel);
+	return getImageAtResolution(profileHeader, imageType, optimizationLevel, resolution);
+}
+
 godot::Ref<godot::Image> ShaderTerrainData::getImageAtResolution(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel, size_t resolution)
 {
 	TheWorld_Utils::GuardProfiler profiler(profileHeader + __FUNCTION__, std::to_string(resolution));
@@ -3626,6 +3632,8 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 {
 	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3 ") + __FUNCTION__, "Quadrant resetMaterialParams - Quadrant type=" + QuadTree::quadTypeToString(type));
 
+	//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.0 ") + __FUNCTION__, "Quadrant resetMaterialParams - Quadrant type=" + QuadTree::quadTypeToString(type) + " - Quadrant visible");
+
 	switch (type)
 	{
 	case QuadType::NotSet:
@@ -3746,6 +3754,8 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 				}
 
 				quadrant->setHeightsUpdated(false);
+
+				//m_viewer->requestDataRefreshToShader(m_quadTree);
 			}
 
 			if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_heightmap))

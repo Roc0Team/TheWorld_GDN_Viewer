@@ -15,6 +15,8 @@
 #include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/sub_viewport.hpp>
+#include <godot_cpp/classes/texture2d.hpp>
+#include <godot_cpp/classes/texture2D_array.hpp>
 #pragma warning(pop)
 
 #define _DEBUG_AAB	1
@@ -808,7 +810,20 @@ namespace godot
 	public:
 #define water_globalmap_gdshader_u_sea_color		godot::Color(43.0F / 255.0F, 57.0F / 255.0F, 73.0F / 255.0F)	// 0,16863, 0,22353, 0,28627
 
-		// Shader Params
+// Shader Params
+#define SHADER_PARAM_GRID_POS						"u_grid_pos"
+#define SHADER_PARAM_OPTLVL_INCREMENT				"u_optlvl_increment"
+#define SHADER_PARAM_NUM_QUADRANTS_PER_GRID_SIZE	"u_num_quadrants_per_grid_size"
+
+#define SHADER_PARAM_QUADRANT_CONTROL_1				"u_quadrant_control_1"
+#define SHADER_PARAM_QUADRANT_CONTROL_2				"u_quadrant_control_2"
+#define SHADER_PARAM_QUADRANT_CONTROL_3				"u_quadrant_control_3"
+
+#define SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_0			"u_heightmap_array_optlvl_inc_0"
+#define SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_1			"u_heightmap_array_optlvl_inc_1"
+#define SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_2			"u_heightmap_array_optlvl_inc_2"
+#define SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_3			"u_heightmap_array_optlvl_inc_3"
+
 #define SHADER_PARAM_TERRAIN_HEIGHTMAP				"u_terrain_heightmap"
 #define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
 #define SHADER_PARAM_TERRAIN_SPLATMAP				"u_terrain_splatmap"
@@ -818,7 +833,7 @@ namespace godot
 #define SHADER_PARAM_INVERSE_TRANSFORM				"u_terrain_inverse_transform"
 #define SHADER_PARAM_NORMAL_BASIS					"u_terrain_normal_basis"
 #define SHADER_PARAM_QUADRANT_SIZE					"u_quadrant_size"
-#define SHADER_PARAM_GRID_STEP						"u_grid_step"
+#define SHADER_PARAM_GRID_STEP_OPTLVL_ZERO			"u_grid_step_optlvl_zero"
 #define SHADER_PARAM_FORCE_ELEVATION_0				"u_force_height_0"
 //#define SHADER_PARAM_USE_GLOBALMAP					"u_use_globalmap"
 #define SHADER_PARAM_OPTIMIZATION_LEVEL				"u_optimization_level"
@@ -834,7 +849,7 @@ namespace godot
 #define SHADER_PARAM_SELECTED_ALBEDO				"u_selected_albedo"
 
 #define GLOBAL_SHADER_PARAM_TIME					"gu_time"
-#define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
+//#define GLOBAL_SHADER_PARAM_GRID_STEP				"gu_grid_step"
 
 #define GLOBAL_SHADER_PARAM_ALBEDO_DISPL_ARRAY		"gu_ground_albedo_displ_array"
 #define GLOBAL_SHADER_PARAM_NORMAL_ROUGHNESS_ARRAY	"gu_ground_normal_roughness_array"
@@ -954,6 +969,66 @@ namespace godot
 #define SHADER_PARAM_EAST_HEIGHTS					"u_east_heights"
 
 	public:
+		
+		class ShaderControlData
+		{
+		public:
+			godot::Ref<godot::Texture2DArray> heightmapArrayOptimizationlevelInc_0()
+			{
+				return m_heightmapArrayOptimizationlevelInc_0;
+			}
+			godot::Ref<godot::Texture2DArray> heightmapArrayOptimizationlevelInc_1()
+			{
+				return m_heightmapArrayOptimizationlevelInc_1;
+			}
+			godot::Ref<godot::Texture2DArray> heightmapArrayOptimizationlevelInc_2()
+			{
+				return m_heightmapArrayOptimizationlevelInc_2;
+			}
+			godot::Ref<godot::Texture2DArray> heightmapArrayOptimizationlevelInc_3()
+			{
+				return m_heightmapArrayOptimizationlevelInc_3;
+			}
+
+		private:
+			godot::Ref<godot::Texture2DArray> m_heightmapArrayOptimizationlevelInc_0;
+			godot::Ref<godot::Texture2DArray> m_heightmapArrayOptimizationlevelInc_1;
+			godot::Ref<godot::Texture2DArray> m_heightmapArrayOptimizationlevelInc_2;
+			godot::Ref<godot::Texture2DArray> m_heightmapArrayOptimizationlevelInc_3;
+		};
+
+		class QuadrantControlData
+		{
+		public:
+			QuadrantControlData(const size_t numOptLvlIncrements, const char* lowElevationTexName_r, const char* highElevationTexName_g, const char* dirtTexName_b, const char* rocksTexName_a,
+				float highElevationFactor, float lowElevationFactor, float minHeight, float maxHeight, float slopeVerticalFactor, float slopeFlatFactor, float dirtOnRocksFactor)
+				: m_numOptLvlIncrements(numOptLvlIncrements), m_highElevationFactor(highElevationFactor), m_lowElevationFactor(m_lowElevationFactor), m_minHeight(minHeight), m_maxHeight(maxHeight), m_slopeVerticalFactor(slopeVerticalFactor), m_slopeFlatFactor(slopeFlatFactor), m_dirtOnRocksFactor(dirtOnRocksFactor)
+			{
+				strcpy_s(m_lowElevationTexName_r, sizeof(m_lowElevationTexName_r), lowElevationTexName_r);
+				strcpy_s(m_highElevationTexName_g, sizeof(m_highElevationTexName_g), highElevationTexName_g);
+				strcpy_s(m_dirtTexName_b, sizeof(m_dirtTexName_b), dirtTexName_b);
+				strcpy_s(m_rocksTexName_a, sizeof(m_rocksTexName_a), rocksTexName_a);
+			}
+
+		private:
+			// u_quadrant_control_1
+			size_t m_numOptLvlIncrements = 0;
+			char m_lowElevationTexName_r[51] = "";
+			char m_highElevationTexName_g[51] = "";
+			char m_dirtTexName_b[51] = "";
+			char m_rocksTexName_a[51] = "";
+
+			// u_quadrant_control_2
+			float m_highElevationFactor = 0;
+			float m_lowElevationFactor = 0;
+			float m_minHeight = 0;
+			float m_maxHeight = 0;
+			
+			// u_quadrant_control_3
+			float m_slopeVerticalFactor = 0;
+			float m_slopeFlatFactor = 0;
+			float m_dirtOnRocksFactor = 0;
+		};
 
 		enum class LookDev {
 			NotSet = 0
@@ -1003,6 +1078,7 @@ namespace godot
 		};
 		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel, size_t resolution);
 		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel, size_t resolution);
+		godot::Ref<godot::Image> getImageAtOptimizationLevel(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel);
 		godot::Ref<godot::Image> resizeImage(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, size_t newResolution, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel);
 		godot::Ref<godot::Material> getRegularSeaMaterial(bool reload = false);
 		godot::Ref<godot::Material> getGlobalmapSeaMaterial(bool reload = false);

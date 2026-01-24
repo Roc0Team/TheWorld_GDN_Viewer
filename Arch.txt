@@ -2,7 +2,7 @@ NOTE:
 
 Limiti:
 	* max 64 ground texture
-	* massimo 7 incrementi di optimization level	es: con increment=2 optimization level può valere 0, 2, 4, 6, 8, 10, 12, 14
+	* massimo 3 incrementi di optimization level	es: con u_optlvl_increment=2 optimization level può valere 0 (num_optlvl_inc=0), 2 (num_optlvl_inc=1), 4 (num_optlvl_inc=2), 6 (num_optlvl_inc=3)
 	* max 625 quadranti (1 + 12 *2)
 
 Architettura shader
@@ -13,32 +13,33 @@ Architettura shader
 
 * u_grid_step_optlvl_zero: distanza fra vertici contigui alla massima risoluzione in un quadrante il reale step è dato da u_grid_step_optlvl_zero * pow(2.0, float(current_optimization_level))
 
-* u_quadrant_control_1_array ==> texture FORMAT_RF, un texel per ogni quadrante (row * column) con dim = num_quadrants_per_size * num_quadrants_per_size				es with 625 per num_quadrants_per_size: 625 * 625 * 4 = 1.562.500 bytes per quadrant ==> 1,5MB
-	* num_optlvl_inc				3 bit	range 0/7
-	* step							4 bit	range 0/15	(in effetti 1/16 WU)
-	* high-level texture index		6 bit	range 0/63	(per un massimo di 64 ground texture)
-	* low-level texture	index		6 bit	range 0/63	(per un massimo di 64 ground texture)
-	* dirt texture index			6 bit	range 0/63	(per un massimo di 64 ground texture)
-	* slope texture index			6 bit	range 0/63	(per un massimo di 64 ground texture)
-	* reserved						1 bit
+* u_num_quadrants_per_size: num quadrant per size in the heightmap grid
 
-* u_quadrant_control_2 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = num_quadrants_per_size * num_quadrants_per_size					es with 625 per num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
+* u_quadrant_control_1 ==> texture FORMAT_RF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size				es with 625 per u_num_quadrants_per_size: 625 * 625 * 4 = 1.562.500 bytes per quadrant ==> 1,5MB
+	* num_optlvl_inc				2 bit	range 0/3
+	* low-level texture	index		6 bit	range 0/63	(per un massimo di 64 ground texture)
+	* high-level texture index		6 bit	range 0/63	(per un massimo di 64 ground texture)
+	* dirt texture index			6 bit	range 0/63	(per un massimo di 64 ground texture)
+	* rock texture index			6 bit	range 0/63	(per un massimo di 64 ground texture)
+	* reserved						6 bit
+
+* u_quadrant_control_2 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size			es with 625 per u_num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
 	* high_elevation_factor	(R)	32 bits
 	* low_elevation_factor (G)	32 bits
 	* min_heigth (B)			32 bits
 	* max_heigth (A)			32 bits
 
-* u_quadrant_control_3 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = num_quadrants_per_size * num_quadrants_per_size					es with 625 per num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
+* u_quadrant_control_3 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size			es with 625 per u_num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
 	* slope_vertical_factor (R)	32 bits
 	* slope_flat_factor (G)		32 bits
 	* dirt_on_rocks_factor (B)	32 bits
 	* reserved (A)				32 bits
 	
-* u_heightmap_array_optlvl_inc_0 to 7 ==> sampler2DArray FORMAT_RH, flat texture array (una texture per ogni quadrante - row * column) con dim = num_quadrants_per_size * num_quadrants_per_size
+* u_heightmap_array_optlvl_inc_0 to 3 ==> sampler2DArray FORMAT_RH, flat texture array (una texture per ogni quadrante - row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size
 	* heightmap ==> texture FORMAT_RH, un texel per ogni vertice (row * column) con dim = num_vertices_per_quadrant_size * num_vertices_per_quadrant_size			es with step 2 and 2049 num_vertices_per_quadrant_size: 2049 * 2049 * 2 = 8.396.802 bytes per quadrant ==> 8MB per quadrant at max resolution
 		* altitude					16 bit	range -65504/+65504
 		
-* u_vertex_control_array_optlvl_inc_0 to 7 ==> sampler2DArray FORMAT_RF, flat texture array (una texture per ogni quadrante - row * column) con dim = num_quadrants_per_size * num_quadrants_per_size
+* u_vertex_control_array_optlvl_inc_0 to 3 ==> sampler2DArray FORMAT_RF, flat texture array (una texture per ogni quadrante - row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size
 	* vertex_control ==> texture FORMAT_RF, un texel per ogni vertice (row * column) con dim = num_vertices_per_quadrant_size * num_vertices_per_quadrant_size		es with step 2 and 2049 num_vertices_per_quadrant_size: 2049 * 2049 * 4 = 16.793.604 bytes ==> 16MB per quadrant at max resolution
 		* hole						1 bit	range 0/1	false/true
 		* navigation				1 bit	range 0/1	false/true
@@ -53,5 +54,16 @@ Architettura shader
 		* reserved					2 bit
 
 Es:
-	* num_quadrants_per_size = 625
+	* u_num_quadrants_per_size = 625
 	* num_vertices_per_quadrant_size = 2049
+	
+	2026-01-20 11:16:14.542 DEBUG [25976] [godot::GDN_TheWorld_Globals::debugPrint@375] DEBUG - Num quadrants with optimization level 0 : 11 - map size : 2049 - Chunks (active) : 659(251) - Terrain Chunks (active) : 659(251) - Sea Chunks (active) : 0(0)
+	2026-01-20 11:16:14.542 DEBUG [25976] [godot::GDN_TheWorld_Globals::debugPrint@375] DEBUG - Num quadrants with optimization level 2 : 75 - map size : 513 - Chunks (active) : 109(109) - Terrain Chunks (active) : 75(75) - Sea Chunks (active) : 34(34)
+	2026-01-20 11:16:14.542 DEBUG [25976] [godot::GDN_TheWorld_Globals::debugPrint@375] DEBUG - Num quadrants with optimization level 4 : 180 - map size : 129 - Chunks (active) : 281(281) - Terrain Chunks (active) : 180(180) - Sea Chunks (active) : 101(101)
+	2026-01-20 11:16:14.542 DEBUG [25976] [godot::GDN_TheWorld_Globals::debugPrint@375] DEBUG - Num quadrants with optimization level 6 : 575 - map size : 33 - Chunks (active) : 1021(620) - Terrain Chunks (active) : 575(359) - Sea Chunks (active) : 446(261)
+	
+	optimization level 0:	11 * (2049 x 2049 x 2 (u_heightmap_array_optlvl_inc_0 FORMAT_RH) + 2049 x 2049 x 4 (u_vertex_control_array_optlvl_inc_0 FORMAT_RF)) = 264,26MB
+	optimization level 2:	75 * (513 x 513 x 2 (u_heightmap_array_optlvl_inc_1 FORMAT_RH) + 513 x 513 x 4 (u_vertex_control_array_optlvl_inc_1 FORMAT_RF)) = 112,94MB
+	optimization level 4:	180 * (129 x 129 x 2 (u_heightmap_array_optlvl_inc_2 FORMAT_RH) + 129 x 129 x 4 (u_vertex_control_array_optlvl_inc_2 FORMAT_RF)) = 17,14MB
+	optimization level 6:	575 * (33 x 33 x 2 (u_heightmap_array_optlvl_inc_3 FORMAT_RH) + 33 x 33 x 4 (u_vertex_control_array_optlvl_inc_3 FORMAT_RF)) = 3,6MB
+	Totale:	397,97MB

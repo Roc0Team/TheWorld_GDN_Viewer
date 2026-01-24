@@ -2073,7 +2073,15 @@ namespace godot
 		int getQuadrantNumWithEnabledCollider(void) const;
 		int getQuadrantNumWithHiResCollider(void) const;
 		int getQuadrantNumWithLowResCollider(void) const;
-		bool allVisibleQuadrantsInitialized(void);
+		bool allVisibleQuadrantInitialized(void) const
+		{
+			return m_allVisibleQuadrantInitialized;
+		}
+		void allVisibleQuadrantInitialized(bool b)
+		{
+			m_allVisibleQuadrantInitialized = b;
+		}
+		bool recalcAllVisibleQuadrantsInitialized(void);	// ha senso usarlo o conviene usare allVisibleQuadrantInitialized() per evitare di ricalcolarlo più di una volta nel corso di una esecuzione di _process?
 		void refreshQuadrantsStatistics(void);
 		void resetMaterialParamsForEveryQuadrant(void);
 		void updateMaterialParamsForEveryQuadrant(void);
@@ -2537,8 +2545,9 @@ namespace godot
 		godot::Vector2 worldPosToGlobalPos2d(godot::Vector2 worldPos);
 		godot::Vector2 worldPosToGlobalPos(godot::Vector2 worldPos);
 
-		void startInitializingStreamOfQuadrants(void);
-		void endInitializingStreamOfQuadrants(void);
+		bool streamingQuadrantsInProgress(void) const;
+		void startNewStreamOfQuadrants(void);
+		void endLastStreamOfQuadrants(void);
 
 		void worldCameraTerrainChunk(Chunk* c);
 		Chunk* worldCameraTerrainChunk(void);
@@ -2852,6 +2861,11 @@ namespace godot
 			return m_ctrlPressed;
 		}
 
+		void resetDataRefreshToShaderFlags(void);
+		void requestDataRefreshToShader(QuadTree* quadTree, bool request = true);
+		size_t getNumQuadrantsToRefreshToShader(void) const;
+		void getQuadrantsToRefreshToShader(std::vector<QuadTree*>& quadrantsToRefresh) const;
+
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void _doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos, QuadTree* quadTreeSel);
@@ -2887,12 +2901,13 @@ namespace godot
 		void process_updateMeshForUpdatedChunks(void);
 		void process_updateMeshForUpdatedChunks(enum class QuadType type);
 		void process_lookDev(void);
-		void process_materialParam(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
+		void process_materialParams(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_neighbourQuadrantData(QuadTree* quadTree);
 		void process_mapQuadrants(godot::Vector2 cameraWorldPos);
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
+		void updateMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void writeStreamingNewQuadrantsStatistics(void);
 		TheWorld_Utils::QuadrantPos getWorldQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isWorldQuadrantSelectedForEdit(void);
@@ -2912,6 +2927,7 @@ namespace godot
 		bool m_initialized;
 		godot::Camera3D* m_editorCamera;
 		godot::Node3D* m_anchorForOriginShift = nullptr;
+		bool m_allVisibleQuadrantInitialized = false;
 		bool m_worldEntered = false;
 		bool m_quitting;
 		bool m_visibleInTree;
@@ -2933,6 +2949,10 @@ namespace godot
 		enum class ShaderTerrainData::LookDev m_desiderdLookDev;
 		bool m_desideredLookDevChanged;
 		bool m_stopDeploy;
+
+		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadrantToShader;
+		std::vector<QuadTree*> m_vecQuadrantToShader;
+		ShaderTerrainData::ShaderControlData m_shaderControlData;
 
 		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 

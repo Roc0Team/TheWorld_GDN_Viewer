@@ -3118,7 +3118,7 @@ void ShaderTerrainData::releaseGlobals(void)
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 {
-	if (m_heightmapImage == nullptr)
+	if (m_hiresHeightmapImage == nullptr)
 	{
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		std::string s;
@@ -3129,7 +3129,7 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateHeightmapImage ") + s + __FUNCTION__, "create heightmap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& heightmapBuffer = m_quadTree->getQuadrant()->getFloat16HeightsBuffer();
-		m_heightmapImage = createHeightmapImage(heightmapBuffer, _resolution);
+		m_hiresHeightmapImage = createHeightmapImage(heightmapBuffer, _resolution);
 		//godot::PackedByteArray data;
 		//size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
 		//size_t heightmapBufferSizeInBytes = _resolution * _resolution * sizeof(uint16_t);
@@ -3140,7 +3140,7 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 		//}
 		//m_heightmapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RH, data);
 	}
-	return m_heightmapImage;
+	return m_hiresHeightmapImage;
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution)
@@ -3158,7 +3158,7 @@ godot::Ref<godot::Image> ShaderTerrainData::createHeightmapImage(TheWorld_Utils:
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateNormalmapImage()
 {
-	if (m_normalmapImage == nullptr)
+	if (m_hiresNormalmapImage == nullptr)
 	{
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		std::string s;
@@ -3169,12 +3169,12 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateNormalmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateNormalmapImage ") + s + __FUNCTION__, "create normalmap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& normalsBuffer = m_quadTree->getQuadrant()->getNormalsBuffer();
-		m_normalmapImage = createNormalmapImage(normalsBuffer, _resolution);
+		m_hiresNormalmapImage = createNormalmapImage(normalsBuffer, _resolution);
 		//size_t normalsBufferSize = normalsBuffer.size();
 		//if (normalsBufferSize == 0)
 		//{
-		//	m_normalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8);
-		//	m_normalmapImage->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
+		//	m_hiresNormalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8);
+		//	m_hiresNormalmapImage->fill(godot::Color(0.5f, 0.5f, 1.0f, 0.0f));	// packed normal vertical pointing up
 		//}
 		//else
 		//{
@@ -3185,7 +3185,7 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateNormalmapImage()
 		//	{
 		//		memcpy((char*)data.ptrw(), normalsBuffer.ptr(), normalsBufferSize);
 		//	}
-		//	m_normalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
+		//	m_hiresNormalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
 		//}
 		////{
 		////	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)normalsBuffer.ptr();
@@ -3197,7 +3197,7 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateNormalmapImage()
 		////	//image->unlock();
 		////}
 	}
-	return m_normalmapImage;
+	return m_hiresNormalmapImage;
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::createNormalmapImage(TheWorld_Utils::MemoryBuffer& normalmapBuffer, int _resolution)
@@ -3230,7 +3230,7 @@ godot::Ref<godot::Image> ShaderTerrainData::createNormalmapImage(TheWorld_Utils:
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateSplatmapImage()
 {
-	if (m_splatmapImage == nullptr)
+	if (m_hiresSplatmapImage == nullptr)
 	{
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		std::string s;
@@ -3241,12 +3241,12 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateSplatmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateSplatmapImage ") + s + __FUNCTION__, "create splatmap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& splatmapBuffer = m_quadTree->getQuadrant()->getSplatmapBuffer();
-		m_splatmapImage = createSplatlmapImage(splatmapBuffer, _resolution);
+		m_hiresSplatmapImage = createSplatlmapImage(splatmapBuffer, _resolution);
 		//size_t splatmapBufferSize = splatmapBuffer.size();
 		//if (splatmapBufferSize == 0)
 		//{
-		//	m_splatmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8);
-		//	m_splatmapImage->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
+		//	m_hiresSplatmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8);
+		//	m_hiresSplatmapImage->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));		// first texture TheWorld_Utils::TerrainEdit::extraValues.lowElevationTexName_r
 		//}
 		//else
 		//{
@@ -3257,11 +3257,11 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateSplatmapImage()
 		//	{
 		//		memcpy((char*)data.ptrw(), splatmapBuffer.ptr(), splatmapBufferSizeInBytes);
 		//	}
-		//	m_splatmapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8, data);
+		//	m_hiresSplatmapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8, data);
 		//}
 	}
 	
-	return m_splatmapImage;
+	return m_hiresSplatmapImage;
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::createSplatlmapImage(TheWorld_Utils::MemoryBuffer& splatmapBuffer, int _resolution)
@@ -3288,7 +3288,7 @@ godot::Ref<godot::Image> ShaderTerrainData::createSplatlmapImage(TheWorld_Utils:
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateGlobalmapImage()
 {
-	if (m_globalmapImage == nullptr)
+	if (m_hiresGlobalmapImage == nullptr)
 	{
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		std::string s;
@@ -3299,12 +3299,12 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateGlobalmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateGlobalmapImage ") + s + __FUNCTION__, "create globalmap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& globalmapBuffer = m_quadTree->getQuadrant()->getGlobalmapBuffer();
-		m_globalmapImage = createGlobalmapImage(globalmapBuffer, _resolution);
+		m_hiresGlobalmapImage = createGlobalmapImage(globalmapBuffer, _resolution);
 		//size_t globalmapBufferSize = globalmapBuffer.size();
 		//if (globalmapBufferSize == 0)
 		//{
-		//	//m_globalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8);
-		//	//m_globalmapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		//	//m_hiresGlobalmapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8);
+		//	//m_hiresGlobalmapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
 		//}
 		//else
 		//{
@@ -3315,10 +3315,10 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateGlobalmapImage()
 		//	{
 		//		memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
 		//	}
-		//	m_globalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
+		//	m_hiresGlobalmapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
 		//}
 	}
-	return m_globalmapImage;
+	return m_hiresGlobalmapImage;
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::createGlobalmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution)
@@ -3346,7 +3346,7 @@ godot::Ref<godot::Image> ShaderTerrainData::createGlobalmapImage(TheWorld_Utils:
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateColormapImage()
 {
-	if (m_colormapImage == nullptr)
+	if (m_hiresColormapImage == nullptr)
 	{
 		GDN_TheWorld_Globals* globals = m_viewer->Globals();
 		std::string s;
@@ -3357,12 +3357,12 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateColormapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateColormapImage ") + s + __FUNCTION__, "create colormap image");
 		int _resolution = globals->heightmapResolution() + 1;
 		TheWorld_Utils::MemoryBuffer& colormapBuffer = m_quadTree->getQuadrant()->getColormapBuffer();
-		m_colormapImage = createColormapImage(colormapBuffer, _resolution);
+		m_hiresColormapImage = createColormapImage(colormapBuffer, _resolution);
 		//size_t colormapBufferSize = colormapBuffer.size();
 		//if (colormapBufferSize == 0)
 		//{
-		//	//m_colormapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8);
-		//	//m_colormapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		//	//m_hiresColormapImage = godot::Image::create(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8);
+		//	//m_hiresColormapImage->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
 		//}
 		//else
 		//{
@@ -3373,10 +3373,10 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateColormapImage()
 		//	{
 		//		memcpy((char*)data.ptrw(), colormapBuffer.ptr(), colormapBufferSizeInBytes);
 		//	}
-		//	m_colormapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8, data);
+		//	m_hiresColormapImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGBA8, data);
 		//}
 	}
-	return m_colormapImage;
+	return m_hiresColormapImage;
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution)
@@ -3755,7 +3755,7 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 
 				quadrant->setHeightsUpdated(false);
 
-				//m_viewer->requestDataRefreshToShader(m_quadTree);
+				m_viewer->requestDataRefreshToShader(m_quadTree);
 			}
 
 			if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_heightmap))
@@ -4632,7 +4632,7 @@ void Quadrant::setHeightsUpdated(bool b)
 	m_heightsUpdated = b;
 	if (b)
 	{
-		getShaderTerrainData()->getHeightmapImageRef().unref();
+		getShaderTerrainData()->getHiresHeightmapImageRef().unref();
 		getShaderTerrainData()->getResizedHeightmapImageMap().clear();
 		setSplatmapUpdated(true);
 		setTextureUpdated(true);
@@ -4644,7 +4644,7 @@ void Quadrant::setNormalsUpdated(bool b)
 	if (b)
 	{
 		m_normalsUpdated = b;
-		getShaderTerrainData()->getNormalmapImageRef().unref();
+		getShaderTerrainData()->getHiresNormalmapImageRef().unref();
 		getShaderTerrainData()->getResizedNormalmapImageMap().clear();
 	}
 	else
@@ -4656,7 +4656,7 @@ void Quadrant::setSplatmapUpdated(bool b)
 	m_splatmapUpdated = b;
 	if (b)
 	{
-		getShaderTerrainData()->getSplatmapImageRef().unref();
+		getShaderTerrainData()->getHiresSplatmapImageRef().unref();
 		getShaderTerrainData()->getResizedSplatmapImageMap().clear();
 	}
 }
@@ -4666,7 +4666,7 @@ void Quadrant::setColorsUpdated(bool b)
 	m_colorsUpdated = b;
 	if (b)
 	{
-		getShaderTerrainData()->getColormapImageRef().unref();
+		getShaderTerrainData()->getHiresColormapImageRef().unref();
 		getShaderTerrainData()->getResizedColormapImageMap().clear();
 	}
 }
@@ -4676,7 +4676,7 @@ void Quadrant::setGlobalmapUpdated(bool b)
 	m_globalmapUpdated = b;
 	if (b)
 	{
-		getShaderTerrainData()->getGlobalmapImageRef().unref();
+		getShaderTerrainData()->getHiresGlobalmapImageRef().unref();
 		getShaderTerrainData()->getResizedGlobalmapImageMap().clear();
 	}
 }
@@ -4767,11 +4767,11 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 		m_globalmapBuffer.clear(__FUNCTION__);
 
 	// Needed for Shader: at init time or when optimization level changes from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
-	getShaderTerrainData()->getHeightmapImageRef().unref();
-	getShaderTerrainData()->getNormalmapImageRef().unref();
-	getShaderTerrainData()->getSplatmapImageRef().unref();
-	getShaderTerrainData()->getColormapImageRef().unref();
-	getShaderTerrainData()->getGlobalmapImageRef().unref();
+	getShaderTerrainData()->getHiresHeightmapImageRef().unref();
+	getShaderTerrainData()->getHiresNormalmapImageRef().unref();
+	getShaderTerrainData()->getHiresSplatmapImageRef().unref();
+	getShaderTerrainData()->getHiresColormapImageRef().unref();
+	getShaderTerrainData()->getHiresGlobalmapImageRef().unref();
 
 	int64_t size = m_heightsForCollider.size();
 	m_heightsForCollider.resize(0);
@@ -5391,7 +5391,7 @@ void Quadrant::loadTerrainDataFromCache(void)
 		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.2 ") + __FUNCTION__, "Cache heightmap images");
 
 		std::string profileHeader("loadTerrainDataFromCache 1.2.1 ");
-		getShaderTerrainData()->getHeightmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, 0, resolution);
+		getShaderTerrainData()->getHiresHeightmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, 0, resolution);
 
 		size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 		size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -5408,7 +5408,7 @@ void Quadrant::loadTerrainDataFromCache(void)
 		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.3 ") + __FUNCTION__, "Cache normalmap images");
 
 		std::string profileHeader("loadTerrainDataFromCache 1.3.1 ");
-		getShaderTerrainData()->getNormalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::normalmap, 0, resolution);
+		getShaderTerrainData()->getHiresNormalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::normalmap, 0, resolution);
 
 		size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 		size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -5425,7 +5425,7 @@ void Quadrant::loadTerrainDataFromCache(void)
 		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.4  ") + __FUNCTION__, "Cache splatmap images");
 
 		std::string profileHeader("loadTerrainDataFromCache 1.4.1 ");
-		getShaderTerrainData()->getSplatmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::splatmap, 0, resolution);
+		getShaderTerrainData()->getHiresSplatmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::splatmap, 0, resolution);
 
 		size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 		size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -5443,7 +5443,7 @@ void Quadrant::loadTerrainDataFromCache(void)
 		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.5  ") + __FUNCTION__, "Cache globalmap images");
 
 		std::string profileHeader("loadTerrainDataFromCache 1.5.1 ");
-		getShaderTerrainData()->getGlobalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, 0, resolution);
+		getShaderTerrainData()->getHiresGlobalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, 0, resolution);
 
 		size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 		size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -5461,7 +5461,7 @@ void Quadrant::loadTerrainDataFromCache(void)
 		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.6  ") + __FUNCTION__, "Cache colormap images");
 
 		std::string profileHeader("loadTerrainDataFromCache 1.6.1 ");
-		getShaderTerrainData()->getColormapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::colormap, 0, resolution);
+		getShaderTerrainData()->getHiresColormapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::colormap, 0, resolution);
 
 		size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 		size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -6110,7 +6110,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.3 ") + __FUNCTION__, "Cache heightmap images");
 
 		std::string profileHeader("WorldDeploy 2.1.1.3.1 ");
-		getShaderTerrainData()->getHeightmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, 0, resolution);
+		getShaderTerrainData()->getHiresHeightmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, 0, resolution);
 
 		size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 		size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -6129,7 +6129,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.4 ") + __FUNCTION__, "Cache normalmap images");
 
 		std::string profileHeader("WorldDeploy 2.1.1.4.1 ");
-		getShaderTerrainData()->getNormalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::normalmap, 0, resolution);
+		getShaderTerrainData()->getHiresNormalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::normalmap, 0, resolution);
 
 		size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 		size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -6148,7 +6148,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.5 ") + __FUNCTION__, "Cache splatmap images");
 
 		std::string profileHeader("WorldDeploy 2.1.1.5.1 ");
-		getShaderTerrainData()->getSplatmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::splatmap, 0, resolution);
+		getShaderTerrainData()->getHiresSplatmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::splatmap, 0, resolution);
 
 		size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 		size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -6173,7 +6173,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.6 ") + __FUNCTION__, "Cache globalmap images");
 
 			std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
-			getShaderTerrainData()->getGlobalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, 0, resolution);
+			getShaderTerrainData()->getHiresGlobalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, 0, resolution);
 
 			size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 			size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -6203,7 +6203,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.7 ") + __FUNCTION__, "Cache colormap images");
 
 			std::string profileHeader("WorldDeploy 2.1.1.7.1 ");
-			getShaderTerrainData()->getColormapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::colormap, 0, resolution);
+			getShaderTerrainData()->getHiresColormapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::colormap, 0, resolution);
 
 			size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
 			size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
@@ -6359,4 +6359,39 @@ godot::Ref<godot::Texture2D> Quadrant::NeighbourQuadrantData::getSplatmapBorderR
 	}
 
 	return tex;
+}
+
+void godot::ShaderTerrainData::GridControlData::setData(GDN_TheWorld_Viewer* viewer, WorldQuadrantsMap& worldQuadrantMap, size_t numQuadrantsPerGridSize, std::vector<QuadTree*>& quadrantsToRefresh)
+{
+//class 
+	m_viewer = viewer;
+
+	godot::TypedArray<godot::Image> heightmapImageArray;
+
+	for (auto& quadTreeEntry : worldQuadrantMap)
+	{
+		QuadTree* quadTree = quadTreeEntry.second.get();
+		Quadrant* quadrant = quadTree->getQuadrant();
+		bool locked = quadrant->lockInternalData();
+		if (locked)
+		{
+			//TheWorld_Utils::TerrainEdit* terrainEdit = quadrant->getTerrainEdit();
+			//ShaderTerrainData::QuadrantControlData quadrantControlData(quadrant->optimizationLevel() / Globals()->getParamTextureOptimizationResolutionIncrement(),
+			//	terrainEdit->extraValues.lowElevationTexName_r,
+			//	terrainEdit->extraValues.highElevationTexName_g,
+			//	terrainEdit->extraValues.dirtTexName_b,
+			//	terrainEdit->extraValues.rocksTexName_a,
+			//	terrainEdit->extraValues.highElevationFactor,
+			//	terrainEdit->extraValues.lowElevationFactor,
+			//	terrainEdit->minHeight,
+			//	terrainEdit->maxHeight,
+			//	terrainEdit->extraValues.slopeVerticalFactor,
+			//	terrainEdit->extraValues.slopeFlatFactor,
+			//	terrainEdit->extraValues.dirtOnRocksFactor,
+			//	heightmapIndex);
+
+			m_viewer->requestDataRefreshToShader(quadTree, false);
+			quadrant->unlockInternalData();
+		}
+	}
 }

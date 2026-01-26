@@ -7864,6 +7864,8 @@ void GDN_TheWorld_Viewer::setCacheQuadOnPerimeter(int cache)
 {
 	if (cache >= 0 && cache <= MAX_SETTABLE_CACHE_ON_PERIMETER)
 	{
+		m_forceUpdateMaterial = true;
+
 		m_cacheQuadOnPerimeter = cache;
 		m_lastProcessedWorldCameraPosForQuadrants = godot::Vector3();
 		m_lastProcessedWorldCameraPosForChunks = godot::Vector3();
@@ -7881,6 +7883,8 @@ void GDN_TheWorld_Viewer::setMaxDepthQuadOnPerimeter(int depth)
 {
 	if (depth >= 0 && depth <= MAX_SETTABLE_DEPTH_ON_PERIMETER)
 	{
+		m_forceUpdateMaterial = true;
+
 		m_maxDepthQuadOnPerimeter = depth;
 		if (m_maxDepthQuadOnPerimeter != -1 and m_maxDepthQuadOnPerimeter < getMinDepthQuadOnPerimeter())
 			setMinDepthQuadOnPerimeter(m_maxDepthQuadOnPerimeter);
@@ -8099,6 +8103,20 @@ int GDN_TheWorld_Viewer::getCameraProjectionMode(void)
 	godot::Camera3D::ProjectionType projection = camera->get_projection();
 
 	return (int)projection;
+}
+
+size_t GDN_TheWorld_Viewer::numQuadrantsPerGridSize(void) const
+{
+	return (getMaxDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1;	// +1 because we count also the central quadrant where the camera is
+}
+
+godot::Vector2 GDN_TheWorld_Viewer::getGridPos()
+{
+	size_t numQuadrantsFromBorderOfGrid = (numQuadrantsPerGridSize() - 1) / 2;	// -1 because we don't count the central quadrant where the camera is
+	return godot::Vector2(
+		m_computedWorldCameraQuadrantPos.getIndexPosX() - numQuadrantsFromBorderOfGrid * Globals()->heightmapSizeInWUs(),
+		m_computedWorldCameraQuadrantPos.getIndexPosZ() - numQuadrantsFromBorderOfGrid * Globals()->heightmapSizeInWUs()
+	);
 }
 
 bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
@@ -12416,68 +12434,59 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 			allCollidersReady(true);
 	}
 
-	//updateMaterial(worldCameraWorldPos, processCameraPosForQuadrants, processCameraPosForChunks);
+	updateMaterial(worldCameraWorldPos, processCameraPosForQuadrants, processCameraPosForChunks);
 }
 
 void GDN_TheWorld_Viewer::updateMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks)
 {
 	size_t numQuadrantsToRefreshToShader = getNumQuadrantsToRefreshToShader();
 
-	if (numQuadrantsToRefreshToShader > 0)
+	if (m_forceUpdateMaterial or numQuadrantsToRefreshToShader > 0)
 	{
-		if (!streamingQuadrantsInProgress() /*or allVisibleQuadrantInitialized()*/ or numQuadrantsToRefreshToShader > 100)
+		bool _streamingQuadrantsInProgress = streamingQuadrantsInProgress();
+		if (m_forceUpdateMaterial or !_streamingQuadrantsInProgress /*or allVisibleQuadrantInitialized()*/ or numQuadrantsToRefreshToShader > 100)
 		{
+			//TODO: si entra qui per ogni quadrant->optimizationLevelChanged() anche senza streaming, gestire ...
+			
+			unsigned int _numQuadrantsPerGridSize = (unsigned int)numQuadrantsPerGridSize();
 			std::vector<QuadTree*> quadrantsToRefresh;
 			getQuadrantsToRefreshToShader(quadrantsToRefresh);
-			for (auto& quadTree : quadrantsToRefresh)
-			{
-				Quadrant* quadrant = quadTree->getQuadrant();
-				bool locked = quadrant->lockInternalData();
-				if (locked)
-				{
-					TheWorld_Utils::TerrainEdit* terrainEdit = quadrant->getTerrainEdit();
+			m_gridControlData.setData(this, m_worldQuadrantsMap, _numQuadrantsPerGridSize, quadrantsToRefresh);
 
-					ShaderTerrainData::QuadrantControlData quadrantControlData(quadrant->optimizationLevel() / Globals()->getParamTextureOptimizationResolutionIncrement(),
-						terrainEdit->extraValues.lowElevationTexName_r,
-						terrainEdit->extraValues.highElevationTexName_g,
-						terrainEdit->extraValues.dirtTexName_b,
-						terrainEdit->extraValues.rocksTexName_a,
-						terrainEdit->extraValues.highElevationFactor,
-						terrainEdit->extraValues.lowElevationFactor,
-						terrainEdit->minHeight,
-						terrainEdit->maxHeight,
-						terrainEdit->extraValues.slopeVerticalFactor,
-						terrainEdit->extraValues.slopeFlatFactor,
-						terrainEdit->extraValues.dirtOnRocksFactor);
+			m_forceUpdateMaterial = false;
+				
+			unsigned int optimizationLevelIncrement = (unsigned int)Globals()->getParamTextureOptimizationResolutionIncrement();
+			godot::Vector2 gridPos = getGridPos();
 
-					requestDataRefreshToShader(quadTree, false);
-					quadrant->unlockInternalData();
-				}
-			}
+			godot::Ref<godot::Texture2D> gridControl1Texture = m_gridControlData.getGridControl1Tex();
+			godot::Ref<godot::Texture2D> gridControl2Texture = m_gridControlData.getGridControl2Tex();
+			godot::Ref<godot::Texture2D> gridControl3Texture = m_gridControlData.getGridControl3Tex();
 
-			//godot::Error e = albedoDisplTexture2DArray->create_from_images(albedoDisplImageArray);
-			//my_assert(e == godot::Error::OK);
-			//getShaderControlData();
+			godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_0 = memnew(godot::Texture2DArray);
+			godot::Error e = m_gridControlData.getHeightmapTexArrayOptlvlInc_0(heightmapTexArrayOptlvlInc_0);
+			my_assert(e == godot::Error::OK);
+			godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_1 = memnew(godot::Texture2DArray);
+			e = m_gridControlData.getHeightmapTexArrayOptlvlInc_1(heightmapTexArrayOptlvlInc_1);
+			my_assert(e == godot::Error::OK);
+			godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_2 = memnew(godot::Texture2DArray);
+			e = m_gridControlData.getHeightmapTexArrayOptlvlInc_2(heightmapTexArrayOptlvlInc_2);
+			my_assert(e == godot::Error::OK);
+			godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_3 = memnew(godot::Texture2DArray);
+			e = m_gridControlData.getHeightmapTexArrayOptlvlInc_3(heightmapTexArrayOptlvlInc_3);
+			my_assert(e == godot::Error::OK);
 
 			// update shader
 			//godot::Ref<godot::ShaderMaterial> mat = get_material();
-
-			unsigned int optimizationLevelIncrement = (unsigned int)Globals()->getParamTextureOptimizationResolutionIncrement();
-			//unsigned int numQuadrantsPerGridSize = Globals()->numQuadrantsPerGridSize();
-			//godot::Vector2 gridPosInWU = TheWorld_Utils::getGridPosInWUFromWorldPos(worldCameraWorldPos, Globals()->gridStepInWU());
-
-			godot::Ref<godot::Texture2DArray> heightmap_array_optlvl_inc_0 = m_shaderControlData.heightmapArrayOptimizationlevelInc_0();
-			godot::Ref<godot::Texture2DArray> heightmap_array_optlvl_inc_1 = m_shaderControlData.heightmapArrayOptimizationlevelInc_1();
-			godot::Ref<godot::Texture2DArray> heightmap_array_optlvl_inc_2 = m_shaderControlData.heightmapArrayOptimizationlevelInc_2();
-			godot::Ref<godot::Texture2DArray> heightmap_array_optlvl_inc_3 = m_shaderControlData.heightmapArrayOptimizationlevelInc_3();
-
-			//mat->set_shader_parameter(SHADER_PARAM_GRID_POS, gridPosInWU);
+			//mat->set_shader_parameter(SHADER_PARAM_GRID_POS, gridPos);
 			//mat->set_shader_parameter(SHADER_PARAM_OPTLVL_INCREMENT, optimizationLevelIncrement);
-			//mat->set_shader_parameter(SHADER_PARAM_NUM_QUADRANTS_PER_GRID_SIZE, );
-			//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_0, heightmap_array_optlvl_inc_0);
-			//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_1, heightmap_array_optlvl_inc_1);
-			//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_2, heightmap_array_optlvl_inc_2);
-			//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_3, heightmap_array_optlvl_inc_3);
+			//mat->set_shader_parameter(SHADER_PARAM_NUM_QUADRANTS_PER_GRID_SIZE, _numQuadrantsPerGridSize);
+			//mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_1, gridControl1Texture);
+			//mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_2, gridControl2Texture);
+			//mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_3, gridControl3Texture);
+			//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_0, heightmapTexArrayOptlvlInc_0);
+			//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_1, heightmapTexArrayOptlvlInc_1);
+			//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_2, heightmapTexArrayOptlvlInc_2);
+			//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_3, heightmapTexArrayOptlvlInc_3);
 		}
 	}
 }

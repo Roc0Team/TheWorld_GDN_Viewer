@@ -16,6 +16,7 @@
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/sub_viewport.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
+#include <godot_cpp/classes/compressed_texture2d.hpp>
 #include <godot_cpp/classes/texture2D_array.hpp>
 #pragma warning(pop)
 
@@ -26,6 +27,7 @@ namespace godot
 	class GDN_TheWorld_Viewer;
 	class GDN_TheWorld_Quadrant;
 	class GDN_TheWorld_MapModder;
+	class WorldQuadrantsMap;
 
 	class MapQuadrantImage
 	{
@@ -815,9 +817,9 @@ namespace godot
 #define SHADER_PARAM_OPTLVL_INCREMENT				"u_optlvl_increment"
 #define SHADER_PARAM_NUM_QUADRANTS_PER_GRID_SIZE	"u_num_quadrants_per_grid_size"
 
-#define SHADER_PARAM_QUADRANT_CONTROL_1				"u_quadrant_control_1"
-#define SHADER_PARAM_QUADRANT_CONTROL_2				"u_quadrant_control_2"
-#define SHADER_PARAM_QUADRANT_CONTROL_3				"u_quadrant_control_3"
+#define SHADER_PARAM_GRID_CONTROL_1					"u_grid_control_1"
+#define SHADER_PARAM_GRID_CONTROL_2					"u_grid_control_2"
+#define SHADER_PARAM_GRID_CONTROL_3					"u_grid_control_3"
 
 #define SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_0			"u_heightmap_array_optlvl_inc_0"
 #define SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_1			"u_heightmap_array_optlvl_inc_1"
@@ -970,39 +972,13 @@ namespace godot
 
 	public:
 		
-		class ShaderControlData
-		{
-		public:
-			godot::Ref<godot::Texture2DArray> heightmapArrayOptimizationlevelInc_0()
-			{
-				return m_heightmapArrayOptimizationlevelInc_0;
-			}
-			godot::Ref<godot::Texture2DArray> heightmapArrayOptimizationlevelInc_1()
-			{
-				return m_heightmapArrayOptimizationlevelInc_1;
-			}
-			godot::Ref<godot::Texture2DArray> heightmapArrayOptimizationlevelInc_2()
-			{
-				return m_heightmapArrayOptimizationlevelInc_2;
-			}
-			godot::Ref<godot::Texture2DArray> heightmapArrayOptimizationlevelInc_3()
-			{
-				return m_heightmapArrayOptimizationlevelInc_3;
-			}
-
-		private:
-			godot::Ref<godot::Texture2DArray> m_heightmapArrayOptimizationlevelInc_0;
-			godot::Ref<godot::Texture2DArray> m_heightmapArrayOptimizationlevelInc_1;
-			godot::Ref<godot::Texture2DArray> m_heightmapArrayOptimizationlevelInc_2;
-			godot::Ref<godot::Texture2DArray> m_heightmapArrayOptimizationlevelInc_3;
-		};
-
 		class QuadrantControlData
 		{
 		public:
 			QuadrantControlData(const size_t numOptLvlIncrements, const char* lowElevationTexName_r, const char* highElevationTexName_g, const char* dirtTexName_b, const char* rocksTexName_a,
-				float highElevationFactor, float lowElevationFactor, float minHeight, float maxHeight, float slopeVerticalFactor, float slopeFlatFactor, float dirtOnRocksFactor)
-				: m_numOptLvlIncrements(numOptLvlIncrements), m_highElevationFactor(highElevationFactor), m_lowElevationFactor(m_lowElevationFactor), m_minHeight(minHeight), m_maxHeight(maxHeight), m_slopeVerticalFactor(slopeVerticalFactor), m_slopeFlatFactor(slopeFlatFactor), m_dirtOnRocksFactor(dirtOnRocksFactor)
+				float highElevationFactor, float lowElevationFactor, float minHeight, float maxHeight, float slopeVerticalFactor, float slopeFlatFactor, float dirtOnRocksFactor, int heightmapIndex)
+				: m_numOptLvlIncrements(numOptLvlIncrements), m_highElevationFactor(highElevationFactor), m_lowElevationFactor(m_lowElevationFactor), m_minHeight(minHeight), m_maxHeight(maxHeight),
+				m_slopeVerticalFactor(slopeVerticalFactor), m_slopeFlatFactor(slopeFlatFactor), m_dirtOnRocksFactor(dirtOnRocksFactor), m_heightmapIndex(heightmapIndex)
 			{
 				strcpy_s(m_lowElevationTexName_r, sizeof(m_lowElevationTexName_r), lowElevationTexName_r);
 				strcpy_s(m_highElevationTexName_g, sizeof(m_highElevationTexName_g), highElevationTexName_g);
@@ -1023,11 +999,78 @@ namespace godot
 			float m_lowElevationFactor = 0;
 			float m_minHeight = 0;
 			float m_maxHeight = 0;
-			
+
 			// u_quadrant_control_3
 			float m_slopeVerticalFactor = 0;
 			float m_slopeFlatFactor = 0;
 			float m_dirtOnRocksFactor = 0;
+			int m_heightmapIndex = -1;
+		};
+
+		class GridControlData
+		{
+		public:
+			GridControlData(void)
+			{
+			}
+			
+			void setData(GDN_TheWorld_Viewer* viewer, WorldQuadrantsMap& worldQuadrantMap, size_t numQuadrantsPerGridSize, std::vector<QuadTree*>& quadrantsToRefresh);
+
+			godot::Ref<godot::Texture2D> getGridControl1Tex(void)
+			{
+				godot::Ref<godot::Texture2D> tex;
+				//tex = godot::ImageTexture::create_from_image(m_gridControl1Image);
+				return tex;
+			}
+			godot::Ref<godot::Texture2D> getGridControl2Tex(void)
+			{
+				godot::Ref<godot::Texture2D> tex;
+				//tex = godot::ImageTexture::create_from_image(m_gridControl2Image);
+				return tex;
+			}
+			godot::Ref<godot::Texture2D> getGridControl3Tex(void)
+			{
+				godot::Ref<godot::Texture2D> tex;
+				//tex = godot::ImageTexture::create_from_image(m_gridControl3Image);
+				return tex;
+			}
+
+			godot::Error getHeightmapTexArrayOptlvlInc_0(godot::Ref<godot::Texture2DArray> _heightmapArrayOptimizationlevelInc_0)
+			{
+				godot::Error e = godot::Error::OK;
+				//e = _heightmapArrayOptimizationlevelInc_0->create_from_images(m_heightmapArrayOptimizationlevelInc_0);
+				return e;
+			}
+			godot::Error getHeightmapTexArrayOptlvlInc_1(godot::Ref<godot::Texture2DArray> _heightmapArrayOptimizationlevelInc_1)
+			{
+				godot::Error e = godot::Error::OK;
+				//e = _heightmapArrayOptimizationlevelInc_1->create_from_images(m_heightmapArrayOptimizationlevelInc_1);
+				return e;
+			}
+			godot::Error getHeightmapTexArrayOptlvlInc_2(godot::Ref<godot::Texture2DArray> _heightmapArrayOptimizationlevelInc_2)
+			{
+				godot::Error e = godot::Error::OK;
+				//e = _heightmapArrayOptimizationlevelInc_2->create_from_images(m_heightmapArrayOptimizationlevelInc_2);
+				return e;
+			}
+			godot::Error getHeightmapTexArrayOptlvlInc_3(godot::Ref<godot::Texture2DArray> _heightmapArrayOptimizationlevelInc_3)
+			{
+				godot::Error e = godot::Error::OK;
+				//e = _heightmapArrayOptimizationlevelInc_3->create_from_images(m_heightmapArrayOptimizationlevelInc_3);
+				return e;
+			}
+
+		private:
+			GDN_TheWorld_Viewer* m_viewer = nullptr;
+
+			godot::Ref<godot::Image> m_gridControl1Image;
+			godot::Ref<godot::Image> m_gridControl2Image;
+			godot::Ref<godot::Image> m_gridControl3Image;
+
+			godot::TypedArray<godot::Image> m_heightmapArrayOptimizationlevelInc_0;
+			godot::TypedArray<godot::Image> m_heightmapArrayOptimizationlevelInc_1;
+			godot::TypedArray<godot::Image> m_heightmapArrayOptimizationlevelInc_2;
+			godot::TypedArray<godot::Image> m_heightmapArrayOptimizationlevelInc_3;
 		};
 
 		enum class LookDev {
@@ -1049,6 +1092,12 @@ namespace godot
 
 		ShaderTerrainData(GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 		~ShaderTerrainData();
+
+		GDN_TheWorld_Viewer* Viewer(void) const
+		{
+			return m_viewer;
+		}
+
 		void init(void);
 		//static godot::Ref<godot::Image> readGroundTexture(godot::String fileName, bool& ok, GDN_TheWorld_Viewer* viewer = nullptr);
 		//static void getGroundTexture(godot::String fileName, GroundTexture* groundTexture, GDN_TheWorld_Viewer* viewer = nullptr);
@@ -1219,46 +1268,46 @@ namespace godot
 		godot::Ref<godot::Image> getOrCreateColormapImage();
 		static godot::Ref<godot::Image> createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution);
 
-		godot::Ref<godot::Image> getHeightmapImage(void)
-		{
-			return m_heightmapImage;
-		}
+		//godot::Ref<godot::Image> getHiresHeightmapImage(void)
+		//{
+		//	return m_hiresHeightmapImage;
+		//}
 
-		godot::Ref<godot::Image>& getHeightmapImageRef(void)
+		godot::Ref<godot::Image>& getHiresHeightmapImageRef(void)
 		{
-			return m_heightmapImage;
+			return m_hiresHeightmapImage;
 		}
 		std::map<size_t, godot::Ref<godot::Image>>& getResizedHeightmapImageMap(void)
 		{
 			return m_resizedHeightmapImageMap;
 		}
-		godot::Ref<godot::Image>& getNormalmapImageRef(void)
+		godot::Ref<godot::Image>& getHiresNormalmapImageRef(void)
 		{
-			return m_normalmapImage;
+			return m_hiresNormalmapImage;
 		}
 		std::map<size_t, godot::Ref<godot::Image>>& getResizedNormalmapImageMap(void)
 		{
 			return m_resizedNormalmapImageMap;
 		}
-		godot::Ref<godot::Image>& getSplatmapImageRef(void)
+		godot::Ref<godot::Image>& getHiresSplatmapImageRef(void)
 		{
-			return m_splatmapImage;
+			return m_hiresSplatmapImage;
 		}
 		std::map<size_t, godot::Ref<godot::Image>>& getResizedSplatmapImageMap(void)
 		{
 			return m_resizedSplatmapImageMap;
 		}
-		godot::Ref<godot::Image>& getColormapImageRef(void)
+		godot::Ref<godot::Image>& getHiresColormapImageRef(void)
 		{
-			return m_colormapImage;
+			return m_hiresColormapImage;
 		}
 		std::map<size_t, godot::Ref<godot::Image>>& getResizedColormapImageMap(void)
 		{
 			return m_resizedColormapImageMap;
 		}
-		godot::Ref<godot::Image>& getGlobalmapImageRef(void)
+		godot::Ref<godot::Image>& getHiresGlobalmapImageRef(void)
 		{
-			return m_globalmapImage;
+			return m_hiresGlobalmapImage;
 		}
 		std::map<size_t, godot::Ref<godot::Image>>& getResizedGlobalmapImageMap(void)
 		{
@@ -1267,11 +1316,11 @@ namespace godot
 
 		size_t calcTexMemoryOccupation(void)
 		{
-			size_t occupation = m_heightmapImage == nullptr ? 0 : m_heightmapImage->get_data().size();
-			occupation += m_normalmapImage == nullptr ? 0 : m_normalmapImage->get_data().size();
-			occupation += m_splatmapImage == nullptr ? 0 : m_splatmapImage->get_data().size();
-			occupation += m_globalmapImage == nullptr ? 0 : m_globalmapImage->get_data().size();
-			occupation += m_colormapImage == nullptr ? 0 : m_colormapImage->get_data().size();
+			size_t occupation = m_hiresHeightmapImage == nullptr ? 0 : m_hiresHeightmapImage->get_data().size();
+			occupation += m_hiresNormalmapImage == nullptr ? 0 : m_hiresNormalmapImage->get_data().size();
+			occupation += m_hiresSplatmapImage == nullptr ? 0 : m_hiresSplatmapImage->get_data().size();
+			occupation += m_hiresGlobalmapImage == nullptr ? 0 : m_hiresGlobalmapImage->get_data().size();
+			occupation += m_hiresColormapImage == nullptr ? 0 : m_hiresColormapImage->get_data().size();
 			occupation += calcResizedTexMemoryOccupation();
 			return occupation;
 		}
@@ -1328,27 +1377,27 @@ namespace godot
 
 		godot::Ref<godot::Texture> m_heightmapTexture;
 		bool m_heightMapTexModified;
-		godot::Ref<godot::Image> m_heightmapImage;
+		godot::Ref<godot::Image> m_hiresHeightmapImage;								// original high-res image at optimization level 0
 		std::map<size_t, godot::Ref<godot::Image>> m_resizedHeightmapImageMap;
 
 		godot::Ref<godot::Texture> m_normalmapTexture;
 		bool m_normalMapTexModified;
-		godot::Ref<godot::Image> m_normalmapImage;
+		godot::Ref<godot::Image> m_hiresNormalmapImage;								// original high-res image at optimization level 0
 		std::map<size_t, godot::Ref<godot::Image>> m_resizedNormalmapImageMap;
 
 		godot::Ref<godot::Texture> m_splatmapTexture;
 		bool m_splatMapTexModified;
-		godot::Ref<godot::Image> m_splatmapImage;
+		godot::Ref<godot::Image> m_hiresSplatmapImage;								// original high-res image at optimization level 0
 		std::map<size_t, godot::Ref<godot::Image>> m_resizedSplatmapImageMap;
 
 		godot::Ref<godot::Texture> m_colormapTexture;
 		bool m_colorMapTexModified;
-		godot::Ref<godot::Image> m_colormapImage;
+		godot::Ref<godot::Image> m_hiresColormapImage;								// original high-res image at optimization level 0
 		std::map<size_t, godot::Ref<godot::Image>> m_resizedColormapImageMap;
 
 		godot::Ref<godot::Texture> m_globalmapTexture;
 		bool m_globalMapTexModified;
-		godot::Ref<godot::Image> m_globalmapImage;
+		godot::Ref<godot::Image> m_hiresGlobalmapImage;								// original high-res image at optimization level 0	
 		std::map<size_t, godot::Ref<godot::Image>> m_resizedGlobalmapImageMap;
 
 		static std::recursive_mutex s_mtxStaticData;

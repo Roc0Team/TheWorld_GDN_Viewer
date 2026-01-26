@@ -15,7 +15,7 @@ Architettura shader
 
 * u_num_quadrants_per_size: num quadrant per size in the heightmap grid
 
-* u_quadrant_control_1 ==> texture FORMAT_RF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size				es with 625 per u_num_quadrants_per_size: 625 * 625 * 4 = 1.562.500 bytes per quadrant ==> 1,5MB
+* u_grid_control_1 ==> texture FORMAT_RF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size				es with 625 per u_num_quadrants_per_size: 625 * 625 * 4 = 1.562.500 bytes per quadrant ==> 1,5MB
 	* num_optlvl_inc				2 bit	range 0/3
 	* low-level texture	index		6 bit	range 0/63	(per un massimo di 64 ground texture)
 	* high-level texture index		6 bit	range 0/63	(per un massimo di 64 ground texture)
@@ -23,23 +23,24 @@ Architettura shader
 	* rock texture index			6 bit	range 0/63	(per un massimo di 64 ground texture)
 	* reserved						6 bit
 
-* u_quadrant_control_2 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size			es with 625 per u_num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
-	* high_elevation_factor	(R)	32 bits
-	* low_elevation_factor (G)	32 bits
-	* min_heigth (B)			32 bits
-	* max_heigth (A)			32 bits
+* u_grid_control_2 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size			es with 625 per u_num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
+	* high_elevation_factor	(R)		32 bits
+	* low_elevation_factor (G)		32 bits
+	* min_heigth (B)				32 bits
+	* max_heigth (A)				32 bits
 
-* u_quadrant_control_3 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size			es with 625 per u_num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
-	* slope_vertical_factor (R)	32 bits
-	* slope_flat_factor (G)		32 bits
-	* dirt_on_rocks_factor (B)	32 bits
-	* reserved (A)				32 bits
+* u_grid_control_3 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size			es with 625 per u_num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
+	* slope_vertical_factor (R)		32 bits
+	* slope_flat_factor (G)			32 bits
+	* dirt_on_rocks_factor (B)		32 bits
+	* heightmap_index (A)			10 bits		range 0/1023
+	* reserved (A)					22 bits
 	
-* u_heightmap_array_optlvl_inc_0 to 3 ==> sampler2DArray FORMAT_RH, flat texture array (una texture per ogni quadrante - row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size
+* u_heightmap_array_optlvl_inc_0 to 3 ==> sampler2DArray FORMAT_RH, flat texture array (una texture per ogni quadrante pointed by the heightmap_index) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size
 	* heightmap ==> texture FORMAT_RH, un texel per ogni vertice (row * column) con dim = num_vertices_per_quadrant_size * num_vertices_per_quadrant_size			es with step 2 and 2049 num_vertices_per_quadrant_size: 2049 * 2049 * 2 = 8.396.802 bytes per quadrant ==> 8MB per quadrant at max resolution
 		* altitude					16 bit	range -65504/+65504
 		
-* u_vertex_control_array_optlvl_inc_0 to 3 ==> sampler2DArray FORMAT_RF, flat texture array (una texture per ogni quadrante - row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size
+* u_vertex_control_array_optlvl_inc_0 to 3 ==> sampler2DArray FORMAT_RF, flat texture array (una texture per ogni quadrante pointed by the heightmap_index) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size
 	* vertex_control ==> texture FORMAT_RF, un texel per ogni vertice (row * column) con dim = num_vertices_per_quadrant_size * num_vertices_per_quadrant_size		es with step 2 and 2049 num_vertices_per_quadrant_size: 2049 * 2049 * 4 = 16.793.604 bytes ==> 16MB per quadrant at max resolution
 		* hole						1 bit	range 0/1	false/true
 		* navigation				1 bit	range 0/1	false/true

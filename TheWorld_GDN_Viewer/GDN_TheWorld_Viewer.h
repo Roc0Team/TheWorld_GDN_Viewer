@@ -1957,6 +1957,8 @@ namespace godot
 		void setCacheQuadOnPerimeter(int cache);
 		int getCacheQuadOnPerimeter(void) const;
 		void setMaxDepthQuadOnPerimeter(int depth);
+		size_t numQuadrantsPerGridSize(void) const;
+		godot::Vector2 getGridPos();
 
 		int getMaxDepthQuadOnPerimeter(void) const;
 		int maxActualDepthQuadInAllDirections(void) const;
@@ -2928,6 +2930,7 @@ namespace godot
 		godot::Camera3D* m_editorCamera;
 		godot::Node3D* m_anchorForOriginShift = nullptr;
 		bool m_allVisibleQuadrantInitialized = false;
+		bool m_forceUpdateMaterial = false;
 		bool m_worldEntered = false;
 		bool m_quitting;
 		bool m_visibleInTree;
@@ -2952,7 +2955,7 @@ namespace godot
 
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadrantToShader;
 		std::vector<QuadTree*> m_vecQuadrantToShader;
-		ShaderTerrainData::ShaderControlData m_shaderControlData;
+		ShaderTerrainData::GridControlData m_gridControlData;
 
 		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 

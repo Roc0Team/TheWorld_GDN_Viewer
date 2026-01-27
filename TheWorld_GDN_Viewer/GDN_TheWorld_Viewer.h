@@ -2909,7 +2909,7 @@ namespace godot
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
-		void updateMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
+		void updateTerrainMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void writeStreamingNewQuadrantsStatistics(void);
 		TheWorld_Utils::QuadrantPos getWorldQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isWorldQuadrantSelectedForEdit(void);
@@ -2930,7 +2930,7 @@ namespace godot
 		godot::Camera3D* m_editorCamera;
 		godot::Node3D* m_anchorForOriginShift = nullptr;
 		bool m_allVisibleQuadrantInitialized = false;
-		bool m_forceUpdateMaterial = false;
+		bool m_forceUpdateTerrainMaterial = false;
 		bool m_worldEntered = false;
 		bool m_quitting;
 		bool m_visibleInTree;

@@ -980,18 +980,18 @@ namespace godot
 			QuadrantControlData(const size_t numOptLvlIncrements, int32_t lowElevationTexIdx_r, int32_t highElevationTexIdx_g, int32_t dirtTexIdx_b, int32_t rocksTexIdx_a,
 				float highElevationFactor, float lowElevationFactor, float minHeight, float maxHeight, float slopeVerticalFactor, float slopeFlatFactor, float dirtOnRocksFactor, int heightmapIndex)
 				: m_numOptLvlIncrements(numOptLvlIncrements), m_lowElevationTexIdx_r(lowElevationTexIdx_r), m_highElevationTexIdx_g(highElevationTexIdx_g), m_dirtTexIdx_b(dirtTexIdx_b), m_rocksTexIdx_a(rocksTexIdx_a),
-				m_highElevationFactor(highElevationFactor), m_lowElevationFactor(m_lowElevationFactor), m_minHeight(minHeight), m_maxHeight(maxHeight),
+				m_highElevationFactor(highElevationFactor), m_lowElevationFactor(lowElevationFactor), m_minHeight(minHeight), m_maxHeight(maxHeight),
 				m_slopeVerticalFactor(slopeVerticalFactor), m_slopeFlatFactor(slopeFlatFactor), m_dirtOnRocksFactor(dirtOnRocksFactor), m_heightmapIndex(heightmapIndex)
 			{
 			}
 
 			godot::Color gridControl1Value(void) const
 			{
-				uint32_t _numOptLvlIncrements = (m_numOptLvlIncrements & 0x03) << 30;	// bits 30-31	(0-index)
-				uint32_t _lowElevationTexIdx_r = (m_lowElevationTexIdx_r & 0x3F) << 24;	// bits 24-29	(0-index)
+				uint32_t _numOptLvlIncrements = (m_numOptLvlIncrements & 0x03) << 30;		// bits 30-31	(0-index)
+				uint32_t _lowElevationTexIdx_r = (m_lowElevationTexIdx_r & 0x3F) << 24;		// bits 24-29	(0-index)
 				uint32_t _highElevationTexIdx_g = (m_highElevationTexIdx_g & 0x3F) << 18;	// bits 18-23	(0-index)
-				uint32_t _dirtTexIdx_b = (m_dirtTexIdx_b & 0x3F) << 12;					// bits 12-17	(0-index)
-				uint32_t _rocksTexIdx_a = (m_rocksTexIdx_a & 0x3F) << 6;				// bits 6-11	(0-index)
+				uint32_t _dirtTexIdx_b = (m_dirtTexIdx_b & 0x3F) << 12;						// bits 12-17	(0-index)
+				uint32_t _rocksTexIdx_a = (m_rocksTexIdx_a & 0x3F) << 6;					// bits 6-11	(0-index)
 
 				union
 				{
@@ -1051,22 +1051,22 @@ namespace godot
 			godot::Ref<godot::Texture2D> getGridControl1Tex(void)
 			{
 				godot::Ref<godot::Texture2D> tex;
-				//tex = godot::ImageTexture::create_from_image(m_gridControl1Image);
-				//my_assert(tex != nullptr);
+				tex = godot::ImageTexture::create_from_image(m_gridControl1Image);
+				my_assert(tex != nullptr);
 				return tex;
 			}
 			godot::Ref<godot::Texture2D> getGridControl2Tex(void)
 			{
 				godot::Ref<godot::Texture2D> tex;
-				//tex = godot::ImageTexture::create_from_image(m_gridControl2Image);
-				//my_assert(tex != nullptr);
+				tex = godot::ImageTexture::create_from_image(m_gridControl2Image);
+				my_assert(tex != nullptr);
 				return tex;
 			}
 			godot::Ref<godot::Texture2D> getGridControl3Tex(void)
 			{
 				godot::Ref<godot::Texture2D> tex;
-				//tex = godot::ImageTexture::create_from_image(m_gridControl3Image);
-				//my_assert(tex != nullptr);
+				tex = godot::ImageTexture::create_from_image(m_gridControl3Image);
+				my_assert(tex != nullptr);
 				return tex;
 			}
 
@@ -1074,16 +1074,20 @@ namespace godot
 			{
 				my_assert(optLvlInc >= 0 and optLvlInc < MAX_OPTLVL_INCREMENTS_TO_SHADER);
 				godot::Ref<godot::Texture2DArray> _heightmapArrayOptimizationlevelInc = memnew(godot::Texture2DArray);
-				godot::Error e = _heightmapArrayOptimizationlevelInc->create_from_images(m_heightmapArrayOptLvlIncrements[optLvlInc]);
+				godot::Error e = godot::Error::OK;
+				if (m_heightmapArrayOptLvlIncrements[optLvlInc].size() > 0)
+				{
+					e = _heightmapArrayOptimizationlevelInc->create_from_images(m_heightmapArrayOptLvlIncrements[optLvlInc]);
+				}
 				my_assert(e == godot::Error::OK);
 				return _heightmapArrayOptimizationlevelInc;
 			}
 
 			void releaseData(void)
 			{
-				m_gridControl1Image.unref();
-				m_gridControl2Image.unref();
-				m_gridControl3Image.unref();
+				//m_gridControl1Image.unref();
+				//m_gridControl2Image.unref();
+				//m_gridControl3Image.unref();
 				for (int i = 0; i < MAX_OPTLVL_INCREMENTS_TO_SHADER; i++)
 				{
 					m_heightmapArrayOptLvlIncrements[i].clear();

@@ -33,8 +33,8 @@ Architettura shader
 	* slope_vertical_factor (R)		32 bits
 	* slope_flat_factor (G)			32 bits
 	* dirt_on_rocks_factor (B)		32 bits
-	* heightmap_index (A)			10 bits		range 0/1023
 	* reserved (A)					22 bits
+	* heightmap_index (A)			10 bits		range 0/1023
 	
 * u_heightmap_array_optlvl_inc_0 to 3 ==> sampler2DArray FORMAT_RH, flat texture array (una texture per ogni quadrante pointed by the heightmap_index) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size
 	* heightmap ==> texture FORMAT_RH, un texel per ogni vertice (row * column) con dim = num_vertices_per_quadrant_size * num_vertices_per_quadrant_size			es with step 2 and 2049 num_vertices_per_quadrant_size: 2049 * 2049 * 2 = 8.396.802 bytes per quadrant ==> 8MB per quadrant at max resolution

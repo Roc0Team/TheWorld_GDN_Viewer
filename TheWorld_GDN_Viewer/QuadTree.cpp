@@ -6367,29 +6367,46 @@ godot::Ref<godot::Texture2D> Quadrant::NeighbourQuadrantData::getSplatmapBorderR
 
 void godot::ShaderTerrainData::GridControlData::setData(GDN_TheWorld_Viewer* viewer, godot::Vector2 gridPos, WorldQuadrantsMap& worldQuadrantMap, size_t numQuadrantsPerGridSize, std::vector<QuadTree*>& quadrantsToRefresh)
 {
-	TheWorld_Utils::GuardProfiler profiler(std::string("UpdateTerrainMaterial 1.1.1 ") + __FUNCTION__, "Creating Terrain Shader Data");
+	TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.1.1 ") + __FUNCTION__, "Creating Terrain Shader Data");
 
-	static size_t s_maxOptimizationLevel = m_viewer->Globals()->getMaxTextureOptimizationLevel();
-	static size_t s_minResolution = m_viewer->Globals()->resolutionForOptimizationLevel(s_maxOptimizationLevel);
-	static TheWorld_Utils::TerrainEdit s_emptyTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::empty);
-	static godot::Ref<godot::Image> s_emptyTerrainImage;
-	static bool s_emptyTerrainImageInitialized = false;
-	if (!s_emptyTerrainImageInitialized)
-	{
-		s_emptyTerrainImage = godot::Image::create_empty((int32_t)s_minResolution, (int32_t)s_minResolution, false, godot::Image::Format::FORMAT_RH);
-		s_emptyTerrainImage->fill(godot::Color(s_emptyTerrainEdit.minHeight, 0.0f, 0.0f, 0.0f));
-		s_emptyTerrainImageInitialized = true;
-	}
-	
 	m_viewer = viewer;
 
+	TheWorld_Utils::TerrainEdit emptyTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::empty);
+
+	static size_t s_maxOptimizationLevel = 0;
+	static size_t s_minResolution = 0;
+	static godot::Ref<godot::Image> s_emptyTerrainImage;
+	static bool s_statisInitialized = false;
+	if (!s_statisInitialized)
+	{
+		s_maxOptimizationLevel = m_viewer->Globals()->getMaxTextureOptimizationLevel();
+		s_minResolution = m_viewer->Globals()->resolutionForOptimizationLevel(s_maxOptimizationLevel);
+		s_emptyTerrainImage = godot::Image::create_empty((int32_t)s_minResolution, (int32_t)s_minResolution, false, godot::Image::Format::FORMAT_RH);
+		s_emptyTerrainImage->fill(godot::Color(emptyTerrainEdit.minHeight, 0.0f, 0.0f, 0.0f));
+		s_statisInitialized = true;
+
+		m_gridControl1Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RF);
+		m_gridControl2Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RGBAF);
+		m_gridControl3Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RGBAF);
+	}
+
 	releaseData();
-	
+
+	// DEBUG
+	//std::vector<std::vector<bool>> quadrantMap;
+	//quadrantMap.resize(numQuadrantsPerGridSize);
+	//for (size_t i = 0; i < numQuadrantsPerGridSize; i++)
+	//	quadrantMap[i].resize(numQuadrantsPerGridSize, false);
+	// DEBUG
+
 	size_t heightmapArrayOptLvlIncIndex[4] = {0, 0, 0, 0};
 
-	m_gridControl1Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RF);
-	m_gridControl2Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RGBAF);
-	m_gridControl3Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RGBAF);
+	//m_gridControl1Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RF);
+	//m_gridControl2Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RGBAF);
+	//m_gridControl3Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RGBAF);
+	m_gridControl1Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+	m_gridControl2Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+	m_gridControl3Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
 
 	for (auto& quadTreeEntry : worldQuadrantMap)
 	{
@@ -6397,70 +6414,92 @@ void godot::ShaderTerrainData::GridControlData::setData(GDN_TheWorld_Viewer* vie
 		Quadrant* quadrant = quadTree->getQuadrant();
 		ShaderTerrainData* shaderTerrainData = quadrant->getShaderTerrainData();
 		
+		godot::Vector2 quadrantPosInWU(quadrant->getPos().getLowerXGridVertex(), quadrant->getPos().getLowerZGridVertex());
+		godot::Vector2 quadrantPosInGrid = (quadrantPosInWU - gridPos) / m_viewer->Globals()->heightmapSizeInWUs();				// 0-based
+
+		TheWorld_Utils::TerrainEdit* terrainEdit = nullptr;
+		size_t _numOptLvlIncrements = 0;
+
 		bool locked = quadrant->lockInternalData();
-		if (locked)
+		if (locked and quadTree->statusInitialized())
 		{
-			TheWorld_Utils::TerrainEdit* terrainEdit = nullptr;
-			size_t _numOptLvlIncrements = 0;
+			TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.1.1.1 ") + __FUNCTION__, "Creating Terrain Shader Data for quadrant");
+			size_t _optimizationLevel = quadrant->optimizationLevel();
+			_numOptLvlIncrements = _optimizationLevel / m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+			my_assert(_numOptLvlIncrements >= 0 and _numOptLvlIncrements < MAX_OPTLVL_INCREMENTS_TO_SHADER);
 
-			if (quadTree->statusInitialized())
+			godot::Ref<godot::Image> image;
 			{
-				size_t _optimizationLevel = quadrant->optimizationLevel();
-				_numOptLvlIncrements = _optimizationLevel / m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
-				my_assert(_numOptLvlIncrements >= 0 and _numOptLvlIncrements < MAX_OPTLVL_INCREMENTS_TO_SHADER);
-
-				std::string profileHeader("UpdateTerrainMaterial 1.1.2 ");
-				godot::Ref<godot::Image> image = shaderTerrainData->getImageAtOptimizationLevel(profileHeader, ImageType::heightmap, _optimizationLevel);
-				m_heightmapArrayOptLvlIncrements[_numOptLvlIncrements].push_back(image);
-
-				terrainEdit = quadrant->getTerrainEdit();
+				std::string profileHeader("Update Terrain Material 1.1.1.1.1 ");
+				image = shaderTerrainData->getImageAtOptimizationLevel(profileHeader, ImageType::heightmap, _optimizationLevel);
 			}
-			else
-			{
-				_numOptLvlIncrements = s_maxOptimizationLevel / m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
-				my_assert(_numOptLvlIncrements >= 0 and _numOptLvlIncrements < MAX_OPTLVL_INCREMENTS_TO_SHADER);
+			m_heightmapArrayOptLvlIncrements[_numOptLvlIncrements].push_back(image);
 
-				m_heightmapArrayOptLvlIncrements[_numOptLvlIncrements].push_back(s_emptyTerrainImage);
-
-				terrainEdit = &s_emptyTerrainEdit;
-			}
-
-			{
-				ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-				std::string textureLayout = quadrant->textureLayout(), layoutForFoundTexture = "";
-				int32_t lowElevationTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.lowElevationTexName_r, layoutForFoundTexture);
-				int32_t highElevationTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.highElevationTexName_g, layoutForFoundTexture);
-				int32_t dirtTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.dirtTexName_b, layoutForFoundTexture);
-				int32_t rocksTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.rocksTexName_a, layoutForFoundTexture);
-				ShaderTerrainData::QuadrantControlData quadrantControlData(_numOptLvlIncrements,
-					lowElevationTexIdx,
-					highElevationTexIdx,
-					dirtTexIdx,
-					rocksTexIdx,
-					terrainEdit->extraValues.highElevationFactor,
-					terrainEdit->extraValues.lowElevationFactor,
-					terrainEdit->minHeight,
-					terrainEdit->maxHeight,
-					terrainEdit->extraValues.slopeVerticalFactor,
-					terrainEdit->extraValues.slopeFlatFactor,
-					terrainEdit->extraValues.dirtOnRocksFactor,
-					(int)heightmapArrayOptLvlIncIndex[_numOptLvlIncrements]);
-
-				heightmapArrayOptLvlIncIndex[_numOptLvlIncrements]++;
-
-				godot::Vector2 quadrantPosInWU(quadrant->getPos().getLowerXGridVertex(), quadrant->getPos().getLowerZGridVertex());
-				godot::Vector2 quadrantPosInGrid = (quadrantPosInWU - gridPos) / m_viewer->Globals()->heightmapSizeInWUs();
-
-				Color c = quadrantControlData.gridControl1Value();
-				m_gridControl1Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
-				c = quadrantControlData.gridControl2Value();
-				m_gridControl2Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
-				c = quadrantControlData.gridControl3Value();
-				m_gridControl3Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
-			}
-			
-			m_viewer->requestDataRefreshToShader(quadTree, false);
-			quadrant->unlockInternalData();
+			terrainEdit = quadrant->getTerrainEdit();
 		}
+		else
+		{
+			//PLOG_DEBUG << "GridControlData::setData: quadrant locked - x=" << quadrantPosInGrid.x << ", y=" << (int32_t)quadrantPosInGrid.y;		// DEBUG
+
+			_numOptLvlIncrements = s_maxOptimizationLevel / m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+			my_assert(_numOptLvlIncrements >= 0 and _numOptLvlIncrements < MAX_OPTLVL_INCREMENTS_TO_SHADER);
+
+			m_heightmapArrayOptLvlIncrements[_numOptLvlIncrements].push_back(s_emptyTerrainImage);
+
+			terrainEdit = &emptyTerrainEdit;
+		}
+		
+		ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+		std::string textureLayout = quadrant->textureLayout(), layoutForFoundTexture = "";
+		int32_t lowElevationTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.lowElevationTexName_r, layoutForFoundTexture);
+		int32_t highElevationTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.highElevationTexName_g, layoutForFoundTexture);
+		int32_t dirtTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.dirtTexName_b, layoutForFoundTexture);
+		int32_t rocksTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.rocksTexName_a, layoutForFoundTexture);
+		ShaderTerrainData::QuadrantControlData quadrantControlData(_numOptLvlIncrements,
+			lowElevationTexIdx,
+			highElevationTexIdx,
+			dirtTexIdx,
+			rocksTexIdx,
+			terrainEdit->extraValues.highElevationFactor,
+			terrainEdit->extraValues.lowElevationFactor,
+			terrainEdit->minHeight,
+			terrainEdit->maxHeight,
+			terrainEdit->extraValues.slopeVerticalFactor,
+			terrainEdit->extraValues.slopeFlatFactor,
+			terrainEdit->extraValues.dirtOnRocksFactor,
+			(int)heightmapArrayOptLvlIncIndex[_numOptLvlIncrements]);
+
+		heightmapArrayOptLvlIncIndex[_numOptLvlIncrements]++;
+
+		Color c = quadrantControlData.gridControl1Value();
+		m_gridControl1Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
+		c = quadrantControlData.gridControl2Value();
+		m_gridControl2Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
+		c = quadrantControlData.gridControl3Value();
+		m_gridControl3Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
+
+		//quadrantMap[(size_t)quadrantPosInGrid.y][(size_t)quadrantPosInGrid.x] = true;	// DEBUG
+
+		if (locked and quadTree->statusInitialized())
+			m_viewer->requestDataRefreshToShader(quadTree, false);
+
+		if (locked)
+			quadrant->unlockInternalData();
 	}
+
+	// DEBUG
+	//bool allQuadrantsPresent = true;
+	//for (size_t x = 0; x < numQuadrantsPerGridSize; x++)
+	//{
+	//	for (size_t y = 0; y < numQuadrantsPerGridSize; y++)
+	//	{
+	//		if (!quadrantMap[x][y])
+	//		{
+	//			allQuadrantsPresent = false;
+	//			break;
+	//		}
+	//	}
+	//}
+	//PLOG_DEBUG << "GridControlData::setData: allQuadrantsPresent=" << allQuadrantsPresent;
+	// DEBUG
 }

@@ -156,6 +156,7 @@
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\..\godot-cpp\include;$(MSBuildProjectDirectory)\..\..\godot-cpp\gdextension;$(MSBuildProjectDirectory)\..\..\godot-cpp\gen\include;$(MSBuildProjectDirectory)\..\..\TheWorld_MapManager;$(MSBuildProjectDirectory)\..\..\GSL\include;$(MSBuildProjectDirectory)\..\plog\include;..\..\TheWorld_Utils;..\..\eigen-3.3.9;..\..\jsoncpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

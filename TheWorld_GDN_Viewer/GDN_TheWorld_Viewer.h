@@ -1475,8 +1475,10 @@ namespace godot
 				, process_dummy_8 = 42
 				, process_dummy_9 = 43
 				, process_mapModder = 44
+				, process_updateTerrainMaterial
+				// if you add a new index here, update maxProcessStepIdx below
 			};
-			static const int maxProcessStepIdx = int(ProcessStepIdx::process_mapModder);
+			static const int maxProcessStepIdx = int(ProcessStepIdx::process_updateTerrainMaterial);
 			static const size_t numProcessStepIndices = maxProcessStepIdx + 1;
 
 			ProcessStep(enum class ProcessStepIdx idx)
@@ -1958,7 +1960,7 @@ namespace godot
 		int getCacheQuadOnPerimeter(void) const;
 		void setMaxDepthQuadOnPerimeter(int depth);
 		size_t numQuadrantsPerGridSize(void) const;
-		godot::Vector2 getGridPos();
+		godot::Vector2 getGridPosInWUs();
 
 		int getMaxDepthQuadOnPerimeter(void) const;
 		int maxActualDepthQuadInAllDirections(void) const;
@@ -3159,11 +3161,12 @@ namespace godot
 		bool m_worldQuadrantsMapValid = false;
 		WorldQuadrantsMap m_worldQuadrantsMap;
 		std::map <enum class QuadTree::QuadrantDepth, std::map<TheWorld_Utils::QuadrantPos, QuadTree*>> m_worldQuadrantsMapByDepth;
+		TheWorld_Utils::QuadrantPos m_computedWorldCameraQuadrantPos;
+		TheWorld_Utils::QuadrantPos m_gridWorldCameraQuadrantPos;
 		WorldQuadrantsMap m_extraQuadsMap;
 		MapQuadrantImagesMap m_mapQuadrantsMap;
 		std::recursive_mutex m_mtxQuadrantsAndMainProcessing;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
-		TheWorld_Utils::QuadrantPos m_computedWorldCameraQuadrantPos;
 		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;
 		godot::Vector3 m_lastOriginShiftCameraPosInMap;
 		bool m_recalcQuadrantsInViewJustExecuted = false;

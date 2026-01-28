@@ -8110,12 +8110,12 @@ size_t GDN_TheWorld_Viewer::numQuadrantsPerGridSize(void) const
 	return (getMaxDepthQuadOnPerimeter() + getCacheQuadOnPerimeter()) * 2 + 1;	// +1 because we count also the central quadrant where the camera is
 }
 
-godot::Vector2 GDN_TheWorld_Viewer::getGridPos()
+godot::Vector2 GDN_TheWorld_Viewer::getGridPosInWUs()
 {
-	size_t numQuadrantsFromBorderOfGrid = (numQuadrantsPerGridSize() - 1) / 2;	// -1 because we don't count the central quadrant where the camera is
+	size_t numQuadrantsToBorderOfGrid = (numQuadrantsPerGridSize() - 1) / 2;	// -1 because we don't count the central quadrant where the camera is
 	return godot::Vector2(
-		m_computedWorldCameraQuadrantPos.getIndexPosX() - numQuadrantsFromBorderOfGrid * Globals()->heightmapSizeInWUs(),
-		m_computedWorldCameraQuadrantPos.getIndexPosZ() - numQuadrantsFromBorderOfGrid * Globals()->heightmapSizeInWUs()
+		m_gridWorldCameraQuadrantPos.getLowerXGridVertex() - numQuadrantsToBorderOfGrid * Globals()->heightmapSizeInWUs(),
+		m_gridWorldCameraQuadrantPos.getLowerZGridVertex() - numQuadrantsToBorderOfGrid * Globals()->heightmapSizeInWUs()
 	);
 }
 
@@ -8494,6 +8494,8 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	m_numVisibleQuadrantOnPerimeterOnEastSideApplied = m_numVisibleQuadrantOnPerimeterOnEastSide;
 
 	recalcQuadrantsInViewJustExecuted(true);
+	
+	m_gridWorldCameraQuadrantPos = m_computedWorldCameraQuadrantPos;
 	
 	return newQuadAdded;
 }
@@ -12439,7 +12441,7 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 
 void GDN_TheWorld_Viewer::updateTerrainMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks)
 {
-	TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1 ") + __FUNCTION__, "");
+	TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1 ") + __FUNCTION__, "ALL");
 
 	size_t numQuadrantsToRefreshToShader = getNumQuadrantsToRefreshToShader();
 
@@ -12450,59 +12452,76 @@ void GDN_TheWorld_Viewer::updateTerrainMaterial(godot::Vector3& worldCameraWorld
 		{
 			// TODO: si entra qui per ogni quadrant->optimizationLevelChanged() anche senza streaming, gestire ...
 
-			uint32_t _numQuadrantsPerGridSize = 0;
-			uint32_t optimizationLevelIncrement = 0;
-			godot::Vector2 gridPos;
-			godot::Ref<godot::Texture2D> gridControl1Texture;
-			godot::Ref<godot::Texture2D> gridControl2Texture;
-			godot::Ref<godot::Texture2D> gridControl3Texture;
-			godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_0;
-			godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_1;
-			godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_2;
-			godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_3;
+			uint32_t _numQuadrantsPerGridSize = (uint32_t)numQuadrantsPerGridSize();
+			if (m_worldQuadrantsMap.size() == static_cast<unsigned long long>(_numQuadrantsPerGridSize) * _numQuadrantsPerGridSize)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.1 ") + __FUNCTION__, "Creating Terrain Shader Data");
+				uint32_t optimizationLevelIncrement = 0;
+				godot::Vector2 gridPos;
+				godot::Ref<godot::Texture2D> gridControl1Texture;
+				godot::Ref<godot::Texture2D> gridControl2Texture;
+				godot::Ref<godot::Texture2D> gridControl3Texture;
+				godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_0;
+				godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_1;
+				godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_2;
+				godot::Ref<godot::Texture2DArray> heightmapTexArrayOptlvlInc_3;
 
-				_numQuadrantsPerGridSize = (uint32_t)numQuadrantsPerGridSize();
-				std::vector<QuadTree*> quadrantsToRefresh;
-				getQuadrantsToRefreshToShader(quadrantsToRefresh);
-				gridPos = getGridPos();
-				m_gridControlData.setData(this, gridPos, m_worldQuadrantsMap, _numQuadrantsPerGridSize, quadrantsToRefresh);
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.1 ") + __FUNCTION__, "Creating Terrain Shader Data");
+					std::vector<QuadTree*> quadrantsToRefresh;
+					getQuadrantsToRefreshToShader(quadrantsToRefresh);
+					gridPos = getGridPosInWUs();
+					m_gridControlData.setData(this, gridPos, m_worldQuadrantsMap, _numQuadrantsPerGridSize, quadrantsToRefresh);
+				}
 
 				m_forceUpdateTerrainMaterial = false;
 
 				optimizationLevelIncrement = (uint32_t)Globals()->getParamTextureOptimizationResolutionIncrement();
 
-				gridControl1Texture = m_gridControlData.getGridControl1Tex();
-				gridControl2Texture = m_gridControlData.getGridControl2Tex();
-				gridControl3Texture = m_gridControlData.getGridControl3Tex();
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.2 ") + __FUNCTION__, "Getting Grid Control Textures");
+					gridControl1Texture = m_gridControlData.getGridControl1Tex();
+					gridControl2Texture = m_gridControlData.getGridControl2Tex();
+					gridControl3Texture = m_gridControlData.getGridControl3Tex();
+				}
+					
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.3 ") + __FUNCTION__, "Getting Grid Heightmap Arrays");
+					heightmapTexArrayOptlvlInc_0 = m_gridControlData.getHeightmapTexArrayOptlvlInc(0);
+					heightmapTexArrayOptlvlInc_1 = m_gridControlData.getHeightmapTexArrayOptlvlInc(1);
+					heightmapTexArrayOptlvlInc_2 = m_gridControlData.getHeightmapTexArrayOptlvlInc(2);
+					heightmapTexArrayOptlvlInc_3 = m_gridControlData.getHeightmapTexArrayOptlvlInc(3);
+				}
 
-				heightmapTexArrayOptlvlInc_0 = m_gridControlData.getHeightmapTexArrayOptlvlInc(0);
-				heightmapTexArrayOptlvlInc_1 = m_gridControlData.getHeightmapTexArrayOptlvlInc(1);
-				heightmapTexArrayOptlvlInc_2 = m_gridControlData.getHeightmapTexArrayOptlvlInc(2);
-				heightmapTexArrayOptlvlInc_3 = m_gridControlData.getHeightmapTexArrayOptlvlInc(3);
-			}
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.4 ") + __FUNCTION__, "Updating Terrain Shader");
 
-			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.2 ") + __FUNCTION__, "Updating Terrain Shader");
+					// update shader
+					WorldQuadrantsMap::iterator itQuadTree = m_worldQuadrantsMap.begin();
+					QuadTree* quadTree = itQuadTree->second.get();
+					Quadrant* quadrant = quadTree->getQuadrant();
+					ShaderTerrainData* shaderTerrainData = quadrant->getShaderTerrainData();
+					godot::Ref<godot::ShaderMaterial> mat = shaderTerrainData->getRegularTerrainMaterial();
+					mat->set_shader_parameter(SHADER_PARAM_GRID_POS, gridPos);
+					mat->set_shader_parameter(SHADER_PARAM_OPTLVL_INCREMENT, optimizationLevelIncrement);
+					mat->set_shader_parameter(SHADER_PARAM_NUM_QUADRANTS_PER_GRID_SIZE, _numQuadrantsPerGridSize);
+					mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_1, gridControl1Texture);
+					mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_2, gridControl2Texture);
+					mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_3, gridControl3Texture);
+					mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_0, heightmapTexArrayOptlvlInc_0);
+					mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_1, heightmapTexArrayOptlvlInc_1);
+					mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_2, heightmapTexArrayOptlvlInc_2);
+					mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_3, heightmapTexArrayOptlvlInc_3);
+				}
 
-				// update shader
-				//godot::Ref<godot::ShaderMaterial> mat = get_material();
-				//mat->set_shader_parameter(SHADER_PARAM_GRID_POS, gridPos);
-				//mat->set_shader_parameter(SHADER_PARAM_OPTLVL_INCREMENT, optimizationLevelIncrement);
-				//mat->set_shader_parameter(SHADER_PARAM_NUM_QUADRANTS_PER_GRID_SIZE, _numQuadrantsPerGridSize);
-				//mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_1, gridControl1Texture);
-				//mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_2, gridControl2Texture);
-				//mat->set_shader_parameter(SHADER_PARAM_GRID_CONTROL_3, gridControl3Texture);
-				//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_0, heightmapTexArrayOptlvlInc_0);
-				//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_1, heightmapTexArrayOptlvlInc_1);
-				//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_2, heightmapTexArrayOptlvlInc_2);
-				//mat->set_shader_parameter(SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_3, heightmapTexArrayOptlvlInc_3);
-			}
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.5 ") + __FUNCTION__, "Releasing Terrain Shader Data");
+					m_gridControlData.releaseData();
+				}
 
-			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.3 ") + __FUNCTION__, "Releasing Terrain Shader Data");
-				m_gridControlData.releaseData();
+				if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateTerrainMaterial))
+				{
+					m_lastProcessExecutionInterrupted = true;
+				}
 			}
 		}
 	}

@@ -6384,10 +6384,6 @@ void godot::ShaderTerrainData::GridControlData::setData(GDN_TheWorld_Viewer* vie
 		s_emptyTerrainImage = godot::Image::create_empty((int32_t)s_minResolution, (int32_t)s_minResolution, false, godot::Image::Format::FORMAT_RH);
 		s_emptyTerrainImage->fill(godot::Color(emptyTerrainEdit.minHeight, 0.0f, 0.0f, 0.0f));
 		s_statisInitialized = true;
-
-		m_gridControl1Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RF);
-		m_gridControl2Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RGBAF);
-		m_gridControl3Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RGBAF);
 	}
 
 	releaseData();
@@ -6401,12 +6397,12 @@ void godot::ShaderTerrainData::GridControlData::setData(GDN_TheWorld_Viewer* vie
 
 	size_t heightmapArrayOptLvlIncIndex[4] = {0, 0, 0, 0};
 
-	//m_gridControl1Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RF);
-	//m_gridControl2Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RGBAF);
-	//m_gridControl3Image = godot::Image::create_empty((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize, false, godot::Image::Format::FORMAT_RGBAF);
-	m_gridControl1Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
-	m_gridControl2Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
-	m_gridControl3Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+	if ((int32_t)numQuadrantsPerGridSize != m_gridControl1Image->get_width())
+	{
+		m_gridControl1Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+		m_gridControl2Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+		m_gridControl3Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+	}
 
 	for (auto& quadTreeEntry : worldQuadrantMap)
 	{

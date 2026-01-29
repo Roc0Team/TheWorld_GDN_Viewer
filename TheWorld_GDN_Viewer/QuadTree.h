@@ -1044,30 +1044,68 @@ namespace godot
 		public:
 			GridControlData(void)
 			{
+				m_gridControl1Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RF);
+				m_gridControl2Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RGBAF);
+				m_gridControl3Image = godot::Image::create_empty((int32_t)1, (int32_t)1, false, godot::Image::Format::FORMAT_RGBAF);
+
+				m_gridControl1Texture = godot::ImageTexture::create_from_image(m_gridControl1Image);
+				m_gridControl2Texture = godot::ImageTexture::create_from_image(m_gridControl2Image);
+				m_gridControl3Texture = godot::ImageTexture::create_from_image(m_gridControl3Image);
+
+				//godot::RenderingServer* RS = godot::RenderingServer::get_singleton();
+				//m_gridControl1TexRID = RS->create_texture();
 			}
 			
 			void setData(GDN_TheWorld_Viewer* viewer, godot::Vector2 gridPos, WorldQuadrantsMap& worldQuadrantMap, size_t numQuadrantsPerGridSize, std::vector<QuadTree*>& quadrantsToRefresh);
 
 			godot::Ref<godot::Texture2D> getGridControl1Tex(void)
 			{
-				godot::Ref<godot::Texture2D> tex;
-				tex = godot::ImageTexture::create_from_image(m_gridControl1Image);
-				my_assert(tex != nullptr);
-				return tex;
+				//godot::Ref<godot::Texture2D> tex;
+				//tex = godot::ImageTexture::create_from_image(m_gridControl1Image);
+				//my_assert(tex != nullptr);
+				//return tex;
+				if (m_gridControl1Texture->get_width() != m_gridControl1Image->get_width())
+				{
+					m_gridControl1Texture->set_image(m_gridControl1Image);
+				}
+				else
+				{
+					m_gridControl1Texture->update(m_gridControl1Image);
+				}
+				return m_gridControl1Texture;
 			}
 			godot::Ref<godot::Texture2D> getGridControl2Tex(void)
 			{
-				godot::Ref<godot::Texture2D> tex;
-				tex = godot::ImageTexture::create_from_image(m_gridControl2Image);
-				my_assert(tex != nullptr);
-				return tex;
+				//godot::Ref<godot::Texture2D> tex;
+				//tex = godot::ImageTexture::create_from_image(m_gridControl2Image);
+				//my_assert(tex != nullptr);
+				//return tex;
+				if (m_gridControl2Texture->get_width() != m_gridControl2Image->get_width())
+				{
+					m_gridControl2Texture->set_image(m_gridControl2Image);
+				}
+				else
+				{
+					m_gridControl2Texture->update(m_gridControl2Image);
+				}
+				return m_gridControl2Texture;
 			}
 			godot::Ref<godot::Texture2D> getGridControl3Tex(void)
 			{
-				godot::Ref<godot::Texture2D> tex;
-				tex = godot::ImageTexture::create_from_image(m_gridControl3Image);
-				my_assert(tex != nullptr);
-				return tex;
+				//godot::Ref<godot::Texture2D> tex;
+				//tex = godot::ImageTexture::create_from_image(m_gridControl3Image);
+				//my_assert(tex != nullptr);
+				//return tex;
+				if (m_gridControl3Texture->get_width() != m_gridControl3Image->get_width())
+				{
+					m_gridControl3Texture->set_image(m_gridControl3Image);
+				}
+				else
+				{
+					m_gridControl3Texture->update(m_gridControl3Image);
+				}
+				return m_gridControl3Texture;
+
 			}
 
 			godot::Ref<godot::Texture2DArray> getHeightmapTexArrayOptlvlInc(size_t optLvlInc)
@@ -1096,9 +1134,14 @@ namespace godot
 
 		private:
 			GDN_TheWorld_Viewer* m_viewer = nullptr;
+
 			godot::Ref<godot::Image> m_gridControl1Image;
 			godot::Ref<godot::Image> m_gridControl2Image;
 			godot::Ref<godot::Image> m_gridControl3Image;
+			godot::Ref<godot::ImageTexture> m_gridControl1Texture;
+			godot::Ref<godot::ImageTexture> m_gridControl2Texture;
+			godot::Ref<godot::ImageTexture> m_gridControl3Texture;
+
 			godot::TypedArray<godot::Image> m_heightmapArrayOptLvlIncrements[MAX_OPTLVL_INCREMENTS_TO_SHADER];
 		};
 

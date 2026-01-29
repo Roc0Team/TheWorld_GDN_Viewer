@@ -12436,7 +12436,7 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 			allCollidersReady(true);
 	}
 
-	updateTerrainMaterial(worldCameraWorldPos, processCameraPosForQuadrants, processCameraPosForChunks);
+	//updateTerrainMaterial(worldCameraWorldPos, processCameraPosForQuadrants, processCameraPosForChunks);
 }
 
 void GDN_TheWorld_Viewer::updateTerrainMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks)

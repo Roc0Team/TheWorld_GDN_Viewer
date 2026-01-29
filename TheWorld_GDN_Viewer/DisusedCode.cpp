@@ -1833,3 +1833,19 @@
 //m_quadrantControl.slopeVerticalFactor(terrainEdit->extraValues.slopeVerticalFactor);
 //m_quadrantControl.slopeFlatFactor(terrainEdit->extraValues.slopeFlatFactor);
 //m_quadrantControl.dirtOnRocksFactor(terrainEdit->extraValues.dirtOnRocksFactor);
+
+//#define CHECK_PROCESS_STEP(qualifier) \
+//	if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::##qualifier)) \
+//	{ \
+//		m_lastProcessExecutionInterrupted = true; \
+//		return; \
+//	}
+//
+//#define PROCESS_STEP(profiler_function, profiler_name, func, qualifier) \
+//	{ \
+//		TheWorld_Utils::GuardProfiler profiler(std::string(#profiler_function) + __FUNCTION__, #profiler_name); \
+//		func; \
+//		CHECK_PROCESS_STEP(qualifier) \
+//}
+//
+//PROCESS_STEP("process_impl 1.04", "Init new quadrants", process_initNewQuads(processCameraPosForQuadrants), process_initNewQuads)

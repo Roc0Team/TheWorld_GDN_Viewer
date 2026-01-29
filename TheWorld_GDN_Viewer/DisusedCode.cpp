@@ -1834,18 +1834,102 @@
 //m_quadrantControl.slopeFlatFactor(terrainEdit->extraValues.slopeFlatFactor);
 //m_quadrantControl.dirtOnRocksFactor(terrainEdit->extraValues.dirtOnRocksFactor);
 
-//#define CHECK_PROCESS_STEP(qualifier) \
-//	if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::##qualifier)) \
-//	{ \
-//		m_lastProcessExecutionInterrupted = true; \
-//		return; \
-//	}
+		//Ref<ArrayMesh> DrawViewFrustum(Color c = Color(1, 1, 1));
+//godot::Ref<godot::ArrayMesh> GDN_TheWorld_Camera::DrawViewFrustum(Color c)
+//{
+//	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
 //
-//#define PROCESS_STEP(profiler_function, profiler_name, func, qualifier) \
-//	{ \
-//		TheWorld_Utils::GuardProfiler profiler(std::string(#profiler_function) + __FUNCTION__, #profiler_name); \
-//		func; \
-//		CHECK_PROCESS_STEP(qualifier) \
+//	float m_FarOffset = (float)godot::Camera3D::get_far();
+//	float m_NearOffset = (float)godot::Camera3D::get_near();
+//	float m_ScreenWidth = (float)godot::Camera3D::get_viewport()->get_visible_rect().get_size().x;
+//	float m_ScreenHeight = (float)godot::Camera3D::get_viewport()->get_visible_rect().get_size().y;
+//
+//	float m_AspectRatio = (m_ScreenWidth > m_ScreenHeight) ? (m_ScreenWidth / m_ScreenHeight) : (m_ScreenHeight / m_ScreenWidth);
+//
+//	float m_FarHeight = 2.0f * ((float)tan(godot::Camera3D::get_fov() / 2.0f)) * m_FarOffset;
+//	float m_FarWidth = m_FarHeight * m_AspectRatio;
+//
+//	m_FarHeight = m_FarHeight + ((m_FarHeight / 7) * 3);
+//	m_FarWidth = m_FarWidth + ((m_FarWidth / 7) * 3);
+//
+//	godot::Vector3 m_Forward = godot::Camera3D::get_global_transform().origin + Vector3Forward * m_FarOffset;
+//
+//	//--> Near World
+//	godot::Vector3 m_NearTopLeft = godot::Camera3D::project_position(godot::Vector2(0, 0), godot::Camera3D::get_near());
+//	godot::Vector3 m_NearTopRight = godot::Camera3D::project_position(godot::Vector2(m_ScreenWidth, 0), godot::Camera3D::get_near());
+//	godot::Vector3 m_NearBottomLeft = godot::Camera3D::project_position(godot::Vector2(0, m_ScreenHeight), godot::Camera3D::get_near());
+//	godot::Vector3 m_NearBottomRight = godot::Camera3D::project_position(godot::Vector2(m_ScreenWidth, m_ScreenHeight), godot::Camera3D::get_near());
+//	
+//	//--> Far LOCAL
+//	godot::Vector3 m_FarTopLeft = m_Forward + (Vector3Up * m_FarHeight / 2.0f) - (Vector3Right * m_FarWidth / 2.0f);
+//	godot::Vector3 m_FarTopRight = m_Forward + (Vector3Up * m_FarHeight / 2.0f) + (Vector3Right * m_FarWidth / 2.0f);
+//	godot::Vector3 m_FarBottomLeft = m_Forward - (Vector3Up * m_FarHeight / 2.0f) - (Vector3Right * m_FarWidth / 2.0f);
+//	godot::Vector3 m_FarBottomRight = m_Forward - (Vector3Up * m_FarHeight / 2.0f) + (Vector3Right * m_FarWidth / 2.0f);
+//
+//	//--> Far WORLD
+//	m_FarTopLeft = godot::Camera3D::get_transform().xform(m_FarTopLeft);
+//	m_FarTopRight = godot::Camera3D::get_transform().xform(m_FarTopRight);
+//	m_FarBottomRight = godot::Camera3D::get_transform().xform(m_FarBottomRight);
+//	m_FarBottomLeft = godot::Camera3D::get_transform().xform(m_FarBottomLeft);
+//	
+//	godot::PackedVector3Array positions;
+//	godot::PackedColorArray colors;
+//	godot::PackedInt32Array indices;
+//
+//	//--> Draw lines
+//	positions.append(m_FarTopLeft);			colors.append(c);	// index 0
+//	positions.append(m_FarTopRight);		colors.append(c);	// index 1
+//	positions.append(m_FarBottomRight);		colors.append(c);	// index 2
+//	positions.append(m_FarBottomLeft);		colors.append(c);	// index 3
+//	positions.append(m_NearTopLeft);		colors.append(c);	// index 4
+//	positions.append(m_NearTopRight);		colors.append(c);	// index 5
+//	positions.append(m_NearBottomRight);	colors.append(c);	// index 6
+//	positions.append(m_NearBottomLeft);		colors.append(c);	// index 7
+//
+//	// Far rect lines
+//	indices.append(0); indices.append(1);
+//	indices.append(1); indices.append(2);
+//	indices.append(2); indices.append(3);
+//	indices.append(3); indices.append(0);
+//	// Near rect lines
+//	indices.append(4); indices.append(5);
+//	indices.append(5); indices.append(6);
+//	indices.append(6); indices.append(7);
+//	indices.append(7); indices.append(4);
+//	// Left lines        
+//	indices.append(4); indices.append(0);
+//	indices.append(7); indices.append(3);
+//	// Right lines        
+//	indices.append(5); indices.append(1);
+//	indices.append(6); indices.append(2);
+//
+//	godot::Array arrays;
+//	arrays.resize(godot::ArrayMesh::ARRAY_MAX);
+//	arrays[godot::ArrayMesh::ARRAY_VERTEX] = positions;
+//	arrays[godot::ArrayMesh::ARRAY_COLOR] = colors;
+//	arrays[godot::ArrayMesh::ARRAY_INDEX] = indices;
+//
+//	if (viewer != nullptr)
+//		viewer->getMainProcessingMutex().lock();
+//	godot::Ref <godot::ArrayMesh> mesh = memnew(godot::ArrayMesh);
+//	if (viewer != nullptr)
+//		viewer->getMainProcessingMutex().unlock();
+//	mesh->add_surface_from_arrays(godot::Mesh::PRIMITIVE_LINES, arrays);
+//
+//	return mesh;
 //}
-//
-//PROCESS_STEP("process_impl 1.04", "Init new quadrants", process_initNewQuads(processCameraPosForQuadrants), process_initNewQuads)
+
+		// view frustum
+		//Ref<Mesh> _mesh = activeCamera->DrawViewFrustum(GDN_TheWorld_Globals::g_color_green);
+		//SpatialMaterial* mat = SpatialMaterial::_new();
+		//mat->set_flag(SpatialMaterial::Flags::FLAG_UNSHADED, true);
+		//mat->set_flag(SpatialMaterial::Flags::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+		//mat->set_albedo(GDN_TheWorld_Globals::g_color_green);
+		//_mesh->surface_set_material(0, mat);
+		//VisualServer* vs = VisualServer::get_singleton();
+		//m_viewFrustumMeshInstance = vs->instance_create();
+		//vs->instance_set_visible(m_viewFrustumMeshInstance, true);
+		//RID meshRID = _mesh->get_rid();
+		//VisualServer::get_singleton()->instance_set_base(m_viewFrustumMeshInstance, meshRID);
+		//m_viewFrustumMeshRID = meshRID;
+		//m_viewFrustumMesh = _mesh;

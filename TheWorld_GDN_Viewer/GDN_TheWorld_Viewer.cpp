@@ -8848,6 +8848,27 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 
 void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMapCamera, godot::Camera3D* activeWorldCamera)
 {
+#define CHECK_PROCESS_STEP(qualifier) \
+	if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::##qualifier)) \
+	{ \
+		m_lastProcessExecutionInterrupted = true; \
+		return; \
+	}
+
+#define PROCESS_STEP(profiler_function, profiler_name, func) \
+	{ \
+		TheWorld_Utils::GuardProfiler profiler(std::string(profiler_function) + __FUNCTION__, profiler_name); \
+		func; \
+	}
+
+#define PROCESS_STEP_WITH_CHECK(profiler_function, profiler_name, func, qualifier) \
+	{ \
+		PROCESS_STEP(profiler_function, profiler_name, func) \
+		CHECK_PROCESS_STEP(qualifier) \
+	}
+	
+//PROCESS_STEP("process_impl 1.04", "Init new quadrants", process_initNewQuads(processCameraPosForQuadrants), process_initNewQuads)
+
 	GDN_TheWorld_Globals* globals = Globals();
 	if (globals == nullptr)
 		return;
@@ -8857,22 +8878,6 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	if (m_firstProcess)
 	{
 		m_debugDraw = get_viewport()->get_debug_draw();
-
-		// view frustum
-		//Ref<Mesh> _mesh = activeCamera->DrawViewFrustum(GDN_TheWorld_Globals::g_color_green);
-		//SpatialMaterial* mat = SpatialMaterial::_new();
-		//mat->set_flag(SpatialMaterial::Flags::FLAG_UNSHADED, true);
-		//mat->set_flag(SpatialMaterial::Flags::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
-		//mat->set_albedo(GDN_TheWorld_Globals::g_color_green);
-		//_mesh->surface_set_material(0, mat);
-		//VisualServer* vs = VisualServer::get_singleton();
-		//m_viewFrustumMeshInstance = vs->instance_create();
-		//vs->instance_set_visible(m_viewFrustumMeshInstance, true);
-		//RID meshRID = _mesh->get_rid();
-		//VisualServer::get_singleton()->instance_set_base(m_viewFrustumMeshInstance, meshRID);
-		//m_viewFrustumMeshRID = meshRID;
-		//m_viewFrustumMesh = _mesh;
-
 		m_firstProcess = false;
 	}
 
@@ -8908,12 +8913,13 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 
 	addProcessStep(ProcessStep::ProcessStepIdx::process_initialStuff_0);
 
-	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.01 ") + __FUNCTION__, "Modder work");
-		process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(_delta);
-	}
-
+	PROCESS_STEP("process_impl 1.01 ", "Modder work", process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(_delta));
 	addProcessStep(ProcessStep::ProcessStepIdx::process_mapModder);
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.01 ") + __FUNCTION__, "Modder work");
+	//	process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(_delta);
+	//}
+	//addProcessStep(ProcessStep::ProcessStepIdx::process_mapModder);
 
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 	if (editModeUIControl != nullptr && editModeUIControl->initialized())
@@ -9010,11 +9016,13 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	}
 	
 	// erase out-of-view quadrants
-	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.02 ") + __FUNCTION__, "Erase out-of-view quadrants");
-		process_eraseOutOfViewQuads(editModeUIControl);
-		addProcessStep(ProcessStep::ProcessStepIdx::process_eraseOutOfViewQuadrants);
-	}
+	PROCESS_STEP("process_impl 1.02 ", "Erase out-of-view quadrants", process_eraseOutOfViewQuads(editModeUIControl););
+	addProcessStep(ProcessStep::ProcessStepIdx::process_eraseOutOfViewQuadrants);
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.02 ") + __FUNCTION__, "Erase out-of-view quadrants");
+	//	process_eraseOutOfViewQuads(editModeUIControl);
+	//	addProcessStep(ProcessStep::ProcessStepIdx::process_eraseOutOfViewQuadrants);
+	//}
 	
 	godot::Vector3 worldCameraWorldPos;
 	{

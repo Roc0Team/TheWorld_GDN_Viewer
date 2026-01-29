@@ -143,7 +143,6 @@ namespace godot {
 		}
 		void notifyActiveCameraFlag(bool active);
 		GDN_TheWorld_Globals* Globals(bool useCache = true);
-		Ref<ArrayMesh> DrawViewFrustum(Color c = Color(1, 1, 1));
 		float getAngleFromNorthDeg(void) const
 		{
 			return m_angleFromNorthDeg;

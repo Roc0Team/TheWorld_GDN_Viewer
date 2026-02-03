@@ -914,7 +914,7 @@ namespace godot
 
 		void addMapTextureRectRefreshScheduled(TheWorld_Utils::MapTextureRectPos& pos);
 
-		void worldQuadrantMapReset(void);
+		void worldQuadrantsMapReset(void);
 
 		void quadrantReady(TheWorld_Utils::QuadrantPos& pos);
 		void quadrantWorkInProgress(TheWorld_Utils::QuadrantPos& pos);
@@ -1476,9 +1476,10 @@ namespace godot
 				, process_dummy_9 = 43
 				, process_mapModder = 44
 				, process_updateTerrainMaterial
+				, process_materialParams
 				// if you add a new index here, update maxProcessStepIdx below
 			};
-			static const int maxProcessStepIdx = int(ProcessStepIdx::process_updateTerrainMaterial);
+			static const int maxProcessStepIdx = int(ProcessStepIdx::process_materialParams);
 			static const size_t numProcessStepIndices = maxProcessStepIdx + 1;
 
 			ProcessStep(enum class ProcessStepIdx idx)
@@ -1960,7 +1961,8 @@ namespace godot
 		int getCacheQuadOnPerimeter(void) const;
 		void setMaxDepthQuadOnPerimeter(int depth);
 		size_t numQuadrantsPerGridSize(void) const;
-		godot::Vector2 getGridPosInWUs();
+		godot::Vector2 getGridPosInWUs(void);
+		float getMaxGridSizeInWUs(void);
 
 		int getMaxDepthQuadOnPerimeter(void) const;
 		int maxActualDepthQuadInAllDirections(void) const;
@@ -2911,7 +2913,7 @@ namespace godot
 		void process_dump(GDN_TheWorld_Globals* globals);
 		void process_statistics(GDN_TheWorld_Globals* globals);
 
-		void updateTerrainMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
+		//void updateTerrainMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void writeStreamingNewQuadrantsStatistics(void);
 		TheWorld_Utils::QuadrantPos getWorldQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isWorldQuadrantSelectedForEdit(void);
@@ -2957,7 +2959,7 @@ namespace godot
 
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadrantToShader;
 		std::vector<QuadTree*> m_vecQuadrantToShader;
-		ShaderTerrainData::GridControlData m_gridControlData;
+		//ShaderTerrainData::GridControlData m_gridControlData;
 
 		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
@@ -3041,6 +3043,8 @@ namespace godot
 		size_t m_mapQuadrantTextureOverrideNum = 0;
 		size_t m_mapQuadrantRects = 0;
 		size_t m_updatedMapQuadrantNum = 0;
+
+		std::map<TheWorld_Utils::QuadrantPos, size_t> m_debugProcessedNeighbourQuadrant;
 		// Statistics data
 
 		TrackedInputEventQueue m_trackedInputEventsQueueForProcess;

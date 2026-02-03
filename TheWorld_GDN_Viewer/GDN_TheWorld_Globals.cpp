@@ -1355,7 +1355,19 @@ namespace godot
 	void GDN_TheWorld_Globals::setParamShowWireframe(bool b)
 	{
 		m_paramShowWireframe = b;
-		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_WIREFRAME, m_paramShowWireframe);
+		//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_WIREFRAME, m_paramShowWireframe);
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+			WorldQuadrantsMap& worldQuadrantsMap = m_viewer->worldQuadrantsMapReference();
+			for (auto& [key, quadrant] : worldQuadrantsMap)
+			{
+				godot::Ref<godot::ShaderMaterial> mat = quadrant->getQuadrant()->getShaderTerrainData()->getRegularTerrainMaterial();
+				if (!mat.is_null())
+				{
+					mat->set_shader_parameter(SHADER_PARAM_SHOW_WIREFRAME, m_paramShowWireframe);
+				}
+			}
+		}
 		PLOG_INFO << "View Parameter - Show Wireframe: " << (m_paramShowWireframe ? "true" : "false");
 		GDN_TheWorld_Viewer* viewer = Viewer();
 		if (viewer != nullptr)

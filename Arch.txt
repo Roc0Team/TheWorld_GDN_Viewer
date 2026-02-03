@@ -26,8 +26,8 @@ Architettura shader
 * u_grid_control_2 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size			es with 625 per u_num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
 	* high_elevation_factor	(R)		32 bits
 	* low_elevation_factor (G)		32 bits
-	* min_heigth (B)				32 bits
-	* max_heigth (A)				32 bits
+	* min_height (B)				32 bits
+	* max_height (A)				32 bits
 
 * u_grid_control_3 ==> texture FORMAT_RGBAF, un texel per ogni quadrante (row * column) con dim = u_num_quadrants_per_size * u_num_quadrants_per_size			es with 625 per u_num_quadrants_per_size: 625 * 625 * 128 = 50.000.000 bytes per quadrant ==> 48MB
 	* slope_vertical_factor (R)		32 bits

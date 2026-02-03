@@ -4200,18 +4200,20 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 			{
 				float altitude = vectGridHeights[idx];
 				TheWorld_Utils::FLOAT_32 f(altitude);
-				*movingHeights16Buffer = half_from_float(f.u32);;
+				*movingHeights16Buffer = half_from_float(f.u32);
 				movingHeights16Buffer++;
 				idx++;
 			}
 
 		memcpy(heights32Buffer.ptr(), &vectGridHeights[0], heights32BufferSize);
 	}
-
 	my_assert((BYTE*)movingHeights16Buffer - heights16Buffer.ptr() == heights16BufferSize);
+
 	heights16Buffer.adjustSize(heights16BufferSize);
 	heights32Buffer.adjustSize(heights32BufferSize);
-	quadTreeSel->getQuadrant()->setHeightsUpdated(true);
+
+	quadTreeSel->getQuadrant()->heightmapChanged();
+	quadTreeSel->getQuadrant()->sendHeightsToShader(true);
 	terrainEdit->heightsNeedRegen = false;
 
 	// 5. renew MeshId
@@ -4260,7 +4262,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	// 10. update quadrant flags
 	//quadTreeSel->getQuadrant()->setEmpty(false);
-	quadTreeSel->getQuadrant()->setColorsUpdated(true);
+	quadTreeSel->getQuadrant()->sendColorsToShader(true);
 	quadTreeSel->materialParamsNeedReset(true);
 	quadTreeSel->colliderNeedReset(true, QuadType::NotSet);
 	quadTreeSel->getQuadrant()->northQuadrantData().initialized(false);
@@ -5277,7 +5279,8 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 		//quadrant->setEmpty(false);
 		quadrant->getTerrainEdit()->needUploadToServer = true;
 		quadrant->setNeedUploadToServer(true);
-		quadrant->setHeightsUpdated(true);
+		quadrant->heightmapChanged();
+		quadrant->sendHeightsToShader(true);
 		quadrant->resetNormalsBuffer(__FUNCTION__);
 		quadrant->resetSplatmapBuffer(__FUNCTION__);
 		quadrant->resetGlobalmapBuffer(__FUNCTION__);
@@ -5370,7 +5373,8 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 		quadTree->getQuadrant()->getTerrainEdit()->needUploadToServer = true;
 		quadTree->getQuadrant()->setNeedUploadToServer(true);
 
-		quadTree->getQuadrant()->setHeightsUpdated(true);
+		quadTree->getQuadrant()->heightmapChanged();
+		quadTree->getQuadrant()->sendHeightsToShader(true);
 
 		quadTree->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
 

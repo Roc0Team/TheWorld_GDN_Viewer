@@ -788,11 +788,17 @@ namespace godot
 	{
 		m_isInEditor = isInEditor;
 
+		if (not std::filesystem::exists((getModuleLoadPath() + "\\log\\.gdignore").c_str()))
+		{
+			std::filesystem::create_directory(getModuleLoadPath() + "\\log");
+			FILE* file; fopen_s(&file, (getModuleLoadPath() + "\\log\\.gdignore").c_str(), "a"); fclose(file);	// to create the log file if not present
+		}
+
 		string logPath;
 		if (IS_EDITOR_HINT())
-			logPath = getModuleLoadPath() + "\\TheWorld_Viewer_EDITOR_log.txt";
+			logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_EDITOR_log.txt";
 		else
-			logPath = getModuleLoadPath() + "\\TheWorld_Viewer_log.txt";
+			logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_log.txt";
 		plog::Severity sev = PLOG_DEFAULT_LEVEL;
 		if (m_isDebugEnabled)
 			sev = PLOG_DEBUG_LEVEL;

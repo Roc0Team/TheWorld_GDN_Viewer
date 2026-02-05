@@ -5241,7 +5241,7 @@ bool GDN_TheWorld_Viewer::init(void)
 		//ShaderTerrainData::getGroundTextures(godot::String(GDN_TheWorld_Globals::c_groundTexturesDir.c_str()), this);
 		ShaderTerrainData::loadAllGroundTextures("", this);
 		ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-		globals->addElementToInitialize((int)groundTextures.size());
+		//globals->addElementToInitialize((int)groundTextures.size());
 	}
 
 	// From _notification ENTER_WORLD
@@ -9612,6 +9612,8 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 
 	std::lock_guard<std::recursive_mutex> lock1(m_mtxQuadrantsAndMainProcessing);
 
+	//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1 ") + __FUNCTION__, "Inside Lock");
+
 	//if (m_mapModder != nullptr)
 	//{
 	//	if (m_mapModder->startProcessRequired())
@@ -9635,51 +9637,73 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	
 	bool _allVisibleQuadrantInitialized = true;
 	
-	for (auto& item : m_worldQuadrantsMap)
 	{
-		Quadrant* quadrant = item.second->getQuadrant();
+		//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1 ") + __FUNCTION__, "Loop m_worldQuadrantsMap");
 
-		if (globals->getParamShowSeaChanged())
+		for (auto& item : m_worldQuadrantsMap)
 		{
-			Chunk::VisibilityChangedChunkAction action(globals->getParamShowSea(), globals);
-			item.second->ForAllChunk(action, QuadType::Sea);
-		}
+			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1 ") + __FUNCTION__, "Elab Single Quadrant");
 
-		if (globals->getParamShowTerrainChanged())
-		{
-			Chunk::VisibilityChangedChunkAction action(globals->getParamShowTerrain(), globals);
-			item.second->ForAllChunk(action, QuadType::Terrain);
-		}
+			Quadrant* quadrant = item.second->getQuadrant();
 
-		if (item.second->initDelayedRequested())
-			item.second->initDelayed();
+			if (globals->getParamShowSeaChanged())
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 1");
+				Chunk::VisibilityChangedChunkAction action(globals->getParamShowSea(), globals);
+				item.second->ForAllChunk(action, QuadType::Sea);
+			}
 
-		quadrant->checkInternalData(_delta);
-		
-		quadrant->lockInternalDataUntilCompleteProcessExecution(false);
+			if (globals->getParamShowTerrainChanged())
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 2");
+				Chunk::VisibilityChangedChunkAction action(globals->getParamShowTerrain(), globals);
+				item.second->ForAllChunk(action, QuadType::Terrain);
+			}
 
-		quadrant->process_mapModder(_delta, true);
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 3");
+				if (item.second->initDelayedRequested())
+					item.second->initDelayed();
 
-		quadrant->process_checkBlendNeeded(_delta);
-		if (quadrant->blendNeeded())
-			quadrantsToBlend.push_back(quadrant->getPos());;
+				quadrant->checkInternalData(_delta);
 
-		if (item.second->statusLoadTerrainDataFromCacheNeeded())
-		{
-			item.second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
-			std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, quadrant);
-			m_tpClientWorker.QueueJob(f);
-		}
+				quadrant->lockInternalDataUntilCompleteProcessExecution(false);
+			}
 
-		item.second->checkSeaChunksToDelete();
 
-		if (item.second->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
-			continue;
-		if (item.second->statusToErase())
-			continue;
-		if (not item.second->statusInitialized())
-		{
-			_allVisibleQuadrantInitialized = false;
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 4");
+				quadrant->process_mapModder(_delta, true);
+			}
+
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 5");
+				quadrant->process_checkBlendNeeded(_delta);
+				if (quadrant->blendNeeded())
+					quadrantsToBlend.push_back(quadrant->getPos());;
+			}
+
+			if (item.second->statusLoadTerrainDataFromCacheNeeded())
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 6");
+				item.second->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
+				std::function<void(void)> f = std::bind(&Quadrant::loadTerrainDataFromCache, quadrant);
+				m_tpClientWorker.QueueJob(f);
+			}
+
+			{
+				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 7");
+				item.second->checkSeaChunksToDelete();
+			}
+
+			if (item.second->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
+				continue;
+			if (item.second->statusToErase())
+				continue;
+			if (not item.second->statusInitialized())
+			{
+				_allVisibleQuadrantInitialized = false;
+			}
 		}
 	}
 
@@ -9688,6 +9712,8 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 	if (editModeUIControl != nullptr and editModeUIControl->initialized() and not editModeUIControl->terrainDataLocked() and canProcessWorldDataUpdate())
 	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1 ") + __FUNCTION__, "Loop process_blend");
+
 		for (auto& item : m_worldQuadrantsMap)
 		{
 			Quadrant* quadrant = item.second->getQuadrant();
@@ -9727,6 +9753,8 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 		
 	if (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed)
 	{
+		//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1 ") + __FUNCTION__, "Loop m_extraQuadsMap");
+
 		for (auto& item : m_extraQuadsMap)
 		{
 			if (canProcessWorldDataUpdate())

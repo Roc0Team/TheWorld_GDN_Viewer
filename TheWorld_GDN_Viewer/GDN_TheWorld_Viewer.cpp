@@ -3717,33 +3717,33 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				//material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
 			}
 
-			{
-				Ref<Image> image;
-				size_t colormapBufferSize = 0;
-				colormapBufferSize = m_quadTree->getQuadrant()->getColormapBuffer().size();
-				if (colormapBufferSize == 0)
-				{
-					godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8);
-					image = im;
-					image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
-				}
-				else
-				{
-					godot::PackedByteArray data;
-					size_t colormapBufferSizeInBytes = size_t(numVerticesPerQuadrantSize) * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
-					data.resize((int)colormapBufferSizeInBytes);
-					assert(colormapBufferSizeInBytes == colormapBufferSize);
-					{
-						memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getColormapBuffer().ptr(), colormapBufferSizeInBytes);
-					}
-					godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8, data);
-					image = im;
-				}
-				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-				godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-				material->set_shader_parameter(SHADER_PARAM_TERRAIN_COLORMAP, tex);
-			}
+			//{
+			//	Ref<Image> image;
+			//	size_t colormapBufferSize = 0;
+			//	colormapBufferSize = m_quadTree->getQuadrant()->getColormapBuffer().size();
+			//	if (colormapBufferSize == 0)
+			//	{
+			//		godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8);
+			//		image = im;
+			//		image->fill(godot::Color(1.0f, 1.0f, 1.0f, 1.0f));
+			//	}
+			//	else
+			//	{
+			//		godot::PackedByteArray data;
+			//		size_t colormapBufferSizeInBytes = size_t(numVerticesPerQuadrantSize) * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+			//		data.resize((int)colormapBufferSizeInBytes);
+			//		assert(colormapBufferSizeInBytes == colormapBufferSize);
+			//		{
+			//			memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getColormapBuffer().ptr(), colormapBufferSizeInBytes);
+			//		}
+			//		godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8, data);
+			//		image = im;
+			//	}
+			//	// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+			//	//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+			//	godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+			//	material->set_shader_parameter(SHADER_PARAM_TERRAIN_COLORMAP, tex);
+			//}
 
 			material->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, godot::Plane(6.0f, 6.0f, 6.0f, 6.0f));
 			material->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, true);
@@ -4234,15 +4234,15 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("quadrant_modder_work_done", "map_type", "x", "z", "num_vertices_per_side", "level", "grid_step"), &GDN_TheWorld_Viewer::quadrantModderWorkDone);
 	ClassDB::bind_method(D_METHOD("load_quadrant_data", "pos_x", "pos_z", "level"), &GDN_TheWorld_Viewer::loadQuadrantData);
 	ClassDB::bind_method(D_METHOD("load_quadrant_data_index", "index_pos_x", "index_pos_z", "level"), &GDN_TheWorld_Viewer::loadQuadrantDataIndex);
-	ClassDB::bind_method(D_METHOD("clear_quadrant_data"), &GDN_TheWorld_Viewer::clearQuadrantData);
+	ClassDB::bind_method(D_METHOD("clear_test_quadrant_data"), &GDN_TheWorld_Viewer::clearTestQuadrantData);
 	ClassDB::bind_method(D_METHOD("set_hud_message", "message", "fading_time"), &GDN_TheWorld_Viewer::setHudMessage);
 	ClassDB::bind_method(D_METHOD("get_quadrant_pos"), &GDN_TheWorld_Viewer::getQuadrantPos);
 	ClassDB::bind_method(D_METHOD("get_quadrant_pos_index"), &GDN_TheWorld_Viewer::getQuadrantPosIndex);
-	ClassDB::bind_method(D_METHOD("get_quadrant_heightmap_image"), &GDN_TheWorld_Viewer::getQuadrantHeightmapImage);
-	ClassDB::bind_method(D_METHOD("get_quadrant_normalmap_image"), &GDN_TheWorld_Viewer::getQuadrantNormalmapImage);
-	ClassDB::bind_method(D_METHOD("get_quadrant_splatmap_image"), &GDN_TheWorld_Viewer::getQuadrantSplatmapImage);
-	ClassDB::bind_method(D_METHOD("get_quadrant_globalmap_image"), &GDN_TheWorld_Viewer::getQuadrantGlobalmapImage);
-	ClassDB::bind_method(D_METHOD("get_quadrant_colormap_image"), &GDN_TheWorld_Viewer::getQuadrantColormapImage);
+	ClassDB::bind_method(D_METHOD("get_test_quadrant_heightmap_image"), &GDN_TheWorld_Viewer::getTestQuadrantHeightmapImage);
+	ClassDB::bind_method(D_METHOD("get_test_quadrant_normalmap_image"), &GDN_TheWorld_Viewer::getTestQuadrantNormalmapImage);
+	ClassDB::bind_method(D_METHOD("get_test_quadrant_splatmap_image"), &GDN_TheWorld_Viewer::getTestQuadrantSplatmapImage);
+	ClassDB::bind_method(D_METHOD("get_test_quadrant_globalmap_image"), &GDN_TheWorld_Viewer::getTestQuadrantGlobalmapImage);
+	ClassDB::bind_method(D_METHOD("get_test_quadrant_colormap_image"), &GDN_TheWorld_Viewer::getTestQuadrantColormapImage);
 	ClassDB::bind_method(D_METHOD("get_shader_param_ground_uv_scale"), &GDN_TheWorld_Viewer::getShaderParamGroundUVScale);
 	ClassDB::bind_method(D_METHOD("get_shader_param_depth_blending"), &GDN_TheWorld_Viewer::getShaderParamDepthBlending);
 	ClassDB::bind_method(D_METHOD("get_shader_param_triplanar"), &GDN_TheWorld_Viewer::getShaderParamTriplanar);
@@ -8468,8 +8468,13 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 					//	m_cameraQuadTree = nullptr;
 					//}
 				}
+				
 				if (itQuadTree->second->getQuadrant()->needReloadTerrainDataFromCache())
 					itQuadTree->second->setStatus(QuadrantStatus::loadTerrainDataFromCacheNeeded);
+
+				Quadrant::QuadrantTypeInGrid type = Quadrant::QuadrantTypeInGrid::NotSet;
+				godot::Vector2i quadrantPosInGrid = itQuadTree->second->getQuadrant()->quadrantPosInGrid(type);
+				itQuadTree->second->quadrantTypeInGrid(type);
 			}
 		}
 		
@@ -8501,7 +8506,7 @@ bool GDN_TheWorld_Viewer::recalcQuadrantsInView(void)
 	recalcQuadrantsInViewJustExecuted(true);
 	
 	m_gridWorldCameraQuadrantPos = m_computedWorldCameraQuadrantPos;
-	
+
 	return newQuadAdded;
 }
 
@@ -9696,6 +9701,8 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 				item.second->checkSeaChunksToDelete();
 			}
 
+			process_neighbourQuadrantData(item.second.get());	// Occhio!!!
+
 			if (item.second->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
 				continue;
 			if (item.second->statusToErase())
@@ -10447,7 +10454,7 @@ void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals
 
 	for (auto& itQuadTree : m_worldQuadrantsMap)
 	{
-		itQuadTree.second->setQuadrantOptimizations(worldCameraWorldPos);	// Occhio è stato commentato il 25/11/2024
+		itQuadTree.second->setQuadrantOptimizations(worldCameraWorldPos);	// Occhio!!! E' stato commentato il 25/11/2024
 	}
 }
 
@@ -12463,7 +12470,9 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 			if (materialParamsUpdated)
 				m_previousTrackedMouseHitWorldPos = godot::Vector3();
 
-			if ((materialParamsReset /* or materialParamsUpdated*/ or colliderUpdated) and !m_desideredLookDevChanged and numLoop > 10 /* and itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
+#define MAX_SHADER_PARAM_RESET_LOOP 10
+//#define MAX_SHADER_PARAM_RESET_LOOP 1000	// Occhio!!!
+			if ((materialParamsReset /* or materialParamsUpdated*/ or colliderUpdated) and !m_desideredLookDevChanged and numLoop > MAX_SHADER_PARAM_RESET_LOOP /* and itQuadTree->second->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
 			{
 				//if (numMaterialParamReset > 0 or numMaterialParamUpdate > 0 or numColliderUpdate > 0)
 				//	PLOG_DEBUG << "Quadrants Updated: params set for quadrant = " << numMaterialParamReset << ", shaders updated = " << numMaterialParamUpdate << ", collider set = " << numColliderUpdate;
@@ -12580,22 +12589,6 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 		Quadrant* quadrant = quadTree->getQuadrant();
 		TheWorld_Utils::QuadrantPos quadrantPos = quadrant->getPos();
 
-		Quadrant::NeighbourQuadrantData& southEastQuadrantData = quadrant->southEastQuadrantData();
-		if (!southEastQuadrantData.initialized())
-		{
-			TheWorld_Utils::QuadrantPos southEastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus);
-			auto item = m_worldQuadrantsMap.find(southEastPos);
-			if (item != m_worldQuadrantsMap.end())
-			{
-				QuadTree* southEastQuadTree = item->second.get();
-				if (southEastQuadTree->statusInitialized())
-				{
-					southEastQuadrantData.init(quadrant, southEastQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus, quadrantPos);
-					southEastQuadTree->getQuadrant()->northWestQuadrantData().init(southEastQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus, southEastPos);
-				}
-			}
-		}
-
 		Quadrant::NeighbourQuadrantData& northWestQuadrantData = quadrant->northWestQuadrantData();
 		if (!northWestQuadrantData.initialized())
 		{
@@ -12608,6 +12601,54 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				{
 					northWestQuadrantData.init(quadrant, northWestQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus, quadrantPos);
 					northWestQuadTree->getQuadrant()->southEastQuadrantData().init(northWestQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus, northWestPos);
+				}
+			}
+		}
+
+		Quadrant::NeighbourQuadrantData& northEastQuadrantData = quadrant->northEastQuadrantData();
+		if (!northEastQuadrantData.initialized())
+		{
+			TheWorld_Utils::QuadrantPos northEastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NortheastZMinusXPlus);
+			auto item = m_worldQuadrantsMap.find(northEastPos);
+			if (item != m_worldQuadrantsMap.end())
+			{
+				QuadTree* northEastQuadTree = item->second.get();
+				if (northEastQuadTree->statusInitialized())
+				{
+					northEastQuadrantData.init(quadrant, northEastQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::NortheastZMinusXPlus, quadrantPos);
+					northEastQuadTree->getQuadrant()->southWestQuadrantData().init(northEastQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::SouthwestZPlusXMinus, northEastPos);
+				}
+			}
+		}
+
+		Quadrant::NeighbourQuadrantData& southWestQuadrantData = quadrant->southWestQuadrantData();
+		if (!southWestQuadrantData.initialized())
+		{
+			TheWorld_Utils::QuadrantPos southWestPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthwestZPlusXMinus);
+			auto item = m_worldQuadrantsMap.find(southWestPos);
+			if (item != m_worldQuadrantsMap.end())
+			{
+				QuadTree* southWestQuadTree = item->second.get();
+				if (southWestQuadTree->statusInitialized())
+				{
+					southWestQuadrantData.init(quadrant, southWestQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::SouthwestZPlusXMinus, quadrantPos);
+					southWestQuadTree->getQuadrant()->northEastQuadrantData().init(southWestQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::NortheastZMinusXPlus, southWestPos);
+				}
+			}
+		}
+
+		Quadrant::NeighbourQuadrantData& southEastQuadrantData = quadrant->southEastQuadrantData();
+		if (!southEastQuadrantData.initialized())
+		{
+			TheWorld_Utils::QuadrantPos southEastPos = quadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus);
+			auto item = m_worldQuadrantsMap.find(southEastPos);
+			if (item != m_worldQuadrantsMap.end())
+			{
+				QuadTree* southEastQuadTree = item->second.get();
+				if (southEastQuadTree->statusInitialized())
+				{
+					southEastQuadrantData.init(quadrant, southEastQuadTree->getQuadrant(), TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus, quadrantPos);
+					southEastQuadTree->getQuadrant()->northWestQuadrantData().init(southEastQuadTree->getQuadrant(), quadrant, TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus, southEastPos);
 				}
 			}
 		}
@@ -12685,7 +12726,7 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 			//	southEastQuadrantData.shaderUpdated(true);
 			//}
 
-			bool updateHeightmapBorderRowsToShader = false;
+			//bool updateHeightmapBorderRowsToShader = false;
 
 			if (northWestQuadrantData.initialized() && !northWestQuadrantData.shaderUpdated())
 			{
@@ -12702,12 +12743,12 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_BORDER_SPLATMAP, northQuadrantData.getSplatmapBorderRowTexture());
 				northQuadrantData.shaderUpdated(true);
 
-				updateHeightmapBorderRowsToShader = true;
+				//updateHeightmapBorderRowsToShader = true;
 			}
 
 			if (southQuadrantData.initialized() && !southQuadrantData.shaderUpdated())
 			{
-				updateHeightmapBorderRowsToShader = true;
+				//updateHeightmapBorderRowsToShader = true;
 				southQuadrantData.shaderUpdated(true);
 			}
 
@@ -12718,36 +12759,36 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 				currentMaterial->set_shader_parameter(SHADER_PARAM_WEST_BORDER_SPLATMAP, westQuadrantData.getSplatmapBorderRowTexture());
 				westQuadrantData.shaderUpdated(true);
 
-				updateHeightmapBorderRowsToShader = true;
+				//updateHeightmapBorderRowsToShader = true;
 			}
 
 			if (eastQuadrantData.initialized() && !eastQuadrantData.shaderUpdated())
 			{
-				updateHeightmapBorderRowsToShader = true;
+				//updateHeightmapBorderRowsToShader = true;
 				eastQuadrantData.shaderUpdated(true);
 			}
 
-			if (updateHeightmapBorderRowsToShader)
-			{
-				int32_t numValidBorders = 0;
-				godot::Ref<godot::ImageTexture> heightmapBorderQuadrantRowsTexture;
-				{
-					TheWorld_Utils::GuardProfiler profiler(std::string("process_neighbourQuadrantData 1.1 ") + __FUNCTION__, "quadrant->getHeightmapBorderQuadrantRowsTexture");
-					heightmapBorderQuadrantRowsTexture = quadrant->getHeightmapBorderQuadrantRowsTexture(numValidBorders);
-				}
+			//if (updateHeightmapBorderRowsToShader)
+			//{
+			//	int32_t numValidBorders = 0;
+			//	godot::Ref<godot::ImageTexture> heightmapBorderQuadrantRowsTexture;
+			//	{
+			//		TheWorld_Utils::GuardProfiler profiler(std::string("process_neighbourQuadrantData 1.1 ") + __FUNCTION__, "quadrant->getHeightmapBorderQuadrantRowsTexture");
+			//		heightmapBorderQuadrantRowsTexture = quadrant->getHeightmapBorderQuadrantRowsTexture(numValidBorders);
+			//	}
 
-				if (heightmapBorderQuadrantRowsTexture.is_valid())
-				{
-					godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
-					currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP_BORDER_ROWS, heightmapBorderQuadrantRowsTexture);
+			//	if (heightmapBorderQuadrantRowsTexture.is_valid())
+			//	{
+			//		godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
+			//		currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP_BORDER_ROWS, heightmapBorderQuadrantRowsTexture);
 
-					if (debugLog)
-					{
-						m_debugProcessedNeighbourQuadrant[quadrantPos] = numValidBorders;
-						//PLOG_DEBUG << "Updating Heightmap Border Rows Texture for Quadrant Pos: " << quadrantPos.getIndexPosX() << "," << quadrantPos.getIndexPosZ() << " - Num valid borders " << numValidBorders;
-					}
-				}
-			}
+			//		if (debugLog)
+			//		{
+			//			m_debugProcessedNeighbourQuadrant[quadrantPos] = numValidBorders;
+			//			//PLOG_DEBUG << "Updating Heightmap Border Rows Texture for Quadrant Pos: " << quadrantPos.getIndexPosX() << "," << quadrantPos.getIndexPosZ() << " - Num valid borders " << numValidBorders;
+			//		}
+			//	}
+			//}
 		}
 	}
 }
@@ -13949,7 +13990,7 @@ void GDN_TheWorld_Viewer::deployWorld(float cameraX, float cameraY, float camera
 			m_meshCache->initCache(Globals()->numVerticesPerChuckSide(), Globals()->numLods());
 		}
 
-		m_numWorldVerticesPerSize = Globals()->heightmapResolution() + 1;
+		m_numWorldVerticesPerSize = (int)Globals()->numVerticesPerQuadrantSize();
 		
 		Globals()->setStatus(TheWorldStatus::worldDeployInProgress);
 
@@ -15502,38 +15543,38 @@ bool GDN_TheWorld_Viewer::loadQuadrantData(float posX, float posZ, int level)
 	if (terrainEditValues.size() > 0)
 		m_tempTerrainEdit.deserialize(terrainEditValues);
 
-	m_tempHeightmapImage = ShaderTerrainData::createHeightmapImage(heights16Buffer, (int)numVerticesPerSize);
-	m_tempNormalmapImage = ShaderTerrainData::createNormalmapImage(normalsBuffer, (int)numVerticesPerSize);
-	m_tempSplatmapImage = ShaderTerrainData::createSplatlmapImage(splatmapBuffer, (int)numVerticesPerSize);
-	m_tempGlobalmapImage = ShaderTerrainData::createGlobalmapImage(globalmapBuffer, (int)numVerticesPerSize);
-	m_tempColormapImage = ShaderTerrainData::createColormapImage(colormapBuffer, (int)numVerticesPerSize);
+	m_testQuadrantHeightmapImage = ShaderTerrainData::createHeightmapImage(heights16Buffer, (int)numVerticesPerSize);
+	m_testQuadrantNormalmapImage = ShaderTerrainData::createNormalmapImage(normalsBuffer, (int)numVerticesPerSize);
+	m_testQuadrantSplatmapImage = ShaderTerrainData::createSplatlmapImage(splatmapBuffer, (int)numVerticesPerSize);
+	m_testQuadrantGlobalmapImage = ShaderTerrainData::createGlobalmapImage(globalmapBuffer, (int)numVerticesPerSize);
+	m_testQuadrantColormapImage = ShaderTerrainData::createColormapImage(colormapBuffer, (int)numVerticesPerSize);
 	
 	return true;
 }
 
-godot::Ref<godot::Image> GDN_TheWorld_Viewer::getQuadrantHeightmapImage()
+godot::Ref<godot::Image> GDN_TheWorld_Viewer::getTestQuadrantHeightmapImage()
 {
-	return m_tempHeightmapImage;
+	return m_testQuadrantHeightmapImage;
 }
 
-godot::Ref<godot::Image> GDN_TheWorld_Viewer::getQuadrantNormalmapImage()
+godot::Ref<godot::Image> GDN_TheWorld_Viewer::getTestQuadrantNormalmapImage()
 {
-	return m_tempNormalmapImage;
+	return m_testQuadrantNormalmapImage;
 }
 
-godot::Ref<godot::Image> GDN_TheWorld_Viewer::getQuadrantSplatmapImage()
+godot::Ref<godot::Image> GDN_TheWorld_Viewer::getTestQuadrantSplatmapImage()
 {
-	return m_tempSplatmapImage;
+	return m_testQuadrantSplatmapImage;
 }
 
-godot::Ref<godot::Image> GDN_TheWorld_Viewer::getQuadrantGlobalmapImage()
+godot::Ref<godot::Image> GDN_TheWorld_Viewer::getTestQuadrantGlobalmapImage()
 {
-	return m_tempGlobalmapImage;
+	return m_testQuadrantGlobalmapImage;
 }
 
-godot::Ref<godot::Image> GDN_TheWorld_Viewer::getQuadrantColormapImage()
+godot::Ref<godot::Image> GDN_TheWorld_Viewer::getTestQuadrantColormapImage()
 {
-	return m_tempColormapImage;
+	return m_testQuadrantColormapImage;
 }
 
 godot::Vector2 GDN_TheWorld_Viewer::getQuadrantPos(void)
@@ -15588,13 +15629,13 @@ godot::Vector4 GDN_TheWorld_Viewer::getGroundTextureIdxs(godot::String layout)
 	return v;
 }
 
-void GDN_TheWorld_Viewer::clearQuadrantData(void)
+void GDN_TheWorld_Viewer::clearTestQuadrantData(void)
 {
-	m_tempHeightmapImage.unref();
-	m_tempNormalmapImage.unref();
-	m_tempSplatmapImage.unref();
-	m_tempGlobalmapImage.unref();
-	m_tempColormapImage.unref();
+	m_testQuadrantHeightmapImage.unref();
+	m_testQuadrantNormalmapImage.unref();
+	m_testQuadrantSplatmapImage.unref();
+	m_testQuadrantGlobalmapImage.unref();
+	m_testQuadrantColormapImage.unref();
 }
 
 GDN_TheWorld_Viewer::DebugRayToUpdateGridDimensionDrawer::DebugRayToUpdateGridDimensionDrawer(GDN_TheWorld_Viewer* _viewer, godot::Camera3D* _camera, enum class Side _side, float _angle, godot::Vector3 _rayStart, godot::Vector3 _rayEnd, bool _hit, godot::Vector3 _hitPosition, bool _maxDistanceFromCameraForSide)

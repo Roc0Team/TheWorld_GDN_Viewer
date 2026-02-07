@@ -1444,7 +1444,7 @@ namespace godot
 
 	size_t GDN_TheWorld_Globals::resolutionForOptimizationLevel(size_t optimizationLevel)
 	{
-		size_t resolution = (size_t)heightmapResolution() + 1;
+		size_t resolution = numVerticesPerQuadrantSize();
 		if (optimizationLevel > 0)
 		{
 			size_t newResolutionShift = heightmapResolutionShift() - optimizationLevel;

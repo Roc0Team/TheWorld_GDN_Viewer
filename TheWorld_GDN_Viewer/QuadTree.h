@@ -207,9 +207,11 @@ namespace godot
 			godot::Vector4 m_groundTextureLayers;
 			godot::Color m_upperLeftCornerSplatmapTexel;
 			bool m_shaderUpdated = false;
+			uint16_t m_heightmapCorner;
 			TheWorld_Utils::MemoryBuffer m_heightmapBorderRow;
+			std::chrono::system_clock::time_point m_lastHeightmapBorderRefreshTs;
 			TheWorld_Utils::MemoryBuffer m_splatmapBorderRow;
-			std::chrono::system_clock::time_point m_lastBorderRefreshTs;
+			std::chrono::system_clock::time_point m_lastSplatmapBorderRefreshTs;
 			//// #####
 			//TheWorld_Utils::QuadrantPos m_owningQuadrantPos;
 			//TheWorld_Utils::QuadrantPos m_neighbourQuadrantPos;
@@ -645,7 +647,8 @@ namespace godot
 		godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
 		godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
 		void getHeightmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& heightmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
-		godot::Ref<godot::ImageTexture> getHeightmapBorderQuadrantRowsTexture(int32_t& numValidBorders);
+		void getHeightmapCorner(std::chrono::system_clock::time_point& lastBorderRefreshTs, uint16_t& heightmapCorner, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
+		//godot::Ref<godot::ImageTexture> getHeightmapBorderQuadrantRowsTexture(int32_t& numValidBorders);
 		void getSplatmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& splatmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		godot::Color getLowerRightCornerSplatmapTexel(void);
 		godot::Vector4 quadrantTextureLayers(void) const;
@@ -668,6 +671,14 @@ namespace godot
 		NeighbourQuadrantData& northWestQuadrantData(void)
 		{
 			return m_northWestQuadrantData;
+		}
+		NeighbourQuadrantData& northEastQuadrantData(void)
+		{
+			return m_northEastQuadrantData;
+		}
+		NeighbourQuadrantData& southWestQuadrantData(void)
+		{
+			return m_southWestQuadrantData;
 		}
 		NeighbourQuadrantData& southEastQuadrantData(void)
 		{
@@ -740,11 +751,6 @@ namespace godot
 
 		void updateTerrainEditTextureLayers(void);
 
-		//TheWorld_Utils::MemoryBuffer& getHeightmapBorderRowsRef(bool& valid) 
-		//{
-		//	valid = (m_lastHeightmapBordersRefreshTs != TheWorld_Utils::null_time_point());
-		//	return m_heightmapBorderRows;
-		//}
 		godot::Ref<godot::ImageTexture> getHeightmapBorderRowsTexture(void)
 		{
 			return m_heightmapBorderRowsTexture;
@@ -812,11 +818,10 @@ namespace godot
 		static std::recursive_mutex s_emptyHeightmapBorderQuadrantRowsMtx;
 
 		godot::Ref<godot::ImageTexture> m_heightmapBorderRowsTexture;
-		//TheWorld_Utils::MemoryBuffer m_heightmapBorderRows;			// row0 = north border of the heightmap (x growing), row1 = south border of the heightmap (x growing), row2 = west border of the heightmap (z growing), row3 = east border of the heightmap (z growing)
-		TheWorld_Utils::MemoryBuffer m_heightmapNorthBorderRow;		// north border row of the heightmap
-		TheWorld_Utils::MemoryBuffer m_heightmapSouthBorderRow;		// south border row of the heightmap
-		TheWorld_Utils::MemoryBuffer m_heightmapWestBorderRow;		// west border row of the heightmap
-		TheWorld_Utils::MemoryBuffer m_heightmapEastBorderRow;		// east border row of the heightmap
+		TheWorld_Utils::MemoryBuffer m_heightmapNorthBorderRow;		// north border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
+		TheWorld_Utils::MemoryBuffer m_heightmapSouthBorderRow;		// south border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
+		TheWorld_Utils::MemoryBuffer m_heightmapWestBorderRow;		// west border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
+		TheWorld_Utils::MemoryBuffer m_heightmapEastBorderRow;		// east border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
 		std::chrono::system_clock::time_point m_lastHeightmapBordersRefreshTs = TheWorld_Utils::null_time_point();
 
 		TheWorld_Utils::MemoryBuffer m_splatmapNorthBorderRow;		// north border row of the splatmap
@@ -839,6 +844,8 @@ namespace godot
 		NeighbourQuadrantData m_eastQuadrantData;
 
 		NeighbourQuadrantData m_northWestQuadrantData;
+		NeighbourQuadrantData m_northEastQuadrantData;
+		NeighbourQuadrantData m_southWestQuadrantData;
 		NeighbourQuadrantData m_southEastQuadrantData;
 
 		bool m_sendHeightsToShader;
@@ -889,11 +896,11 @@ namespace godot
 #define SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_3			"u_heightmap_array_optlvl_inc_3"
 
 #define SHADER_PARAM_TERRAIN_HEIGHTMAP				"u_terrain_heightmap"
-#define SHADER_PARAM_TERRAIN_HEIGHTMAP_BORDER_ROWS	"u_terrain_heightmap_border_rows"
+//#define SHADER_PARAM_TERRAIN_HEIGHTMAP_BORDER_ROWS	"u_terrain_heightmap_border_rows"
 #define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
 #define SHADER_PARAM_TERRAIN_SPLATMAP				"u_terrain_splatmap"
-#define SHADER_PARAM_TERRAIN_COLORMAP				"u_terrain_colormap"
-//#define SHADER_PARAM_TERRAIN_GLOBALMAP				"u_terrain_globalmap"
+//#define SHADER_PARAM_TERRAIN_COLORMAP				"u_terrain_colormap"
+//#define SHADER_PARAM_TERRAIN_GLOBALMAP			"u_terrain_globalmap"
 
 #define SHADER_PARAM_INVERSE_TRANSFORM				"u_terrain_inverse_transform"
 #define SHADER_PARAM_NORMAL_BASIS					"u_terrain_normal_basis"
@@ -1269,6 +1276,7 @@ namespace godot
 			,globalmap = 3
 			,colormap = 4
 		};
+		void cacheTerrainDataForShader(std::string profileHeader, enum class ImageType imageType);
 		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, godot::Ref<godot::Image> hiResImage, std::map<size_t, godot::Ref<godot::Image>>& resizedImageMap, size_t optimizationLevel, size_t resolution);
 		godot::Ref<godot::Image> getImageAtResolution(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel, size_t resolution);
 		godot::Ref<godot::Image> getImageAtOptimizationLevel(std::string& profileHeader, enum class ImageType imageType, size_t optimizationLevel);
@@ -1984,6 +1992,7 @@ namespace godot
 		void reloadCurrentMaterial(enum class QuadType type);
 		void setQuadrantOptimizations(godot::Vector3& worldCameraWorldPos);
 		bool resetMaterialParams(bool& lastProcessExecutionInterrupted, godot::Vector3& worldCameraWorldPos, bool force = false);
+		bool allNeighboursInitialized(void);
 		bool materialParamsNeedReset(void);
 		void materialParamsNeedReset(bool b);
 		bool updateCollider(enum class QuadType type);
@@ -2192,6 +2201,14 @@ namespace godot
 		{
 			m_quadrantDepth = p;
 		}
+		Quadrant::QuadrantTypeInGrid quadrantTypeInGrid(void) const
+		{
+			return m_quadrantTypeInGrid;
+		}
+		void quadrantTypeInGrid(Quadrant::QuadrantTypeInGrid p)
+		{
+			m_quadrantTypeInGrid = p;
+		}
 		size_t numQuadrantsFromCameraQuadrant(void) const
 		{
 			return m_numQuadrantsFromCameraQuadrant;
@@ -2263,6 +2280,7 @@ namespace godot
 		enum class ShaderTerrainData::LookDev m_lookDev;
 		int m_canContainSea = QUADRANT_SEA_INFO_NOTSET;
 		QuadrantDepth m_quadrantDepth = QuadrantDepth::NotSet;
+		Quadrant::QuadrantTypeInGrid m_quadrantTypeInGrid = Quadrant::QuadrantTypeInGrid::NotSet;
 		int m_numQuadrantsFromCameraQuadrant = -1;
 
 		std::map<enum class QuadType, std::unique_ptr<Quads>> m_quads;

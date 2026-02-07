@@ -2523,12 +2523,12 @@ namespace godot
 
 		bool loadQuadrantData(float posX, float posZ, int level);
 		bool loadQuadrantDataIndex(int posX, int posZ, int level);
-		void clearQuadrantData(void);
-		godot::Ref<godot::Image> getQuadrantHeightmapImage(void);
-		godot::Ref<godot::Image> getQuadrantNormalmapImage(void);
-		godot::Ref<godot::Image> getQuadrantSplatmapImage(void);
-		godot::Ref<godot::Image> getQuadrantGlobalmapImage(void);
-		godot::Ref<godot::Image> getQuadrantColormapImage(void);
+		void clearTestQuadrantData(void);
+		godot::Ref<godot::Image> getTestQuadrantHeightmapImage(void);
+		godot::Ref<godot::Image> getTestQuadrantNormalmapImage(void);
+		godot::Ref<godot::Image> getTestQuadrantSplatmapImage(void);
+		godot::Ref<godot::Image> getTestQuadrantGlobalmapImage(void);
+		godot::Ref<godot::Image> getTestQuadrantColormapImage(void);
 		godot::Vector2 getQuadrantPos(void);
 		godot::Vector2i getQuadrantPosIndex(void);
 		godot::String getGroundTextureName(int type);
@@ -3298,12 +3298,11 @@ namespace godot
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;
 		TheWorld_Utils::TerrainEdit m_tempTerrainEdit;
-		godot::Ref<godot::Image> m_tempHeightmapImage;
-		godot::Ref<godot::Image> m_tempNormalmapImage;
-		godot::Ref<godot::Image> m_tempSplatmapImage;
-		godot::Ref<godot::Image> m_tempGlobalmapImage;
-		godot::Ref<godot::Image> m_tempColormapImage;
-
+		godot::Ref<godot::Image> m_testQuadrantHeightmapImage;
+		godot::Ref<godot::Image> m_testQuadrantNormalmapImage;
+		godot::Ref<godot::Image> m_testQuadrantSplatmapImage;
+		godot::Ref<godot::Image> m_testQuadrantGlobalmapImage;
+		godot::Ref<godot::Image> m_testQuadrantColormapImage;
 		bool m_debugTrace = false;
 		size_t m_num = 0;
 		size_t m_loadingWorldRefresh = 0;

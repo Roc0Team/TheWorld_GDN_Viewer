@@ -1135,7 +1135,7 @@ namespace godot
 				//m_gridControl1TexRID = RS->create_texture();
 			}
 			
-			void setData(GDN_TheWorld_Viewer* viewer, godot::Vector2 gridPos, WorldQuadrantsMap& worldQuadrantMap, size_t numQuadrantsPerGridSize, std::vector<QuadTree*>& quadrantsToRefresh);
+			//void setData(GDN_TheWorld_Viewer* viewer, godot::Vector2 gridPos, WorldQuadrantsMap& worldQuadrantMap, size_t numQuadrantsPerGridSize, std::vector<QuadTree*>& quadrantsToRefresh);
 
 			godot::Ref<godot::Texture2D> getGridControl1Tex(void)
 			{

@@ -43,6 +43,27 @@
 #define MAX_SETTABLE_DEPTH_ON_PERIMETER	25
 #define MAX_SETTABLE_CACHE_ON_PERIMETER	5
 
+#define ADD_PROCESS_STEP(qualifier) addProcessStep(ProcessStep::ProcessStepIdx::##qualifier)
+
+#define CHECK_PROCESS_STEP(qualifier) \
+	if (m_lastProcessExecutionInterrupted or processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::##qualifier)) \
+	{ \
+		m_lastProcessExecutionInterrupted = true; \
+		return; \
+	}
+
+#define PROCESS_STEP(func, profiler_function, profiler_name) \
+	{ \
+		TheWorld_Utils::GuardProfiler profiler(std::string(profiler_function) + __FUNCTION__, profiler_name); \
+		func; \
+	}
+
+#define PROCESS_STEP_WITH_CHECK(func, qualifier, profiler_function, profiler_name) \
+	{ \
+		PROCESS_STEP(func, profiler_function, profiler_name) \
+		CHECK_PROCESS_STEP(qualifier) \
+	}
+
 namespace godot
 {
 	class MeshCache;
@@ -1997,7 +2018,7 @@ namespace godot
 		{
 			return m_initialWorldViewerPosSet;
 		}
-		bool recalcQuadrantsInView(void);
+		bool recalcGridOfQuadrantsInView(void);
 		Node3D* getWorldNode(void) const;
 		MeshCache* getMeshCache(void)
 		{
@@ -2073,19 +2094,28 @@ namespace godot
 		int getNumNeedShaderResetQuadrants(void) const;
 		int getNumNeedShaderUpdateQuadrants(void) const;
 		int getNumEmptyQuadrants(void) const;
-		int getNumQuadrantsReloadingFromCache(void) const;
+		int getNumQuadrantsLoadingFromServer(void) const;
+		int getNumQuadrantsLoadingFromLocalCache(void) const;
 		int getNumFlushedQuadrants(void) const;
 		int getQuadrantNumWithCollider(void) const;
 		int getQuadrantNumWithEnabledCollider(void) const;
 		int getQuadrantNumWithHiResCollider(void) const;
 		int getQuadrantNumWithLowResCollider(void) const;
-		bool allVisibleQuadrantInitialized(void) const
+		bool allQuadrantsInitialized(void) const
 		{
-			return m_allVisibleQuadrantInitialized;
+			return m_allQuadrantsInitialized;
 		}
-		void allVisibleQuadrantInitialized(bool b)
+		void allQuadrantsInitialized(bool b)
 		{
-			m_allVisibleQuadrantInitialized = b;
+			m_allQuadrantsInitialized = b;
+		}
+		bool allVisibleQuadrantsInitialized(void) const
+		{
+			return m_allVisibleQuadrantsInitialized;
+		}
+		void allVisibleQuadrantsInitialized(bool b)
+		{
+			m_allVisibleQuadrantsInitialized = b;
 		}
 		bool recalcAllVisibleQuadrantsInitialized(void);	// ha senso usarlo o conviene usare allVisibleQuadrantInitialized() per evitare di ricalcolarlo più di una volta nel corso di una esecuzione di _process?
 		void refreshQuadrantsStatistics(void);
@@ -2332,7 +2362,7 @@ namespace godot
 			m_reloadSelectedQuadrantShaderRequired = b;
 		}
 		void trackedMouseHitChanged(godot::Camera3D* activeWorldCamera, QuadTree* quadrantHit, std::list<QuadTree*>& adjacentQuadrantsHit, bool hit, godot::Vector3 mouseHit, godot::Vector3 normalHit = Vector3Zero);
-		void clearQuadTreeMap(void);
+		void clearQuadrantsMaps(void);
 		bool gizmoVisible(void) const
 		{
 			return m_gizmoVisible;
@@ -2497,28 +2527,28 @@ namespace godot
 				return false;
 		}
 
-		bool recalcQuadrantsInViewJustExecuted(void) const
+		bool recalcGridOfQuadrantsInViewJustExecuted(void) const
 		{
-			return m_recalcQuadrantsInViewJustExecuted;
+			return m_recalcGridOfQuadrantsInViewJustExecuted;
 		}
-		void recalcQuadrantsInViewJustExecuted(bool b)
+		void recalcGridOfQuadrantsInViewJustExecuted(bool b)
 		{
 			if (b)
-				m_recalcQuadrantsInViewJustExecuted = b;
+				m_recalcGridOfQuadrantsInViewJustExecuted = b;
 			else
-				m_recalcQuadrantsInViewJustExecuted = b;
+				m_recalcGridOfQuadrantsInViewJustExecuted = b;
 		}
 
-		bool recalcQuadrantsInViewNeeded(void) const
+		bool recalcGridOfQuadrantsInViewNeeded(void) const
 		{
-			return m_recalcQuadrantsInViewNeeded;
+			return m_recalcGridOfQuadrantsInViewNeeded;
 		}
-		void recalcQuadrantsInViewNeeded(bool b)
+		void recalcGridOfQuadrantsInViewNeeded(bool b)
 		{
 			if (b)
-				m_recalcQuadrantsInViewNeeded = b;
+				m_recalcGridOfQuadrantsInViewNeeded = b;
 			else
-				m_recalcQuadrantsInViewNeeded = b;
+				m_recalcGridOfQuadrantsInViewNeeded = b;
 		}
 
 		bool loadQuadrantData(float posX, float posZ, int level);
@@ -2867,10 +2897,43 @@ namespace godot
 			return m_ctrlPressed;
 		}
 
-		void resetDataRefreshToShaderFlags(void);
-		void requestDataRefreshToShader(QuadTree* quadTree, bool request = true);
-		size_t getNumQuadrantsToRefreshToShader(void) const;
-		void getQuadrantsToRefreshToShader(std::vector<QuadTree*>& quadrantsToRefresh) const;
+		//void resetDataRefreshToShaderFlags(void);
+		//void requestDataRefreshToShader(QuadTree* quadTree, bool request = true);
+		//size_t getNumQuadrantsToRefreshToShader(void) const;
+		//void getQuadrantsToRefreshToShader(std::vector<QuadTree*>& quadrantsToRefresh) const;
+
+		void incNumQuadrantNeedResetMaterialParam(void)
+		{
+			m_numQuadrantNeedResetMaterialParam++;
+		}
+		void decNumQuadrantNeedResetMaterialParam(void)
+		{
+			m_numQuadrantNeedResetMaterialParam--;
+		}
+		void incNumQuadrantNeedUpdateMaterialParam(void)
+		{
+			m_numQuadrantNeedUpdateMaterialParam++;
+		}
+		void decNumQuadrantNeedUpdateMaterialParam(void)
+		{
+			m_numQuadrantNeedUpdateMaterialParam--;
+		}
+		void incNumQuadrantLoadingFromLocalCache(void)
+		{
+			m_numQuadrantLoadingFromLocalCache++;
+		}
+		void decNumQuadrantLoadingFromLocalCache(void)
+		{
+			m_numQuadrantLoadingFromLocalCache--;
+		}
+		void incNumQuadrantLoadingFromServer(void)
+		{
+			m_numQuadrantLoadingFromServer++;
+		}
+		void decNumQuadrantLoadingFromServer(void)
+		{
+			m_numQuadrantLoadingFromServer--;
+		}
 
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
@@ -2918,7 +2981,7 @@ namespace godot
 		TheWorld_Utils::QuadrantPos getWorldQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isWorldQuadrantSelectedForEdit(void);
 		bool isMapQuadrantSelectedForEdit(void);
-		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, bool& allQuadrantInitialized, bool& allVisibleQuadrantInitialized);
+		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant);
 		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea, bool adjustPositionOnTerrain = true);
 		bool worldGridDimensionChanged(void) const
 		{
@@ -2933,7 +2996,8 @@ namespace godot
 		bool m_initialized;
 		godot::Camera3D* m_editorCamera;
 		godot::Node3D* m_anchorForOriginShift = nullptr;
-		bool m_allVisibleQuadrantInitialized = false;
+		bool m_allQuadrantsInitialized = false;
+		bool m_allVisibleQuadrantsInitialized = false;
 		bool m_forceUpdateTerrainMaterial = false;
 		bool m_worldEntered = false;
 		bool m_quitting;
@@ -2957,9 +3021,9 @@ namespace godot
 		bool m_desideredLookDevChanged;
 		bool m_stopDeploy;
 
-		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadrantToShader;
-		std::vector<QuadTree*> m_vecQuadrantToShader;
-		//ShaderTerrainData::GridControlData m_gridControlData;
+		//std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadrantToShader;	// Remarked function GDN_TheWorld_Viewer::updateTerrainMaterial
+		//std::vector<QuadTree*> m_vecQuadrantToShader;
+		//ShaderTerrainData::GridControlData m_gridControlData;					// Remarked function GDN_TheWorld_Viewer::updateTerrainMaterial
 
 		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
@@ -3006,7 +3070,8 @@ namespace godot
 		int m_numToEraseQuadrant;
 		int m_numVisibleQuadrant;
 		int m_numEmptyQuadrant;
-		int m_numQuadrantReloadingFromCache = 0;
+		int m_numQuadrantLoadingFromServer = 0;
+		int m_numQuadrantLoadingFromLocalCache = 0;
 		int m_numFlushedQuadrant;
 		int m_numQuadrantWithCollider = 0;
 		int m_numQuadrantWithEnabledCollider = 0;
@@ -3164,7 +3229,8 @@ namespace godot
 		// World Data
 		bool m_worldQuadrantsMapValid = false;
 		WorldQuadrantsMap m_worldQuadrantsMap;
-		std::map <enum class QuadTree::QuadrantDepth, std::map<TheWorld_Utils::QuadrantPos, QuadTree*>> m_worldQuadrantsMapByDepth;
+		//std::map <enum class QuadTree::QuadrantDepth, std::map<TheWorld_Utils::QuadrantPos, QuadTree*>> m_worldQuadrantsMapByDepth;
+		std::map <size_t, std::map<TheWorld_Utils::QuadrantPos, QuadTree*>> m_worldQuadrantsMapByDistanceFromCameraQuadrant;
 		TheWorld_Utils::QuadrantPos m_computedWorldCameraQuadrantPos;
 		TheWorld_Utils::QuadrantPos m_gridWorldCameraQuadrantPos;
 		WorldQuadrantsMap m_extraQuadsMap;
@@ -3173,8 +3239,8 @@ namespace godot
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
 		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;
 		godot::Vector3 m_lastOriginShiftCameraPosInMap;
-		bool m_recalcQuadrantsInViewJustExecuted = false;
-		bool m_recalcQuadrantsInViewNeeded = false;
+		bool m_recalcGridOfQuadrantsInViewJustExecuted = false;
+		bool m_recalcGridOfQuadrantsInViewNeeded = false;
 		bool m_finishedResizingGrid = true;
 		bool m_refreshQuadTreeMap = false;
 		int m_numWorldVerticesPerSize;

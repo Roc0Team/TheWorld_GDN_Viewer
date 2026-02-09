@@ -1462,7 +1462,7 @@ void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 		if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE and m_lastCameraAltitudeFromTerrain < 0)
 			assert(m_lastCameraAltitudeFromTerrain < 0);
 		
-		if (!Globals()->Viewer()->recalcQuadrantsInViewNeeded() and Globals()->Viewer()->isCameraQuadrantColliderSet())
+		if (!Globals()->Viewer()->recalcGridOfQuadrantsInViewNeeded() and Globals()->Viewer()->isCameraQuadrantColliderSet())
 		{
 			updateAltitudeFromTerrain(true);
 

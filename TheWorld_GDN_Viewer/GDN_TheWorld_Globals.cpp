@@ -1159,7 +1159,7 @@ namespace godot
 		{
 			m_streamWorld = b;
 			if (m_streamWorld && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress)
-				Viewer()->recalcQuadrantsInViewNeeded(true);
+				Viewer()->recalcGridOfQuadrantsInViewNeeded(true);
 		}
 		PLOG_INFO << "Performance Parameter - Stream World: " << (m_streamWorld ? "true" : "false");
 	}

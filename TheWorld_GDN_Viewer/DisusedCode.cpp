@@ -1933,3 +1933,148 @@
 		//VisualServer::get_singleton()->instance_set_base(m_viewFrustumMeshInstance, meshRID);
 		//m_viewFrustumMeshRID = meshRID;
 		//m_viewFrustumMesh = _mesh;
+
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.02 ") + __FUNCTION__, "Erase out-of-view quadrants");
+	//	process_eraseOutOfViewQuads(editModeUIControl);
+	//	addProcessStep(ProcessStep::ProcessStepIdx::process_eraseOutOfViewQuadrants);
+	//}
+
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.01 ") + __FUNCTION__, "Modder work");
+	//	process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution(_delta);
+	//}
+	//addProcessStep(ProcessStep::ProcessStepIdx::process_mapModder);
+
+	//ADD_PROCESS_STEP(process_initialStuff_1);
+	//addProcessStep(ProcessStep::ProcessStepIdx::process_initialStuff_1);
+
+		//addProcessStep(ProcessStep::ProcessStepIdx::process_mapQuadrantsUI);
+
+		//addProcessStep(ProcessStep::ProcessStepIdx::process_delayedWorldMode);
+
+			//addProcessStep(ProcessStep::ProcessStepIdx::process_adjustMapQuadrants);
+
+		//addProcessStep(ProcessStep::ProcessStepIdx::process_checkCameraMovement);
+
+	////if (worldMode())
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.03 ") + __FUNCTION__, "Adjust Quadtrees");
+	//	if (processCameraPosForQuadrants)
+	//	{
+	//		process_updateWorldCameraQuadrant(globals, worldCameraWorldPos);
+	//		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateCameraQuadrant))
+	//		{
+	//			m_lastProcessExecutionInterrupted = true;
+	//			return;
+	//		}
+	//	}
+	//}
+
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.04 ") + __FUNCTION__, "Init new quadrants");
+	//	process_initNewQuads(processCameraPosForQuadrants);
+	//	if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_initNewQuads))
+	//	{
+	//		m_lastProcessExecutionInterrupted = true;
+	//		return;
+	//	}
+	//}
+
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.05 ") + __FUNCTION__, "Track mouse");
+	//	process_trackMouse(activeWorldCamera);
+	//	if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_trackMouse))
+	//	{
+	//		m_lastProcessExecutionInterrupted = true;
+	//		return;
+	//	}
+	//}
+
+		//TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.06 ") + __FUNCTION__, "Cast Ray From Camera");
+		//process_castRayFromCamera(activeWorldCamera);
+		//if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_castRayFromCamera))
+		//{
+		//	m_lastProcessExecutionInterrupted = true;
+		//	return;
+		//}
+
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.07 ") + __FUNCTION__, "Update camera in quadrants");
+	//	process_updateCameraPosInShader(activeWorldCamera);
+	//	if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateCameraInQuadrants))
+	//	{
+	//		m_lastProcessExecutionInterrupted = true;
+	//		return;
+	//	}
+	//}
+
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.08 ") + __FUNCTION__, "Update origin shift");
+	//	process_updateOriginShift(activeMapCamera, activeWorldCamera);
+	//	if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateOriginShift))
+	//	{
+	//		m_lastProcessExecutionInterrupted = true;
+	//		return;
+	//	}
+	//}
+
+			//process_updateLodInQuads(worldCameraWorldPos);
+			//if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateLodInQuads))
+			//{
+			//	m_lastProcessExecutionInterrupted = true;
+			//	return;
+			//}
+
+			//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.10 ") + __FUNCTION__, "Update chunks");
+	//	//if (processCameraPosForChunks)
+	//	{
+	//		process_updateMeshForUpdatedChunks();
+	//		if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateMeshForUpdatedChunks))
+	//		{
+	//			m_lastProcessExecutionInterrupted = true;
+	//			return;
+	//		}
+	//	}
+	//}
+
+			//process_updateGridDimension(globals, activeWorldCamera);
+			//if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateGridDimension))
+			//{
+			//	m_lastProcessExecutionInterrupted = true;
+			//	return;
+			//}
+
+		//TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.13 ") + __FUNCTION__, "Process Lookdev");
+		//process_lookDev();
+		//if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_lookDev))
+		//{
+		//	m_lastProcessExecutionInterrupted = true;
+		//	return;
+		//}
+
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.14 ") + __FUNCTION__, "Process Material Params");
+	//	process_materialParams(worldCameraWorldPos, processCameraPosForQuadrants, processCameraPosForChunks);
+	//	if (m_lastProcessExecutionInterrupted)
+	//		return;
+	//}
+
+		//TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.15 ") + __FUNCTION__, "Process Map Quadrants");
+		//process_mapQuadrants(mapCameraWorldPos);
+		//if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_mapQuadrants))
+		//{
+		//	m_lastProcessExecutionInterrupted = true;
+		//	return;
+		//}
+
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("process_impl 1.16 ") + __FUNCTION__, "Update HUD");
+	//	process_updateHud(activeWorldCamera);
+	//	if (processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::process_updateHud))
+	//	{
+	//		m_lastProcessExecutionInterrupted = true;
+	//		return;
+	//	}
+	//}

@@ -2209,8 +2209,8 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularSeaMaterial(bool reload
 		godot::Ref<godot::ShaderMaterial> mat = memnew(godot::ShaderMaterial);
 		m_viewer->getMainProcessingMutex().unlock();
 		godot::ResourceLoader* resLoader = godot::ResourceLoader::get_singleton();
-		String shaderPath = "res://addons/twviewer/shaders/water.gdshader";
-		//String shaderPath = "res://addons/twviewer/test/water.gdshader";
+		//String shaderPath = "res://addons/twviewer/shaders/water.gdshader";
+		String shaderPath = "res://addons/twviewer/test/water.gdshader";
 		godot::Ref<godot::Shader> shader;
 		if (reload)
 			shader = resLoader->load(shaderPath, "", godot::ResourceLoader::CacheMode::CACHE_MODE_IGNORE);

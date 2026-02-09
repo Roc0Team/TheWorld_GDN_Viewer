@@ -10338,9 +10338,10 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 		{
 			if (not allQuadrantInitialized)
 			{
+				size_t numInitialized = 0;
 				for (size_t numQuadrantsFromCameraQuadrant = 0; numQuadrantsFromCameraQuadrant <= getMaxDepthQuadOnPerimeter() + m_numCacheQuadrantOnPerimeter; numQuadrantsFromCameraQuadrant++)
 				{
-					bool exitForNow = initNewQuadsAtPriority(numQuadrantsFromCameraQuadrant);
+					bool exitForNow = initNewQuadsAtPriority(numQuadrantsFromCameraQuadrant, numInitialized);
 					if (exitForNow)
 						break;
 				}
@@ -10376,7 +10377,7 @@ void GDN_TheWorld_Viewer::process_initNewQuads(bool processCameraPosForQuadrants
 	}
 }
 
-bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant)
+bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, size_t& numInitialized)
 {
 	bool exitForNow = false;
 	
@@ -10421,8 +10422,10 @@ bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQu
 						quadTree->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
 						Globals()->debugPrint((std::string("Refreshing quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " " + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
 					}
+
+					numInitialized++;
 					
-					//if (quadTree->quadrantDepth() == QuadTree::QuadrantDepth::Cache)
+					if (numInitialized > 0)		// WARN: modifying lag loading!!!
 					{
 						exitForNow = true;
 						break;
@@ -12233,6 +12236,7 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 
 		int32_t numLoop = 0;	 int32_t maxLoop = 10;
 		bool loopCompleted = true;
+		bool exitLoopRequired = false;
 		for (auto& it : m_worldQuadrantsMapByDistanceFromCameraQuadrant)
 		{
 			for (auto& itQuadTree : it.second)
@@ -12253,8 +12257,6 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("process_materialParam 4.1 ") + __FUNCTION__, "Quadrant locked");
 
-					numLoop++;
-
 					process_neighbourQuadrantData(quadTree);
 
 					{
@@ -12266,6 +12268,7 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 						{
 							quadrant->unlockInternalData();
 							loopCompleted = false;
+							exitLoopRequired = true;
 							break;
 						}
 						//if (materialParamsReset)			// DEBUG
@@ -12282,6 +12285,7 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 							m_lastProcessExecutionInterrupted = true;
 							quadrant->unlockInternalData();
 							loopCompleted = false;
+							exitLoopRequired = true;
 							break;
 						}
 						//if (materialParamsUpdated)		// DEBUG
@@ -12304,6 +12308,7 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 							m_lastProcessExecutionInterrupted = true;
 							quadrant->unlockInternalData();
 							loopCompleted = false;
+							exitLoopRequired = true;
 							break;
 						}
 						//if (colliderUpdated)		// DEBUG
@@ -12326,17 +12331,21 @@ void GDN_TheWorld_Viewer::process_materialParams(godot::Vector3& worldCameraWorl
 				if (materialParamsUpdated)
 					m_previousTrackedMouseHitWorldPos = godot::Vector3();
 
+				//if (materialParamsReset /* or materialParamsUpdated*/ or colliderUpdated)		// WARN: modifying lag scrolling fast!!!
+				numLoop++;
+
 #define MAX_SHADER_PARAM_RESET_LOOP 10
-//#define MAX_SHADER_PARAM_RESET_LOOP 20	// Occhio!!!
+//#define MAX_SHADER_PARAM_RESET_LOOP 20	// WARN: modifying lag scrolling fast!!!
 				if ((materialParamsReset /* or materialParamsUpdated*/ or colliderUpdated) and !m_desideredLookDevChanged and numLoop > MAX_SHADER_PARAM_RESET_LOOP /* and quadTree->quadrantDepth() == QuadTree::QuadrantDepth::Cache*/)
 				{
 					//if (numMaterialParamReset > 0 or numMaterialParamUpdate > 0 or numColliderUpdate > 0)
 					//	PLOG_DEBUG << "Quadrants Updated: params set for quadrant = " << numMaterialParamReset << ", shaders updated = " << numMaterialParamUpdate << ", collider set = " << numColliderUpdate;
 					loopCompleted = false;
+					exitLoopRequired = true;
 					break;
 				}
 			}
-			if (!loopCompleted)
+			if (exitLoopRequired)
 				break;
 		}
 

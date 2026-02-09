@@ -2981,7 +2981,7 @@ namespace godot
 		TheWorld_Utils::QuadrantPos getWorldQuadrantSelForEdit(QuadTree** quadTreeSel);
 		bool isWorldQuadrantSelectedForEdit(void);
 		bool isMapQuadrantSelectedForEdit(void);
-		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant);
+		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, size_t& numInitialized);
 		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea, bool adjustPositionOnTerrain = true);
 		bool worldGridDimensionChanged(void) const
 		{

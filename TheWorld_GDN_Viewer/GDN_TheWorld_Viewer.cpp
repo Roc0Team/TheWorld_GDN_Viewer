@@ -13767,12 +13767,14 @@ godot::Camera3D* GDN_TheWorld_Viewer::getWorldCameraInEditor(void)
 	if (!IS_EDITOR_HINT())
 		return nullptr;
 
+	return EditorInterface::get_singleton()->get_editor_viewport_3d(0)->get_camera_3d();
+
 	if (m_editorCamera != nullptr)
 		return m_editorCamera;
 	
-	//return EditorInterface::get_singleton()->get_editor_viewport_3d(0)->get_camera_3d();
 	
 	godot::Camera3D* editorCamera = nullptr;
+
 
 	if (m_editorInterface != nullptr)
 	{

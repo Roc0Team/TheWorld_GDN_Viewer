@@ -1971,6 +1971,7 @@ namespace godot
 		void selectMapQuadrant(TheWorld_Utils::QuadrantPos pos);
 		void selectMapQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
 		void deselectMapQuadrant(void);
+		godot::Camera3D* getCustomCamera(void);
 		godot::Camera3D* getWorldCamera(void);
 		godot::Camera3D* getWorldCamera2(bool force = false);
 		godot::Camera2D* getMapCamera(void);

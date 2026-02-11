@@ -4143,6 +4143,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_editor_interface"), &GDN_TheWorld_Viewer::setEditorInterface);
 	ClassDB::bind_method(D_METHOD("set_editor_3d_overlay"), &GDN_TheWorld_Viewer::setEditor3dOverlay);
 	ClassDB::bind_method(D_METHOD("set_world_editor_camera"), &GDN_TheWorld_Viewer::setWorldEditorCamera);
+	ClassDB::bind_method(D_METHOD("get_custom_camera"), &GDN_TheWorld_Viewer::getCustomCamera);
 	ClassDB::bind_method(D_METHOD("get_world_camera"), &GDN_TheWorld_Viewer::getWorldCamera);
 	ClassDB::bind_method(D_METHOD("get_map_camera"), &GDN_TheWorld_Viewer::getMapCamera);
 	ClassDB::bind_method(D_METHOD("get_info_camera"), &GDN_TheWorld_Viewer::getInfoCamera);
@@ -13718,6 +13719,11 @@ bool GDN_TheWorld_Viewer::terrainShiftPermitted(void)
 
 	return true;
 	return m_numInitializedQuadrant >= m_numQuadrant;
+}
+
+godot::Camera3D* GDN_TheWorld_Viewer::getCustomCamera(void)
+{
+	return WorldCamera();
 }
 
 godot::Camera3D* GDN_TheWorld_Viewer::getWorldCamera(void)

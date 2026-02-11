@@ -984,16 +984,36 @@ GDN_TheWorld_Camera* GDN_TheWorld_Camera::getActiveCamera(void)
 //	return true;
 //}
 
+godot::Camera3D* GDN_TheWorld_Camera::getRealCamera(void)
+{
+	if (IS_EDITOR_HINT())
+	{
+		GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
+		if (viewer == nullptr)
+			return nullptr;
+		godot::Camera3D* camera = viewer->getWorldCamera();
+		if (camera == nullptr)
+			return nullptr;
+		return camera;
+	}
+	else
+		return this;
+}
+
 void GDN_TheWorld_Camera::set_cameraFar(void)
 {
+	godot::Camera3D* camera = getRealCamera();
+	if (camera == nullptr)
+		return;
+
 	float quadrantSize = Globals()->heightmapSizeInWUs();
 	float thresholdUpdateCameraFar = DISTANCE_THRESHOLD_TO_UPDATE_CAMERA_FAR;
-	godot::Vector3 cameraGlobalPosition = get_global_position();
+	godot::Vector3 cameraGlobalPosition = camera->get_global_position();
 	if (m_forceRecalcCameraFar or cameraGlobalPosition.distance_to(m_savedCameraPosAfterSetFar) > thresholdUpdateCameraFar)
 	{
 		float _far = quadrantSize * (Globals()->Viewer()->maxActualDepthQuadInAllDirections() + 1) * 1.5f;	// zfar at 0 altitude
 		_far = sqrtf(powf(_far, 2.0) + powf(cameraGlobalPosition.y, 2.0));
-		Camera3D::set_far(_far);
+		camera->set_far(_far);
 
 #define MIN_CAMERA_NEAR	0.5f
 #define MAX_CAMERA_NEAR	100.0f
@@ -1005,7 +1025,7 @@ void GDN_TheWorld_Camera::set_cameraFar(void)
 		{
 			_near = lerp(MIN_CAMERA_NEAR, MAX_CAMERA_NEAR, m_lastCameraAltitudeFromTerrain / 10000.0f);
 		}
-		Camera3D::set_near(_near);
+		camera->set_near(_near);
 
 		//PLOG_DEBUG << "Camera znear=" << _near;
 		//PLOG_DEBUG << "Camera zfar=" << _far;
@@ -1102,6 +1122,10 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 	if (!viewer->worldMode())
 		return;
 
+	godot::Camera3D* camera = getRealCamera();
+	if (camera == nullptr)
+		return;
+
 	//if (m_postProcessingUnderWaterNode != nullptr)
 	//{
 	//	if (m_postProcessingUnderWaterOverrideNode == nullptr or !m_postProcessingUnderWaterOverrideNode->is_visible())
@@ -1110,7 +1134,7 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 	//		m_postProcessingUnderWaterNode->set_visible(false);
 	//}
 
-	QuadTree* quadTree = viewer->getCameraQuadrant(this);
+	QuadTree* quadTree = viewer->getCameraQuadrant(camera);
 	if (not globals->getParamShowSea() or (quadTree != nullptr and quadTree->canContainSea() == QUADRANT_SEA_INFO_FALSE))
 	{
 		viewer->shaderParamCameraUnderWaterApplied(false);
@@ -1125,10 +1149,10 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 		{
 			// WARNING: Noise texture must be SEAMLESS and Normalized
 
-			GDN_TheWorld_Globals* globals = Globals();
-			GDN_TheWorld_Viewer* viewer = globals->Viewer();
+			//GDN_TheWorld_Globals* globals = Globals();
+			//GDN_TheWorld_Viewer* viewer = globals->Viewer();
 
-			godot::Vector3 cameraGlobalPos = get_global_position();
+			godot::Vector3 cameraGlobalPos = camera->get_global_position();
 
 			float shaderParamSeaFlatSeaHeightApplied = viewer->shaderParamSeaFlatSeaHeightApplied();
 			if (cameraGlobalPos.y > shaderParamSeaFlatSeaHeightApplied - THEWORLD_SEA_MAX_WAVE_HEIGHT and cameraGlobalPos.y < shaderParamSeaFlatSeaHeightApplied + THEWORLD_SEA_MAX_WAVE_HEIGHT)
@@ -1481,6 +1505,9 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 
 void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 {
+	if (IS_EDITOR_HINT())
+		return;
+	
 	if (adjustPositionOnTerrainRequired() or (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE and m_lastCameraAltitudeFromTerrain < 0))
 	{
 		if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE and m_lastCameraAltitudeFromTerrain < 0)
@@ -1525,7 +1552,11 @@ void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 	if (force)
 		m_forceRecalcCameraAltitude = true;
 	
-	godot::Vector3 cameraGlobalPosition = get_global_position();
+	godot::Camera3D* camera = getRealCamera();
+	if (camera == nullptr)
+		return;
+
+	godot::Vector3 cameraGlobalPosition = camera->get_global_position();
 	
 	float thresholdToUpdateAltitude = DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE;
 	//if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE && m_lastCameraAltitudeFromTerrain <= thresholdToUpdateAltitude)

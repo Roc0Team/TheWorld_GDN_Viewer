@@ -1124,10 +1124,17 @@ namespace godot
 			GDN_TheWorld_Viewer* viewer = Viewer();
 			if (viewer != nullptr and viewer->initialized())
 			{
-				godot::Camera3D* activeCamera = viewer->getWorldCamera();
-				if (activeCamera != nullptr)
+				//godot::Camera3D* activeCamera = viewer->getWorldCamera();
+				//if (activeCamera != nullptr)
+				//{
+				//	GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+				//	if (cam != nullptr)
+				//		cam->updateCameraUnderWater();
+				//}
+				godot::Camera3D* customCamera = viewer->getCustomCamera();
+				if (customCamera != nullptr)
 				{
-					GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(activeCamera);
+					GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(customCamera);
 					if (cam != nullptr)
 						cam->updateCameraUnderWater();
 				}

@@ -35,6 +35,8 @@
 #include <godot_cpp/classes/center_container.hpp>
 #include <godot_cpp/classes/world_environment.hpp>
 #include <godot_cpp/classes/environment.hpp>
+#include <godot_cpp/classes/mesh_instance3d.hpp>
+#include <godot_cpp/classes/quad_mesh.hpp>
 #include "warning_pop.h"
 //#pragma warning(pop)
 
@@ -5178,8 +5180,29 @@ bool GDN_TheWorld_Viewer::init(void)
 		Viewport* root = scene->get_root();
 		if (root != nullptr)
 		{
-			godot::Node* n = root->find_child(THEWORLD_POST_PROCESSING_UNDER_WATER_EFFECT_NODE, true, false);
-			m_postProcessingUnderWaterEffectNode = godot::Object::cast_to<godot::CanvasItem>(n);
+			//godot::Node* n = root->find_child(THEWORLD_POST_PROCESSING_UNDER_WATER_EFFECT_NODE, true, false);
+			//m_postProcessingUnderWaterEffectNode = godot::Object::cast_to<godot::CanvasItem>(n);
+			godot::Camera3D* cam = getWorldCamera();
+			if (cam != nullptr)
+			{
+				// 1. Crea la MeshInstance
+				m_postProcessingUnderWaterEffectMesh = memnew(godot::MeshInstance3D);
+				cam->add_child(m_postProcessingUnderWaterEffectMesh);
+				// 2. Crea e assegna la QuadMesh
+				godot::Ref<godot::QuadMesh> quadMesh = memnew(godot::QuadMesh);
+				quadMesh->set_size(godot::Vector2(2, 2));
+				m_postProcessingUnderWaterEffectMesh->set_mesh(quadMesh);
+				// 3. Posizionamento
+				// Lo spostiamo leggermente avanti rispetto alla camera(0.2 metri)
+				m_postProcessingUnderWaterEffectMesh->set_position(godot::Vector3(0, 0, -0.2f));
+				// 4. Configurazione Materiale(Necessario per l'effetto subacqueo)
+				godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
+				material->set_shader(ResourceLoader::get_singleton()->load("res://addons/twviewer/shaders/CameraUnderWaterNew.gdshader"));
+				m_postProcessingUnderWaterEffectMesh->set_surface_override_material(0, material);
+				// 5. Rendi la mesh "Full Screen" ignorando la prospettiva
+				// Questo trucco assicura che il Quad copra sempre tutto il frame
+				m_postProcessingUnderWaterEffectMesh->set_extra_cull_margin(16384.0); // Evita che sparisca ai bordi
+			}
 		}
 	}
 	
@@ -5453,6 +5476,15 @@ void GDN_TheWorld_Viewer::deinit(void)
 		GDN_TheWorld_Globals* globals = Globals();
 		if (globals != nullptr)
 			globals->debugPrint("Exit world");
+
+		if (m_postProcessingUnderWaterEffectMesh != nullptr)
+		{
+			Node* parent = m_postProcessingUnderWaterEffectMesh->get_parent();
+			if (parent != nullptr)
+				parent->remove_child(m_postProcessingUnderWaterEffectMesh);
+			m_postProcessingUnderWaterEffectMesh->queue_free();
+			m_postProcessingUnderWaterEffectMesh = nullptr;
+		}
 
 		if (m_normalDrawer != nullptr)
 		{
@@ -6189,6 +6221,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			float cameraRoll = *_cameraRoll;
 
 			m_worldQuadrantsMapValid = true;
+			m_cameraVerticalOnSeaSet = false;
 
 			Globals()->Client()->MapManagerDeployLevel(isInEditor(), level, numVerticesPerSize, gridStepInWU, setCamera, cameraPosX, cameraPosY, cameraPosZ, cameraDistanceFromTerrainForced, cameraYaw, cameraPitch, cameraRoll);
 		}
@@ -6245,6 +6278,8 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			{
 				m_hudStreamingInfoLabel->set_text("");
 			}
+
+			shaderParamCameraUnderWaterApplied(false);
 		}
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC)
 		{
@@ -7283,8 +7318,10 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 			if (map != nullptr)
 				map->enterMapMode();
 			
-			if (m_postProcessingUnderWaterEffectNode != nullptr)
-				m_postProcessingUnderWaterEffectNode->set_visible(false);
+			//if (m_postProcessingUnderWaterEffectNode != nullptr)
+			//	m_postProcessingUnderWaterEffectNode->set_visible(false);
+			if (m_postProcessingUnderWaterEffectMesh != nullptr)
+				m_postProcessingUnderWaterEffectMesh->set_visible(false);
 		}
 		else
 		{
@@ -7318,8 +7355,10 @@ void GDN_TheWorld_Viewer::mapMode(bool b)
 			if (map != nullptr)
 				map->exitMapMode();
 
-			if (m_postProcessingUnderWaterEffectNode != nullptr)
-				m_postProcessingUnderWaterEffectNode->set_visible(true);
+			//if (m_postProcessingUnderWaterEffectNode != nullptr)
+			//	m_postProcessingUnderWaterEffectNode->set_visible(true);
+			if (m_postProcessingUnderWaterEffectMesh != nullptr)
+				m_postProcessingUnderWaterEffectMesh->set_visible(true);
 
 		}
 
@@ -10558,6 +10597,18 @@ godot::Transform3D GDN_TheWorld_Viewer::globalToWorld3d(godot::Transform3D globa
 
 godot::Transform3D GDN_TheWorld_Viewer::globalToWorld(godot::Transform3D global) const
 {
+	// DEBUG
+	//if (not IS_EDITOR_HINT())
+	//{
+	//	godot::Vector3 viewerPos = get_global_position();
+	//	godot::Vector3 originShiftPos = getAnchorForOriginShift()->get_global_position();
+	//	godot::Vector3 cameraPos = getWorldCamera()->get_global_position();
+	//	PLOG_DEBUG << "globalToWorld: viewerPos = " << viewerPos.x << "," << viewerPos.y << "," << viewerPos.z
+	//		<< " originShiftPos = " << originShiftPos.x << "," << originShiftPos.y << "," << originShiftPos.z
+	//		<< " cameraPos = " << cameraPos.x << "," << cameraPos.y << "," << cameraPos.z;
+	//}
+	// DEBUG
+	
 	godot::Transform3D viewerT = getInternalGlobalTransform().affine_inverse();
 	return viewerT * global;
 }
@@ -10872,7 +10923,9 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 	if (globals->status() != TheWorldStatus::worldDeployed and globals->status() != TheWorldStatus::minimalWorldDeployed)
 		return;
 
-	GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
+	//GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(activeWorldCamera);
+	Camera3D* customCamera = getCustomCamera();
+	GDN_TheWorld_Camera* cam = godot::Object::cast_to<GDN_TheWorld_Camera>(customCamera);
 	if (cam != nullptr)
 	{
 		float camAltitude = cam->cameraAltitudeFromTerrain();
@@ -10897,9 +10950,10 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 		bool cameraTerrainChunkContainsSea = false;
 		if (m_worldCameraTerrainChunk != nullptr)
 			cameraTerrainChunkContainsSea = m_worldCameraTerrainChunk->containsSea();
-		if (m_cameraVerticalOnSea != cameraTerrainChunkContainsSea)
+		if (!m_cameraVerticalOnSeaSet or m_cameraVerticalOnSea != cameraTerrainChunkContainsSea)
 		{
 			m_cameraVerticalOnSea = cameraTerrainChunkContainsSea;
+			m_cameraVerticalOnSeaSet = true;
 			rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_ON_SEA, m_cameraVerticalOnSea);
 		}
 
@@ -13843,7 +13897,7 @@ void GDN_TheWorld_Viewer::deployWorld(float cameraX, float cameraY, float camera
 	// Viewer Node origin is in the lower corner (X and Z) of the vertex bitmap at altitude 0
 	// Chunk and QuadTree coordinates are in Viewer Node local coordinate System
 
-	PLOG_DEBUG << "Deploy world - Camera world pos=" << cameraX << "," << cameraY << "," << cameraZ;
+	PLOG_DEBUG << "Deploy world - Camera world pos=" << cameraX << "," << cameraY << "," << cameraZ << " - Yaw: " << cameraYaw <<", Pitch: " << cameraPitch << ", Roll: " << cameraRoll;
 
 	enum class TheWorldStatus status = Globals()->status();
 	if (status < TheWorldStatus::sessionInitialized)

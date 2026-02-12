@@ -3224,6 +3224,7 @@ namespace godot
 		// Viewer (Camera)
 		GDN_TheWorld_Camera* m_customWorldCamera = nullptr;
 		Chunk* m_worldCameraTerrainChunk = nullptr;
+		bool m_cameraVerticalOnSeaSet = false;
 		bool m_cameraVerticalOnSea = false;
 		//QuadTree* m_cameraQuadTree;
 		
@@ -3360,7 +3361,8 @@ namespace godot
 		bool mapCameraGlobalPositionSet = false;
 		godot::Vector2 m_mapCameraGlobalPos;
 
-		godot::CanvasItem* m_postProcessingUnderWaterEffectNode = nullptr;
+		//godot::CanvasItem* m_postProcessingUnderWaterEffectNode = nullptr;
+		godot::MeshInstance3D* m_postProcessingUnderWaterEffectMesh = nullptr;
 
 		// Loaded quadrant images (mostly for testing)
 		TheWorld_Utils::QuadrantPos m_tempPos;

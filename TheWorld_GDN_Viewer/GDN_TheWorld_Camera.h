@@ -120,7 +120,7 @@ namespace godot {
 		virtual void _physics_process(double _delta) override;
 		virtual void _input(const godot::Ref<godot::InputEvent>& event) override;
 
-		godot::Camera3D* getRealCamera(void);
+		godot::Camera3D* getRealSceneCamera(void);
 
 		bool initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll);
 		void set_cameraFar(void);

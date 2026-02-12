@@ -305,6 +305,8 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_camera_global_transform"), &GDN_TheWorld_Camera::setGlobalTransform);
 	ClassDB::bind_method(D_METHOD("set_camera_world_transform", "p_transform"), &GDN_TheWorld_Camera::setWorldTransform);
 	ClassDB::bind_method(D_METHOD("get_camera_world_transform"), &GDN_TheWorld_Camera::getWorldTransform);
+	ClassDB::bind_method(D_METHOD("set_camera_world_pos", "p_pos"), &GDN_TheWorld_Camera::setWorldPos);
+	ClassDB::bind_method(D_METHOD("get_camera_world_pos"), &GDN_TheWorld_Camera::getWorldPos);
 	ClassDB::bind_method(D_METHOD("get_velocity"), &GDN_TheWorld_Camera::velocity);
 
 	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
@@ -481,6 +483,10 @@ void GDN_TheWorld_Camera::_notification(int p_what)
 		m_quitting = true;
 	}
 	break;
+	case NOTIFICATION_TRANSFORM_CHANGED:
+	{
+	}
+	break;
 	case NOTIFICATION_PREDELETE:
 	{
 		if (m_ready)
@@ -525,7 +531,12 @@ godot::Transform3D GDN_TheWorld_Camera::getWorldTransform(void)
 	if (viewer == nullptr)
 		return map;
 
-	godot::Transform3D cameraT = get_global_transform();
+	godot::Camera3D* camera = getRealSceneCamera();
+	if (camera == nullptr)
+		return map;
+
+	godot::Vector3 v = camera->get_global_position();				// DEBUG
+	godot::Transform3D cameraT = camera->get_global_transform();
 	map = viewer->globalToWorld(cameraT);
 	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
 	//ret = viewerT * cameraT;
@@ -541,12 +552,16 @@ void GDN_TheWorld_Camera::setWorldTransform(godot::Transform3D map)
 	if (viewer == nullptr)
 		return;
 
-	//godot::Transform3D cameraT = get_global_transform();	// DEBUG ONLY
+	godot::Camera3D* camera = getRealSceneCamera();
+	if (camera == nullptr)
+		return;
+
+	//godot::Transform3D cameraT = camera->get_global_transform();	// DEBUG ONLY
 	godot::Transform3D newCameraT = viewer->worldToGlobal(map);
 	//godot::Transform3D viewerT = viewer->getInternalGlobalTransform().affine_inverse();
 	//godot::Transform3D newCameraT = viewerT * t;
-	godot::Transform3D oldCameraT = get_global_transform();
-	set_global_transform(newCameraT);
+	godot::Transform3D oldCameraT = camera->get_global_transform();
+	camera->set_global_transform(newCameraT);
 	
 	viewer->checkNewVisibleQuadrantsRectSize(newCameraT, oldCameraT);
 
@@ -561,7 +576,11 @@ godot::Vector3 GDN_TheWorld_Camera::getWorldPos(void)
 
 void GDN_TheWorld_Camera::setWorldPos(godot::Vector3 worldPos)
 {
-	godot::Transform3D worldTransform(get_global_transform().basis, worldPos);
+	godot::Camera3D* camera = getRealSceneCamera();
+	if (camera == nullptr)
+		return;
+
+	godot::Transform3D worldTransform(camera->get_global_transform().basis, worldPos);
 	setWorldTransform(worldTransform);
 }
 
@@ -790,18 +809,10 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 
 void GDN_TheWorld_Camera::calcYawPitchRoll(void)
 {
-	godot::Vector3 euler;
-	if (IS_EDITOR_HINT())
-	{
-		GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
-		if (viewer == nullptr)
-			return;
-		godot::Camera3D* camera = viewer->getWorldCamera();
-		if (camera != nullptr)
-			euler = camera->get_global_transform().basis.get_euler();
-	}
-	else
-		euler = get_global_transform().basis.get_euler();
+	godot::Camera3D* camera = getRealSceneCamera();
+	if (camera == nullptr)
+		return;
+	godot::Vector3 euler = camera->get_global_transform().basis.get_euler();;
 	m_pitchEuler = (float)euler.x;
 	m_yawEuler = (float)euler.y;		// 0 = camera aligned with z axis pointing to decresing z (north), - PI/2 = camera aligned with x axis pointing to incrasing x (east), 
 	// - PI or PI = camera aligned with z axis pointing to increasing z (south), PI/2 = camera aligned with x axis pointing to decreasing X (west)
@@ -984,7 +995,7 @@ GDN_TheWorld_Camera* GDN_TheWorld_Camera::getActiveCamera(void)
 //	return true;
 //}
 
-godot::Camera3D* GDN_TheWorld_Camera::getRealCamera(void)
+godot::Camera3D* GDN_TheWorld_Camera::getRealSceneCamera(void)
 {
 	if (IS_EDITOR_HINT())
 	{
@@ -1002,7 +1013,7 @@ godot::Camera3D* GDN_TheWorld_Camera::getRealCamera(void)
 
 void GDN_TheWorld_Camera::set_cameraFar(void)
 {
-	godot::Camera3D* camera = getRealCamera();
+	godot::Camera3D* camera = getRealSceneCamera();
 	if (camera == nullptr)
 		return;
 
@@ -1053,18 +1064,10 @@ bool GDN_TheWorld_Camera::initCameraInWorld(godot::Vector3 cameraPos, godot::Vec
 	godot::Vector3 lookAtGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), lookAt)).origin;;
 	if (cameraPosGlobalCoord != lookAtGlobalCoord)
 	{
-		if (IS_EDITOR_HINT())
-		{
-			GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
-			if (viewer == nullptr)
-				return false;
-			godot::Camera3D* camera = viewer->getWorldCamera();
-			if (camera == nullptr)
-				return false;
-			camera->look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, godot::Vector3(0, 1, 0));
-		}
-		else
-			Camera3D::look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, godot::Vector3(0, 1, 0));
+		godot::Camera3D* camera = getRealSceneCamera();
+		if (camera == nullptr)
+			return false;
+		camera->look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, godot::Vector3(0, 1, 0));
 	}
 
 	godot::Vector3 anchorPos = Globals()->Viewer()->getAnchorForOriginShift()->get_global_position();
@@ -1122,7 +1125,7 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 	if (!viewer->worldMode())
 		return;
 
-	godot::Camera3D* camera = getRealCamera();
+	godot::Camera3D* camera = getRealSceneCamera();
 	if (camera == nullptr)
 		return;
 
@@ -1510,8 +1513,8 @@ void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 	
 	if (adjustPositionOnTerrainRequired() or (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE and m_lastCameraAltitudeFromTerrain < 0))
 	{
-		if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE and m_lastCameraAltitudeFromTerrain < 0)
-			assert(m_lastCameraAltitudeFromTerrain < 0);
+		//if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE and m_lastCameraAltitudeFromTerrain < 0)		// DEBUG
+		//	assert(m_lastCameraAltitudeFromTerrain < 0);																// DEBUG
 		
 		if (!Globals()->Viewer()->recalcGridOfQuadrantsInViewNeeded() and Globals()->Viewer()->isCameraQuadrantColliderSet())
 		{
@@ -1552,7 +1555,7 @@ void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 	if (force)
 		m_forceRecalcCameraAltitude = true;
 	
-	godot::Camera3D* camera = getRealCamera();
+	godot::Camera3D* camera = getRealSceneCamera();
 	if (camera == nullptr)
 		return;
 
@@ -1624,81 +1627,114 @@ GDN_TheWorld_Globals* GDN_TheWorld_Camera::Globals(bool useCache)
 void GDN_TheWorld_Camera::setYaw(float yaw, bool radiant)
 {
 	float radiantYaw = radiant ? yaw : (yaw * TheWorld_Utils::kPi) / 180;
-	if (IS_EDITOR_HINT())
-	{
-		GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
-		if (viewer == nullptr)
-			return;
-		godot::Camera3D* camera = viewer->getWorldCamera();
-		if (camera != nullptr)
-		{
-			Transform3D t = camera->get_global_transform();
-			godot::Vector3 v = t.basis.get_euler();
-			v.y = radiantYaw;
-			t.basis.set_euler(v);
-			camera->set_global_transform(t);
-		}
-	}
-	else
-	{
-		Transform3D t = get_global_transform();
-		godot::Vector3 v = t.basis.get_euler();
-		v.y = radiantYaw;
-		t.basis.set_euler(v);
-		set_global_transform(t);
-	}
+
+	godot::Camera3D* camera = getRealSceneCamera();
+	if (camera == nullptr)
+		return;
+
+	Transform3D t = camera->get_global_transform();
+	godot::Vector3 v = t.basis.get_euler();
+	v.y = radiantYaw;
+	t.basis.set_euler(v);
+	camera->set_global_transform(t);
+
+	//if (IS_EDITOR_HINT())
+	//{
+	//	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
+	//	if (viewer == nullptr)
+	//		return;
+	//	godot::Camera3D* camera = viewer->getWorldCamera();
+	//	if (camera != nullptr)
+	//	{
+	//		Transform3D t = camera->get_global_transform();
+	//		godot::Vector3 v = t.basis.get_euler();
+	//		v.y = radiantYaw;
+	//		t.basis.set_euler(v);
+	//		camera->set_global_transform(t);
+	//	}
+	//}
+	//else
+	//{
+	//	Transform3D t = get_global_transform();
+	//	godot::Vector3 v = t.basis.get_euler();
+	//	v.y = radiantYaw;
+	//	t.basis.set_euler(v);
+	//	set_global_transform(t);
+	//}
 }
 void GDN_TheWorld_Camera::setPitch(float pitch, bool radiant)
 {
 	float radiantPitch = radiant ? pitch : (pitch * TheWorld_Utils::kPi) / 180;
-	if (IS_EDITOR_HINT())
-	{
-		GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
-		if (viewer == nullptr)
-			return;
-		godot::Camera3D* camera = viewer->getWorldCamera();
-		if (camera != nullptr)
-		{
-			Transform3D t = camera->get_global_transform();
-			godot::Vector3 v = t.basis.get_euler();
-			v.x = radiantPitch;
-			t.basis.set_euler(v);
-			camera->set_global_transform(t);
-		}
-	}
-	else
-	{
-		Transform3D t = get_global_transform();
-		godot::Vector3 v = t.basis.get_euler();
-		v.x = radiantPitch;
-		t.basis.set_euler(v);
-		set_global_transform(t);
-	}
+
+	godot::Camera3D* camera = getRealSceneCamera();
+	if (camera == nullptr)
+		return;
+
+	Transform3D t = camera->get_global_transform();
+	godot::Vector3 v = t.basis.get_euler();
+	v.x = radiantPitch;
+	t.basis.set_euler(v);
+	camera->set_global_transform(t);
+
+	//if (IS_EDITOR_HINT())
+	//{
+	//	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
+	//	if (viewer == nullptr)
+	//		return;
+	//	godot::Camera3D* camera = viewer->getWorldCamera();
+	//	if (camera != nullptr)
+	//	{
+	//		Transform3D t = camera->get_global_transform();
+	//		godot::Vector3 v = t.basis.get_euler();
+	//		v.x = radiantPitch;
+	//		t.basis.set_euler(v);
+	//		camera->set_global_transform(t);
+	//	}
+	//}
+	//else
+	//{
+	//	Transform3D t = get_global_transform();
+	//	godot::Vector3 v = t.basis.get_euler();
+	//	v.x = radiantPitch;
+	//	t.basis.set_euler(v);
+	//	set_global_transform(t);
+	//}
 }
 void GDN_TheWorld_Camera::setRoll(float roll, bool radiant)
 {
 	float radiantRoll = radiant ? roll : (roll * TheWorld_Utils::kPi) / 180;
-	if (IS_EDITOR_HINT())
-	{
-		GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
-		if (viewer == nullptr)
-			return;
-		godot::Camera3D* camera = viewer->getWorldCamera();
-		if (camera != nullptr)
-		{
-			Transform3D t = camera->get_global_transform();
-			godot::Vector3 v = t.basis.get_euler();
-			v.z = radiantRoll;
-			t.basis.set_euler(v);
-			camera->set_global_transform(t);
-		}
-	}
-	else
-	{
-		Transform3D t = get_global_transform();
-		godot::Vector3 v = t.basis.get_euler();
-		v.z = radiantRoll;
-		t.basis.set_euler(v);
-		set_global_transform(t);
-	}
+
+	godot::Camera3D* camera = getRealSceneCamera();
+	if (camera == nullptr)
+		return;
+
+	Transform3D t = camera->get_global_transform();
+	godot::Vector3 v = t.basis.get_euler();
+	v.z = radiantRoll;
+	t.basis.set_euler(v);
+	camera->set_global_transform(t);
+
+	//if (IS_EDITOR_HINT())
+	//{
+	//	GDN_TheWorld_Viewer* viewer = Globals()->Viewer();
+	//	if (viewer == nullptr)
+	//		return;
+	//	godot::Camera3D* camera = viewer->getWorldCamera();
+	//	if (camera != nullptr)
+	//	{
+	//		Transform3D t = camera->get_global_transform();
+	//		godot::Vector3 v = t.basis.get_euler();
+	//		v.z = radiantRoll;
+	//		t.basis.set_euler(v);
+	//		camera->set_global_transform(t);
+	//	}
+	//}
+	//else
+	//{
+	//	Transform3D t = get_global_transform();
+	//	godot::Vector3 v = t.basis.get_euler();
+	//	v.z = radiantRoll;
+	//	t.basis.set_euler(v);
+	//	set_global_transform(t);
+	//}
 }

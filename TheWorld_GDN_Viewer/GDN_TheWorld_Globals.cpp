@@ -1131,12 +1131,15 @@ namespace godot
 				//	if (cam != nullptr)
 				//		cam->updateCameraUnderWater();
 				//}
-				godot::Camera3D* customCamera = viewer->getCustomCamera();
-				if (customCamera != nullptr)
+				if (Globals()->statusMinimalWorldDeployed() or Globals()->statusWorldDeployed())
 				{
-					GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(customCamera);
-					if (cam != nullptr)
-						cam->updateCameraUnderWater();
+					godot::Camera3D* customCamera = viewer->getCustomCamera();
+					if (customCamera != nullptr)
+					{
+						GDN_TheWorld_Camera* cam = Object::cast_to<GDN_TheWorld_Camera>(customCamera);
+						if (cam != nullptr)
+							cam->updateCameraUnderWater();
+					}
 				}
 			}
 		}

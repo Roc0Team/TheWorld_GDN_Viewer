@@ -14561,6 +14561,10 @@ int GDN_TheWorld_Viewer::getNumInitializedQuadrants2(bool recalcNow)
 bool GDN_TheWorld_Viewer::recalcAllVisibleQuadrantsInitialized(void)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+	if (m_worldQuadrantsMap.size() == 0)
+		return false;
+
 	bool allInitialized = true;
 	for (auto& itQuadrantMapItem : m_worldQuadrantsMap)
 	{
@@ -15155,6 +15159,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 				{
 					size_t numNeededQuads = static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numVisibleQuadrantOnPerimeterOnSouthSide + 2 * getCacheQuadOnPerimeter())
 						* static_cast<size_t>(1 + m_numVisibleQuadrantOnPerimeterOnWestSide + m_numVisibleQuadrantOnPerimeterOnEastSide + 2 * getCacheQuadOnPerimeter());
+					//(Globals()->statusMinimalWorldDeployed() or Globals()->statusWorldDeployed())
 					if ((int)Globals()->status() >= (int)TheWorldStatus::minimalWorldDeployed && m_worldQuadrantsMap.size() < numNeededQuads)
 						recalcGridOfQuadrantsInViewNeeded(true);
 
@@ -15169,7 +15174,9 @@ void GDN_TheWorld_Viewer::streamer(void)
 						std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 						bool _allVisibleQuadrantInitialized = recalcAllVisibleQuadrantsInitialized();
-						if (recalcGridOfQuadrantsInViewNeeded() && (int)Globals()->status() >= (int)TheWorldStatus::worldDeployInProgress and _allVisibleQuadrantInitialized /* *** WARNING *** and !worldStreamingInProgress()*/)
+						if (recalcGridOfQuadrantsInViewNeeded()
+							and _allVisibleQuadrantInitialized /* *** WARNING *** and !worldStreamingInProgress()*/
+							and (Globals()->statusWorldDeployInProgress() or Globals()->statusMinimalWorldDeployed() or Globals()->statusWorldDeployed()) )
 						{
 							bool newQuadAdded = recalcGridOfQuadrantsInView();
 							if (not newQuadAdded)

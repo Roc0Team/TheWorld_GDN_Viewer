@@ -4322,7 +4322,7 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_shaderParam_triplanar = false;
 	m_shaderParam_globalmapBlendStart = 0.0f;
 	m_shaderParam_globalmapBlendDistance = 0.0f;
-	m_anchorForOriginShift = this;
+	m_anchorForOriginShift = this;				// origin shift anchor atm must be a node3d parent of the viewer and the camera (because when anchor is relocated both viewer and camera must relocate accordingly), atm the viewer is not parent of the camera so to anable origin shift an external node must be set using setAnchorForOriginShift
 
 	_init();
 }
@@ -10703,12 +10703,15 @@ void GDN_TheWorld_Viewer::process_updateOriginShift(godot::Camera2D* activeMapCa
 	if (paramOriginShiftFactor == 0)
 		return;
 
-	if (IS_EDITOR_HINT())
-		return;
+	if (IS_EDITOR_HINT())		// we can't use origin shift in editor because of the way editor cameras work (we should manually move editor camera accordingly to the ancjor but anycase the anchor will save its new position in the project
+		return;					// instead being reset at every run). Anycase it will generate confusion in the editing work
 	
 	godot::Node3D* anchorForOriginShift = getAnchorForOriginShift();
 	if (anchorForOriginShift == nullptr)
 		return;
+
+	if (anchorForOriginShift == this)	// origin shift anchor atm must be a node3d parent of the viewer and the camera (because when anchor is relocated both viewer and camera must relocate accordingly), atm the viewer
+		return;							// is not parent of the camera so to anable origin shift an external node must be set using setAnchorForOriginShift
 
 	if (globals->status() != TheWorldStatus::worldDeployed and globals->status() != TheWorldStatus::minimalWorldDeployed)
 		return;

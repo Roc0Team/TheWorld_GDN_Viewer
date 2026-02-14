@@ -1279,11 +1279,16 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	GDN_TheWorld_MapViewportContainer* mapViewportContainer = m_mapViewer->getMapViewportContainer();
 	m_mapViewport = mapViewportContainer->getMapViewport();
 
-	godot::Error e = m_mapViewport->connect("size_changed", Callable(this, "viewport_size_changed"));
+	godot::Error e = godot::Error::OK;
+	if (not m_mapViewport->is_connected("size_changed", Callable(this, "viewport_size_changed")))
+	{
+		e = m_mapViewport->connect("size_changed", Callable(this, "viewport_size_changed"));
+	}
 
 	constexpr int FONT_SIZE_MULTIPLIER = 2;
 	
-	m_northLabel = memnew(godot::Label);
+	SAFE_CREATE_NODE(m_northLabel, godot::Label);
+	//m_northLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_northLabel);
 	m_northLabel->set_name("MapNorthLabel");
 	m_northLabel->set_text("N");
@@ -1291,7 +1296,8 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	int32_t sz = m_northLabel->get_theme_font_size("font_size");
 	m_northLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 	
-	m_southLabel = memnew(godot::Label);
+	SAFE_CREATE_NODE(m_southLabel, godot::Label);
+	//m_southLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_southLabel);
 	m_southLabel->set_name("MapSouthLabel");
 	m_southLabel->set_text("S");
@@ -1299,7 +1305,8 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	sz = m_southLabel->get_theme_font_size("font_size");
 	m_southLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 	
-	m_eastLabel = memnew(godot::Label);
+	SAFE_CREATE_NODE(m_eastLabel, godot::Label);
+	//m_eastLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_eastLabel);
 	m_eastLabel->set_name("MapEastLabel");
 	m_eastLabel->set_text("E");
@@ -1307,7 +1314,8 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	sz = m_eastLabel->get_theme_font_size("font_size");
 	m_eastLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 	
-	m_westLabel = memnew(godot::Label);
+	SAFE_CREATE_NODE(m_westLabel, godot::Label);
+	//m_westLabel = memnew(godot::Label);
 	mapViewportContainer->add_child(m_westLabel);
 	m_westLabel->set_name("MapWestLabel");
 	m_westLabel->set_text("W");
@@ -1315,7 +1323,8 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	sz = m_westLabel->get_theme_font_size("font_size");
 	m_westLabel->add_theme_font_size_override("font_size", sz * FONT_SIZE_MULTIPLIER);
 
-	m_compassImage = memnew(godot::TextureRect);
+	SAFE_CREATE_NODE(m_compassImage, godot::TextureRect);
+	//m_compassImage = memnew(godot::TextureRect);
 	mapViewportContainer->add_child(m_compassImage);
 	m_compassImage->set_name("MapCompassImage");
 	godot::Ref<godot::Texture2D> compassImage = godot::ResourceLoader::get_singleton()->load("res://addons/twviewer/assets/compass_image.png");
@@ -1327,7 +1336,8 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 	const float MapRulerVLineSize = 10;
 	const double MapRulerLineWidth = 3;
 	const godot::Color MapRulerColor(GDN_TheWorld_Globals::g_color_red);
-	m_rulerGroup = memnew(godot::VBoxContainer);
+	SAFE_CREATE_NODE(m_rulerGroup, godot::VBoxContainer);
+	//m_rulerGroup = memnew(godot::VBoxContainer);
 	mapViewportContainer->add_child(m_rulerGroup);
 	m_rulerGroup->set_name("MapRulerGroup");
 
@@ -4952,6 +4962,22 @@ void GDN_TheWorld_Viewer::createHud(void)
 			sceneRoot = scene->get_root();
 		int64_t sceneRootId = sceneRoot->get_instance_id();
 
+		SAFE_DELETE_NODE(m_hudControls);	// safe delete of controls because we want to recreate them from scratch when we call createHud, this is because we want to be sure that all the controls are created and added to the scene in the right order, and also because some controls are created as child of others so it's easier to manage them if we delete them all and recreate them from scratch instead of trying to manage the deletion and creation of each control separately
+		//m_hudMessageContainer = nullptr;
+		//m_hudMessageLabel = nullptr;
+		//m_hudStreamingInfoContainer = nullptr;
+		//m_hudStreamingInfoLabel = nullptr;
+		//m_satelliteSubViewportContainer = nullptr;
+		//m_northLabel = nullptr;
+		//m_southLabel = nullptr;
+		//m_eastLabel = nullptr;
+		//m_westLabel = nullptr;
+		//m_satelliteSubViewport = nullptr;
+		//m_satelliteCamera = nullptr;
+		//m_backMirrorSubViewportContainer = nullptr;
+		//m_backMirrorSubViewport = nullptr;
+		//m_backMirrorCamera = nullptr;
+
 		GDN_TheWorld_HudControls* hudControls = HudControls(false);
 		if (hudControls == nullptr)
 		{
@@ -4980,6 +5006,8 @@ void GDN_TheWorld_Viewer::createHud(void)
 
 	godot::Node* controlsParent = HudControls();
 	
+	// controls can be created as new because safe deleting the HUD all of them are or will be destroyed
+
 	// Message Box
 	{
 		m_hudMessageContainer = memnew(godot::HBoxContainer);
@@ -6227,6 +6255,8 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 		}
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UNDEPLOYWORLD)
 		{
+			GDN_TheWorld_Globals* globals = Globals();
+
 			{
 				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
@@ -6240,9 +6270,9 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				}
 			}
 
-			enum class TheWorldStatus status = Globals()->status();
+			enum class TheWorldStatus status = globals->status();
 
-			while (Globals()->Client()->getNumCallbacksRunning() > 1)
+			while (globals->Client()->getNumCallbacksRunning() > 1)
 			{
 				Sleep(1);
 			}
@@ -6264,19 +6294,20 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				clearQuadrantsMaps();
 			}
 
-			if (Globals()->connectedToServer() && m_initialized)
-				Globals()->setStatus(TheWorldStatus::sessionInitialized);
-			else if (Globals()->connectedToServer())
-				Globals()->setStatus(TheWorldStatus::connectedToServer);
-			else if (Globals()->initialized())
-				Globals()->setStatus(TheWorldStatus::initialized);
+			if (globals->connectedToServer() && m_initialized)
+				globals->setStatus(TheWorldStatus::sessionInitialized);
+			else if (globals->connectedToServer())
+				globals->setStatus(TheWorldStatus::connectedToServer);
+			else if (globals->initialized())
+				globals->setStatus(TheWorldStatus::initialized);
 			else
-				Globals()->setStatus(TheWorldStatus::uninitialized);
+				globals->setStatus(TheWorldStatus::uninitialized);
 
 			hudMessage("", 0);
-			if (m_hudStreamingInfoLabel != nullptr)
+			if (m_hudStreamingInfoLabel != nullptr /* and (globals->statusWorldDeployInProgress() or globals->statusMinimalWorldDeployed() or globals->statusWorldDeployed())*/)
 			{
-				m_hudStreamingInfoLabel->set_text("");
+				//m_hudStreamingInfoLabel->set_text("");
+				m_hudStreamingInfoLabel->call_deferred("set_text", "");
 			}
 
 			shaderParamCameraUnderWaterApplied(false);
@@ -10812,7 +10843,7 @@ void GDN_TheWorld_Viewer::hudMessage(std::string hudMessage, int64_t fadingTime)
 
 void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 {
-	//GDN_TheWorld_Globals* globals = Globals();
+	GDN_TheWorld_Globals* globals = Globals();
 
 	if (m_hudMessageLabel != nullptr)
 	{
@@ -10830,7 +10861,7 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 		m_hudMessageLabel->set_text(m_hudMessage.c_str());
 	}
 
-	if (m_hudStreamingInfoLabel != nullptr)
+	if (m_hudStreamingInfoLabel != nullptr /* and (globals->statusWorldDeployInProgress() or globals->statusMinimalWorldDeployed() or globals->statusWorldDeployed())*/)
 	{
 		std::string hudStreaming;
 		int numInitializedQuadrant = getNumInitializedQuadrants();

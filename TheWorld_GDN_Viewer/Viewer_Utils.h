@@ -50,6 +50,22 @@
 #define ENGINE() godot::Engine::get_singleton()
 #define OPSYS() godot::OS::get_singleton()
 
+#define SAFE_DELETE_NODE(node) \
+	if (node != nullptr) \
+	{ \
+		Node* parent = node->get_parent(); \
+		if (parent != nullptr) \
+			parent->remove_child(node); \
+		node->queue_free(); \
+		node = nullptr; \
+	}
+
+#define SAFE_CREATE_NODE(node, nodeType) \
+	SAFE_DELETE_NODE(node); \
+	node = memnew(nodeType);
+
+
+
 static constexpr float kPi = 3.14159265358979323846f;
 static constexpr float kPi2 = 6.28318530717958647692f;
 static constexpr float kEpsilon = 0.0001f;

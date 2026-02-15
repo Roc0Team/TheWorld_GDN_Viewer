@@ -1,3 +1,4 @@
+* Consentire nell'editor di Godot la map-view e la generazione dei terreni
 * Implementare il detiling come in Terrain3D e correggere il calcolo dell'UV
 * Implementare la tesselation e il displacement mapping come in Terrain3d
 * Valutare se usare il mouse picking come in Terrain 3d
@@ -8,8 +9,7 @@
     * la splatmap (16.384)?
     * la colormap (12.288) ?
     * la globalmap (?) ?
-* tutto in CPP come gdextension
-* importare automaticamente le textures con cui viene dipinto il terreno come vram_texture una volta create
+* tutto in C++ come gdextension
 * Doc del plugin (https://docs.godotengine.org/en/4.4/tutorials/scripting/gdextension/gdextension_docs_system.html)
 * Nuovo progetto STerrain (StreamingLandscape) con Demo
 

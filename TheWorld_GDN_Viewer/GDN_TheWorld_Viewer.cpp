@@ -37,6 +37,7 @@
 #include <godot_cpp/classes/environment.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/quad_mesh.hpp>
+#include <godot_cpp/classes/fast_noise_lite.hpp>
 #include "warning_pop.h"
 //#pragma warning(pop)
 
@@ -5213,6 +5214,25 @@ bool GDN_TheWorld_Viewer::init(void)
 			godot::Camera3D* cam = getWorldCamera();
 			if (cam != nullptr)
 			{
+				godot::Ref<godot::FastNoiseLite> noise = memnew(godot::FastNoiseLite);
+				noise->set_noise_type(godot::FastNoiseLite::NoiseType::TYPE_CELLULAR);
+				noise->set_seed(0);
+				noise->set_frequency(0.0018f);
+				noise->set_fractal_type(godot::FastNoiseLite::FractalType::FRACTAL_RIDGED);
+				noise->set_fractal_octaves(5);
+				noise->set_fractal_lacunarity(2.0f);
+				noise->set_fractal_gain(0.6f);
+				noise->set_fractal_weighted_strength(0.85f);
+
+				godot::Ref<godot::NoiseTexture2D> seaUnderWaterDistorsion = memnew(godot::NoiseTexture2D);
+				seaUnderWaterDistorsion->set_noise(noise);
+				seaUnderWaterDistorsion->set_width(512);
+				seaUnderWaterDistorsion->set_height(512);
+				seaUnderWaterDistorsion->set_generate_mipmaps(true);
+				seaUnderWaterDistorsion->set_seamless(true);
+				seaUnderWaterDistorsion->set_normalize(true);
+				seaUnderWaterDistorsion->set_seamless_blend_skirt(0.648f); // 0.648 è il valore che meglio si adatta al nostro caso, ma potrebbe essere necessario regolarlo in base alla scala del mondo e alla frequenza del rumore
+
 				// 1. Crea la MeshInstance
 				m_postProcessingUnderWaterEffectMesh = memnew(godot::MeshInstance3D);
 				cam->add_child(m_postProcessingUnderWaterEffectMesh);
@@ -5222,10 +5242,11 @@ bool GDN_TheWorld_Viewer::init(void)
 				m_postProcessingUnderWaterEffectMesh->set_mesh(quadMesh);
 				// 3. Posizionamento
 				// Lo spostiamo leggermente avanti rispetto alla camera(0.2 metri)
-				m_postProcessingUnderWaterEffectMesh->set_position(godot::Vector3(0, 0, -0.2f));
+				m_postProcessingUnderWaterEffectMesh->set_position(godot::Vector3(0, 0, -0.6f));
 				// 4. Configurazione Materiale(Necessario per l'effetto subacqueo)
 				godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
-				material->set_shader(ResourceLoader::get_singleton()->load("res://addons/twviewer/shaders/CameraUnderWaterNew.gdshader"));
+				material->set_shader(ResourceLoader::get_singleton()->load("res://addons/twviewer/test/CameraUnderWater.gdshader"));
+				material->set_shader_parameter("u_noise_distorsion", seaUnderWaterDistorsion);
 				m_postProcessingUnderWaterEffectMesh->set_surface_override_material(0, material);
 				// 5. Rendi la mesh "Full Screen" ignorando la prospettiva
 				// Questo trucco assicura che il Quad copra sempre tutto il frame
@@ -10988,7 +11009,12 @@ void GDN_TheWorld_Viewer::process_updateCameraPosInShader(godot::Camera3D* activ
 		{
 			m_cameraVerticalOnSea = cameraTerrainChunkContainsSea;
 			m_cameraVerticalOnSeaSet = true;
-			rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_ON_SEA, m_cameraVerticalOnSea);
+			//rs->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_ON_SEA, m_cameraVerticalOnSea);
+			godot::Ref<godot::ShaderMaterial> mat = m_postProcessingUnderWaterEffectMesh->get_surface_override_material(0);
+			if (mat.is_valid())
+			{
+				mat->set_shader_parameter(SHADER_PARAM_CAM_ON_SEA, m_cameraVerticalOnSea);
+			}
 		}
 
 		//shaderParamCameraUnderWaterApplied(cam->cameraUnderWater());

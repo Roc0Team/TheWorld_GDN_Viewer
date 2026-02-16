@@ -935,8 +935,8 @@ namespace godot
 #define GLOBAL_SHADER_PARAM_CAM_ALTITUDE			"gu_camera_altitude_from_terrain"
 #define SHADER_PARAM_OVERRIDE_CAM_ALTITUDE			"u_override_camera_altitude_from_terrain"
 #define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
-#define GLOBAL_SHADER_PARAM_CAM_ON_SEA				"gu_camera_on_sea"
-#define GLOBAL_SHADER_PARAM_CAM_UNDER_WATER			"gu_camera_under_water"
+//#define GLOBAL_SHADER_PARAM_CAM_ON_SEA			"gu_camera_on_sea"
+//#define GLOBAL_SHADER_PARAM_CAM_UNDER_WATER		"gu_camera_under_water"
 //#define GLOBAL_SHADER_PARAM_SHOW_SEA				"gu_show_sea"
 //#define GLOBAL_SHADER_PARAM_SHOW_TERRAIN			"gu_show_terrain"
 #define GLOBAL_SHADER_PARAM_SHOW_CHUNKS				"gu_show_chunks"
@@ -982,6 +982,9 @@ namespace godot
 //#define SHADER_PARAM_ABYSS_TEX_INDEX					"u_abyss_tex_index"
 //#define SHADER_PARAM_DIRT_TEX_INDEX						"u_dirt_tex_index"
 //#define SHADER_PARAM_ROCKS_TEX_INDEX					"u_rocks_tex_index"
+
+#define SHADER_PARAM_CAM_ON_SEA						"u_camera_on_sea"
+#define SHADER_PARAM_CAM_UNDER_WATER				"u_camera_under_water"
 
 #define SHADER_PARAM_GROUND_LAYERS					"u_ground_layers"	// godot::Plane (vec4) ==> normal_x (vec4 x) = low, normal_y (vec4 y) = high, normal_z (vec4 z) = dirt, d (vec4 w) = rock
 #define SHADER_PARAM_NORTH_GROUND_LAYERS			"u_north_ground_layers"

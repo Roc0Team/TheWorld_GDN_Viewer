@@ -308,6 +308,7 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_camera_world_pos", "p_pos"), &GDN_TheWorld_Camera::setWorldPos);
 	ClassDB::bind_method(D_METHOD("get_camera_world_pos"), &GDN_TheWorld_Camera::getWorldPos);
 	ClassDB::bind_method(D_METHOD("get_velocity"), &GDN_TheWorld_Camera::velocity);
+	ClassDB::bind_method(D_METHOD("is_camera_under_water"), &GDN_TheWorld_Camera::cameraUnderWater);
 
 	ClassDB::add_property_group("GDN_TheWorld_Camera", "Camera", "camera_");
 	ClassDB::add_property("GDN_TheWorld_Camera", PropertyInfo(Variant::FLOAT, "camera_tracking_speed", PROPERTY_HINT_RANGE, "0.0, 10.0, 0.1, or_greater", PROPERTY_USAGE_EDITOR /* | PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED*/), "set_camera_tracking_speed", "get_camera_tracking_speed");
@@ -467,8 +468,7 @@ void GDN_TheWorld_Camera::_ready()
 
 	bool cameraUnderWater = false;
 	float f = cameraUnderWater ? 1.0f : 0.0f;
-	godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_UNDER_WATER, f);
-
+	//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_UNDER_WATER, f);
 }
 
 void GDN_TheWorld_Camera::_notification(int p_what)

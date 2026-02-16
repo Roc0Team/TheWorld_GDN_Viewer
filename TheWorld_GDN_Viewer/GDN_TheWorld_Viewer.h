@@ -2723,7 +2723,12 @@ namespace godot
 				m_shaderParamCameraUnderWaterApplied = b;
 				m_shaderParamCameraUnderWaterSet = true;
 				float f = b ? 1.0f : 0.0f;
-				godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_UNDER_WATER, f);
+				//godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_CAM_UNDER_WATER, f);
+				godot::Ref<godot::ShaderMaterial> mat = m_postProcessingUnderWaterEffectMesh->get_surface_override_material(0);
+				if (mat.is_valid())
+				{
+					mat->set_shader_parameter(SHADER_PARAM_CAM_UNDER_WATER, f);
+				}
 			}
 		}
 

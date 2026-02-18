@@ -5231,7 +5231,7 @@ bool GDN_TheWorld_Viewer::init(void)
 				seaUnderWaterDistorsion->set_generate_mipmaps(true);
 				seaUnderWaterDistorsion->set_seamless(true);
 				seaUnderWaterDistorsion->set_normalize(true);
-				seaUnderWaterDistorsion->set_seamless_blend_skirt(0.648f); // 0.648 è il valore che meglio si adatta al nostro caso, ma potrebbe essere necessario regolarlo in base alla scala del mondo e alla frequenza del rumore
+				seaUnderWaterDistorsion->set_seamless_blend_skirt(0.648f);
 
 				// 1. Crea la MeshInstance
 				m_postProcessingUnderWaterEffectMesh = memnew(godot::MeshInstance3D);
@@ -5242,7 +5242,7 @@ bool GDN_TheWorld_Viewer::init(void)
 				m_postProcessingUnderWaterEffectMesh->set_mesh(quadMesh);
 				// 3. Posizionamento
 				// Lo spostiamo leggermente avanti rispetto alla camera(0.2 metri)
-				m_postProcessingUnderWaterEffectMesh->set_position(godot::Vector3(0, 0, -0.6f));
+				m_postProcessingUnderWaterEffectMesh->set_position(godot::Vector3(0, 0, -0.7f));
 				// 4. Configurazione Materiale(Necessario per l'effetto subacqueo)
 				godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
 				material->set_shader(ResourceLoader::get_singleton()->load("res://addons/twviewer/test/CameraUnderWater.gdshader"));

@@ -182,6 +182,15 @@ namespace TheWorld_Viewer_Utils
 	class Utils
 	{
 	public:
+		template <typename T>
+		static T mix(T a, T b, float t) {
+			return {
+				std::lerp(a.r, b.r, t),
+				std::lerp(a.g, b.g, t),
+				std::lerp(a.b, b.b, t)
+			};
+		}
+		
 		static std::string ReplaceString(std::string subject, const std::string& search, const std::string& replace);
 
 		static void ReplaceStringInPlace(std::string& subject, const std::string& search, const std::string& replace);

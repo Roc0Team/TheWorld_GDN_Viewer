@@ -949,9 +949,14 @@ namespace godot
 #define GLOBAL_SHADER_PARAM_HIGHLIGHT_HIT_QUAD		"gu_highlight_hit_quadrant"
 #define GLOBAL_SHADER_PARAM_HOLD_BLENDING			"gu_hold_blending"
 
+#define GLOBAL_SHADER_PARAM_TERRAIN_QUAD_BORDER_DISTANCE				"gu_terrain_quad_border_distance"
+
 #define GLOBAL_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT							"gu_sea_flat_sea_height"
 #define	DEFAULT_SHADER_PARAM_SEA_FLAT_SEA_HEIGHT							THEWORLD_SEA_LEVEL
+#define GLOBAL_SHADER_PARAM_SEA_WAVE									"gu_sea_wave"
 #define GLOBAL_SHADER_PARAM_WATER_FOAM									"gu_water_foam"
+#define GLOBAL_SHADER_PARAM_SEA_TEXTURE_NORMAL							"gu_sea_texture_normal"
+#define GLOBAL_SHADER_PARAM_SEA_TEXTURE_NORMAL2							"gu_sea_texture_normal2"
 #define GLOBAL_SHADER_PARAM_SEA_NOISE_SCALE								"gu_sea_noise_scale"
 #define	DEFAULT_SHADER_PARAM_SEA_NOISE_SCALE								1000.0f
 #define GLOBAL_SHADER_PARAM_SEA_TIME_SCALE								"gu_sea_time_scale"

@@ -18,6 +18,7 @@
 #include <godot_cpp/classes/physics_ray_query_parameters3d.hpp>
 #include <godot_cpp/classes/quad_mesh.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/fast_noise_lite.hpp>
 #pragma warning (pop)
 
 #include <math.h> 
@@ -302,6 +303,7 @@ void GDN_TheWorld_Camera::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_camera_tracking_offset", "p_value"), &GDN_TheWorld_Camera::setCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_tracking_offset"), &GDN_TheWorld_Camera::getCameraTrackingOffeset);
 	ClassDB::bind_method(D_METHOD("get_camera_altitude_from_terrain"), &GDN_TheWorld_Camera::cameraAltitudeFromTerrain);
+	ClassDB::bind_method(D_METHOD("get_camera_altitude_from_sea"), &GDN_TheWorld_Camera::cameraAltitudeFromSea);
 	ClassDB::bind_method(D_METHOD("set_camera_global_transform"), &GDN_TheWorld_Camera::setGlobalTransform);
 	ClassDB::bind_method(D_METHOD("set_camera_world_transform", "p_transform"), &GDN_TheWorld_Camera::setWorldTransform);
 	ClassDB::bind_method(D_METHOD("get_camera_world_transform"), &GDN_TheWorld_Camera::getWorldTransform);
@@ -402,10 +404,122 @@ void GDN_TheWorld_Camera::_ready()
 
 	add_to_group(GD_CUSTOM_CAMERAS_GROUP);
 
-	// Load Sea Wave Map
+	// Create, Load and pass to the GPU Sea Wave Map
 	{
-		String texName = "res://addons/twviewer/shaders/tex_sea_wave.tres";
-		m_seaWaveMapTexture = godot::ResourceLoader::get_singleton()->load(texName);
+		//String texName = "res://addons/twviewer/shaders/tex_sea_wave.tres";
+		//m_seaWaveMapTexture = godot::ResourceLoader::get_singleton()->load(texName);
+
+		godot::Ref<godot::FastNoiseLite> noise = memnew(godot::FastNoiseLite);
+		noise->set_noise_type(godot::FastNoiseLite::NoiseType::TYPE_SIMPLEX_SMOOTH);
+		noise->set_seed(0);
+		noise->set_frequency(0.01f);
+		noise->set_fractal_type(godot::FastNoiseLite::FractalType::FRACTAL_FBM);
+		noise->set_fractal_octaves(5);
+		noise->set_fractal_lacunarity(2.0f);
+		noise->set_fractal_gain(0.5f);
+		noise->set_fractal_weighted_strength(0.0f);
+		godot::Ref<godot::NoiseTexture2D> tex = memnew(godot::NoiseTexture2D);
+		tex->set_noise(noise);
+		tex->set_width(512);
+		tex->set_height(512);
+		tex->set_generate_mipmaps(true);
+		tex->set_seamless(true);
+		tex->set_normalize(true);
+		tex->set_seamless_blend_skirt(0.1f);
+		m_seaWaveMapTexture = tex;
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_WAVE, m_seaWaveMapTexture);
+	}
+
+	// Create and Pass to the GPU Water Foam Map
+	{
+		godot::Ref<godot::FastNoiseLite> noise = memnew(godot::FastNoiseLite);
+		noise->set_noise_type(godot::FastNoiseLite::NoiseType::TYPE_SIMPLEX_SMOOTH);
+		noise->set_seed(0);
+		noise->set_frequency(0.01f);
+		noise->set_fractal_type(godot::FastNoiseLite::FractalType::FRACTAL_FBM);
+		noise->set_fractal_octaves(5);
+		noise->set_fractal_lacunarity(2.0f);
+		noise->set_fractal_gain(0.5f);
+		noise->set_fractal_weighted_strength(0.0f);
+		godot::Ref<godot::NoiseTexture2D> tex = memnew(godot::NoiseTexture2D);
+		tex->set_noise(noise);
+		tex->set_width(512);
+		tex->set_height(512);
+		tex->set_generate_mipmaps(true);
+		tex->set_seamless(true);
+		tex->set_normalize(true);
+		tex->set_seamless_blend_skirt(0.1f);
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_WATER_FOAM, tex);
+	}
+
+	// Create and Pass to the GPU Sea Texture Normal
+	{
+		godot::Ref<godot::FastNoiseLite> noise = memnew(godot::FastNoiseLite);
+		noise->set_noise_type(godot::FastNoiseLite::NoiseType::TYPE_PERLIN);
+		noise->set_seed(2);
+		noise->set_frequency(0.011f);
+		noise->set_fractal_type(godot::FastNoiseLite::FractalType::FRACTAL_RIDGED);
+		noise->set_fractal_octaves(5);
+		noise->set_fractal_lacunarity(2.0f);
+		noise->set_fractal_gain(0.5f);
+		noise->set_fractal_weighted_strength(0.0f);
+		godot::Ref<godot::NoiseTexture2D> tex = memnew(godot::NoiseTexture2D);
+		tex->set_noise(noise);
+		tex->set_width(512);
+		tex->set_height(512);
+		tex->set_generate_mipmaps(true);
+		tex->set_seamless(true);
+		tex->set_as_normal_map(true);
+		tex->set_normalize(true);
+		tex->set_seamless_blend_skirt(0.1f);
+		tex->set_bump_strength(50.0f);
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_TEXTURE_NORMAL, tex);
+	}
+
+	// Create and Pass to the GPU Sea Texture Normal 2
+	{
+		godot::Ref<godot::FastNoiseLite> noise = memnew(godot::FastNoiseLite);
+		noise->set_noise_type(godot::FastNoiseLite::NoiseType::TYPE_PERLIN);
+		noise->set_seed(0);
+		noise->set_frequency(0.011f);
+		noise->set_fractal_type(godot::FastNoiseLite::FractalType::FRACTAL_RIDGED);
+		noise->set_fractal_octaves(5);
+		noise->set_fractal_lacunarity(2.0f);
+		noise->set_fractal_gain(0.5f);
+		noise->set_fractal_weighted_strength(0.0f);
+		godot::Ref<godot::NoiseTexture2D> tex = memnew(godot::NoiseTexture2D);
+		tex->set_noise(noise);
+		tex->set_width(512);
+		tex->set_height(512);
+		tex->set_generate_mipmaps(true);
+		tex->set_seamless(true);
+		tex->set_as_normal_map(true);
+		tex->set_normalize(true);
+		tex->set_seamless_blend_skirt(0.1f);
+		tex->set_bump_strength(50.0f);
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SEA_TEXTURE_NORMAL2, tex);
+	}
+
+	// Create and Pass to the GPU Terrain Quad Border Distance Map
+	{
+		godot::Ref<godot::FastNoiseLite> noise = memnew(godot::FastNoiseLite);
+		noise->set_noise_type(godot::FastNoiseLite::NoiseType::TYPE_SIMPLEX_SMOOTH);
+		noise->set_seed(0);
+		noise->set_frequency(0.01f);
+		noise->set_fractal_type(godot::FastNoiseLite::FractalType::FRACTAL_FBM);
+		noise->set_fractal_octaves(5);
+		noise->set_fractal_lacunarity(2.0f);
+		noise->set_fractal_gain(0.5f);
+		noise->set_fractal_weighted_strength(0.0f);
+		godot::Ref<godot::NoiseTexture2D> tex = memnew(godot::NoiseTexture2D);
+		tex->set_noise(noise);
+		tex->set_width(512);
+		tex->set_height(512);
+		tex->set_generate_mipmaps(true);
+		//tex->set_seamless(true);
+		tex->set_normalize(true);
+		//tex->set_seamless_blend_skirt(0.1f);
+		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_TERRAIN_QUAD_BORDER_DISTANCE, tex);
 	}
 
 	// Under water post processing effect

@@ -211,6 +211,13 @@ namespace godot {
 		{
 			return m_lastCameraAltitudeFromTerrain;
 		}
+		float cameraAltitudeFromSea(void)
+		{
+			if (not cameraAltitudeFromTerrainValid())
+				return INVALID_CAMERA_ALTITUDE;
+
+			return getRealSceneCamera()->get_global_transform().origin.y - THEWORLD_SEA_LEVEL;
+		}
 		float cameraAltitudeFromTerrainValid(void) const
 		{
 			return m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE;

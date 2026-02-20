@@ -3887,7 +3887,7 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 			bool optimizationLevelChanged = quadrant->optimizationLevelChanged();
 			bool resetOptimizationChangeDelayed = false;
 
-			// if heights updated create texture for shader (m_heightmapTexture), it will be freed we passed to the shader
+			// if heights updated create texture for shader (m_heightmapTexture), it will be freed after we have passed it to the shader
 			if (quadrant->sendHeightsToShader() || optimizationLevelChanged)
 			{
 				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1 ") + __FUNCTION__, "Heightmap");
@@ -3922,7 +3922,7 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 				return;
 			}
 
-			// if normals updated create texture for shader (m_normalmapTexture), it will be freed we passed to the shader. If normals have not been computed we fill the texture with Color(0.5f, 0.5f, 1.0f, 0.0f) (rgb 127, 127, 255, 0 ==> packed vertical normal pointing up)
+			// if normals updated create texture for shader (m_normalmapTexture), it will be freed after we have passed it to the shader. If normals have not been computed we fill the texture with Color(0.5f, 0.5f, 1.0f, 0.0f) (rgb 127, 127, 255, 0 ==> packed vertical normal pointing up)
 			if (quadrant->sendNormalsToShader() || optimizationLevelChanged)
 			{
 				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2 ") + __FUNCTION__, "Normalmap");
@@ -4087,15 +4087,16 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 //	return Color(normal.x, normal.z, normal.y);
 //}
 
-void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev lookdev, bool updateTerrainData)
+void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev lookdev, bool updateTerrainData, bool freeMaps)
 {
 	switch (type)
 	{
 	case QuadType::NotSet:
 	case QuadType::NotUsed:
 	{
-		updateMaterialParams(QuadType::Terrain, lookdev, updateTerrainData);
-		updateMaterialParams(QuadType::Sea, lookdev, updateTerrainData);
+		bool _freeMaps = false;
+		updateMaterialParams(QuadType::Terrain, lookdev, updateTerrainData, _freeMaps);
+		updateMaterialParams(QuadType::Sea, lookdev, updateTerrainData, freeMaps);
 	}
 	break;
 	case QuadType::Terrain:
@@ -4371,11 +4372,20 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 					}
 				}
 
-				m_heightMapTexModified = false;
-				m_normalMapTexModified = false;
-				m_splatMapTexModified = false;
-				m_colorMapTexModified = false;
-				m_globalMapTexModified = false;
+				if (freeMaps)
+				{
+					m_heightMapTexModified = false;
+					m_normalMapTexModified = false;
+					m_splatMapTexModified = false;
+					m_colorMapTexModified = false;
+					m_globalMapTexModified = false;
+
+					m_heightmapTexture.unref();
+					m_normalmapTexture.unref();
+					m_splatmapTexture.unref();
+					m_colormapTexture.unref();
+					m_globalmapTexture.unref();
+				}
 			}
 
 			TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -4383,11 +4393,20 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 		}
 		else
 		{
-			m_heightMapTexModified = false;
-			m_normalMapTexModified = false;
-			m_splatMapTexModified = false;
-			m_colorMapTexModified = false;
-			m_globalMapTexModified = false;
+			if (freeMaps)
+			{
+				m_heightMapTexModified = false;
+				m_normalMapTexModified = false;
+				m_splatMapTexModified = false;
+				m_colorMapTexModified = false;
+				m_globalMapTexModified = false;
+
+				m_heightmapTexture.unref();
+				m_normalmapTexture.unref();
+				m_splatmapTexture.unref();
+				m_colormapTexture.unref();
+				m_globalmapTexture.unref();
+			}
 		}
 	}
 	break;
@@ -4439,19 +4458,37 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
 			}
 
-			m_heightMapTexModified = false;
-			m_normalMapTexModified = false;
-			m_splatMapTexModified = false;
-			m_colorMapTexModified = false;
-			m_globalMapTexModified = false;
+			if (freeMaps)
+			{
+				m_heightMapTexModified = false;
+				m_normalMapTexModified = false;
+				m_splatMapTexModified = false;
+				m_colorMapTexModified = false;
+				m_globalMapTexModified = false;
+
+				m_heightmapTexture.unref();
+				m_normalmapTexture.unref();
+				m_splatmapTexture.unref();
+				m_colormapTexture.unref();
+				m_globalmapTexture.unref();
+			}
 		}
 		else
 		{
-			m_heightMapTexModified = false;
-			m_normalMapTexModified = false;
-			m_splatMapTexModified = false;
-			m_colorMapTexModified = false;
-			m_globalMapTexModified = false;
+			if (freeMaps)
+			{
+				m_heightMapTexModified = false;
+				m_normalMapTexModified = false;
+				m_splatMapTexModified = false;
+				m_colorMapTexModified = false;
+				m_globalMapTexModified = false;
+
+				m_heightmapTexture.unref();
+				m_normalmapTexture.unref();
+				m_splatmapTexture.unref();
+				m_colormapTexture.unref();
+				m_globalmapTexture.unref();
+			}
 		}
 	}
 	break;

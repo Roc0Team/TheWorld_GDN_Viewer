@@ -1275,7 +1275,7 @@ namespace godot
 			return m_materialParamsNeedUpdate;
 		}
 		void materialParamsNeedUpdate(bool b, bool transformChanged = false);
-		void updateMaterialParams(enum class QuadType type, LookDev lookdev, bool updateTerrainData = true);
+		void updateMaterialParams(enum class QuadType type, LookDev lookdev, bool updateTerrainData = true, bool freeMaps = true);
 		enum class ImageType
 		{
 			heightmap = 0

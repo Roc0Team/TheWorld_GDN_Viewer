@@ -4213,6 +4213,7 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_enabled_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithEnabledCollider);
 	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_hires_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithHiResCollider);
 	ClassDB::bind_method(D_METHOD("get_num_quadrant_with_lowres_collider"), &GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider);
+	ClassDB::bind_method(D_METHOD("get_delay_degree"), &GDN_TheWorld_Viewer::getDelayDegree);
 	ClassDB::bind_method(D_METHOD("get_num_process_not_owns_lock"), &GDN_TheWorld_Viewer::getProcessNotOwnsLock);
 	ClassDB::bind_method(D_METHOD("get_process_duration"), &GDN_TheWorld_Viewer::getProcessDuration);
 	ClassDB::bind_method(D_METHOD("get_map_quadrant_num"), &GDN_TheWorld_Viewer::getMapQuadrantNum);
@@ -5030,7 +5031,8 @@ void GDN_TheWorld_Viewer::createHud(void)
 		m_hudStreamingInfoLabel = memnew(godot::Label);
 		m_hudStreamingInfoContainer->add_child(m_hudStreamingInfoLabel);
 		m_hudStreamingInfoLabel->set_name("HudStreamingInfo");
-		m_hudStreamingInfoLabel->add_theme_color_override("font_color", Color(251.0f / 255.0f, 206.0f / 255.0f, 177.0f / 255.0f));
+		//m_hudStreamingInfoLabel->add_theme_color_override("font_color", Color(251.0f / 255.0f, 206.0f / 255.0f, 177.0f / 255.0f));
+		m_hudStreamingInfoLabel->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_green);
 	}
 	
 	// Satellite view
@@ -8995,6 +8997,8 @@ void GDN_TheWorld_Viewer::process_impl(double _delta, godot::Camera2D* activeMap
 	if (globals->statusMinimalWorldDeployed() and worldStreamingTerminated())
 		globals->setStatus(TheWorldStatus::worldDeployed);
 
+	calcDelayDegree();
+	
 	ADD_PROCESS_STEP(process_initialStuff_0);
 
 	// erase out-of-view quadrants
@@ -10885,18 +10889,26 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 	if (m_hudStreamingInfoLabel != nullptr /* and (globals->statusWorldDeployInProgress() or globals->statusMinimalWorldDeployed() or globals->statusWorldDeployed())*/)
 	{
 		std::string hudStreaming;
-		int numInitializedQuadrant = getNumInitializedQuadrants();
+		int numQuadsToRefreshToShader = getNumNeedShaderResetQuadrants() + getNumNeedShaderUpdateQuadrants();
+		int numQuadsToInitialize = getNumQuadrants() - getNumInitializedQuadrants();
+		int averageQuadsToProcess = (numQuadsToRefreshToShader + numQuadsToInitialize) / 2;
 		int numQuadrant = getNumQuadrants();
 		int maxNumQuadrant = getMaxNumQuadrants();
-		if (numQuadrant == 0 or numInitializedQuadrant == numQuadrant)
+		if (numQuadrant == 0 or averageQuadsToProcess == 0)
 			hudStreaming = "";
 		else
 		{
-			int progress = numInitializedQuadrant * 100 / numQuadrant;
-			int totalProgress = numInitializedQuadrant * 100 / maxNumQuadrant;
-			hudStreaming = "Streaming World " + std::to_string(progress) + "% (" + std::to_string(totalProgress) + "%)";
+			int averageQuadsProcessed = maxNumQuadrant - averageQuadsToProcess;
+			int totalProgress = averageQuadsProcessed * 100 / maxNumQuadrant;
+			hudStreaming = "Streaming World " + std::to_string(totalProgress) + "%)";
 		}
 		m_hudStreamingInfoLabel->set_text(hudStreaming.c_str());
+
+		float delayDegree = getDelayDegree();
+		//delayDegree = delayDegree < 1 ? 1 : delayDegree > 5 ? 20 : delayDegree;
+		delayDegree = std::clamp(delayDegree, 1.0f, 20.0f);
+		Color c = TheWorld_Viewer_Utils::Utils::mix<godot::Color>(GDN_TheWorld_Globals::g_color_red, GDN_TheWorld_Globals::g_color_green, 1 / delayDegree);
+		m_hudStreamingInfoLabel->add_theme_color_override("font_color", c);
 	}
 	
 	if (m_backMirrorSubViewportContainer != nullptr and m_backMirrorCamera != nullptr)
@@ -14690,6 +14702,20 @@ int GDN_TheWorld_Viewer::getQuadrantNumWithLowResCollider(void) const
 int GDN_TheWorld_Viewer::getNumInitializedVisibleQuadrants(void) const
 {
 	return m_numInitializedVisibleQuadrant;
+}
+
+float GDN_TheWorld_Viewer::getDelayDegree(void)
+{
+	return m_delayDegree;
+}
+
+void GDN_TheWorld_Viewer::calcDelayDegree(void)
+{
+	int numQuadsToRefreshToShader = getNumNeedShaderResetQuadrants() + getNumNeedShaderUpdateQuadrants();
+	int numQuadsToInitialize = getNumQuadrants() - getNumInitializedQuadrants();
+	int quadsToProcess = numQuadsToRefreshToShader + numQuadsToInitialize;
+	int numQuadsToProcessPerMovement = (maxActualDepthQuadInAllDirections() + getCacheQuadOnPerimeter()) * 2 + 1;
+	m_delayDegree = float(quadsToProcess) / float(numQuadsToProcessPerMovement);
 }
 
 int GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrants(void) const

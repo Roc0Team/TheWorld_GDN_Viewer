@@ -2102,6 +2102,8 @@ namespace godot
 		int getQuadrantNumWithEnabledCollider(void) const;
 		int getQuadrantNumWithHiResCollider(void) const;
 		int getQuadrantNumWithLowResCollider(void) const;
+		float getDelayDegree(void);
+		void calcDelayDegree(void);
 		bool allQuadrantsInitialized(void) const
 		{
 			return m_allQuadrantsInitialized;
@@ -3086,6 +3088,8 @@ namespace godot
 		int m_numInitializedVisibleQuadrant;
 		int m_numQuadrantNeedResetMaterialParam = 0;
 		int m_numQuadrantNeedUpdateMaterialParam = 0;
+
+		float m_delayDegree = 0.0f;
 
 		TimerMs m_streamingTime;
 		TimerMs m_notStreamingTime;

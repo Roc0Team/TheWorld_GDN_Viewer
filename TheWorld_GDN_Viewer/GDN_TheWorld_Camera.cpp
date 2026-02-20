@@ -1502,6 +1502,10 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		m_numLongMoveStepLeft = 0;
 	}
 
+	float delayDegree = Globals()->Viewer()->getDelayDegree();
+	delayDegree = delayDegree < 1 ? 1 : delayDegree;	
+	float delayFactor = 1 / delayDegree;
+
 	if (m_numMoveStepForward)
 	{
 		if (m_altPressed)
@@ -1512,7 +1516,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 			}
 			else if (m_ctrlPressed)
 			{
-				translate_object_local(godot::Vector3(0, -m_numMoveStepForward * m_wheelFastVelocity, 0));
+				translate_object_local(godot::Vector3(0, -m_numMoveStepForward * m_wheelFastVelocity * delayFactor, 0));
 			}
 			else
 			{
@@ -1527,7 +1531,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 			}
 			else if (m_ctrlPressed)
 			{
-				translate_object_local(godot::Vector3(0, 0, m_numMoveStepForward * m_wheelFastVelocity));
+				translate_object_local(godot::Vector3(0, 0, m_numMoveStepForward * m_wheelFastVelocity * delayFactor));
 			}
 			else
 			{
@@ -1564,7 +1568,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 			}
 			else if (m_ctrlPressed)
 			{
-				translate_object_local(godot::Vector3(-m_numMoveStepLeft * m_wheelFastVelocity, 0, 0));
+				translate_object_local(godot::Vector3(-m_numMoveStepLeft * m_wheelFastVelocity * delayFactor, 0, 0));
 			}
 			else
 			{
@@ -1583,7 +1587,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		}
 		else if (m_ctrlPressed)
 		{
-			t.origin += godot::Vector3(0, m_numMoveStepUp * m_wheelFastVelocity, 0);
+			t.origin += godot::Vector3(0, m_numMoveStepUp * m_wheelFastVelocity * delayFactor, 0);
 		}
 		else
 		{

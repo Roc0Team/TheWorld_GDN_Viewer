@@ -5019,7 +5019,8 @@ void GDN_TheWorld_Viewer::createHud(void)
 		m_hudMessageLabel = memnew(godot::Label);
 		m_hudMessageContainer->add_child(m_hudMessageLabel);
 		m_hudMessageLabel->set_name("HudMessage");
-		m_hudMessageLabel->add_theme_color_override("font_color", Color(251.0f / 255.0f, 206.0f / 255.0f, 177.0f / 255.0f));
+		//m_hudMessageLabel->add_theme_color_override("font_color", Color(251.0f / 255.0f, 206.0f / 255.0f, 177.0f / 255.0f));
+		m_hudMessageLabel->add_theme_color_override("font_color", GDN_TheWorld_Globals::g_color_red);
 	}
 
 	// Streaming Info Box
@@ -6331,6 +6332,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			{
 				//m_hudStreamingInfoLabel->set_text("");
 				m_hudStreamingInfoLabel->call_deferred("set_text", "");
+				m_hudMessageLabel->call_deferred("set_text", "");
 			}
 
 			shaderParamCameraUnderWaterApplied(false);

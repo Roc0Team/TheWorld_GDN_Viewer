@@ -4941,14 +4941,14 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 		m_globalmapBuffer.clear(__FUNCTION__);
 
 	// Needed for Shader: created at init time or when optimization level changes from level > 0 to level == 0 but destroyd at end of _process
-	if (optimizationLevel() > 0)	//   (for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant and hires images can be freed)	// occhio!!!
-	{
+	//if (optimizationLevel() > 0)	//   (for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant and hires images can be freed)	// occhio!!!
+	//{
 		getShaderTerrainData()->getHiresHeightmapImageRef().unref();
 		getShaderTerrainData()->getHiresNormalmapImageRef().unref();
 		getShaderTerrainData()->getHiresSplatmapImageRef().unref();
 		getShaderTerrainData()->getHiresColormapImageRef().unref();
 		getShaderTerrainData()->getHiresGlobalmapImageRef().unref();
-	}
+	//}
 
 	int64_t size = m_heightsForCollider.size();
 	m_heightsForCollider.resize(0);

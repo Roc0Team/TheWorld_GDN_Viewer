@@ -3768,6 +3768,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			material->set_shader_parameter(SHADER_PARAM_COLORMAP_OPACITY_PER_TEXTURE, godot::Plane(1.0f, 1.0f, 1.0f, 1.0f));	// Notset
 			material->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, true);
 			material->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+			//material->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 
 			terrainPlaneMaterial = material;
 		}
@@ -3807,7 +3808,8 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 				material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 				material->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
-				material->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)numVerticesPerQuadrantSize + 1.0f);	// useless as it is used in show chunks mode which is inhibited when generating global map
+				material->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)numVerticesPerQuadrantSize);	// useless as it is used in show chunks mode which is inhibited when generating global map
+				//material->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)numVerticesPerQuadrantSize);
 				material->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 				material->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 				godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
@@ -10863,9 +10865,9 @@ void GDN_TheWorld_Viewer::hudMessage(std::string hudMessage, int64_t fadingTime)
 {
 	m_hudMessage = hudMessage;
 	m_fadingTime = fadingTime;
-	m_savedTimeToFadeMessage = 0;
+	m_savedTimeToFadeHudMessage = 0;
 	if (m_fadingTime > 0)
-		m_savedTimeToFadeMessage = TIME()->get_ticks_msec();
+		m_savedTimeToFadeHudMessage = TIME()->get_ticks_msec();
 }
 
 void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
@@ -10876,12 +10878,12 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 	{
 		//std::string currentHudMessage = m_hudMessageLabel->get_text().utf8().get_data();
 
-		if (m_savedTimeToFadeMessage > 0)
+		if (m_savedTimeToFadeHudMessage > 0)
 		{
-			if (TIME()->get_ticks_msec() - m_savedTimeToFadeMessage > m_fadingTime)
+			if (TIME()->get_ticks_msec() - m_savedTimeToFadeHudMessage > m_fadingTime)
 			{
 				m_hudMessage = "";
-				m_savedTimeToFadeMessage = 0;
+				m_savedTimeToFadeHudMessage = 0;
 			}
 		}
 
@@ -10890,20 +10892,52 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 
 	if (m_hudStreamingInfoLabel != nullptr /* and (globals->statusWorldDeployInProgress() or globals->statusMinimalWorldDeployed() or globals->statusWorldDeployed())*/)
 	{
-		std::string hudStreaming;
+		std::string hudStreaming = m_hudStreamingInfoLabel->get_text().utf8().get_data();
 		int numQuadsToRefreshToShader = getNumNeedShaderResetQuadrants() + getNumNeedShaderUpdateQuadrants();
 		int numQuadsToInitialize = getNumQuadrants() - getNumInitializedQuadrants();
 		int averageQuadsToProcess = (numQuadsToRefreshToShader + numQuadsToInitialize) / 2;
 		int numQuadrant = getNumQuadrants();
 		int maxNumQuadrant = getMaxNumQuadrants();
 		if (numQuadrant == 0 or averageQuadsToProcess == 0)
-			hudStreaming = "";
+		{
+			if (m_streamingMessageOn and (globals->statusMinimalWorldDeployed() or globals->statusWorldDeployed()))
+			{
+				if (m_savedTimeToFadeStreamingMessage == 0)
+				{
+					int averageQuadsProcessed = maxNumQuadrant - averageQuadsToProcess;
+					int totalProgress = averageQuadsProcessed * 100 / maxNumQuadrant;
+					hudStreaming = "Streaming World " + std::to_string(totalProgress) + "%)";
+					m_savedTimeToFadeStreamingMessage = TIME()->get_ticks_msec();
+				}
+				else
+				{
+					if (m_savedTimeToFadeStreamingMessage == 0 or TIME()->get_ticks_msec() - m_savedTimeToFadeStreamingMessage > 1000)
+					{
+						hudStreaming = "";
+						m_savedTimeToFadeStreamingMessage = 0;
+						m_streamingMessageOn = false;
+					}
+				}
+			}
+			else
+			{
+				hudStreaming = "";
+				m_savedTimeToFadeStreamingMessage = 0;
+				m_streamingMessageOn = false;
+			}
+		}
 		else
 		{
 			int averageQuadsProcessed = maxNumQuadrant - averageQuadsToProcess;
 			int totalProgress = averageQuadsProcessed * 100 / maxNumQuadrant;
 			hudStreaming = "Streaming World " + std::to_string(totalProgress) + "%)";
+			m_savedTimeToFadeStreamingMessage = 0;
+			m_streamingMessageOn = true;
 		}
+		if (m_hudStreamingInfoLabel->get_text().length() == 0)
+			m_hudStreamingInfoLabel->set_text("");
+		if (hudStreaming.length() == 0)
+			m_hudStreamingInfoLabel->set_text("");
 		m_hudStreamingInfoLabel->set_text(hudStreaming.c_str());
 
 		float delayDegree = getDelayDegree();
@@ -15574,7 +15608,7 @@ bool GDN_TheWorld_Viewer::loadQuadrantData(float posX, float posZ, int level)
 	if (terrainEditValues.size() > 0)
 		m_tempTerrainEdit.deserialize(terrainEditValues);
 
-	m_testQuadrantHeightmapImage = ShaderTerrainData::createHeightmapImage(heights16Buffer, (int)numVerticesPerSize);
+	m_testQuadrantHeightmapImage = ShaderTerrainData::createHeightmapImage(heights16Buffer, (int)numVerticesPerSize, nullptr);
 	m_testQuadrantNormalmapImage = ShaderTerrainData::createNormalmapImage(normalsBuffer, (int)numVerticesPerSize);
 	m_testQuadrantSplatmapImage = ShaderTerrainData::createSplatlmapImage(splatmapBuffer, (int)numVerticesPerSize);
 	m_testQuadrantGlobalmapImage = ShaderTerrainData::createGlobalmapImage(globalmapBuffer, (int)numVerticesPerSize);

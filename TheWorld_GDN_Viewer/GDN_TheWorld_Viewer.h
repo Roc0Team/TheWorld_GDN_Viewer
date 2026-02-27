@@ -3337,7 +3337,9 @@ namespace godot
 		godot::HBoxContainer* m_hudMessageContainer = nullptr;
 		godot::Label* m_hudMessageLabel = nullptr;
 		uint64_t m_fadingTime = 0;
-		uint64_t m_savedTimeToFadeMessage = 0;
+		uint64_t m_savedTimeToFadeHudMessage = 0;
+		uint64_t m_savedTimeToFadeStreamingMessage = 0;
+		bool m_streamingMessageOn = false;
 		std::string m_hudMessage;
 		godot::HBoxContainer* m_hudStreamingInfoContainer = nullptr;
 		godot::Label* m_hudStreamingInfoLabel = nullptr;

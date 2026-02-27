@@ -42,6 +42,7 @@ const std::string Quadrant::c_defaultContinentName = "Continent";
 
 TheWorld_Utils::MemoryBuffer Quadrant::s_emptyHeightmapBorderQuadrantRows;
 std::recursive_mutex Quadrant::s_emptyHeightmapBorderQuadrantRowsMtx;
+bool ShaderTerrainData::s_extraNeighbourBorderInHeightmap = true;
 
 
 //extern int g_num = 0;
@@ -1678,6 +1679,9 @@ bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, godot:
 
 bool QuadTree::allNeighboursInitialized(void)
 {
+	if (not ShaderTerrainData::s_extraNeighbourBorderInHeightmap)
+		return true;
+	
 	//return true;	// Occhio!!!
 	switch (quadrantTypeInGrid())
 	{
@@ -2219,6 +2223,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularSeaMaterial(bool reload
 		mat->set_shader(shader);
 		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+		//mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP_OPTLVL_ZERO, m_viewer->Globals()->gridStepInWU());
@@ -2247,6 +2252,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getGlobalmapSeaMaterial(bool relo
 		mat->set_shader(shader);
 		//mat->set_render_priority(0);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+		//mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 		mat->set_shader_parameter(SHADER_PARAM_GRID_STEP_OPTLVL_ZERO, m_viewer->Globals()->gridStepInWU());
@@ -2290,6 +2296,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getRegularTerrainMaterial(bool re
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+		//mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING, false);
 		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_NORTH, false);
 		mat->set_shader_parameter(SHADER_PARAM_NEED_BLENDING_SOUTH, false);
@@ -2398,6 +2405,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevMaterial(enum class Sha
 		mat->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_GRID_ON, false);
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+		//mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 		m_lookDevMaterial = mat;
 	}
 
@@ -2444,6 +2452,7 @@ godot::Ref<godot::Material> ShaderTerrainData::getLookDevChunkLodMaterial(int lo
 		mat->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 		mat->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 		mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, numVerticesPerChuckSide + 1.0f);
+		//mat->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 		mat->set_shader_parameter(SHADER_PARAM_LOD_GRID_STEP, lodGridStepInWU);
 		mat->set_shader_parameter(SHADER_PARAM_LOD_CHUNK_SIZE, lodChunkSizeInWu);
 		mat->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
@@ -3242,7 +3251,7 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 		TheWorld_Utils::GuardProfiler profiler(std::string("getOrCreateHeightmapImage ") + s + __FUNCTION__, "create heightmap image");
 		int _resolution = (int)globals->numVerticesPerQuadrantSize();
 		TheWorld_Utils::MemoryBuffer& heightmapBuffer = m_quadTree->getQuadrant()->getFloat16HeightsBuffer();
-		m_hiresHeightmapImage = createHeightmapImage(heightmapBuffer, _resolution);
+		m_hiresHeightmapImage = createHeightmapImage(heightmapBuffer, _resolution, m_quadTree->getQuadrant());
 		//godot::PackedByteArray data;
 		//size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
 		//size_t heightmapBufferSizeInBytes = _resolution * _resolution * sizeof(uint16_t);
@@ -3256,17 +3265,142 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 	return m_hiresHeightmapImage;
 }
 
-godot::Ref<godot::Image> ShaderTerrainData::createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution)
+godot::Ref<godot::Image> ShaderTerrainData::addExtraBordersToHeightmap(godot::Ref<godot::Image> heightmap)
 {
-	godot::PackedByteArray data;
-	size_t heightsBufferSize = heightmapBuffer.size();
-	size_t heightmapBufferSizeInBytes = (size_t)_resolution * _resolution * sizeof(uint16_t);
-	assert(heightmapBufferSizeInBytes == heightsBufferSize);
-	data.resize((int)heightmapBufferSizeInBytes);
+	godot::PackedByteArray heightmapImageData = heightmap->get_data();
+	TheWorld_Utils::MemoryBuffer heightmapImageBuffer((BYTE*)heightmapImageData.ptr(), heightmapImageData.size());
+	
+	int heightmapResolution = heightmap->get_width();
+	int newHeightmapResolution = heightmapResolution + 2;
+	TheWorld_Utils::MemoryBuffer newHeightmapImageBuffer;
+	newHeightmapImageBuffer.reserve<uint16_t>(size_t(newHeightmapResolution) * size_t(newHeightmapResolution));
+	newHeightmapImageBuffer.adjustSize<uint16_t>(size_t(newHeightmapResolution) * size_t(newHeightmapResolution));
+	memset(newHeightmapImageBuffer.ptr(), 0, newHeightmapImageBuffer.size());
+
+	uint16_t* westBorder = nullptr;
+	uint16_t* eastBorder = nullptr;
+	uint16_t* heightmapData = (uint16_t*)heightmapImageBuffer.ptr();
+
+	Quadrant* quadrant = m_quadTree->getQuadrant();
+	
+	// Set first row of the heightmap image with neighbour quadrant border (north) if it is initialized, otherwise it will be set to 0 (***sea level***)
+	if (quadrant->northWestQuadrantData().initialized())
+		newHeightmapImageBuffer.set_at<uint16_t>(quadrant->northWestQuadrantData().getHeightmapCorner(), 0, 0, newHeightmapResolution);
+	if (quadrant->northQuadrantData().initialized())
+		newHeightmapImageBuffer.setPartOfRow<uint16_t>((uint16_t*)quadrant->northQuadrantData().getHeightmapBorderRow().ptr(), quadrant->northQuadrantData().getHeightmapBorderRow().size<uint16_t>(), 0, 1, newHeightmapResolution);
+	if (quadrant->northEastQuadrantData().initialized())
+		newHeightmapImageBuffer.set_at<uint16_t>(quadrant->northEastQuadrantData().getHeightmapCorner(), 0, newHeightmapResolution - 1, newHeightmapResolution);
+	// Set last row of the heightmap image with neighbour quadrant border (south) if it is initialized, otherwise it will be set to 0 (***sea level***)
+	if (quadrant->southWestQuadrantData().initialized())
+		newHeightmapImageBuffer.set_at<uint16_t>(quadrant->southWestQuadrantData().getHeightmapCorner(), newHeightmapResolution - 1, 0, newHeightmapResolution);
+	if (quadrant->southQuadrantData().initialized())
+		newHeightmapImageBuffer.setPartOfRow<uint16_t>((uint16_t*)quadrant->southQuadrantData().getHeightmapBorderRow().ptr(), quadrant->southQuadrantData().getHeightmapBorderRow().size<uint16_t>(),
+			newHeightmapResolution - 1, 1, newHeightmapResolution);
+	if (quadrant->southEastQuadrantData().initialized())
+		newHeightmapImageBuffer.set_at<uint16_t>(quadrant->southEastQuadrantData().getHeightmapCorner(), newHeightmapResolution - 1, newHeightmapResolution - 1, newHeightmapResolution);
+
+
+	if (quadrant->westQuadrantData().initialized())
+		westBorder = (uint16_t*)quadrant->westQuadrantData().getHeightmapBorderRow().ptr();
+	if (quadrant->eastQuadrantData().initialized())
+		eastBorder = (uint16_t*)quadrant->eastQuadrantData().getHeightmapBorderRow().ptr();
+
+	// Completing with heightmap image and lateral (west/east) neighbour quadrant borders
+	int idx = 0;
+	for (size_t row = 1; row < newHeightmapResolution - 1; row++)
 	{
-		memcpy((char*)data.ptrw(), heightmapBuffer.ptr(), heightsBufferSize);
+		if (westBorder != nullptr)
+			newHeightmapImageBuffer.set_at<uint16_t>(westBorder[row - 1], row, 0, newHeightmapResolution);
+		newHeightmapImageBuffer.setPartOfRow<uint16_t>(heightmapData + (row - 1) * heightmapResolution, heightmapResolution, row, 1, newHeightmapResolution);
+		if (eastBorder != nullptr)
+			newHeightmapImageBuffer.set_at<uint16_t>(eastBorder[row - 1], row, newHeightmapResolution - 1, newHeightmapResolution);
+		idx++;
 	}
-	return godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RH, data);
+
+	quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(1);
+
+	godot::PackedByteArray data;
+	data.resize((int)newHeightmapImageBuffer.size());
+	{
+		memcpy((char*)data.ptrw(), newHeightmapImageBuffer.ptr(), newHeightmapImageBuffer.size());
+	}
+	godot::Ref<godot::Image> image = godot::Image::create_from_data(int32_t(newHeightmapResolution), int32_t(newHeightmapResolution), false, godot::Image::Format::FORMAT_RH, data);
+	return image;
+}
+
+godot::Ref<godot::Image> ShaderTerrainData::createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution, Quadrant* quadrant)
+{
+	assert(heightmapBuffer.size<uint16_t>() == (size_t)_resolution * _resolution);
+
+	//if (ShaderTerrainData::s_extraNeighbourBorderInHeightmap and quadrant != nullptr and quadrant->optimizationLevel() == 0)
+	//{
+	//	size_t newImageResolution = size_t(_resolution) + 2;
+	//	TheWorld_Utils::MemoryBuffer newImageBuffer;
+	//	newImageBuffer.reserve<uint16_t>(size_t(newImageResolution) * size_t(newImageResolution));
+	//	newImageBuffer.adjustSize<uint16_t>(size_t(newImageResolution) * size_t(newImageResolution));
+	//	memset(newImageBuffer.ptr(), 0, newImageBuffer.size());
+
+	//	uint16_t* westBorder = nullptr;
+	//	uint16_t* eastBorder = nullptr;
+	//	uint16_t* heightmapData = (uint16_t*)heightmapBuffer.ptr();
+
+	//	// Set first row of the heightmap image with neighbour quadrant border (north) if it is initialized, otherwise it will be set to 0 (***sea level***)
+	//	if (quadrant->northWestQuadrantData().initialized())
+	//		newImageBuffer.set_at<uint16_t>(quadrant->northWestQuadrantData().getHeightmapCorner(), 0, 0, newImageResolution);
+	//	if (quadrant->northQuadrantData().initialized())
+	//		newImageBuffer.setPartOfRow<uint16_t>((uint16_t*)quadrant->northQuadrantData().getHeightmapBorderRow().ptr(), quadrant->northQuadrantData().getHeightmapBorderRow().size<uint16_t>(), 0, 1, newImageResolution);
+	//	if (quadrant->northEastQuadrantData().initialized())
+	//		newImageBuffer.set_at<uint16_t>(quadrant->northEastQuadrantData().getHeightmapCorner(), 0, newImageResolution - 1, newImageResolution);
+	//			
+	//	// Set last row of the heightmap image with neighbour quadrant border (south) if it is initialized, otherwise it will be set to 0 (***sea level***)
+	//	if (quadrant->southWestQuadrantData().initialized())
+	//		newImageBuffer.set_at<uint16_t>(quadrant->southWestQuadrantData().getHeightmapCorner(), newImageResolution - 1, 0, newImageResolution);
+	//	if (quadrant->southQuadrantData().initialized())
+	//		newImageBuffer.setPartOfRow<uint16_t>((uint16_t*)quadrant->southQuadrantData().getHeightmapBorderRow().ptr(), quadrant->southQuadrantData().getHeightmapBorderRow().size<uint16_t>(),
+	//			newImageResolution - 1, 1, newImageResolution);
+	//	if (quadrant->southEastQuadrantData().initialized())
+	//		newImageBuffer.set_at<uint16_t>(quadrant->southEastQuadrantData().getHeightmapCorner(), newImageResolution - 1, newImageResolution - 1, newImageResolution);
+
+
+	//	if (quadrant->westQuadrantData().initialized())
+	//		westBorder = (uint16_t*)quadrant->westQuadrantData().getHeightmapBorderRow().ptr();
+	//	if (quadrant->eastQuadrantData().initialized())
+	//		eastBorder = (uint16_t*)quadrant->eastQuadrantData().getHeightmapBorderRow().ptr();
+
+	//	// Completing with heightmap image and lateral (west/east) neighbour quadrant borders
+	//	int idx = 0;
+	//	for (size_t row = 1; row < newImageResolution - 1; row++)
+	//	{
+	//		if (westBorder != nullptr)
+	//			newImageBuffer.set_at<uint16_t>(westBorder[row - 1], row, 0, newImageResolution);
+	//		newImageBuffer.setPartOfRow<uint16_t>(heightmapData + (row - 1) * _resolution, _resolution, row, 1, newImageResolution);
+	//		if (eastBorder != nullptr)
+	//			newImageBuffer.set_at<uint16_t>(eastBorder[row - 1], row, newImageResolution - 1, newImageResolution);
+	//		idx++;
+	//	}
+
+	//	quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(1);
+
+	//	godot::PackedByteArray data;
+	//	data.resize((int)newImageBuffer.size());
+	//	{
+	//		memcpy((char*)data.ptrw(), newImageBuffer.ptr(), newImageBuffer.size());
+	//	}
+	//	godot::Ref<godot::Image> image = godot::Image::create_from_data(int32_t(newImageResolution), int32_t(newImageResolution), false, godot::Image::Format::FORMAT_RH, data);
+	//	return image;
+	//}
+	//else
+	//{
+		if (quadrant != nullptr)
+			quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(0);
+
+		godot::PackedByteArray data;
+		data.resize((int)heightmapBuffer.size());
+		{
+			memcpy((char*)data.ptrw(), heightmapBuffer.ptr(), heightmapBuffer.size());
+		}
+		return godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RH, data);
+	//}
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateNormalmapImage()
@@ -3894,6 +4028,10 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 
 				std::string profileHeader("WorldDeploy 3.1.1 ");
 				godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::heightmap, optimizationLevel, newResolution);
+				if (ShaderTerrainData::s_extraNeighbourBorderInHeightmap and optimizationLevel == 0)
+				{
+					image = addExtraBordersToHeightmap(image);
+				}
 
 				if (image != nullptr)
 				{
@@ -4149,8 +4287,12 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 						item.second->set_shader_parameter(SHADER_PARAM_OPTIMIZATION_LEVEL, quadrant->optimizationLevel());
 						item.second->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 						item.second->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+						//item.second->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 						if (m_heightMapTexModified && m_heightmapTexture != nullptr and m_heightmapTexture.is_valid())
+						{
 							item.second->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
+							item.second->set_shader_parameter(SHADER_EXTRA_VERTICES_ON_HEIGHTMAP, quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap());
+						}
 
 						if (m_normalMapTexModified && m_normalmapTexture != nullptr and m_normalmapTexture.is_valid())
 							item.second->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, m_normalmapTexture);
@@ -4175,6 +4317,7 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 						currentMaterial->set_shader_parameter(SHADER_PARAM_FORCE_ELEVATION_0, m_viewer->getForceShaderElevation0());
 						currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 						currentMaterial->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+						//currentMaterial->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 
 						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_VERTICAL_FACTOR, terrainEdit->extraValues.slopeVerticalFactor);
 						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_FLAT_FACTOR, terrainEdit->extraValues.slopeFlatFactor);
@@ -4257,6 +4400,7 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 							{
 								//PLOG_DEBUG << "setting terrain shader_param=" << SHADER_PARAM_TERRAIN_HEIGHTMAP;
 								currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
+								currentMaterial->set_shader_parameter(SHADER_EXTRA_VERTICES_ON_HEIGHTMAP, quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap());
 							}
 
 							if (m_normalMapTexModified && m_normalmapTexture != nullptr and m_normalmapTexture.is_valid())
@@ -4336,6 +4480,7 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 						if (lookdev == LookDev::Heights && m_heightmapTexture != nullptr and m_heightmapTexture.is_valid())
 						{
 							currentMaterial->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, m_heightmapTexture);
+							currentMaterial->set_shader_parameter(SHADER_EXTRA_VERTICES_ON_HEIGHTMAP, quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap());
 						}
 
 						if (lookdev == LookDev::Normals && m_normalmapTexture != nullptr and m_normalmapTexture.is_valid())
@@ -4450,12 +4595,14 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 			currentMaterial->set_shader_parameter(SHADER_PARAM_QUAD_BORDER_LINE_THICKNESS, m_viewer->getShaderParamQuadBorderLineThickness());
 			currentMaterial->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_RADIUS, m_viewer->getShaderParamMouseHitRadius());
 			currentMaterial->set_shader_parameter(SHADER_PARAM_VERTICES_PER_CHUNK, (float)m_viewer->Globals()->numVerticesPerChuckSide() + 1.0f);
+			//currentMaterial->set_shader_parameter(SHADER_PARAM_VERTICES_PER_QUADRANT, (float)m_viewer->Globals()->numVerticesPerQuadrantSize());
 			currentMaterial->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
 
 			if (updateTerrainData and m_heightMapTexModified and m_heightmapTexture != nullptr and m_heightmapTexture.is_valid())
 			{
 				//PLOG_DEBUG << "setting sea shader_param=" << SHADER_PARAM_TERRAIN_HEIGHTMAP;
 				currentMaterial->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, m_heightmapTexture);
+				currentMaterial->set_shader_parameter(SHADER_EXTRA_VERTICES_ON_HEIGHTMAP, quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap());
 			}
 
 			if (freeMaps)
@@ -5985,26 +6132,26 @@ void Quadrant::getHeightmapCorner(std::chrono::system_clock::time_point& lastBor
 	{
 	case TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus:
 	{
-		size_t size = m_heightmapNorthBorderRow.size() / sizeof(uint16_t);
-		heightmapCorner = m_heightmapNorthBorderRow.get_at<uint16_t>(0, 0, size);
+		size_t numElements = m_heightmapNorthBorderRow.size<uint16_t>();
+		heightmapCorner = m_heightmapNorthBorderRow.get_at<uint16_t>(0, 0, numElements);
 	}
 	break;
 	case TheWorld_Utils::QuadrantPos::DirectionSlot::NortheastZMinusXPlus:
 	{
-		size_t size = m_heightmapEastBorderRow.size() / sizeof(uint16_t);
-		heightmapCorner = m_heightmapEastBorderRow.get_at<uint16_t>(0, 0, size);
+		size_t numElements = m_heightmapEastBorderRow.size<uint16_t>();
+		heightmapCorner = m_heightmapEastBorderRow.get_at<uint16_t>(0, 0, numElements);
 	}
 	break;
 	case TheWorld_Utils::QuadrantPos::DirectionSlot::SouthwestZPlusXMinus:
 	{
-		size_t size = m_heightmapSouthBorderRow.size() / sizeof(uint16_t);
-		heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, 0, size);
+		size_t numElements = m_heightmapSouthBorderRow.size<uint16_t>();
+		heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, 0, numElements);
 	}
 	break;
 	case TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus:
 	{
-		size_t size = m_heightmapSouthBorderRow.size() / sizeof(uint16_t);
-		heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(size - 1, 0, size);
+		size_t numElements = m_heightmapSouthBorderRow.size<uint16_t>();
+		heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, numElements - 1, numElements);
 	}
 	break;
 	}
@@ -6358,8 +6505,8 @@ void Quadrant::heightmapChanged(void)
 		m_heightmapWestBorderRow.reserve(verticesPerBorder * sizeof(uint16_t));
 		for (int idx = 0; idx < verticesPerBorder; idx++)
 		{
-			uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(0, idx, verticesPerBorder);
-			m_heightmapWestBorderRow.set_at<uint16_t>(*element, idx, 0, verticesPerBorder);
+			uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(idx, 0, verticesPerBorder);
+			m_heightmapWestBorderRow.set_at_ref<uint16_t>(*element, idx, 0, verticesPerBorder);
 		}
 		m_heightmapWestBorderRow.adjustSize(verticesPerBorder * sizeof(uint16_t));
 	}
@@ -6369,8 +6516,8 @@ void Quadrant::heightmapChanged(void)
 		m_heightmapEastBorderRow.reserve(verticesPerBorder * sizeof(uint16_t));
 		for (int idx = 0; idx < verticesPerBorder; idx++)
 		{
-			uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(verticesPerBorder - 1, idx, verticesPerBorder);
-			m_heightmapEastBorderRow.set_at<uint16_t>(*element, idx, 0, verticesPerBorder);
+			uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(idx, verticesPerBorder - 1, verticesPerBorder);
+			m_heightmapEastBorderRow.set_at_ref<uint16_t>(*element, idx, 0, verticesPerBorder);
 		}
 		m_heightmapEastBorderRow.adjustSize(verticesPerBorder * sizeof(uint16_t));
 	}
@@ -6417,8 +6564,8 @@ void Quadrant::splatmapChanged(void)
 		m_splatmapWestBorderRow.reserve(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
 		for (int idx = 0; idx < verticesPerBorder; idx++)
 		{
-			struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(0, idx, verticesPerBorder);
-			m_splatmapWestBorderRow.set_at<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
+			struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(idx, 0, verticesPerBorder);
+			m_splatmapWestBorderRow.set_at_ref<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
 		}
 		m_splatmapWestBorderRow.adjustSize(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
 	}
@@ -6428,8 +6575,8 @@ void Quadrant::splatmapChanged(void)
 		m_splatmapEastBorderRow.reserve(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
 		for (int idx = 0; idx < verticesPerBorder; idx++)
 		{
-			struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(verticesPerBorder - 1, idx, verticesPerBorder);
-			m_splatmapEastBorderRow.set_at<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
+			struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(idx, verticesPerBorder - 1, verticesPerBorder);
+			m_splatmapEastBorderRow.set_at_ref<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
 		}
 		m_splatmapEastBorderRow.adjustSize(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
 	}

@@ -179,7 +179,7 @@ namespace godot
 			{
 				return m_groundTextureLayers;
 			}
-			godot::Color getUpperLeftCornerSplatmapTexel(void)
+			godot::Color getUpperLeftCornerSplatmapTexel(void) const
 			{
 				return m_upperLeftCornerSplatmapTexel;
 			}
@@ -194,6 +194,10 @@ namespace godot
 			TheWorld_Utils::MemoryBuffer& getHeightmapBorderRow(void)
 			{
 				return m_heightmapBorderRow;
+			}
+			uint16_t getHeightmapCorner(void) const
+			{
+				return m_heightmapCorner;
 			}
 			//void freeHeightmapBorderRow(void)
 			//{
@@ -896,6 +900,7 @@ namespace godot
 #define SHADER_PARAM_HEIGHTMAP_OPTLVL_INC_3			"u_heightmap_array_optlvl_inc_3"
 
 #define SHADER_PARAM_TERRAIN_HEIGHTMAP				"u_terrain_heightmap"
+#define SHADER_EXTRA_VERTICES_ON_HEIGHTMAP			"u_extra_vertices_on_heightmap"
 //#define SHADER_PARAM_TERRAIN_HEIGHTMAP_BORDER_ROWS	"u_terrain_heightmap_border_rows"
 #define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
 #define SHADER_PARAM_TERRAIN_SPLATMAP				"u_terrain_splatmap"
@@ -1012,6 +1017,7 @@ namespace godot
 #define SHADER_PARAM_GENERATE_GLOBAL_MAP			"u_generate_global_map"
 
 #define SHADER_PARAM_VERTICES_PER_CHUNK				"u_num_vertices_per_chunk"
+//#define SHADER_PARAM_VERTICES_PER_QUADRANT			"u_num_vertices_per_quadrant"
 #define SHADER_PARAM_LOOKDEV_LOD					"u_lod"
 #define	SHADER_PARAM_LOD_GRID_STEP					"u_lod_grid_step"
 #define	SHADER_PARAM_LOD_CHUNK_SIZE					"u_lod_chunk_size"
@@ -1417,8 +1423,10 @@ namespace godot
 
 		void mouseHitChanged(godot::Vector2 mouseHit);
 
+		godot::Ref<godot::Image> addExtraBordersToHeightmap(godot::Ref<godot::Image> heightmap);
+		
 		godot::Ref<godot::Image> getOrCreateHeightmapImage();
-		static godot::Ref<godot::Image> createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution);
+		static godot::Ref<godot::Image> createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution, Quadrant* quadrant);
 		godot::Ref<godot::Image> getOrCreateNormalmapImage();
 		static godot::Ref<godot::Image> createNormalmapImage(TheWorld_Utils::MemoryBuffer& normalmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateSplatmapImage();
@@ -1507,11 +1515,24 @@ namespace godot
 			return occupation;
 		}
 
+		size_t numExtraNeighbourVerticesInHeightmap(void) const
+		{
+			return m_numExtraNeighbourVerticesInHeightmap;
+		}
+		void numExtraNeighbourVerticesInHeightmap(size_t num)
+		{
+			m_numExtraNeighbourVerticesInHeightmap = num;
+		}
+
+		size_t m_numExtraNeighbourVerticesInHeightmap = 0;
+
 		//void clearCachedTexture(void);
 
 		//static std::string layoutFromContinentId(int32_t id);
 		static std::string layoutFromQuadrantPos(TheWorld_Utils::QuadrantPos pos, std::string& continentName);
 		static std::string layoutFromQuadrantPos(TheWorld_Utils::QuadrantPos pos);
+
+		static bool s_extraNeighbourBorderInHeightmap;
 
 	private:
 		//void debugPrintTexture(std::string tex_name, Ref<Texture> tex);
@@ -1565,7 +1586,7 @@ namespace godot
 		
 		static std::recursive_mutex s_mtxStaticData;
 		static GroundTextures s_groundTextures;
-		
+
 		class Continent
 		{
 		public:

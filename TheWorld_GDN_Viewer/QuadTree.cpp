@@ -3317,8 +3317,6 @@ godot::Ref<godot::Image> ShaderTerrainData::addExtraBordersToHeightmap(godot::Re
 		idx++;
 	}
 
-	quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(1);
-
 	godot::PackedByteArray data;
 	data.resize((int)newHeightmapImageBuffer.size());
 	{
@@ -3332,75 +3330,12 @@ godot::Ref<godot::Image> ShaderTerrainData::createHeightmapImage(TheWorld_Utils:
 {
 	assert(heightmapBuffer.size<uint16_t>() == (size_t)_resolution * _resolution);
 
-	//if (ShaderTerrainData::s_extraNeighbourBorderInHeightmap and quadrant != nullptr and quadrant->optimizationLevel() == 0)
-	//{
-	//	size_t newImageResolution = size_t(_resolution) + 2;
-	//	TheWorld_Utils::MemoryBuffer newImageBuffer;
-	//	newImageBuffer.reserve<uint16_t>(size_t(newImageResolution) * size_t(newImageResolution));
-	//	newImageBuffer.adjustSize<uint16_t>(size_t(newImageResolution) * size_t(newImageResolution));
-	//	memset(newImageBuffer.ptr(), 0, newImageBuffer.size());
-
-	//	uint16_t* westBorder = nullptr;
-	//	uint16_t* eastBorder = nullptr;
-	//	uint16_t* heightmapData = (uint16_t*)heightmapBuffer.ptr();
-
-	//	// Set first row of the heightmap image with neighbour quadrant border (north) if it is initialized, otherwise it will be set to 0 (***sea level***)
-	//	if (quadrant->northWestQuadrantData().initialized())
-	//		newImageBuffer.set_at<uint16_t>(quadrant->northWestQuadrantData().getHeightmapCorner(), 0, 0, newImageResolution);
-	//	if (quadrant->northQuadrantData().initialized())
-	//		newImageBuffer.setPartOfRow<uint16_t>((uint16_t*)quadrant->northQuadrantData().getHeightmapBorderRow().ptr(), quadrant->northQuadrantData().getHeightmapBorderRow().size<uint16_t>(), 0, 1, newImageResolution);
-	//	if (quadrant->northEastQuadrantData().initialized())
-	//		newImageBuffer.set_at<uint16_t>(quadrant->northEastQuadrantData().getHeightmapCorner(), 0, newImageResolution - 1, newImageResolution);
-	//			
-	//	// Set last row of the heightmap image with neighbour quadrant border (south) if it is initialized, otherwise it will be set to 0 (***sea level***)
-	//	if (quadrant->southWestQuadrantData().initialized())
-	//		newImageBuffer.set_at<uint16_t>(quadrant->southWestQuadrantData().getHeightmapCorner(), newImageResolution - 1, 0, newImageResolution);
-	//	if (quadrant->southQuadrantData().initialized())
-	//		newImageBuffer.setPartOfRow<uint16_t>((uint16_t*)quadrant->southQuadrantData().getHeightmapBorderRow().ptr(), quadrant->southQuadrantData().getHeightmapBorderRow().size<uint16_t>(),
-	//			newImageResolution - 1, 1, newImageResolution);
-	//	if (quadrant->southEastQuadrantData().initialized())
-	//		newImageBuffer.set_at<uint16_t>(quadrant->southEastQuadrantData().getHeightmapCorner(), newImageResolution - 1, newImageResolution - 1, newImageResolution);
-
-
-	//	if (quadrant->westQuadrantData().initialized())
-	//		westBorder = (uint16_t*)quadrant->westQuadrantData().getHeightmapBorderRow().ptr();
-	//	if (quadrant->eastQuadrantData().initialized())
-	//		eastBorder = (uint16_t*)quadrant->eastQuadrantData().getHeightmapBorderRow().ptr();
-
-	//	// Completing with heightmap image and lateral (west/east) neighbour quadrant borders
-	//	int idx = 0;
-	//	for (size_t row = 1; row < newImageResolution - 1; row++)
-	//	{
-	//		if (westBorder != nullptr)
-	//			newImageBuffer.set_at<uint16_t>(westBorder[row - 1], row, 0, newImageResolution);
-	//		newImageBuffer.setPartOfRow<uint16_t>(heightmapData + (row - 1) * _resolution, _resolution, row, 1, newImageResolution);
-	//		if (eastBorder != nullptr)
-	//			newImageBuffer.set_at<uint16_t>(eastBorder[row - 1], row, newImageResolution - 1, newImageResolution);
-	//		idx++;
-	//	}
-
-	//	quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(1);
-
-	//	godot::PackedByteArray data;
-	//	data.resize((int)newImageBuffer.size());
-	//	{
-	//		memcpy((char*)data.ptrw(), newImageBuffer.ptr(), newImageBuffer.size());
-	//	}
-	//	godot::Ref<godot::Image> image = godot::Image::create_from_data(int32_t(newImageResolution), int32_t(newImageResolution), false, godot::Image::Format::FORMAT_RH, data);
-	//	return image;
-	//}
-	//else
-	//{
-		if (quadrant != nullptr)
-			quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(0);
-
-		godot::PackedByteArray data;
-		data.resize((int)heightmapBuffer.size());
-		{
-			memcpy((char*)data.ptrw(), heightmapBuffer.ptr(), heightmapBuffer.size());
-		}
-		return godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RH, data);
-	//}
+	godot::PackedByteArray data;
+	data.resize((int)heightmapBuffer.size());
+	{
+		memcpy((char*)data.ptrw(), heightmapBuffer.ptr(), heightmapBuffer.size());
+	}
+	return godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RH, data);
 }
 
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateNormalmapImage()
@@ -4027,10 +3962,12 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.1 ") + __FUNCTION__, "Heightmap");
 
 				std::string profileHeader("WorldDeploy 3.1.1 ");
+				quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(0);
 				godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::heightmap, optimizationLevel, newResolution);
 				if (ShaderTerrainData::s_extraNeighbourBorderInHeightmap and optimizationLevel == 0)
 				{
 					image = addExtraBordersToHeightmap(image);
+					quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(1);
 				}
 
 				if (image != nullptr)
@@ -5733,7 +5670,7 @@ void Quadrant::loadTerrainDataFromCache(void)
 		//	setEmpty(false);
 	}
 
-	bool cache = false;		// occhio!!!
+	bool cache = !ShaderTerrainData::s_extraNeighbourBorderInHeightmap;		// occhio!!!
 
 	if (cache)
 	{
@@ -6747,7 +6684,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 
 	m_quadTree->getQuadrant()->terrainDataJustLoaded(true);
 
-	bool cache = false;		// occhio!!!
+	bool cache = !ShaderTerrainData::s_extraNeighbourBorderInHeightmap;		// occhio!!!
 
 	heightmapChanged();
 	sendHeightsToShader(true);

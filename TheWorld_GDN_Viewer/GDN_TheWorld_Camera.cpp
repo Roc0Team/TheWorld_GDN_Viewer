@@ -1505,6 +1505,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 	float delayDegree = Globals()->Viewer()->getDelayDegree();
 	delayDegree = delayDegree < 1 ? 1 : delayDegree;	
 	float delayFactor = 1 / delayDegree;
+	//delayFactor = 1;	// DEBUG - Disable delay factor for camera movement for now as it is not really useful and make camera movement more difficult to control (especially with mouse wheel)	
 
 	if (m_numMoveStepForward)
 	{

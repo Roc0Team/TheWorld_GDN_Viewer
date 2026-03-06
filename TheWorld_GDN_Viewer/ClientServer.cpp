@@ -288,8 +288,8 @@ namespace TheWorld_ClientServer
 		MapClientServerExecution toCallCallback;
 
 		//m_tpCallBack.Start("CallBackFromServer", 24);
+		m_tpCallBack.Start("CallBackFromServer", 10);
 		//m_tpCallBack.Start("CallBackFromServer", 5);
-		m_tpCallBack.Start("CallBackFromServer", 5);
 
 		while (true)
 		{

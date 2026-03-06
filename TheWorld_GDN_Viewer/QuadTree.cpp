@@ -3997,140 +3997,140 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 				return;
 			}
 
-			// if normals updated create texture for shader (m_normalmapTexture), it will be freed after we have passed it to the shader. If normals have not been computed we fill the texture with Color(0.5f, 0.5f, 1.0f, 0.0f) (rgb 127, 127, 255, 0 ==> packed vertical normal pointing up)
-			if (quadrant->sendNormalsToShader() || optimizationLevelChanged)
-			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2 ") + __FUNCTION__, "Normalmap");
+			//// if normals updated create texture for shader (m_normalmapTexture), it will be freed after we have passed it to the shader. If normals have not been computed we fill the texture with Color(0.5f, 0.5f, 1.0f, 0.0f) (rgb 127, 127, 255, 0 ==> packed vertical normal pointing up)
+			//if (quadrant->sendNormalsToShader() || optimizationLevelChanged)
+			//{
+			//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2 ") + __FUNCTION__, "Normalmap");
 
-				std::string profileHeader("WorldDeploy 3.2.1 ");
-				godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::normalmap, optimizationLevel, newResolution);
+			//	std::string profileHeader("WorldDeploy 3.2.1 ");
+			//	godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::normalmap, optimizationLevel, newResolution);
 
-				if (image != nullptr)
-				{
-					{
-						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.3 ") + __FUNCTION__, "Create Texture from normal image");
+			//	if (image != nullptr)
+			//	{
+			//		{
+			//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.2.3 ") + __FUNCTION__, "Create Texture from normal image");
 
-						// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-						//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-						Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-						m_normalmapTexture = tex;
-						m_normalMapTexModified = true;
-						//debugPrintTexture(SHADER_PARAM_TERRAIN_NORMALMAP, m_normalmapTexture);
-					}
-				}
+			//			// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+			//			//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+			//			Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+			//			m_normalmapTexture = tex;
+			//			m_normalMapTexModified = true;
+			//			//debugPrintTexture(SHADER_PARAM_TERRAIN_NORMALMAP, m_normalmapTexture);
+			//		}
+			//	}
 
-				quadrant->sendNormalsToShader(false);
-			}
+			//	quadrant->sendNormalsToShader(false);
+			//}
 
-			if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_normalmap))
-			{
-				lastProcessExecutionInterrupted = true;
-				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-				m_viewer->incNumResetShaderParam((now - start).count());
-				quadrant->executingProcess(false);
-				return;
-			}
+			//if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_normalmap))
+			//{
+			//	lastProcessExecutionInterrupted = true;
+			//	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+			//	m_viewer->incNumResetShaderParam((now - start).count());
+			//	quadrant->executingProcess(false);
+			//	return;
+			//}
 
-			if (!quadrant->renderGlobalMap() && (quadrant->sendSplatmapToShader() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged))
-			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Splatmap");
+			//if (!quadrant->renderGlobalMap() && (quadrant->sendSplatmapToShader() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged))
+			//{
+			//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3 ") + __FUNCTION__, "Splatmap");
 
-				std::string profileHeader("WorldDeploy 3.3.1 ");
-				godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::splatmap, optimizationLevel, newResolution);
+			//	std::string profileHeader("WorldDeploy 3.3.1 ");
+			//	godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::splatmap, optimizationLevel, newResolution);
 
-				if (image != nullptr)
-				{
-					{
-						TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.3 ") + __FUNCTION__, "Create Texture from splatmap image");
+			//	if (image != nullptr)
+			//	{
+			//		{
+			//			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.3.3 ") + __FUNCTION__, "Create Texture from splatmap image");
 
-						// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-						//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-						m_splatmapTexture = godot::ImageTexture::create_from_image(image);
-						m_splatMapTexModified = true;
-						//debugPrintTexture(SHADER_PARAM_TERRAIN_SPLATMAP, m_splatmapTexture);
-					}
-				}
+			//			// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+			//			//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+			//			m_splatmapTexture = godot::ImageTexture::create_from_image(image);
+			//			m_splatMapTexModified = true;
+			//			//debugPrintTexture(SHADER_PARAM_TERRAIN_SPLATMAP, m_splatmapTexture);
+			//		}
+			//	}
 
-				quadrant->renderGlobalMapChanged(false);
-				quadrant->sendSplatmapToShader(false);
-			}
+			//	quadrant->renderGlobalMapChanged(false);
+			//	quadrant->sendSplatmapToShader(false);
+			//}
 
-			if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_splatmap))
-			{
-				lastProcessExecutionInterrupted = true;
-				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-				m_viewer->incNumResetShaderParam((now - start).count());
-				quadrant->executingProcess(false);
-				return;
-			}
+			//if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_splatmap))
+			//{
+			//	lastProcessExecutionInterrupted = true;
+			//	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+			//	m_viewer->incNumResetShaderParam((now - start).count());
+			//	quadrant->executingProcess(false);
+			//	return;
+			//}
 
-			if (quadrant->renderGlobalMap())	// to always pass globalmap to shader: comment this line
-			{
-				if (quadrant->sendGlobalmapToShader() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged)
-				{
-					//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Globalmap");
+			//if (quadrant->renderGlobalMap())	// to always pass globalmap to shader: comment this line
+			//{
+			//	if (quadrant->sendGlobalmapToShader() || quadrant->renderGlobalMapChanged() || optimizationLevelChanged)
+			//	{
+			//		//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4 ") + __FUNCTION__, "Globalmap");
 
-					//std::string profileHeader("WorldDeploy 3.4.1 ");
-					//godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::globalmap, optimizationLevel, newResolution);
+			//		//std::string profileHeader("WorldDeploy 3.4.1 ");
+			//		//godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::globalmap, optimizationLevel, newResolution);
 
-					//if (image != nullptr)
-					//{
-					//	{
-					//		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.3 ") + __FUNCTION__, "Create Texture from globalmap image");
+			//		//if (image != nullptr)
+			//		//{
+			//		//	{
+			//		//		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.4.3 ") + __FUNCTION__, "Create Texture from globalmap image");
 
-					//		// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-					//		//tex->create_from_image(image, godot::Texture::FLAG_FILTER | godot::Texture::FLAG_MIPMAPS);
-					//		m_globalmapTexture = godot::ImageTexture::create_from_image(image);
-					//		m_globalMapTexModified = true;
-					//		//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
-					//	}
-					//}
+			//		//		// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+			//		//		//tex->create_from_image(image, godot::Texture::FLAG_FILTER | godot::Texture::FLAG_MIPMAPS);
+			//		//		m_globalmapTexture = godot::ImageTexture::create_from_image(image);
+			//		//		m_globalMapTexModified = true;
+			//		//		//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
+			//		//	}
+			//		//}
 
-					quadrant->renderGlobalMapChanged(false);
-					quadrant->sendGlobalmapToShader(false);
-				}
-			}
+			//		quadrant->renderGlobalMapChanged(false);
+			//		quadrant->sendGlobalmapToShader(false);
+			//	}
+			//}
 
-			if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_globalmap))
-			{
-				lastProcessExecutionInterrupted = true;
-				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-				m_viewer->incNumResetShaderParam((now - start).count());
-				quadrant->executingProcess(false);
-				return;
-			}
+			//if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_globalmap))
+			//{
+			//	lastProcessExecutionInterrupted = true;
+			//	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+			//	m_viewer->incNumResetShaderParam((now - start).count());
+			//	quadrant->executingProcess(false);
+			//	return;
+			//}
 
-			if (quadrant->sendColorsToShader() || optimizationLevelChanged)
-			{
-				//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5 ") + __FUNCTION__, "Colormap");
+			//if (quadrant->sendColorsToShader() || optimizationLevelChanged)
+			//{
+			//	//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5 ") + __FUNCTION__, "Colormap");
 
-				//std::string profileHeader("WorldDeploy 3.5.1 ");
-				//godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::colormap, optimizationLevel, newResolution);
+			//	//std::string profileHeader("WorldDeploy 3.5.1 ");
+			//	//godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::colormap, optimizationLevel, newResolution);
 
-				//if (image != nullptr)
-				//{
-				//	{
-				//		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.3 ") + __FUNCTION__, "Create Texture from colormap image");
+			//	//if (image != nullptr)
+			//	//{
+			//	//	{
+			//	//		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 3.5.3 ") + __FUNCTION__, "Create Texture from colormap image");
 
-				//		// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-				//		//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-				//		m_colormapTexture = godot::ImageTexture::create_from_image(image);
-				//		m_colorMapTexModified = true;
-				//		//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
-				//	}
-				//}
+			//	//		// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+			//	//		//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+			//	//		m_colormapTexture = godot::ImageTexture::create_from_image(image);
+			//	//		m_colorMapTexModified = true;
+			//	//		//debugPrintTexture(SHADER_PARAM_TERRAIN_COLORMAP, m_colormapTexture);
+			//	//	}
+			//	//}
 
-				quadrant->sendColorsToShader(false);
-			}
+			//	quadrant->sendColorsToShader(false);
+			//}
 
-			if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_colormap))
-			{
-				lastProcessExecutionInterrupted = true;
-				TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
-				m_viewer->incNumResetShaderParam((now - start).count());
-				quadrant->executingProcess(false);
-				return;
-			}
+			//if (m_viewer->processCanBeInterrupted(GDN_TheWorld_Viewer::ProcessStep::ProcessStepIdx::Quadrant_resetMaterialParams_colormap))
+			//{
+			//	lastProcessExecutionInterrupted = true;
+			//	TheWorld_Viewer_Utils::MsTimePoint now = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
+			//	m_viewer->incNumResetShaderParam((now - start).count());
+			//	quadrant->executingProcess(false);
+			//	return;
+			//}
 
 			if (optimizationLevelChanged && !resetOptimizationChangeDelayed)
 				quadrant->optimizationLevelChanged(false);
@@ -6322,23 +6322,71 @@ bool Quadrant::checkWestSideBlendNeeded(QuadTree* westQuadrantTree)
 	return not terrainData->westSideXMinus.almostEqual(westQuadrantTerrainData->eastSideXPlus);
 }
 
-godot::Vector3 Quadrant::getNormalFromNormalmap(size_t index, bool& ok)
+godot::Vector3 Quadrant::getNormal(size_t index, bool& ok)
 {
 	ok = true;
 
-	struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)getNormalsBuffer(true, true).ptr();
-	if (rgb == nullptr)
+	if (TheWorld_Utils::MeshCacheBuffer::newQuadrantFile())
 	{
-		ok = false;
-		return godot::Vector3();
-	}
+		size_t numVerticesPerSize = m_quadrantPos.getNumVerticesPerSize();
+		float gridStepInWU = m_quadrantPos.getGridStepInWU();
+		TheWorld_Utils::MemoryBuffer& heightmap = getFloat32HeightsBuffer();
 
-	rgb += index;
-	godot::Vector3 packedNormal(float(rgb->r) / 255, float(rgb->g) / 255, float(rgb->b) / 255);
-	float normalX = 0, normalY = 0, normalZ = 0;
-	TheWorld_Utils::unpackNormal((float)packedNormal.x, (float)packedNormal.y, (float)packedNormal.z, normalX, normalY, normalZ);
-	godot::Vector3 normal(normalX, normalY, normalZ);
-	return normal;
+		size_t posX = index % numVerticesPerSize;		// 0-based pos X
+		size_t posZ = index / numVerticesPerSize;		// 0-based pos Z
+
+		float h = heightmap.get_at<float>(index);
+
+		if (posX < numVerticesPerSize - 1 and posZ < numVerticesPerSize - 1)
+		{
+			// we are far from right and bottom border we can fetch left and bottom heights
+			float h_right = heightmap.get_at<float>(index + 1);
+			float h_bottom = heightmap.get_at<float>(index + numVerticesPerSize);
+			godot::Vector3 normal(h - h_right, gridStepInWU, h - h_bottom);
+			return normal.normalized();
+		}
+		else if (posX < numVerticesPerSize - 1 and posZ == numVerticesPerSize - 1)
+		{
+			// we are on the bottom border but not on the the right border
+			float h_right = heightmap.get_at<float>(index + 1);
+			float h_top = heightmap.get_at<float>(index - numVerticesPerSize);
+			godot::Vector3 normal(h - h_top, gridStepInWU, h - h_right);
+			return normal.normalized();
+		}
+		else if (posX == numVerticesPerSize - 1 and posZ < numVerticesPerSize - 1)
+		{
+			// we are on the right border but not on the bottom border
+			float h_left = heightmap.get_at<float>(index - 1);
+			float h_bottom = heightmap.get_at<float>(index + numVerticesPerSize);
+			godot::Vector3 normal(h - h_bottom, gridStepInWU, h - h_left);
+			return normal.normalized();
+		}
+		else
+		{
+			// we are on the right / bottom vertex
+			float h_left = heightmap.get_at<float>(index - 1);
+			float h_top = heightmap.get_at<float>(index - numVerticesPerSize);
+			godot::Vector3 normal(h - h_left, gridStepInWU, h - h_top);
+			return normal.normalized();
+		}
+
+	}
+	else
+	{
+		struct TheWorld_Utils::_RGB* rgb = (struct TheWorld_Utils::_RGB*)getNormalsBuffer(true, true).ptr();
+		if (rgb == nullptr)
+		{
+			ok = false;
+			return godot::Vector3();
+		}
+
+		rgb += index;
+		godot::Vector3 packedNormal(float(rgb->r) / 255, float(rgb->g) / 255, float(rgb->b) / 255);
+		float normalX = 0, normalY = 0, normalZ = 0;
+		TheWorld_Utils::unpackNormal((float)packedNormal.x, (float)packedNormal.y, (float)packedNormal.z, normalX, normalY, normalZ);
+		godot::Vector3 normal(normalX, normalY, normalZ);
+		return normal;
+	}
 }
 
 void Quadrant::populateGridVertices(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced)

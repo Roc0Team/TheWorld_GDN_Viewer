@@ -305,11 +305,11 @@ namespace godot
 			return m_meshId;
 		}
 
-		size_t getIndexFromMap(float posX, float posZ);
+		size_t getIndexFromMap(float posX, float posZ);		// 0-based index
 		float getAltitudeFromHeigthmap(size_t index);
 		float getPosXFromHeigthmap(size_t index);
 		float getPosZFromHeigthmap(size_t index);
-		godot::Vector3 getNormalFromNormalmap(size_t index, bool& ok);
+		godot::Vector3 getNormal(size_t index, bool& ok);
 
 		TheWorld_Utils::MemoryBuffer& getFloat16HeightsBuffer(bool reloadFromCache = true)
 		{

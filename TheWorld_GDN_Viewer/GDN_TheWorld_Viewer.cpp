@@ -5397,7 +5397,7 @@ bool GDN_TheWorld_Viewer::init(void)
 		m_normalDrawer = memnew(GDN_TheWorld_Drawer);
 		this->add_child(m_normalDrawer);
 		const float radius = 1;
-		m_normalLineIdx = m_normalDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::end, 15.0f, godot::Vector2i(-10, -25), GDN_TheWorld_Globals::g_color_black);
+		m_normalLineIdx = m_normalDrawer->addLine(godot::Vector3(), godot::Vector3(), "", false, true, GDN_TheWorld_Drawer::Drawing::LabelPos::end, 3.0f, godot::Vector2i(-10, -25), GDN_TheWorld_Globals::g_color_black);
 		m_normalSphereIdx = m_normalDrawer->addSphere(godot::Vector3(), radius, GDN_TheWorld_Globals::g_color_cyan);
 		m_normalDrawer->set_visible(false);
 
@@ -11382,23 +11382,29 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 						if (index != -1)
 						{
 							bool ok;
-							normal = quadrantHit->getQuadrant()->getNormalFromNormalmap(index, ok);
+							normal = quadrantHit->getQuadrant()->getNormal(index, ok);
 							if (!ok)
 								normal = Vector3Zero;
 						}
 					}
 					if (normal != Vector3Zero)
 					{
-						const float lineSize = 50;
+						godot::Vector3 cameraPosInMap = globalPosToWorldPos(activeWorldCamera->get_global_position());
+						float distanceFromCamera = (float)cameraPosInMap.distance_to(mouseHitWorldPos);
+
+						const float lineSize = 50 * distanceFromCamera / 500; // Adjust the line size based on distance (you can tweak the divisor for different scaling)
 						godot::Vector3 end = mouseHitWorldPos + normal * lineSize;
 						float radAngleWithVertical = (float)acos(normal.dot(Vector3Up));
 						float slope = (radAngleWithVertical * 180) / TheWorld_Utils::kPi;
+						const float radius = lineSize / 10;
+						//float label3dOffset = distanceFromCamera > 2000 ? 50.0f : distanceFromCamera > 1000 ? 5.0f : 3.0f;
+						float label3dOffset = lineSize / 5;
 
 						if (m_normalLineIdx != -1 && m_normalSphereIdx != -1)
 						{
 							_normalVisible = true;
-							m_normalDrawer->updateLine(m_normalLineIdx, mouseHitWorldPos, end, std::to_string(int32_t(slope)) + "°");
-							m_normalDrawer->updateSphere(m_normalSphereIdx, end);
+							m_normalDrawer->updateLine(m_normalLineIdx, mouseHitWorldPos, end, std::to_string(int32_t(slope)) + "°", GDN_TheWorld_Drawer::Drawing::LabelPos::end, label3dOffset);
+							m_normalDrawer->updateSphere(m_normalSphereIdx, end, radius);
 						}
 					}
 					

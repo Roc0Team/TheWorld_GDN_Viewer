@@ -6326,7 +6326,9 @@ godot::Vector3 Quadrant::getNormal(size_t index, bool& ok)
 {
 	ok = true;
 
-	if (TheWorld_Utils::MeshCacheBuffer::newQuadrantFile())
+	TheWorld_Utils::MemoryBuffer& normalsBuffer =getNormalsBuffer(false);
+	
+	if (normalsBuffer.size() == 0)
 	{
 		size_t numVerticesPerSize = m_quadrantPos.getNumVerticesPerSize();
 		float gridStepInWU = m_quadrantPos.getGridStepInWU();
@@ -6521,109 +6523,86 @@ void Quadrant::splatmapChanged(void)
 
 	size_t verticesPerBorder = m_viewer->Globals()->numVerticesPerQuadrantSize();
 	
-	if (m_splatmapBuffer.size() != verticesPerBorder * verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA))
+	BYTE* splatmapBufferPtr = m_splatmapBuffer.ptr();
+
+	if (m_splatmapBuffer.size() == verticesPerBorder * verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA))
 	{
+		// we have full splatmap, we can set borders extracting them from splatmap buffer
+		
+		// Splatmap North Border Row
+		{
+			m_splatmapNorthBorderRow.set(splatmapBufferPtr, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+		}
+
+		// Splatmap South Border Row
+		{
+			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * (verticesPerBorder - 1) * sizeof(struct TheWorld_Utils::_RGBA));
+			m_splatmapSouthBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+		}
+
+		// Splatmap West Border Row
+		{
+			m_splatmapWestBorderRow.reserve(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+			for (int idx = 0; idx < verticesPerBorder; idx++)
+			{
+				struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(idx, 0, verticesPerBorder);
+				m_splatmapWestBorderRow.set_at_ref<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
+			}
+			m_splatmapWestBorderRow.adjustSize(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+		}
+
+		// Splatmap East Border Row
+		{
+			m_splatmapEastBorderRow.reserve(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+			for (int idx = 0; idx < verticesPerBorder; idx++)
+			{
+				struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(idx, verticesPerBorder - 1, verticesPerBorder);
+				m_splatmapEastBorderRow.set_at_ref<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
+			}
+			m_splatmapEastBorderRow.adjustSize(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+		}
+
+		m_lastSplatmapBordersRefreshTs = TheWorld_Utils::current_utc_time_point();
+	}
+	else if (m_splatmapBuffer.size() == verticesPerBorder * 4 * sizeof(struct TheWorld_Utils::_RGBA))
+	{
+		// we have only splatmap borders in buffer (NORTH/SOUTH/WEST/EAST), we can set borders directly from splatmap buffer
+		
+		// Splatmap North Border Row: first row in buffer
+		{
+			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * 0 * sizeof(struct TheWorld_Utils::_RGBA));
+			m_splatmapNorthBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+		}
+
+		// Splatmap South Border Row: second row in buffer
+		{
+			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * 1 * sizeof(struct TheWorld_Utils::_RGBA));
+			m_splatmapSouthBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+		}
+
+		// Splatmap West Border Row: third row in buffer
+		{
+			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * 2 * sizeof(struct TheWorld_Utils::_RGBA));
+			m_splatmapWestBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+		}
+
+		// Splatmap East Border Row: fourth row in buffer
+		{
+			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * 3 * sizeof(struct TheWorld_Utils::_RGBA));
+			m_splatmapEastBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+		}
+
+		m_lastSplatmapBordersRefreshTs = TheWorld_Utils::current_utc_time_point();
+	}
+	else
+	{
+		// Splatmap size not as expected, we clear borders and set refresh ts to null
 		m_splatmapNorthBorderRow.clear();
 		m_splatmapSouthBorderRow.clear();
 		m_splatmapWestBorderRow.clear();
 		m_splatmapEastBorderRow.clear();
 		m_lastSplatmapBordersRefreshTs = TheWorld_Utils::null_time_point();
-		return;
 	}
-	
-	BYTE* splatmapBufferPtr = m_splatmapBuffer.ptr();
-
-	// Splatmap North Border Row
-	{
-		m_splatmapNorthBorderRow.set(splatmapBufferPtr, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-	}
-
-	// Splatmap South Border Row
-	{
-		BYTE* offset = splatmapBufferPtr + (verticesPerBorder * (verticesPerBorder - 1) * sizeof(struct TheWorld_Utils::_RGBA));
-		m_splatmapSouthBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-	}
-
-	// Splatmap West Border Row
-	{
-		m_splatmapWestBorderRow.reserve(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-		for (int idx = 0; idx < verticesPerBorder; idx++)
-		{
-			struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(idx, 0, verticesPerBorder);
-			m_splatmapWestBorderRow.set_at_ref<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
-		}
-		m_splatmapWestBorderRow.adjustSize(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-	}
-
-	// Splatmap East Border Row
-	{
-		m_splatmapEastBorderRow.reserve(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-		for (int idx = 0; idx < verticesPerBorder; idx++)
-		{
-			struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(idx, verticesPerBorder - 1, verticesPerBorder);
-			m_splatmapEastBorderRow.set_at_ref<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
-		}
-		m_splatmapEastBorderRow.adjustSize(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-	}
-
-	m_lastSplatmapBordersRefreshTs = TheWorld_Utils::current_utc_time_point();
-
-	// $$$$$$
-	/*
-	{
-		if (getPos().getIndexPosX() == 15 and getPos().getIndexPosZ() == 1)
-		{
-			// North Side
-			godot::PackedByteArray dataNorth;
-			size_t splatmapBufferSizeRowInBytes = (size_t)borderMapSize * sizeof(struct TheWorld_Utils::_RGBA);
-			dataNorth.resize((int)splatmapBufferSizeRowInBytes);
-			assert(splatmapBufferSizeRowInBytes == m_splatmapNorthBorderRow.size());
-			{
-				memcpy((char*)dataNorth.ptrw(), m_splatmapNorthBorderRow.ptr(), splatmapBufferSizeRowInBytes);
-			}
-			Ref<godot::Image> imageNorth = godot::Image::create_from_data((int32_t)borderMapSize, 1, false, godot::Image::Format::FORMAT_RGBA8, dataNorth);
-			std::string name = "C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\Quadrant_" + std::to_string(getPos().getIndexPosX()) + "-" + std::to_string(getPos().getIndexPosZ()) + "_North_Border.png";
-			imageNorth->save_png(name.c_str());
-
-			// South Side
-			godot::PackedByteArray dataSouth;
-			splatmapBufferSizeRowInBytes = (size_t)borderMapSize * sizeof(struct TheWorld_Utils::_RGBA);
-			dataSouth.resize((int)splatmapBufferSizeRowInBytes);
-			assert(splatmapBufferSizeRowInBytes == m_splatmapSouthBorderRow.size());
-			{
-				memcpy((char*)dataSouth.ptrw(), m_splatmapSouthBorderRow.ptr(), splatmapBufferSizeRowInBytes);
-			}
-			Ref<godot::Image> imageSouth = godot::Image::create_from_data((int32_t)borderMapSize, 1, false, godot::Image::Format::FORMAT_RGBA8, dataSouth);
-			name = "C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\Quadrant_" + std::to_string(getPos().getIndexPosX()) + "-" + std::to_string(getPos().getIndexPosZ()) + "_South_Border.png";
-			imageSouth->save_png(name.c_str());
-
-			// West Side
-			godot::PackedByteArray dataWest;
-			splatmapBufferSizeRowInBytes = (size_t)borderMapSize * sizeof(struct TheWorld_Utils::_RGBA);
-			dataWest.resize((int)splatmapBufferSizeRowInBytes);
-			assert(splatmapBufferSizeRowInBytes == m_splatmapWestBorderRow.size());
-			{
-				memcpy((char*)dataWest.ptrw(), m_splatmapWestBorderRow.ptr(), splatmapBufferSizeRowInBytes);
-			}
-			Ref<godot::Image> imageWest = godot::Image::create_from_data((int32_t)borderMapSize, 1, false, godot::Image::Format::FORMAT_RGBA8, dataWest);
-			name = "C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\Quadrant_" + std::to_string(getPos().getIndexPosX()) + "-" + std::to_string(getPos().getIndexPosZ()) + "_West_Border.png";
-			imageWest->save_png(name.c_str());
-
-			// East Side
-			godot::PackedByteArray dataEast;
-			splatmapBufferSizeRowInBytes = (size_t)borderMapSize * sizeof(struct TheWorld_Utils::_RGBA);
-			dataEast.resize((int)splatmapBufferSizeRowInBytes);
-			assert(splatmapBufferSizeRowInBytes == m_splatmapEastBorderRow.size());
-			{
-				memcpy((char*)dataEast.ptrw(), m_splatmapEastBorderRow.ptr(), splatmapBufferSizeRowInBytes);
-			}
-			Ref<godot::Image> imageEast = godot::Image::create_from_data((int32_t)borderMapSize, 1, false, godot::Image::Format::FORMAT_RGBA8, dataEast);
-			name = "C:\\Users\\Riccardo\\AppData\\Roaming\\Godot\\app_userdata\\TheWorld\\temp\\Quadrant_" + std::to_string(getPos().getIndexPosX()) + "-" + std::to_string(getPos().getIndexPosZ()) + "_East_Border.png";
-			imageEast->save_png(name.c_str());
-		}
-	}
-	*/
-	// $$$$$$
 }
 
 void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache)
@@ -6740,20 +6719,6 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	{
 		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
 		getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.3 "), ShaderTerrainData::ImageType::heightmap);
-
-		//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.3 ") + __FUNCTION__, "Cache heightmap images");
-
-		//std::string profileHeader("WorldDeploy 2.1.1.3.1 ");
-		//getShaderTerrainData()->getHiresHeightmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, 0, resolution);
-
-		//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-		//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-		//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-		//{
-		//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-		//	std::string profileHeader("WorldDeploy 2.1.1.3.2 ");
-		//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, optimizationLevel, cachedTextureResolution);
-		//}
 	}
 
 	sendNormalsToShader(true);
@@ -6761,20 +6726,6 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	{
 		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
 		getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.4 ") + __FUNCTION__, ShaderTerrainData::ImageType::normalmap);
-
-		//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.4 ") + __FUNCTION__, "Cache normalmap images");
-
-		//std::string profileHeader("WorldDeploy 2.1.1.4.1 ");
-		//getShaderTerrainData()->getHiresNormalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::normalmap, 0, resolution);
-
-		//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-		//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-		//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-		//{
-		//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-		//	std::string profileHeader("WorldDeploy 2.1.1.4.2 ");
-		//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::normalmap, optimizationLevel, cachedTextureResolution);
-		//}
 	}
 
 	splatmapChanged();
@@ -6783,20 +6734,6 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	{
 		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
 		getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.5 "), ShaderTerrainData::ImageType::splatmap);
-
-		//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.5 ") + __FUNCTION__, "Cache splatmap images");
-
-		//std::string profileHeader("WorldDeploy 2.1.1.5.1 ");
-		//getShaderTerrainData()->getHiresSplatmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::splatmap, 0, resolution);
-
-		//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-		//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-		//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-		//{
-		//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-		//	std::string profileHeader("WorldDeploy 2.1.1.5.2 ");
-		//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::splatmap, optimizationLevel, cachedTextureResolution);
-		//}
 	}
 
 	size_t optimizationLevelForMapImage = (size_t)MapQuadrantImagesMap::getMapQuadrantOptimizationLevel();	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;

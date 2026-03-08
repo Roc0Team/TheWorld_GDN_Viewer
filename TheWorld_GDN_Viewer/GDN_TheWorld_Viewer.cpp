@@ -4472,10 +4472,22 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 	{
 		TheWorld_Utils::MemoryBuffer* cookedSplatmap = mapModder->getOutBuffer();
 		size_t numPixels = (size_t)sqrt(float(cookedSplatmap->size() / sizeof(TheWorld_Utils::_RGBA)));
+		size_t verticesPerBorder = Globals()->numVerticesPerQuadrantSize();
+		my_assert(numPixels == verticesPerBorder * verticesPerBorder);
 		TheWorld_Utils::MemoryBuffer& splatmapBuffer = quadTree->getQuadrant()->getSplatmapBuffer();
-		splatmapBuffer.reserve(cookedSplatmap->size());
-		memcpy(splatmapBuffer.ptr(), cookedSplatmap->ptr(), cookedSplatmap->size());
-		splatmapBuffer.adjustSize(cookedSplatmap->size());
+		{
+			size_t borderSize = verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA);
+			splatmapBuffer.reserve(verticesPerBorder * 4);	// reserve for 4 borders (N,S,W,E)
+			splatmapBuffer.adjustSize(verticesPerBorder * 4);
+			cookedSplatmap->getBorders(verticesPerBorder, sizeof(struct TheWorld_Utils::_RGBA),
+				splatmapBuffer.ptr() + 0 * borderSize,		// North border
+				splatmapBuffer.ptr() + 1 * borderSize,		// South border
+				splatmapBuffer.ptr() + 2 * borderSize,		// West border
+				splatmapBuffer.ptr() + 3 * borderSize);		// East border
+			//splatmapBuffer.reserve(cookedSplatmap->size());
+			//splatmapBuffer.adjustSize(cookedSplatmap->size());
+			//memcpy(splatmapBuffer.ptr(), cookedSplatmap->ptr(), cookedSplatmap->size());
+		}
 		mapModder->deinitRequired(true);
 
 		TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();

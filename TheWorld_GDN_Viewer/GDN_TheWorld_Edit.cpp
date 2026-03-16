@@ -506,8 +506,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	//parent->add_child(test2);
 	//test2->set_text("TEXT");
 
-	m_mapModder = memnew(GDN_TheWorld_MapModder);
-	m_mapModder->custom_ready(m_viewer, this, false);
+	//m_mapModder = memnew(GDN_TheWorld_MapModder);
+	//m_mapModder->custom_ready(m_viewer, this, false);
 
 	//const Color self_modulate = get_self_modulate();
 	//const Color self_modulate_to_transparency(1.0f, 1.0f, 1.0f, 0.5f);
@@ -1096,17 +1096,19 @@ void GDN_TheWorld_Edit::deinit(void)
 {
 	if (m_initialized)
 	{
-		Node* parent = m_mapModder->get_parent();
-		if (parent != nullptr)
-			parent->remove_child(m_mapModder);
-		m_mapModder->queue_free();
-		m_mapModder = nullptr;
+		//{
+		//	Node* parent = m_mapModder->get_parent();
+		//	if (parent != nullptr)
+		//		parent->remove_child(m_mapModder);
+		//	m_mapModder->queue_free();
+		//	m_mapModder = nullptr;
+		//}
 
 		m_tp.Stop();
 		m_innerData.reset();
 		m_initialized = false;
 
-		parent = get_parent();
+		Node* parent = get_parent();
 		if (parent != nullptr)
 		{
 			//parent->call_deferred("remove_child", this);		// Mah
@@ -2829,22 +2831,22 @@ void GDN_TheWorld_Edit::_process(double _delta)
 		m_infoLabelTextChanged = false;
 	}
 
-	if (m_mapModder != nullptr && m_mapModder->startProcessRequired())
-	{
-		m_mapModder->startProcessing();
-		//m_mapModder->startProcessRequired(false);
-	}
+	//if (m_mapModder != nullptr && m_mapModder->startProcessRequired())
+	//{
+	//	m_mapModder->startProcessing();
+	//	//m_mapModder->startProcessRequired(false);
+	//}
 
-	if (m_mapModder != nullptr && m_mapModder->deinitRequired())
-	{
-		m_mapModder->deinit();
-		//m_mapModder->deinitRequired(false);
-	}
+	//if (m_mapModder != nullptr && m_mapModder->deinitRequired())
+	//{
+	//	m_mapModder->deinit();
+	//	//m_mapModder->deinitRequired(false);
+	//}
 
-	if (m_mapModder != nullptr)
-	{
-		m_mapModder->debug_process(_delta);
-	}
+	//if (m_mapModder != nullptr)
+	//{
+	//	m_mapModder->debug_process(_delta);
+	//}
 
 	m_lastQuadTreeSel = quadTreeSel;
 }

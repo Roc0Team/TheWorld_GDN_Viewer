@@ -2078,3 +2078,54 @@
 	//		return;
 	//	}
 	//}
+
+
+					//// SUPERDEBUGRIC 12/03/2026
+					//{
+					//	static std::map<TheWorld_Utils::QuadrantPos, godot::Ref<godot::Image>> imageMap;
+					//	static std::map<TheWorld_Utils::QuadrantPos, TheWorld_Utils::MemoryBuffer> bufferMap;
+					//	TheWorld_Utils::QuadrantPos pos = quadrant->getPos();
+					//	if ((pos.getIndexPosX() == -26 and pos.getIndexPosZ() == -27) or (pos.getIndexPosX() == -26 and pos.getIndexPosZ() == -28))
+					//	{
+					//		imageMap[pos] = image;
+
+					//		if (imageMap.size() == 2)
+					//		{
+					//			bool checkDebug = true;
+					//			if (checkDebug)
+					//			{
+					//				for (auto& item : imageMap)
+					//				{
+					//					TheWorld_Utils::QuadrantPos pos = item.first;
+					//					godot::Ref<godot::Image> image = item.second;
+
+					//					std::string outPngFileName = "C:/Temp/heightmap_" + std::to_string(pos.getIndexPosX()) + "_" + std::to_string(pos.getIndexPosZ()) + ".png";
+					//					image->save_png(outPngFileName.c_str());
+
+					//					std::string outTxtFileName = "C:/Temp/heightmap_" + std::to_string(pos.getIndexPosX()) + "_" + std::to_string(pos.getIndexPosZ()) + ".txt";
+					//					FILE* outFile = nullptr;
+					//					errno_t err = fopen_s(&outFile, outTxtFileName.c_str(), "w");
+					//					for (size_t row = 0; row < image->get_height(); row++)
+					//					{
+					//						std::string line;
+					//						for (size_t col = 0; col < image->get_width(); col++)
+					//						{
+					//							godot::Color c = image->get_pixel((int)col, (int)row);
+					//							line += std::to_string(c.r) + " ";
+					//							//uint16_t* p = (uint16_t*)image->get_data().ptr();
+					//							//TheWorld_Utils::FLOAT_32 f;
+					//							//int32_t index = ((int32_t)row * image->get_width()) + (int32_t)col;
+					//							//f.u32 = half_to_float(*(p + index));
+					//							//line += std::to_string(f.f32) + " ";
+					//						}
+					//						line += "\n";
+					//						size_t ret = fwrite(line.c_str(), line.size(), 1, outFile);
+					//					}
+					//					fclose(outFile);
+					//				}
+					//			}
+					//		}
+					//	}
+					//}
+					//// SUPERDEBUGRIC
+

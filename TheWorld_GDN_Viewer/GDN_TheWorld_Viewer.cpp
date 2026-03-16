@@ -3580,9 +3580,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			//	material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
 			//}
 
-			//Ref<godot::ImageTexture> heightmapTexture;
-
-			material->set_shader_parameter(SHADER_PARAM_GENERATE_GLOBAL_MAP, true);
+			//material->set_shader_parameter(SHADER_PARAM_GENERATE_GLOBAL_MAP, true);
 			material->set_shader_parameter(SHADER_PARAM_GRID_STEP_OPTLVL_ZERO, gridStepInWU);
 			material->set_shader_parameter(SHADER_PARAM_MOUSE_HIT_UV_QUADRANT, godot::Vector2(-1, -1));
 			material->set_shader_parameter(SHADER_PARAM_EDITMODE_SELECTED, float(0.0f));
@@ -3591,9 +3589,9 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			godot::Transform3D t(godot::Basis(), godot::Vector3(0.0f, 0.0f, 0.0f));
 			godot::Variant inverseTransform = t.affine_inverse();
 			material->set_shader_parameter(SHADER_PARAM_INVERSE_TRANSFORM, inverseTransform);
-			Basis normalBasis = t.basis.inverse().transposed();
-			material->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
-			material->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, water_globalmap_gdshader_u_sea_color);
+			//Basis normalBasis = t.basis.inverse().transposed();
+			//material->set_shader_parameter(SHADER_PARAM_NORMAL_BASIS, normalBasis);
+			//material->set_shader_parameter(SHADER_PARAM_QUADRANT_SIZE, m_viewer->Globals()->heightmapSizeInWUs());
 
 			godot::Vector4 v = m_quadTree->getQuadrant()->quadrantTextureLayers();
 			material->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
@@ -3606,129 +3604,109 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			
 			material->set_shader_parameter(SHADER_PARAM_OVERRIDE_CAM_ALTITUDE, -1);		// we force, as override for this quadrant, camera altitude from terrain to -1 so the shader will not consider the real camera altitude which is expressed as a global shader param valid for every quadrant
 						
-			//std::string lowElevationTexName = terrainEdit->extraValues.lowElevationTexName_r;
-			//if (lowElevationTexName.size() > 0)
-			//{
-			//	godot::Ref<godot::ImageTexture> lowElevation_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(lowElevationTexName);
-			//	if (lowElevation_albedo_bump_tex != nullptr)
-			//		material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_0, lowElevation_albedo_bump_tex);
-
-			//	godot::Ref<godot::ImageTexture> lowElevation_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(lowElevationTexName);
-			//	if (lowElevation_normal_roughness_tex != nullptr)
-			//		material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_0, lowElevation_normal_roughness_tex);
-			//}
-			//std::string highElevationTexName = terrainEdit->extraValues.highElevationTexName_g;
-			//if (highElevationTexName.size() > 0)
-			//{
-			//	godot::Ref<godot::ImageTexture> highElevation_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(highElevationTexName);
-			//	if (highElevation_albedo_bump_tex != nullptr)
-			//		material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_1, highElevation_albedo_bump_tex);
-
-			//	godot::Ref<godot::ImageTexture> highElevation_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(highElevationTexName);
-			//	if (highElevation_normal_roughness_tex != nullptr)
-			//		material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_1, highElevation_normal_roughness_tex);
-			//}
-			//std::string dirtTexName = terrainEdit->extraValues.dirtTexName_b;
-			//if (dirtTexName.size() > 0)
-			//{
-			//	godot::Ref<godot::ImageTexture> dirt_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(dirtTexName);
-			//	if (dirt_albedo_bump_tex != nullptr)
-			//		material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_2, dirt_albedo_bump_tex);
-
-			//	godot::Ref<godot::ImageTexture> dirt_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(dirtTexName);
-			//	if (dirt_normal_roughness_tex != nullptr)
-			//		material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_2, dirt_normal_roughness_tex);
-			//}
-			//std::string rocksTexName = terrainEdit->extraValues.rocksTexName_a;
-			//if (rocksTexName.size() > 0)
-			//{
-			//	godot::Ref<godot::ImageTexture> rocks_albedo_bump_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getAlbedoBumpTexture(rocksTexName);
-			//	if (rocks_albedo_bump_tex != nullptr)
-			//		material->set_shader_parameter(SHADER_PARAM_GROUND_ALBEDO_BUMP_3, rocks_albedo_bump_tex);
-
-			//	godot::Ref<godot::ImageTexture> rocks_normal_roughness_tex = m_quadTree->getQuadrant()->getShaderTerrainData()->getNormalRoughnessTexture(rocksTexName);
-			//	if (rocks_normal_roughness_tex != nullptr)
-			//		material->set_shader_parameter(SHADER_PARAM_GROUND_NORMAL_ROUGHNESS_3, rocks_normal_roughness_tex);
-			//}
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_VERTICAL_FACTOR, terrainEdit->extraValues.slopeVerticalFactor);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_FLAT_FACTOR, terrainEdit->extraValues.slopeFlatFactor);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_DIRT_ON_ROCKS_FACTOR, terrainEdit->extraValues.dirtOnRocksFactor);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_HIGH_ELEVATION_FACTOR, terrainEdit->extraValues.highElevationFactor);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_LOW_ELEVATION_FACTOR, terrainEdit->extraValues.lowElevationFactor);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_MIN_HEIGHT, terrainEdit->minHeight);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_MAX_HEIGHT, terrainEdit->maxHeight);
 
 			int numVerticesPerQuadrantSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
 
 			{
-				size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
-				godot::PackedByteArray data;
-				size_t heightmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
-				data.resize((int)heightmapBufferSizeInBytes);
-				size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
-				assert(heightmapBufferSizeInBytes == heightsBufferSize);
-				{
-					memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
-				}
-				godot::Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RH, data);
-				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				//size_t uint16_t_size = sizeof(uint16_t);	// the size of an half ==> float_16
+				//godot::PackedByteArray data;
+				//size_t heightmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * uint16_t_size;
+				//data.resize((int)heightmapBufferSizeInBytes);
+				//size_t heightsBufferSize = m_quadTree->getQuadrant()->getFloat16HeightsBuffer().size();
+				//assert(heightmapBufferSizeInBytes == heightsBufferSize);
+				//{
+				//	memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getFloat16HeightsBuffer().ptr(), heightsBufferSize);
+				//}
+				//godot::Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RH, data);
+				//// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+				////tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+				std::string profileHeader(" ");
+				size_t optimizationLevel = 0;
+				size_t resolution = m_viewer->Globals()->resolutionForOptimizationLevel(optimizationLevel);
+				m_quadTree->getQuadrant()->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(0);
+				godot::Ref<godot::Image> image = m_quadTree->getQuadrant()->getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, optimizationLevel, resolution);
+
 				heightmapTexture = godot::ImageTexture::create_from_image(image);
-				material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, heightmapTexture);
-			}
-
-			{
-				godot::Ref<godot::Image> image;
-				size_t normalsBufferSize = 0;
-				normalsBufferSize = m_quadTree->getQuadrant()->getNormalsBuffer().size();
-				if (normalsBufferSize == 0)
+				if (ShaderTerrainData::s_extraNeighbourBorderInHeightmap)
 				{
-					godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGB8);
-					image = im;
-					image->fill(godot::Color(0, 0, 0, 1.0));
+					image = m_quadTree->getQuadrant()->getShaderTerrainData()->addExtraBordersToHeightmap(image);
+					godot::Ref<godot::ImageTexture> heightmapTexture = godot::ImageTexture::create_from_image(image);
+					material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, heightmapTexture);
+					material->set_shader_parameter(SHADER_EXTRA_VERTICES_ON_HEIGHTMAP, size_t(1));
 				}
 				else
 				{
-					godot::PackedByteArray data;
-					size_t normalmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
-					data.resize((int)normalmapBufferSizeInBytes);
-					assert(normalmapBufferSizeInBytes == normalsBufferSize);
-					{
-						memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getNormalsBuffer().ptr(), normalsBufferSize);
-					}
-					godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGB8, data);
-					image = im;
+					material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, heightmapTexture);
+					material->set_shader_parameter(SHADER_EXTRA_VERTICES_ON_HEIGHTMAP, size_t(0));
 				}
-				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-				godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-				material->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, tex);
 			}
 
-			{
-				godot::Ref<godot::Image> image;
+			//{
+			//	godot::Ref<godot::Image> image;
+			//	size_t normalsBufferSize = 0;
+			//	normalsBufferSize = m_quadTree->getQuadrant()->getNormalsBuffer().size();
+			//	if (normalsBufferSize == 0)
+			//	{
+			//		godot::Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGB8);
+			//		image = im;
+			//		image->fill(godot::Color(0, 0, 0, 1.0));
+			//	}
+			//	else
+			//	{
+			//		godot::PackedByteArray data;
+			//		size_t normalmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGB);
+			//		data.resize((int)normalmapBufferSizeInBytes);
+			//		assert(normalmapBufferSizeInBytes == normalsBufferSize);
+			//		{
+			//			memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getNormalsBuffer().ptr(), normalsBufferSize);
+			//		}
+			//		godot::Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGB8, data);
+			//		image = im;
+			//	}
+			//	// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+			//	//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+			//	godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+			//	material->set_shader_parameter(SHADER_PARAM_TERRAIN_NORMALMAP, tex);
+			//}
 
-				size_t splatmapBufferSize = 0;
-				splatmapBufferSize = m_quadTree->getQuadrant()->getSplatmapBuffer().size();
-				if (splatmapBufferSize == 0)
-				{
-					Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8);
-					image = im;
-					image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
-				}
-				else
-				{
-					godot::PackedByteArray data;
-					size_t splatmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
-					data.resize((int)splatmapBufferSizeInBytes);
-					assert(splatmapBufferSizeInBytes == splatmapBufferSize);
-					{
-						memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getSplatmapBuffer().ptr(), splatmapBufferSizeInBytes);
-					}
-					Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8, data);
-					image = im;
-					//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
-					//image->save_png(outFileName.c_str());
-				}
-				// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
-				//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
-				godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
-				material->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, tex);
-				//material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
-			}
+			//{
+			//	godot::Ref<godot::Image> image;
+
+			//	size_t splatmapBufferSize = 0;
+			//	splatmapBufferSize = m_quadTree->getQuadrant()->getSplatmapBuffer().size();
+			//	if (splatmapBufferSize == 0)
+			//	{
+			//		Ref<godot::Image> im = godot::Image::create(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8);
+			//		image = im;
+			//		image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
+			//	}
+			//	else
+			//	{
+			//		godot::PackedByteArray data;
+			//		size_t splatmapBufferSizeInBytes = (size_t)numVerticesPerQuadrantSize * numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+			//		data.resize((int)splatmapBufferSizeInBytes);
+			//		my_assert(splatmapBufferSizeInBytes == splatmapBufferSize);
+			//		{
+			//			memcpy((char*)data.ptrw(), m_quadTree->getQuadrant()->getSplatmapBuffer().ptr(), splatmapBufferSizeInBytes);
+			//		}
+			//		Ref<godot::Image> im = godot::Image::create_from_data(numVerticesPerQuadrantSize, numVerticesPerQuadrantSize, false, godot::Image::Format::FORMAT_RGBA8, data);
+			//		image = im;
+			//		//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".splatmap.png";
+			//		//image->save_png(outFileName.c_str());
+			//	}
+			//	// Look at https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html#uniforms to activate hints corresponding to flags in the shader
+			//	//tex->create_from_image(image, godot::Texture::FLAG_FILTER);
+			//	godot::Ref<godot::ImageTexture> tex = godot::ImageTexture::create_from_image(image);
+			//	material->set_shader_parameter(SHADER_PARAM_TERRAIN_SPLATMAP, tex);
+			//	//material->set_shader_parameter(SHADER_PARAM_LOOKDEV_MAP, tex);
+			//}
 
 			//{
 			//	Ref<Image> image;
@@ -4471,19 +4449,12 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForSplatmap)
 	{
 		TheWorld_Utils::MemoryBuffer* cookedSplatmap = mapModder->getOutBuffer();
-		size_t numPixels = (size_t)sqrt(float(cookedSplatmap->size() / sizeof(TheWorld_Utils::_RGBA)));
+		size_t numPixels = cookedSplatmap->size() / sizeof(TheWorld_Utils::_RGBA);
 		size_t verticesPerBorder = Globals()->numVerticesPerQuadrantSize();
 		my_assert(numPixels == verticesPerBorder * verticesPerBorder);
 		TheWorld_Utils::MemoryBuffer& splatmapBuffer = quadTree->getQuadrant()->getSplatmapBuffer();
 		{
-			size_t borderSize = verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA);
-			splatmapBuffer.reserve(verticesPerBorder * 4);	// reserve for 4 borders (N,S,W,E)
-			splatmapBuffer.adjustSize(verticesPerBorder * 4);
-			cookedSplatmap->getBorders(verticesPerBorder, sizeof(struct TheWorld_Utils::_RGBA),
-				splatmapBuffer.ptr() + 0 * borderSize,		// North border
-				splatmapBuffer.ptr() + 1 * borderSize,		// South border
-				splatmapBuffer.ptr() + 2 * borderSize,		// West border
-				splatmapBuffer.ptr() + 3 * borderSize);		// East border
+			cookedSplatmap->getBorders<struct TheWorld_Utils::_RGBA>(verticesPerBorder, splatmapBuffer);	// get 4 borders (N,S,W,E)
 			//splatmapBuffer.reserve(cookedSplatmap->size());
 			//splatmapBuffer.adjustSize(cookedSplatmap->size());
 			//memcpy(splatmapBuffer.ptr(), cookedSplatmap->ptr(), cookedSplatmap->size());
@@ -4526,10 +4497,24 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 	{
 		TheWorld_Utils::MemoryBuffer* cookedGlobalmap = mapModder->getOutBuffer();
 		TheWorld_Utils::MemoryBuffer& globalmapBuffer = quadTree->getQuadrant()->getGlobalmapBuffer();
-		size_t numPixels = (size_t)sqrt(float(cookedGlobalmap->size() / sizeof(TheWorld_Utils::_RGB)));
-		globalmapBuffer.reserve(cookedGlobalmap->size());
-		memcpy(globalmapBuffer.ptr(), cookedGlobalmap->ptr(), cookedGlobalmap->size());
-		globalmapBuffer.adjustSize(cookedGlobalmap->size());
+		
+		////size_t numPixels = (size_t)sqrt(float(cookedGlobalmap->size() / sizeof(TheWorld_Utils::_RGB)));
+		//globalmapBuffer.reserve(cookedGlobalmap->size());
+		//memcpy(globalmapBuffer.ptr(), cookedGlobalmap->ptr(), cookedGlobalmap->size());
+		//globalmapBuffer.adjustSize(cookedGlobalmap->size());
+
+		size_t imageResolution = Globals()->resolutionForOptimizationLevel((size_t)MapQuadrantImagesMap::getMapQuadrantOptimizationLevel());
+		godot::Ref<godot::Image> quadrantMapImage = MapQuadrantImage::quadrantMapBufferToQuadrantMapImage(*cookedGlobalmap, Globals()->numVerticesPerQuadrantSize(), imageResolution);
+		godot::PackedByteArray quadrantMapImageData = quadrantMapImage->get_data();
+		std::string outFileName = quadTree->getQuadrant()->getCacheFilePath() + ".map2.png";	// DEBUG
+		//quadrantMapImage->save_png(outFileName.c_str());										// DEBUG
+		//globalmapBuffer.reserve(quadrantMapImageData.size() + sizeof(int32_t) + sizeof(int32_t) + sizeof(int64_t));
+		size_t offset = 0;
+		globalmapBuffer.serialize<int32_t>(quadrantMapImage->get_width(), offset);
+		globalmapBuffer.serialize<int32_t>(quadrantMapImage->get_format(), offset);
+		globalmapBuffer.serialize<int64_t>(quadrantMapImageData.size(), offset);
+		globalmapBuffer.serialize((BYTE*)quadrantMapImageData.ptr(), quadrantMapImageData.size(), offset);
+
 		mapModder->deinitRequired(true);
 
 		TheWorld_Utils::TerrainEdit* terrainEdit = quadTree->getQuadrant()->getTerrainEdit();
@@ -6034,16 +6019,16 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						// clear everything
 						m_mapQuadrantsMap.erase(quadrantPos);
 					}
+					m_mapQuadrantsMap.unlock();
 
 					if (mapQuadrant != nullptr)
 					{
 						std::string outMeshIdFromBuffer;
 						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
+						m_mapQuadrantsMap.lock();
 						m_mapQuadrantsMap.addUpdatedQuadrant(quadrantPos);
+						m_mapQuadrantsMap.unlock();
 					}
-
-#pragma warning(suppress: 26117)
-					m_mapQuadrantsMap.unlock();
 
 #pragma warning(suppress: 26117)
 					if (quadTree != nullptr)
@@ -10906,9 +10891,9 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 	{
 		std::string hudStreaming = m_hudStreamingInfoLabel->get_text().utf8().get_data();
 		int numQuadsToRefreshToShader = getNumNeedShaderResetQuadrants() + getNumNeedShaderUpdateQuadrants();
-		int numQuadsToInitialize = getNumQuadrants() - getNumInitializedQuadrants();
+		int numQuadrant = getNumQuadrants() - getNumToEraseQuadrants();
+		int numQuadsToInitialize = numQuadrant - getNumInitializedQuadrants();
 		int averageQuadsToProcess = (numQuadsToRefreshToShader + numQuadsToInitialize) / 2;
-		int numQuadrant = getNumQuadrants();
 		int maxNumQuadrant = getMaxNumQuadrants();
 		if (numQuadrant == 0 or averageQuadsToProcess == 0)
 		{
@@ -15405,9 +15390,10 @@ void GDN_TheWorld_Viewer::streamer(void)
 									*buffer.ptr() = '0';
 									cursor = 1;
 
-									TheWorld_Utils::serializeToByteStream<size_t>(rectsPos.size(), buffer.ptr() + cursor, size);
-									cursor += size;
-									buffer.adjustSize(cursor);
+									buffer.serialize<size_t>(rectsPos.size(), cursor);
+									//TheWorld_Utils::serializeToByteStream<size_t>(rectsPos.size(), buffer.ptr() + cursor, size);
+									//cursor += size;
+									//buffer.adjustSize(cursor);
 
 									TheWorld_Utils::MapTextureRectPos nullMapTextureRectPos;
 									GDN_TheWorld_Map::MapTextureRect nullMapTextureRect(map, nullMapTextureRectPos);
@@ -15424,25 +15410,13 @@ void GDN_TheWorld_Viewer::streamer(void)
 										assert(textureRectPos.initialized());
 										TheWorld_Utils::MemoryBuffer textureRectPosBuffer;
 										textureRectPos.serialize(textureRectPosBuffer);
-										buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
-										TheWorld_Utils::serializeToByteStream<size_t>(textureRectPosBuffer.size(), buffer.ptr() + cursor, size);
-										cursor += size;
-										buffer.adjustSize(cursor);
-										buffer.reserve(cursor + textureRectPosBuffer.size());		// to avoid memory overflow
-										memcpy(buffer.ptr() + cursor, textureRectPosBuffer.ptr(), textureRectPosBuffer.size());
-										cursor += textureRectPosBuffer.size();
-										buffer.adjustSize(cursor);
+										buffer.serialize<size_t>(textureRectPosBuffer.size(), cursor);
+										buffer.serialize(textureRectPosBuffer, cursor);
 
 										// File Time Str
 										std::string fileTime = mapTextureRect->fileTimeStr();
-										buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
-										TheWorld_Utils::serializeToByteStream<size_t>(fileTime.size(), buffer.ptr() + cursor, size);
-										cursor += size;
-										buffer.adjustSize(cursor);
-										buffer.reserve(cursor + fileTime.size());		// to avoid memory overflow
-										memcpy(buffer.ptr() + cursor, fileTime.c_str(), fileTime.size());
-										cursor += fileTime.size();
-										buffer.adjustSize(cursor);
+										buffer.serialize<size_t>(fileTime.size(), cursor);
+										buffer.serialize(fileTime, cursor);
 									}
 									
 									//buffer.adjustSize(cursor);

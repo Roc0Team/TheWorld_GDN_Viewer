@@ -53,8 +53,8 @@ MapQuadrantImage::MapQuadrantImage(TheWorld_Utils::QuadrantPos& quadrantPos, GDN
 {
 	m_quadrantPos = quadrantPos;
 	m_viewer = viewer;
-	m_optimizationLevel = optimizationLevel;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
-	m_imageResolution = (int32_t)m_viewer->Globals()->resolutionForOptimizationLevel((size_t)m_optimizationLevel);
+	//m_optimizationLevel = optimizationLevel;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
+	m_imageResolution = (int32_t)m_viewer->Globals()->resolutionForOptimizationLevel((size_t)optimizationLevel);
 	std::string mapName = m_viewer->Globals()->getMapName();
 	std::string dir = GDN_TheWorld_Globals::getClientDataDir();
 	m_cache = TheWorld_Utils::MeshCacheBuffer(dir, mapName, m_quadrantPos.getGridStepInWU(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getLevel(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex());
@@ -153,38 +153,61 @@ void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std:
 	}
 	else
 	{
+		godot::Ref<godot::Image> resizedImage;
+
 		int _resolution = (int)globals->numVerticesPerQuadrantSize();
-		godot::PackedByteArray data;
-		size_t globalmapBufferSizeInBytes = (size_t)_resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
-		data.resize((int)globalmapBufferSizeInBytes);
-		assert(globalmapBufferSizeInBytes == globalmapBuffer.size());
+		size_t expectedQuadrantMapBufferSize = (size_t)_resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
+		
+		if (expectedQuadrantMapBufferSize == globalmapBuffer.size())
 		{
-			memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), globalmapBufferSizeInBytes);
-		}
-		godot::Ref<godot::Image> hiResImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
-
-		godot::Ref<godot::Image> resizedImage = godot::Image::create_from_data(hiResImage->get_width(), hiResImage->get_height(), false, hiResImage->get_format(), hiResImage->get_data());
-		resizedImage->resize(getImageResolution(), getImageResolution(), godot::Image::Interpolation::INTERPOLATE_BILINEAR);
-
-		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.2 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(getImageResolution()));
-
-			//size_t optimizationLevel = 4;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
-			//int32_t newStep = 1 << optimizationLevel;
-			int32_t newStep = (_resolution - 1) / (getImageResolution() - 1);
-			int32_t hiResImageWidth = hiResImage->get_width();
-			int32_t hiResImageHeight = hiResImage->get_height();
-			int32_t resizedImageWidth = resizedImage->get_width();
-			int32_t resizedImageHeight = resizedImage->get_height();
-			for (int32_t x = 0; x < resizedImageWidth; x++)
+			godot::PackedByteArray data;
+			data.resize((int)expectedQuadrantMapBufferSize);
+			assert(expectedQuadrantMapBufferSize == globalmapBuffer.size());
 			{
-				resizedImage->set_pixel(x, 0, hiResImage->get_pixel(x * newStep, 0));
-				resizedImage->set_pixel(x, resizedImageHeight - 1, hiResImage->get_pixel(x * newStep, hiResImageHeight - 1));
+				memcpy((char*)data.ptrw(), globalmapBuffer.ptr(), expectedQuadrantMapBufferSize);
 			}
-			for (int32_t y = 0; y < resizedImageHeight; y++)
+			godot::Ref<godot::Image> hiResImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
+
+			resizedImage = godot::Image::create_from_data(hiResImage->get_width(), hiResImage->get_height(), false, hiResImage->get_format(), hiResImage->get_data());
+			resizedImage->resize(getImageResolution(), getImageResolution(), godot::Image::Interpolation::INTERPOLATE_BILINEAR);
+
 			{
-				resizedImage->set_pixel(0, y, hiResImage->get_pixel(0, y * newStep));
-				resizedImage->set_pixel(resizedImageWidth - 1, y, hiResImage->get_pixel(hiResImageWidth - 1, y * newStep));
+				TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.2 ") + __FUNCTION__, "resize image (adjust borders) " + std::to_string(_resolution) + " ==> " + std::to_string(getImageResolution()));
+
+				//size_t optimizationLevel = 4;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
+				//int32_t newStep = 1 << optimizationLevel;
+				int32_t newStep = (_resolution - 1) / (getImageResolution() - 1);
+				int32_t hiResImageWidth = hiResImage->get_width();
+				int32_t hiResImageHeight = hiResImage->get_height();
+				int32_t resizedImageWidth = resizedImage->get_width();
+				int32_t resizedImageHeight = resizedImage->get_height();
+				for (int32_t x = 0; x < resizedImageWidth; x++)
+				{
+					resizedImage->set_pixel(x, 0, hiResImage->get_pixel(x * newStep, 0));
+					resizedImage->set_pixel(x, resizedImageHeight - 1, hiResImage->get_pixel(x * newStep, hiResImageHeight - 1));
+				}
+				for (int32_t y = 0; y < resizedImageHeight; y++)
+				{
+					resizedImage->set_pixel(0, y, hiResImage->get_pixel(0, y * newStep));
+					resizedImage->set_pixel(resizedImageWidth - 1, y, hiResImage->get_pixel(hiResImageWidth - 1, y * newStep));
+				}
+			}
+		}
+		else
+		{
+			size_t offset = 0;
+			int32_t resolution = globalmapBuffer.deserialize<int32_t>(offset);
+			int32_t format = globalmapBuffer.deserialize<int32_t>(offset);
+			int64_t dataSize = globalmapBuffer.deserialize<int64_t>(offset);
+			godot::PackedByteArray data;
+			data.resize(dataSize);
+			{
+				globalmapBuffer.deserialize((BYTE*)data.ptrw(), dataSize, offset);
+			}
+			resizedImage = godot::Image::create_from_data(resolution, resolution, false, (godot::Image::Format)format, data);
+			if (resolution != getImageResolution())
+			{
+				resizedImage->resize(getImageResolution(), getImageResolution(), godot::Image::Interpolation::INTERPOLATE_BILINEAR);
 			}
 		}
 
@@ -3238,6 +3261,44 @@ void ShaderTerrainData::releaseGlobals(void)
 	s_groundTextures.clear();
 }
 
+godot::Ref<godot::Image> MapQuadrantImage::quadrantMapBufferToQuadrantMapImage(TheWorld_Utils::MemoryBuffer& quadrantMapBuffer, size_t numVerticesPerQuadrantSize, size_t imageResolution)
+{
+	int _resolution = (int)numVerticesPerQuadrantSize;
+	size_t expectedQuadrantMapBufferSize = (size_t)_resolution * _resolution * sizeof(struct TheWorld_Utils::_RGB);
+	my_assert(expectedQuadrantMapBufferSize == quadrantMapBuffer.size());
+	godot::PackedByteArray data;
+	data.resize((int)expectedQuadrantMapBufferSize);
+	{
+		memcpy((char*)data.ptrw(), quadrantMapBuffer.ptr(), expectedQuadrantMapBufferSize);
+	}
+	godot::Ref<godot::Image> hiResImage = godot::Image::create_from_data(_resolution, _resolution, false, godot::Image::Format::FORMAT_RGB8, data);
+
+	godot::Ref<godot::Image> resizedImage = godot::Image::create_from_data(hiResImage->get_width(), hiResImage->get_height(), false, hiResImage->get_format(), hiResImage->get_data());
+	resizedImage->resize((int32_t)imageResolution, (int32_t)imageResolution, godot::Image::Interpolation::INTERPOLATE_BILINEAR);
+
+	{
+		//size_t optimizationLevel = 4;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
+		//int32_t newStep = 1 << optimizationLevel;
+		int32_t newStep = (_resolution - 1) / ((int32_t)imageResolution - 1);
+		int32_t hiResImageWidth = hiResImage->get_width();
+		int32_t hiResImageHeight = hiResImage->get_height();
+		int32_t resizedImageWidth = resizedImage->get_width();
+		int32_t resizedImageHeight = resizedImage->get_height();
+		for (int32_t x = 0; x < resizedImageWidth; x++)
+		{
+			resizedImage->set_pixel(x, 0, hiResImage->get_pixel(x * newStep, 0));
+			resizedImage->set_pixel(x, resizedImageHeight - 1, hiResImage->get_pixel(x * newStep, hiResImageHeight - 1));
+		}
+		for (int32_t y = 0; y < resizedImageHeight; y++)
+		{
+			resizedImage->set_pixel(0, y, hiResImage->get_pixel(0, y * newStep));
+			resizedImage->set_pixel(resizedImageWidth - 1, y, hiResImage->get_pixel(hiResImageWidth - 1, y * newStep));
+		}
+	}
+
+	return resizedImage;
+}
+
 godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 {
 	if (m_hiresHeightmapImage == nullptr)
@@ -3323,6 +3384,7 @@ godot::Ref<godot::Image> ShaderTerrainData::addExtraBordersToHeightmap(godot::Re
 		memcpy((char*)data.ptrw(), newHeightmapImageBuffer.ptr(), newHeightmapImageBuffer.size());
 	}
 	godot::Ref<godot::Image> image = godot::Image::create_from_data(int32_t(newHeightmapResolution), int32_t(newHeightmapResolution), false, godot::Image::Format::FORMAT_RH, data);
+	
 	return image;
 }
 
@@ -3968,6 +4030,7 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 				{
 					image = addExtraBordersToHeightmap(image);
 					quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(1);
+					//// SUPERDEBUGRIC 12/03/2026
 				}
 
 				if (image != nullptr)
@@ -6070,25 +6133,29 @@ void Quadrant::getHeightmapCorner(std::chrono::system_clock::time_point& lastBor
 	case TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus:
 	{
 		size_t numElements = m_heightmapNorthBorderRow.size<uint16_t>();
-		heightmapCorner = m_heightmapNorthBorderRow.get_at<uint16_t>(0, 0, numElements);
+		//heightmapCorner = m_heightmapNorthBorderRow.get_at<uint16_t>(0, 0, numElements);
+		heightmapCorner = m_heightmapNorthBorderRow.get_at<uint16_t>(0, 1, numElements);
 	}
 	break;
 	case TheWorld_Utils::QuadrantPos::DirectionSlot::NortheastZMinusXPlus:
 	{
 		size_t numElements = m_heightmapEastBorderRow.size<uint16_t>();
-		heightmapCorner = m_heightmapEastBorderRow.get_at<uint16_t>(0, 0, numElements);
+		//heightmapCorner = m_heightmapEastBorderRow.get_at<uint16_t>(0, 0, numElements);
+		heightmapCorner = m_heightmapEastBorderRow.get_at<uint16_t>(0, 1, numElements);
 	}
 	break;
 	case TheWorld_Utils::QuadrantPos::DirectionSlot::SouthwestZPlusXMinus:
 	{
 		size_t numElements = m_heightmapSouthBorderRow.size<uint16_t>();
-		heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, 0, numElements);
+		//heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, 0, numElements);
+		heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, 1, numElements);
 	}
 	break;
 	case TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus:
 	{
 		size_t numElements = m_heightmapSouthBorderRow.size<uint16_t>();
-		heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, numElements - 1, numElements);
+		//heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, numElements - 1, numElements);
+		heightmapCorner = m_heightmapSouthBorderRow.get_at<uint16_t>(0, numElements - 2, numElements);
 	}
 	break;
 	}
@@ -6326,7 +6393,7 @@ godot::Vector3 Quadrant::getNormal(size_t index, bool& ok)
 {
 	ok = true;
 
-	TheWorld_Utils::MemoryBuffer& normalsBuffer =getNormalsBuffer(false);
+	TheWorld_Utils::MemoryBuffer& normalsBuffer = getNormalsBuffer(false);
 	
 	if (normalsBuffer.size() == 0)
 	{
@@ -6334,44 +6401,10 @@ godot::Vector3 Quadrant::getNormal(size_t index, bool& ok)
 		float gridStepInWU = m_quadrantPos.getGridStepInWU();
 		TheWorld_Utils::MemoryBuffer& heightmap = getFloat32HeightsBuffer();
 
-		size_t posX = index % numVerticesPerSize;		// 0-based pos X
-		size_t posZ = index / numVerticesPerSize;		// 0-based pos Z
+		float normalX, normalY, normalZ;
+		TheWorld_Utils::MeshCacheBuffer::calcNormal(heightmap, numVerticesPerSize, gridStepInWU, index, normalX, normalY, normalZ);
 
-		float h = heightmap.get_at<float>(index);
-
-		if (posX < numVerticesPerSize - 1 and posZ < numVerticesPerSize - 1)
-		{
-			// we are far from right and bottom border we can fetch left and bottom heights
-			float h_right = heightmap.get_at<float>(index + 1);
-			float h_bottom = heightmap.get_at<float>(index + numVerticesPerSize);
-			godot::Vector3 normal(h - h_right, gridStepInWU, h - h_bottom);
-			return normal.normalized();
-		}
-		else if (posX < numVerticesPerSize - 1 and posZ == numVerticesPerSize - 1)
-		{
-			// we are on the bottom border but not on the the right border
-			float h_right = heightmap.get_at<float>(index + 1);
-			float h_top = heightmap.get_at<float>(index - numVerticesPerSize);
-			godot::Vector3 normal(h - h_top, gridStepInWU, h - h_right);
-			return normal.normalized();
-		}
-		else if (posX == numVerticesPerSize - 1 and posZ < numVerticesPerSize - 1)
-		{
-			// we are on the right border but not on the bottom border
-			float h_left = heightmap.get_at<float>(index - 1);
-			float h_bottom = heightmap.get_at<float>(index + numVerticesPerSize);
-			godot::Vector3 normal(h - h_bottom, gridStepInWU, h - h_left);
-			return normal.normalized();
-		}
-		else
-		{
-			// we are on the right / bottom vertex
-			float h_left = heightmap.get_at<float>(index - 1);
-			float h_top = heightmap.get_at<float>(index - numVerticesPerSize);
-			godot::Vector3 normal(h - h_left, gridStepInWU, h - h_top);
-			return normal.normalized();
-		}
-
+		return godot::Vector3(normalX, normalY, normalZ);
 	}
 	else
 	{
@@ -6463,6 +6496,7 @@ void Quadrant::heightmapChanged(void)
 	southEastQuadrantData().initialized(false);
 
 	size_t verticesPerBorder = m_viewer->Globals()->numVerticesPerQuadrantSize();
+	size_t borderSize = verticesPerBorder * sizeof(uint16_t);
 
 	if (m_float16HeigthsBuffer.size() != verticesPerBorder * verticesPerBorder * sizeof(uint16_t))
 	{
@@ -6478,35 +6512,39 @@ void Quadrant::heightmapChanged(void)
 
 	// Heightmap North Border Row of my own heights
 	{
-		m_heightmapNorthBorderRow.set(heightmapBufferPtr, verticesPerBorder * sizeof(uint16_t));
+		//m_heightmapNorthBorderRow.set(heightmapBufferPtr, borderSize);
+		m_heightmapNorthBorderRow.set(heightmapBufferPtr + borderSize, borderSize);
 	}
 
 	// Heightmap South Border Row of my own heights
 	{
-		BYTE* offset = heightmapBufferPtr + (verticesPerBorder * (verticesPerBorder - 1) * sizeof(uint16_t));
-		m_heightmapSouthBorderRow.set(offset, verticesPerBorder * sizeof(uint16_t));
+		//BYTE* offset = heightmapBufferPtr + borderSize * (verticesPerBorder - 1);
+		BYTE* offset = heightmapBufferPtr + borderSize * (verticesPerBorder - 2);
+		m_heightmapSouthBorderRow.set(offset, borderSize);
 	}
 
 	// Heightmap West Border Row of my own heights
 	{
-		m_heightmapWestBorderRow.reserve(verticesPerBorder * sizeof(uint16_t));
+		m_heightmapWestBorderRow.reserve(borderSize);
+		m_heightmapWestBorderRow.adjustSize(borderSize);
 		for (int idx = 0; idx < verticesPerBorder; idx++)
 		{
-			uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(idx, 0, verticesPerBorder);
+			//uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(idx, 0, verticesPerBorder);
+			uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(idx, 1, verticesPerBorder);
 			m_heightmapWestBorderRow.set_at_ref<uint16_t>(*element, idx, 0, verticesPerBorder);
 		}
-		m_heightmapWestBorderRow.adjustSize(verticesPerBorder * sizeof(uint16_t));
 	}
 
 	// Heightmap East Border Row of my own heights
 	{
-		m_heightmapEastBorderRow.reserve(verticesPerBorder * sizeof(uint16_t));
+		m_heightmapEastBorderRow.reserve(borderSize);
+		m_heightmapEastBorderRow.adjustSize(borderSize);
 		for (int idx = 0; idx < verticesPerBorder; idx++)
 		{
-			uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(idx, verticesPerBorder - 1, verticesPerBorder);
+			//uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(idx, verticesPerBorder - 1, verticesPerBorder);
+			uint16_t* element = m_float16HeigthsBuffer.get_at_ptr<uint16_t>(idx, verticesPerBorder - 2, verticesPerBorder);
 			m_heightmapEastBorderRow.set_at_ref<uint16_t>(*element, idx, 0, verticesPerBorder);
 		}
-		m_heightmapEastBorderRow.adjustSize(verticesPerBorder * sizeof(uint16_t));
 	}
 
 	m_lastHeightmapBordersRefreshTs = TheWorld_Utils::current_utc_time_point();
@@ -6523,76 +6561,43 @@ void Quadrant::splatmapChanged(void)
 
 	size_t verticesPerBorder = m_viewer->Globals()->numVerticesPerQuadrantSize();
 	
-	BYTE* splatmapBufferPtr = m_splatmapBuffer.ptr();
-
 	if (m_splatmapBuffer.size() == verticesPerBorder * verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA))
 	{
 		// we have full splatmap, we can set borders extracting them from splatmap buffer
-		
-		// Splatmap North Border Row
-		{
-			m_splatmapNorthBorderRow.set(splatmapBufferPtr, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-		}
-
-		// Splatmap South Border Row
-		{
-			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * (verticesPerBorder - 1) * sizeof(struct TheWorld_Utils::_RGBA));
-			m_splatmapSouthBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-		}
-
-		// Splatmap West Border Row
-		{
-			m_splatmapWestBorderRow.reserve(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-			for (int idx = 0; idx < verticesPerBorder; idx++)
-			{
-				struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(idx, 0, verticesPerBorder);
-				m_splatmapWestBorderRow.set_at_ref<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
-			}
-			m_splatmapWestBorderRow.adjustSize(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-		}
-
-		// Splatmap East Border Row
-		{
-			m_splatmapEastBorderRow.reserve(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-			for (int idx = 0; idx < verticesPerBorder; idx++)
-			{
-				struct TheWorld_Utils::_RGBA* element = m_splatmapBuffer.get_at_ptr<struct TheWorld_Utils::_RGBA>(idx, verticesPerBorder - 1, verticesPerBorder);
-				m_splatmapEastBorderRow.set_at_ref<struct TheWorld_Utils::_RGBA>(*element, idx, 0, verticesPerBorder);
-			}
-			m_splatmapEastBorderRow.adjustSize(verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
-		}
-
 		m_lastSplatmapBordersRefreshTs = TheWorld_Utils::current_utc_time_point();
+		m_splatmapBuffer.getBorders<struct TheWorld_Utils::_RGBA>(verticesPerBorder, m_splatmapNorthBorderRow, m_splatmapSouthBorderRow, m_splatmapWestBorderRow, m_splatmapEastBorderRow);
 	}
 	else if (m_splatmapBuffer.size() == verticesPerBorder * 4 * sizeof(struct TheWorld_Utils::_RGBA))
 	{
 		// we have only splatmap borders in buffer (NORTH/SOUTH/WEST/EAST), we can set borders directly from splatmap buffer
-		
+		m_lastSplatmapBordersRefreshTs = TheWorld_Utils::current_utc_time_point();
+
+		BYTE* splatmapBufferPtr = m_splatmapBuffer.ptr();
+		size_t borderSize = verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA);
+
 		// Splatmap North Border Row: first row in buffer
 		{
-			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * 0 * sizeof(struct TheWorld_Utils::_RGBA));
-			m_splatmapNorthBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+			BYTE* offset = splatmapBufferPtr + borderSize * 0;
+			m_splatmapNorthBorderRow.set(offset, borderSize);
 		}
 
 		// Splatmap South Border Row: second row in buffer
 		{
-			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * 1 * sizeof(struct TheWorld_Utils::_RGBA));
-			m_splatmapSouthBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+			BYTE* offset = splatmapBufferPtr + borderSize * 1;
+			m_splatmapSouthBorderRow.set(offset, borderSize);
 		}
 
 		// Splatmap West Border Row: third row in buffer
 		{
-			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * 2 * sizeof(struct TheWorld_Utils::_RGBA));
-			m_splatmapWestBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+			BYTE* offset = splatmapBufferPtr + borderSize * 2;
+			m_splatmapWestBorderRow.set(offset, borderSize);
 		}
 
 		// Splatmap East Border Row: fourth row in buffer
 		{
-			BYTE* offset = splatmapBufferPtr + (verticesPerBorder * 3 * sizeof(struct TheWorld_Utils::_RGBA));
-			m_splatmapEastBorderRow.set(offset, verticesPerBorder * sizeof(struct TheWorld_Utils::_RGBA));
+			BYTE* offset = splatmapBufferPtr + borderSize * 3;
+			m_splatmapEastBorderRow.set(offset, borderSize);
 		}
-
-		m_lastSplatmapBordersRefreshTs = TheWorld_Utils::current_utc_time_point();
 	}
 	else
 	{
@@ -6678,21 +6683,27 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	if (m_float16HeigthsBuffer.empty())
 	{
 		getTerrainEdit()->heightsNeedRegen = true;
-		getTerrainEdit()->normalsNeedRegen = true;
 		getTerrainEdit()->splatmapNeedRegen(true);
-		getTerrainEdit()->globalmapNeedRegen = true;
-		getTerrainEdit()->colormapNeedRegen = true;
+		if (TheWorld_Utils::MeshCacheBuffer::cacheQuadrantFormat0())
+		{
+			getTerrainEdit()->normalsNeedRegen = true;
+			getTerrainEdit()->globalmapNeedRegen = true;
+			getTerrainEdit()->colormapNeedRegen = true;
+		}
 	}
 	else
 	{
-		if (m_normalsBuffer.empty() && !getTerrainEdit()->normalsNeedRegen)
-			getTerrainEdit()->normalsNeedRegen = true;
 		if (m_splatmapBuffer.empty() && !getTerrainEdit()->splatmapNeedRegen())
 			getTerrainEdit()->splatmapNeedRegen(true);
-		if (m_globalmapBuffer.empty() && !getTerrainEdit()->globalmapNeedRegen)
-			getTerrainEdit()->globalmapNeedRegen = true;
-		if (m_colormapBuffer.empty() && !getTerrainEdit()->colormapNeedRegen)
-			getTerrainEdit()->colormapNeedRegen = true;
+		if (TheWorld_Utils::MeshCacheBuffer::cacheQuadrantFormat0())
+		{
+			if (m_normalsBuffer.empty() && !getTerrainEdit()->normalsNeedRegen)
+				getTerrainEdit()->normalsNeedRegen = true;
+			if (m_globalmapBuffer.empty() && !getTerrainEdit()->globalmapNeedRegen)
+				getTerrainEdit()->globalmapNeedRegen = true;
+			if (m_colormapBuffer.empty() && !getTerrainEdit()->colormapNeedRegen)
+				getTerrainEdit()->colormapNeedRegen = true;
+		}
 	}
 
 
@@ -6763,10 +6774,10 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 			//}
 		}
 
-		std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
-		m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevelForMapImage, textureNumPixelsPerSize);
-		godot::Vector2i sz = m_mapImage->get_size();	// DEBUG
-		sz = m_mapImage->get_size();	// DEBUG
+		//std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
+		//m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevelForMapImage, textureNumPixelsPerSize);
+		//godot::Vector2i sz = m_mapImage->get_size();	// DEBUG
+		//sz = m_mapImage->get_size();	// DEBUG
 		//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".map.png";
 		//m_mapImage->save_png(outFileName.c_str());
 	}
@@ -6809,15 +6820,16 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	size_t numNormals = m_normalsBuffer.size() / sizeof(struct TheWorld_Utils::_RGB);
 	size_t numSplatmapVertices = m_splatmapBuffer.size() / sizeof(struct TheWorld_Utils::_RGBA);
 	size_t numColorVertices = m_colormapBuffer.size() / sizeof(struct TheWorld_Utils::_RGBA);
-	size_t numGlobalmapVertices = m_globalmapBuffer.size() / sizeof(struct TheWorld_Utils::_RGB);
+	//size_t numGlobalmapVertices = m_globalmapBuffer.size() / sizeof(struct TheWorld_Utils::_RGB);
+	size_t numVerticesPerSize = size_t(sqrtf(float(numFloat16Heights)));
 
-	assert(numFloat16Heights == numFloat32Heights);
-	assert(numNormals == 0 || numFloat16Heights == numNormals);
-	assert(numSplatmapVertices == 0 || numFloat16Heights == numSplatmapVertices);
-	assert(numColorVertices == 0 || numFloat16Heights == numColorVertices);
-	assert(numGlobalmapVertices == 0 || numFloat16Heights == numGlobalmapVertices);
-	assert(numFloat16Heights == areaSize);
-	if (numFloat16Heights != numFloat32Heights || (numNormals > 0 && numFloat16Heights != numNormals) || (numSplatmapVertices > 0 && numFloat16Heights != numSplatmapVertices) || (numColorVertices > 0 && numFloat16Heights != numColorVertices) || (numGlobalmapVertices > 0 && numFloat16Heights != numGlobalmapVertices) || numFloat16Heights != areaSize)
+	my_assert(numFloat16Heights == numFloat32Heights);
+	my_assert(numNormals == 0 || numFloat16Heights == numNormals);
+	my_assert(numSplatmapVertices == 0 || numFloat16Heights == numSplatmapVertices || numVerticesPerSize * 4 == numSplatmapVertices);
+	my_assert(numColorVertices == 0 || numFloat16Heights == numColorVertices);
+	//my_assert(numGlobalmapVertices == 0 || numFloat16Heights == numGlobalmapVertices);
+	my_assert(numFloat16Heights == areaSize);
+	if (numFloat16Heights != numFloat32Heights || (numNormals > 0 && numFloat16Heights != numNormals) || (numSplatmapVertices > 0 && numFloat16Heights != numSplatmapVertices && numVerticesPerSize * 4 != numSplatmapVertices) || (numColorVertices > 0 && numFloat16Heights != numColorVertices) /*|| (numGlobalmapVertices > 0 && numFloat16Heights != numGlobalmapVertices)*/ || numFloat16Heights != areaSize)
 		throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Grid Vertices not of the correct size").c_str()));
 
 	{

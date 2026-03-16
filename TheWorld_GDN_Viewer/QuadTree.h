@@ -52,10 +52,10 @@ namespace godot
 			m_updated = b;
 		}
 		
-		size_t getOptimizationLevel(void) const
-		{
-			return m_optimizationLevel;
-		}
+		//size_t getOptimizationLevel(void) const
+		//{
+		//	return m_optimizationLevel;
+		//}
 		int32_t getImageResolution(void) const
 		{
 			return m_imageResolution;
@@ -79,6 +79,8 @@ namespace godot
 
 		std::time_t getRefreshTime(void);
 
+		static godot::Ref<godot::Image> quadrantMapBufferToQuadrantMapImage(TheWorld_Utils::MemoryBuffer& quadrantMapBuffer, size_t numVerticesPerQuadrantSize, size_t imageResolution);
+
 	private:
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		TheWorld_Utils::QuadrantPos m_quadrantPos;
@@ -86,7 +88,7 @@ namespace godot
 		std::string m_meshId;
 		bool m_updated = false;
 		int64_t m_lastUpdateTime = 0;
-		size_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
+		//size_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
 		int32_t m_imageResolution = 0;
 
 		// Datas
@@ -689,10 +691,10 @@ namespace godot
 			return m_southEastQuadrantData;
 		}
 
-		godot::Ref<godot::Image> getMapImage(void) const
-		{
-			return m_mapImage;
-		}
+		//godot::Ref<godot::Image> getMapImage(void) const
+		//{
+		//	return m_mapImage;
+		//}
 
 		bool checkBlendNeeded(void);
 		bool checkBlendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
@@ -839,7 +841,7 @@ namespace godot
 #else
 		godot::PackedFloat32Array m_heightsForCollider;
 #endif // REAL_T_IS_DOUBLE
-		godot::Ref<godot::Image> m_mapImage;
+		//godot::Ref<godot::Image> m_mapImage;
 		// Terrain Values
 
 		NeighbourQuadrantData m_northQuadrantData;
@@ -939,7 +941,7 @@ namespace godot
 
 #define GLOBAL_SHADER_PARAM_CAM_ALTITUDE			"gu_camera_altitude_from_terrain"
 #define SHADER_PARAM_OVERRIDE_CAM_ALTITUDE			"u_override_camera_altitude_from_terrain"
-#define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
+//#define GLOBAL_SHADER_PARAM_CAM_POS					"gu_camera_pos"
 //#define GLOBAL_SHADER_PARAM_CAM_ON_SEA			"gu_camera_on_sea"
 //#define GLOBAL_SHADER_PARAM_CAM_UNDER_WATER		"gu_camera_under_water"
 //#define GLOBAL_SHADER_PARAM_SHOW_SEA				"gu_show_sea"

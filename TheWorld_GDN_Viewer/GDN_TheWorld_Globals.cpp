@@ -1405,7 +1405,7 @@ namespace godot
 		m_paramElevationZero = b;
 		int paramElevationZero = b ? 1 : 0;
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_FORCE_ELEVATION_0, paramElevationZero);
-		Viewer()->terrainHeightsChangedEvent();
+		//Viewer()->terrainHeightsChangedEvent();
 		PLOG_INFO << "View Parameter - Elevation Zero: " << (m_paramElevationZero ? "true" : "false");
 	}
 

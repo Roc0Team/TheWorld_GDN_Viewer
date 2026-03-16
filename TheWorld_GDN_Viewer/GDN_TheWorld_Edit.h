@@ -746,7 +746,7 @@ namespace godot
 		TheWorld_Utils::ThreadPool m_tp;
 		bool m_requestedThreadExit = false;
 
-		GDN_TheWorld_MapModder* m_mapModder = nullptr;
+		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
 		godot::Vector2 m_size;
 

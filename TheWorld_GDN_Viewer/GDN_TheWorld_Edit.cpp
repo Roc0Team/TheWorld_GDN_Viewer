@@ -1203,65 +1203,65 @@ godot::Ref<godot::Texture2D> GDN_TheWorld_Edit::getTextureByTerrainType(TheWorld
 		return nullptr;
 }
 
-void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
-{
-	m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset));
-	godot::Ref<godot::Texture2D> emptyTexture;
-	m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
-	editingMap(false);
-	//m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
-	setSelectedTerrainType(TheWorld_Utils::TerrainEdit::TerrainType::notset);
-
-	m_infoLabelTextChanged = true;
-
-	setSeed(0);
-	setFrequency(0.0f);
-	setOctaves(0);
-	setLacunarity(0.0f);
-	setGain(0.0f);
-	setWeightedStrength(0.0f);
-	setPingPongStrength(0.0f);
-	setAmplitudeBlendFactor(0.0f);
-	setBlendingCycles(0);
-	setBlendingBendingFactor(0.0f);
-	setMinRandomBendingExtension(0.0f);
-	setMaxRandomBendingExtension(0.0f);
-	setAmplitude(0);
-	setScaleFactor(1.0f);
-	setIgnoreDesideredMinHeight(false);
-	setDesideredMinHeight(0.0f);
-	setPostGenerateElevation(0.0f);
-	setMinHeight(0.0f);
-	setMaxHeight(0.0f);
-	//setCanContainSea(false);
-	setSlopeVerticalFactor(0.0f);
-	setSlopeFlatFactor(0.0f);
-	setDirtOnRocksFactor(0.0f);
-	setHighElevationFactor(0.0f);
-	setLowElevationFactor(0.0f);
-	setSplatMapMode(1);
-	setGroundLayout("");
-
-	m_innerData->m_lowElevationTexName->set_text("");
-	m_innerData->m_highElevationTexName->set_text("");
-	m_innerData->m_dirtTexName->set_text("");
-	m_innerData->m_rocksTexName->set_text("");
-	m_innerData->m_lowElevationLayoutName->set_text("");
-	m_innerData->m_highElevationLayoutName->set_text("");
-	m_innerData->m_dirtLayoutName->set_text("");
-	m_innerData->m_rocksLayoutName->set_text("");
-	m_innerData->m_lowElevationTex->set_texture(emptyTexture);
-	m_innerData->m_highElevationTex->set_texture(emptyTexture);
-	m_innerData->m_dirtTex->set_texture(emptyTexture);
-	m_innerData->m_rocksTex->set_texture(emptyTexture);
-
-	m_innerData->m_selQuadSeaCheckBox->set_disabled(true);
-}
+//void GDN_TheWorld_Edit::setEmptyTerrainEditValues(void)
+//{
+//	m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset));
+//	godot::Ref<godot::Texture2D> emptyTexture;
+//	m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
+//	editingMap(false);
+//	//m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
+//	setSelectedTerrainType(TheWorld_Utils::TerrainEdit::TerrainType::notset);
+//
+//	m_infoLabelTextChanged = true;
+//
+//	setSeed(0);
+//	setFrequency(0.0f);
+//	setOctaves(0);
+//	setLacunarity(0.0f);
+//	setGain(0.0f);
+//	setWeightedStrength(0.0f);
+//	setPingPongStrength(0.0f);
+//	setAmplitudeBlendFactor(0.0f);
+//	setBlendingCycles(0);
+//	setBlendingBendingFactor(0.0f);
+//	setMinRandomBendingExtension(0.0f);
+//	setMaxRandomBendingExtension(0.0f);
+//	setAmplitude(0);
+//	setScaleFactor(1.0f);
+//	setIgnoreDesideredMinHeight(false);
+//	setDesideredMinHeight(0.0f);
+//	setPostGenerateElevation(0.0f);
+//	setMinHeight(0.0f);
+//	setMaxHeight(0.0f);
+//	//setCanContainSea(false);
+//	setSlopeVerticalFactor(0.0f);
+//	setSlopeFlatFactor(0.0f);
+//	setDirtOnRocksFactor(0.0f);
+//	setHighElevationFactor(0.0f);
+//	setLowElevationFactor(0.0f);
+//	setSplatMapMode(1);
+//	setGroundLayout("");
+//
+//	m_innerData->m_lowElevationTexName->set_text("");
+//	m_innerData->m_highElevationTexName->set_text("");
+//	m_innerData->m_dirtTexName->set_text("");
+//	m_innerData->m_rocksTexName->set_text("");
+//	m_innerData->m_lowElevationLayoutName->set_text("");
+//	m_innerData->m_highElevationLayoutName->set_text("");
+//	m_innerData->m_dirtLayoutName->set_text("");
+//	m_innerData->m_rocksLayoutName->set_text("");
+//	m_innerData->m_lowElevationTex->set_texture(emptyTexture);
+//	m_innerData->m_highElevationTex->set_texture(emptyTexture);
+//	m_innerData->m_dirtTex->set_texture(emptyTexture);
+//	m_innerData->m_rocksTex->set_texture(emptyTexture);
+//
+//	m_innerData->m_selQuadSeaCheckBox->set_disabled(true);
+//}
 
 void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit, TheWorld_Utils::QuadrantPos quadrantPos, bool activateEditingMap)
 {
 	int64_t id = m_innerData->m_terrTypeOptionButton->get_selected_id();
-	if (id != -1)
+	//if (id != -1)
 	{
 		TheWorld_Utils::TerrainEdit::TerrainType selectedTerrainType = (TheWorld_Utils::TerrainEdit::TerrainType)id;
 		if (selectedTerrainType != terrainEdit.terrainType)
@@ -1274,7 +1274,6 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 		setSelectedTerrainType(terrainEdit.terrainType);
 	}
 
-	godot::Ref<godot::Texture2D> emptyTexture;
 	if (m_innerData->m_terrainTypeIcons.contains(terrainEdit.terrainType))
 	{
 		m_innerData->m_terrTypeButton->set_button_icon(m_innerData->m_terrainTypeIcons[terrainEdit.terrainType]);
@@ -1283,6 +1282,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	}
 	else
 	{
+		godot::Ref<godot::Texture2D> emptyTexture;
 		m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
 		editingMap(false);
 	}
@@ -1388,6 +1388,7 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 
 void GDN_TheWorld_Edit::resetPanelsOnQuadrantDeselection()
 {
+	editingMap(false);
 	resetSelectedTerrainType();
 	resetSeed();
 	resetFrequency();
@@ -1940,7 +1941,10 @@ void GDN_TheWorld_Edit::setMinHeight(float minHeight)
 
 void GDN_TheWorld_Edit::resetSelectedTerrainType(void)
 {
+	godot::Ref<godot::Texture2D> emptyTexture;
+	m_innerData->m_terrTypeButton->set_button_icon(emptyTexture);
 	m_innerData->m_selectedTerrainType = TheWorld_Utils::TerrainEdit::TerrainType::notset;
+	m_innerData->m_terrTypeOptionButton->select(m_innerData->m_terrTypeOptionButton->get_item_index((int64_t)TheWorld_Utils::TerrainEdit::TerrainType::notset));
 	m_innerData->m_terrTypeOptionButton->set_disabled(true);
 	m_innerData->m_generateTerrButton->set_disabled(true);
 	m_infoLabelTextChanged = true;
@@ -2910,7 +2914,7 @@ void GDN_TheWorld_Edit::changeTextureAction()
 	GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(quadrantSelPos);
 	if (MapQuadrantOverride != nullptr)
 	{
-		MapQuadrantOverride->terrainEdit(*terrainEdit);
+		MapQuadrantOverride->setTerrainEdit(*terrainEdit);
 	}
 
 
@@ -3974,7 +3978,7 @@ void GDN_TheWorld_Edit::editModeUploadMapQuadrantOverrides(GDN_TheWorld_Map* map
 			}
 
 			GDN_TheWorld_Map::MapQuadrantOverride* mapQuadrantOverride = map->getMapQuadrantOverride(item);
-			TheWorld_Utils::TerrainEdit terrainEdit = mapQuadrantOverride->terrainEdit();
+			TheWorld_Utils::TerrainEdit terrainEdit = mapQuadrantOverride->getTerrainEdit();
 
 			{
 				// TheWorld_Utils::TerrainEdit

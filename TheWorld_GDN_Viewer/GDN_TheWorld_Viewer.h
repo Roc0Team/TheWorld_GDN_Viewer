@@ -442,7 +442,7 @@ namespace godot
 				if (edited())
 				{
 					TheWorld_Utils::TerrainEdit nullTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::notset);
-					terrainEdit(nullTerrainEdit);
+					setTerrainEdit(nullTerrainEdit);
 					applyTexture();
 				}
 			}
@@ -456,11 +456,11 @@ namespace godot
 
 			void applyColor(void);
 			void applyTexture(void);
-			void terrainEdit(TheWorld_Utils::TerrainEdit& terrainEdit)
+			void setTerrainEdit(TheWorld_Utils::TerrainEdit& terrainEdit)
 			{
 				m_terrainEdit = terrainEdit;
 			}
-			TheWorld_Utils::TerrainEdit terrainEdit(void) const
+			TheWorld_Utils::TerrainEdit getTerrainEdit(void) const
 			{
 				return m_terrainEdit;
 			}

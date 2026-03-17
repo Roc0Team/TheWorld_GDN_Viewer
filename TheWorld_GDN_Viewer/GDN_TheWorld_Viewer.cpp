@@ -543,7 +543,7 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride* GDN_TheWorld_Map::Ma
 		return rect;
 
 	
-	if (not m_quadrantColorOverrideContainer.contains(quadrantPos))
+	if (not m_quadrantColorOverrideContainer.contains(quadrantPos) or m_quadrantColorOverrideContainer[quadrantPos] == nullptr)
 	{
 		if (createIfMissing)
 		{
@@ -569,7 +569,10 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride* GDN_TheWorld_Map::Ma
 			colorRect->set_z_index(2);
 			colorRect->set_visible(m_map->mapGridOn());
 
-			m_quadrantColorOverrideContainer.insert({ quadrantPos , std::unique_ptr<MapQuadrantColorOverride>(colorRect) });
+			if (not m_quadrantColorOverrideContainer.contains(quadrantPos))
+				m_quadrantColorOverrideContainer.insert({ quadrantPos , std::unique_ptr<MapQuadrantColorOverride>(colorRect) });
+			else
+				m_quadrantColorOverrideContainer[quadrantPos] = std::unique_ptr<MapQuadrantColorOverride>(colorRect);
 
 			rect = m_quadrantColorOverrideContainer[quadrantPos].get();
 		}
@@ -1972,12 +1975,12 @@ GDN_TheWorld_Map::MapQuadrantOverride* GDN_TheWorld_Map::addEditedMapQuadrantOve
 	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
 	if (m_mapQuadrantOverrideContainer.contains(quadrantPos))
 	{
-		m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(terrainEdit);
+		m_mapQuadrantOverrideContainer[quadrantPos]->setTerrainEdit(terrainEdit);
 	}
 	else
 	{
 		m_mapQuadrantOverrideContainer[quadrantPos] = std::make_unique<MapQuadrantOverride>(this, quadrantPos);
-		m_mapQuadrantOverrideContainer[quadrantPos]->terrainEdit(terrainEdit);
+		m_mapQuadrantOverrideContainer[quadrantPos]->setTerrainEdit(terrainEdit);
 	}
 	m_mapQuadrantOverrideContainer[quadrantPos]->applyTexture();
 	return m_mapQuadrantOverrideContainer[quadrantPos].get();
@@ -6919,7 +6922,7 @@ void GDN_TheWorld_Viewer::_doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& po
 				GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
 				if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
 				{
-					_terrainEdit = MapQuadrantOverride->terrainEdit();
+					_terrainEdit = MapQuadrantOverride->getTerrainEdit();
 					terrainEdit = &_terrainEdit;
 				}
 				else
@@ -9278,7 +9281,7 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 		{
 			TrackedInputEvent trackedInputEvent(this);
 
-			if (editModeUIControl->editingMap())
+			//if (editModeUIControl->editingMap())
 			{
 				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT, &trackedInputEvent))
 				{
@@ -9329,8 +9332,8 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 					GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
 					if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
 					{
-						TheWorld_Utils::TerrainEdit terrainEdit = MapQuadrantOverride->terrainEdit();
-						editModeUIControl->setTerrainEditValues(terrainEdit, MapQuadrantOverride->getPos(), false);
+						TheWorld_Utils::TerrainEdit terrainEdit = MapQuadrantOverride->getTerrainEdit();
+						editModeUIControl->setTerrainEditValues(terrainEdit, MapQuadrantOverride->getPos(), true);
 					}
 				}
 			}
@@ -9390,14 +9393,13 @@ void GDN_TheWorld_Viewer::selectMapQuadrantRef(TheWorld_Utils::QuadrantPos& pos)
 void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 {
 	bool sameQuadrant = false;
+	bool deselectRequired = false;
 	if (isMapQuadrantSelectedForEdit())
 	{
+		deselectRequired = true;
 		if (m_selectedMapQuadrantPos == pos)
 			sameQuadrant = true;
 	}
-
-	if (isMapQuadrantSelectedForEdit())
-		deselectMapQuadrant();
 
 	GDN_TheWorld_Map* map = Map();
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
@@ -9407,7 +9409,7 @@ void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(pos);
 		if (MapQuadrantOverride != nullptr and MapQuadrantOverride->getTerrainType() != TheWorld_Utils::TerrainEdit::TerrainType::notset)
 		{
-			terrainEdit = MapQuadrantOverride->terrainEdit();
+			terrainEdit = MapQuadrantOverride->getTerrainEdit();
 		}
 		else if (m_worldQuadrantsMap.contains(pos) and m_worldQuadrantsMap[pos]->statusInitialized())
 		{
@@ -9420,8 +9422,9 @@ void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		}
 		else
 		{
-			TheWorld_Utils::TerrainEdit terrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::unknown);
-			MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEdit);
+			TheWorld_Utils::TerrainEdit terrainEditUnknown(TheWorld_Utils::TerrainEdit::TerrainType::unknown);
+			MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEditUnknown);
+			terrainEdit = terrainEditUnknown;
 		}
 
 		if (sameQuadrant)
@@ -9445,6 +9448,9 @@ void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 
 		//editModeUIControl->setAllChecked(false);
 		editModeUIControl->expandTerrainGenerationPanel();
+
+		if (deselectRequired)
+			deselectMapQuadrant();
 	}
 }
 
@@ -9460,6 +9466,9 @@ void GDN_TheWorld_Viewer::doDeselectMapQuadrant(void)
 	{
 		map->editMode(m_selectedMapQuadrantPos, false);
 		m_selectedMapQuadrantPos.reset();
+		GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
+		if (editModeUIControl != nullptr and editModeUIControl->initialized() and map != nullptr)
+			editModeUIControl->resetPanelsOnQuadrantDeselection();
 	}
 }
 

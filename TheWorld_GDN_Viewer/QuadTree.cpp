@@ -5053,9 +5053,12 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 	}
 	else
 	{
-		// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass from optimizatrion level > 0 (using cached resized images) to optimization level = 0 (we need full textures)
-		if (m_float16HeigthsBuffer.size() > 0)		// for split (calc AABB): if they are need in split operation they wiil be reloaded from disk cache before split
-			m_float16HeigthsBuffer.clear(__FUNCTION__);
+		if (not sendHeightsToShader())
+		{
+			// Needed to create/recreate imeages: at init are created asincronously but they have to be recreated in process to update the shader when we pass from optimizatrion level > 0 (using cached resized images) to optimization level = 0 (we need full textures)
+			if (m_float16HeigthsBuffer.size() > 0)		// for split (calc AABB): if they are need in split operation they wiil be reloaded from disk cache before split
+				m_float16HeigthsBuffer.clear(__FUNCTION__);
+		}
 
 		//if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
 		//	m_float32HeigthsBuffer.clear(__FUNCTION__);
@@ -5076,29 +5079,33 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 		//getShaderTerrainData()->getGlobalmapImageRef().unref();
 	}
 
-	if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
-		m_float32HeigthsBuffer.clear(__FUNCTION__);
-	if (m_normalsBuffer.size() > 0)
-		m_normalsBuffer.clear(__FUNCTION__);
-	if (m_splatmapBuffer.size() > 0)
-		m_splatmapBuffer.clear(__FUNCTION__);
-	if (m_colormapBuffer.size() > 0)
-		m_colormapBuffer.clear(__FUNCTION__);
-	if (m_globalmapBuffer.size() > 0)
-		m_globalmapBuffer.clear(__FUNCTION__);
+	if (not sendHeightsToShader())
+	{
+		if (m_float32HeigthsBuffer.size() > 0)		// needed for collider but releaseTerrainValuesMemory will run after collider
+			m_float32HeigthsBuffer.clear(__FUNCTION__);
 
-	// Needed for Shader: created at init time or when optimization level changes from level > 0 to level == 0 but destroyd at end of _process
-	//if (optimizationLevel() > 0)	//   (for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant and hires images can be freed)	// occhio!!!
-	//{
+		if (m_normalsBuffer.size() > 0)
+			m_normalsBuffer.clear(__FUNCTION__);
+		if (m_splatmapBuffer.size() > 0)
+			m_splatmapBuffer.clear(__FUNCTION__);
+		if (m_colormapBuffer.size() > 0)
+			m_colormapBuffer.clear(__FUNCTION__);
+		if (m_globalmapBuffer.size() > 0)
+			m_globalmapBuffer.clear(__FUNCTION__);
+
+		// Needed for Shader: created at init time or when optimization level changes from level > 0 to level == 0 but destroyd at end of _process
+		//if (optimizationLevel() > 0)	//   (for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant and hires images can be freed)	// occhio!!!
+		//{
 		getShaderTerrainData()->getHiresHeightmapImageRef().unref();
 		getShaderTerrainData()->getHiresNormalmapImageRef().unref();
 		getShaderTerrainData()->getHiresSplatmapImageRef().unref();
 		getShaderTerrainData()->getHiresColormapImageRef().unref();
 		getShaderTerrainData()->getHiresGlobalmapImageRef().unref();
-	//}
-
-	int64_t size = m_heightsForCollider.size();
-	m_heightsForCollider.resize(0);
+		//}
+			
+		//int64_t size = m_heightsForCollider.size();
+		m_heightsForCollider.resize(0);
+	}
 }
 
 size_t Quadrant::calcMapMemoryOccupation(void)
@@ -5715,8 +5722,11 @@ void Quadrant::loadTerrainDataFromCache(void)
 	if (status > TheWorldStatus::worldDeployed)
 		return;
 
-	while (lockInternalData() == false)
-		Sleep(1);
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.0 ") + __FUNCTION__, "attesa su lock");
+		while (lockInternalData() == false)
+			Sleep(1);
+	}
 
 	m_quadTree->setStatus(QuadrantStatus::loadTerrainDataFromCacheInProgress);
 
@@ -5733,106 +5743,47 @@ void Quadrant::loadTerrainDataFromCache(void)
 		//	setEmpty(false);
 	}
 
-	bool cache = !ShaderTerrainData::s_extraNeighbourBorderInHeightmap;		// occhio!!!
+	//bool cache = !ShaderTerrainData::s_extraNeighbourBorderInHeightmap;		// occhio!!!
+	bool cache = true;		// occhio!!!
 
 	if (cache)
 	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.2 ") + __FUNCTION__, "Cache heightmap images");
+
 		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
 		getShaderTerrainData()->cacheTerrainDataForShader(std::string("loadTerrainDataFromCache 1.2 "), ShaderTerrainData::ImageType::heightmap);
-
-		//TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.2 ") + __FUNCTION__, "Cache heightmap images");
-
-		//std::string profileHeader("loadTerrainDataFromCache 1.2.1 ");
-		//getShaderTerrainData()->getHiresHeightmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, 0, resolution);
-
-		//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-		//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-		//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-		//{
-		//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-		//	std::string profileHeader("loadTerrainDataFromCache 1.2.2 ");
-		//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, optimizationLevel, cachedTextureResolution);
-		//}
 	}
 
-	if (cache)
-	{
-		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
-		getShaderTerrainData()->cacheTerrainDataForShader(std::string("loadTerrainDataFromCache 1.3 "), ShaderTerrainData::ImageType::normalmap);
+	//if (cache)
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.3 ") + __FUNCTION__, "Cache normalmap images");
 
-		//TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.3 ") + __FUNCTION__, "Cache normalmap images");
+	//	// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
+	//	getShaderTerrainData()->cacheTerrainDataForShader(std::string("loadTerrainDataFromCache 1.3 "), ShaderTerrainData::ImageType::normalmap);
+	//}
 
-		//std::string profileHeader("loadTerrainDataFromCache 1.3.1 ");
-		//getShaderTerrainData()->getHiresNormalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::normalmap, 0, resolution);
+	//if (cache)
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.4  ") + __FUNCTION__, "Cache splatmap images");
 
-		//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-		//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-		//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-		//{
-		//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-		//	std::string profileHeader("loadTerrainDataFromCache 1.3.2 ");
-		//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::normalmap, optimizationLevel, cachedTextureResolution);
-		//}
-	}
+	//	// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
+	//	getShaderTerrainData()->cacheTerrainDataForShader(std::string("loadTerrainDataFromCache 1.4 "), ShaderTerrainData::ImageType::splatmap);
+	//}
 
-	if (cache)
-	{
-		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
-		getShaderTerrainData()->cacheTerrainDataForShader(std::string("loadTerrainDataFromCache 1.4 "), ShaderTerrainData::ImageType::splatmap);
+	//if (cache and m_globalmapBuffer.size() > 0)
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.5  ") + __FUNCTION__, "Cache globalmap images");
 
-		//TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.4  ") + __FUNCTION__, "Cache splatmap images");
-
-		//std::string profileHeader("loadTerrainDataFromCache 1.4.1 ");
-		//getShaderTerrainData()->getHiresSplatmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::splatmap, 0, resolution);
-
-		//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-		//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-		//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-		//{
-		//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-		//	std::string profileHeader("loadTerrainDataFromCache 1.4.2 ");
-		//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::splatmap, optimizationLevel, cachedTextureResolution);
-		//}
-	}
-
-	if (cache and m_globalmapBuffer.size() > 0)
-	{
-		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
-		getShaderTerrainData()->cacheTerrainDataForShader(std::string("loadTerrainDataFromCache 1.5 "), ShaderTerrainData::ImageType::globalmap);
-
-		//TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.5  ") + __FUNCTION__, "Cache globalmap images");
-
-		//std::string profileHeader("loadTerrainDataFromCache 1.5.1 ");
-		//getShaderTerrainData()->getHiresGlobalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, 0, resolution);
-
-		//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-		//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-		//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-		//{
-		//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-		//	std::string profileHeader("loadTerrainDataFromCache 1.5.2 ");
-		//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevel, cachedTextureResolution);
-		//}
-	}
+	//	// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
+	//	getShaderTerrainData()->cacheTerrainDataForShader(std::string("loadTerrainDataFromCache 1.5 "), ShaderTerrainData::ImageType::globalmap);
+	//}
 
 	if (cache and m_colormapBuffer.size() > 0)
 	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.6  ") + __FUNCTION__, "Cache colormap images");
+
 		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
 		getShaderTerrainData()->cacheTerrainDataForShader(std::string("loadTerrainDataFromCache 1.6 "), ShaderTerrainData::ImageType::colormap);
-
-		//TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.6  ") + __FUNCTION__, "Cache colormap images");
-
-		//std::string profileHeader("loadTerrainDataFromCache 1.6.1 ");
-		//getShaderTerrainData()->getHiresColormapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::colormap, 0, resolution);
-
-		//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-		//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-		//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-		//{
-		//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-		//	std::string profileHeader("loadTerrainDataFromCache 1.6.2 ");
-		//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::colormap, optimizationLevel, cachedTextureResolution);
-		//}
 	}
 
 	size_t numFloat32Heights = m_float32HeigthsBuffer.size() / sizeof(float);
@@ -6722,65 +6673,60 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 
 	m_quadTree->getQuadrant()->terrainDataJustLoaded(true);
 
-	bool cache = !ShaderTerrainData::s_extraNeighbourBorderInHeightmap;		// occhio!!!
+	//bool cache = !ShaderTerrainData::s_extraNeighbourBorderInHeightmap;		// occhio!!!
+	bool cache = true;		// occhio!!!
 
 	heightmapChanged();
 	sendHeightsToShader(true);
 	if (cache)
 	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.7 ") + __FUNCTION__, "Cache heightmap images");
+
 		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
 		getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.3 "), ShaderTerrainData::ImageType::heightmap);
 	}
 
-	sendNormalsToShader(true);
-	if (cache)
-	{
-		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
-		getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.4 ") + __FUNCTION__, ShaderTerrainData::ImageType::normalmap);
-	}
+	//sendNormalsToShader(true);
+	//if (cache)
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.7 ") + __FUNCTION__, "Cache normalmap images");
+
+	//	// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
+	//	getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.4 ") + __FUNCTION__, ShaderTerrainData::ImageType::normalmap);
+	//}
 
 	splatmapChanged();
-	sendSplatmapToShader(true);
-	if (cache)
-	{
-		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
-		getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.5 "), ShaderTerrainData::ImageType::splatmap);
-	}
+	//sendSplatmapToShader(true);
+	//if (cache)
+	//{
+	//	TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.7 ") + __FUNCTION__, "Cache splatmap images");
+
+	//	// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
+	//	getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.5 "), ShaderTerrainData::ImageType::splatmap);
+	//}
 
 	size_t optimizationLevelForMapImage = (size_t)MapQuadrantImagesMap::getMapQuadrantOptimizationLevel();	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33;
 	size_t textureNumPixelsPerSize = globals->resolutionForOptimizationLevel(optimizationLevelForMapImage);
 
-	if (m_globalmapBuffer.size() > 0)
-	{
-		sendGlobalmapToShader(true);
+	//if (m_globalmapBuffer.size() > 0)
+	//{
+	//	sendGlobalmapToShader(true);
 
-		if (cache)
-		{
-			// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
-			getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.6 "), ShaderTerrainData::ImageType::globalmap);
+	//	if (cache)
+	//	{
+	//		//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.6 ") + __FUNCTION__, "Cache globalmap images");
 
-			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.6 ") + __FUNCTION__, "Cache globalmap images");
+	//		// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
+	//		getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.6 "), ShaderTerrainData::ImageType::globalmap);
+	//	}
 
-			//std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
-			//getShaderTerrainData()->getHiresGlobalmapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, 0, resolution);
-
-			//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-			//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-			//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-			//{
-			//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-			//	std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
-			//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevel, cachedTextureResolution);
-			//}
-		}
-
-		//std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
-		//m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevelForMapImage, textureNumPixelsPerSize);
-		//godot::Vector2i sz = m_mapImage->get_size();	// DEBUG
-		//sz = m_mapImage->get_size();	// DEBUG
-		//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".map.png";
-		//m_mapImage->save_png(outFileName.c_str());
-	}
+	//	//std::string profileHeader("WorldDeploy 2.1.1.6.1 ");
+	//	//m_mapImage = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::globalmap, optimizationLevelForMapImage, textureNumPixelsPerSize);
+	//	//godot::Vector2i sz = m_mapImage->get_size();	// DEBUG
+	//	//sz = m_mapImage->get_size();	// DEBUG
+	//	//std::string outFileName = m_quadTree->getQuadrant()->getCacheFilePath() + ".map.png";
+	//	//m_mapImage->save_png(outFileName.c_str());
+	//}
 
 	if (m_colormapBuffer.size() > 0)
 	{
@@ -6788,22 +6734,10 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 
 		if (cache)
 		{
-			// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
-			getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.7 "), ShaderTerrainData::ImageType::colormap);
-
 			//TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.7 ") + __FUNCTION__, "Cache colormap images");
 
-			//std::string profileHeader("WorldDeploy 2.1.1.7.1 ");
-			//getShaderTerrainData()->getHiresColormapImageRef() = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::colormap, 0, resolution);
-
-			//size_t maxOptimizationLevel = globals->getMaxTextureOptimizationLevel();
-			//size_t textureOptimizationResolutionIncrement = globals->getParamTextureOptimizationResolutionIncrement();
-			//for (size_t optimizationLevel = textureOptimizationResolutionIncrement; optimizationLevel <= maxOptimizationLevel; optimizationLevel += textureOptimizationResolutionIncrement)
-			//{
-			//	size_t cachedTextureResolution = globals->resolutionForOptimizationLevel(optimizationLevel);
-			//	std::string profileHeader("WorldDeploy 2.1.1.7.2 ");
-			//	godot::Ref<godot::Image> image = getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::colormap, optimizationLevel, cachedTextureResolution);
-			//}
+			// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
+			getShaderTerrainData()->cacheTerrainDataForShader(std::string("WorldDeploy 2.1.1.7 "), ShaderTerrainData::ImageType::colormap);
 		}
 	}
 

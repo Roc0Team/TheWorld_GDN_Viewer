@@ -47,24 +47,24 @@ namespace godot
 
 		//ps->body_set_ray_pickable(m_bodyRID, false);		// SUPERDEBUGRIC - This is an attempt to workaround https://github.com/godotengine/godot/issues/24390
 
-		// Initial data - This is a workaround to https://github.com/godotengine/godot/issues/25304
-#ifdef REAL_T_IS_DOUBLE
-		PackedFloat64Array arr;
-#else
-		PackedFloat32Array arr;
-#endif // REAL_T_IS_DOUBLE
-		arr.resize(4);
-		arr.set(0, 0);
-		arr.set(1, 0);
-		arr.set(2, 0);
-		arr.set(3, 0);
-		Dictionary data;
-		data["width"] = 2;			// data["map_width"];	
-		data["depth"] = 2;			// data["map_depth"];
-		data["heights"] = arr;		// data["map_data"];
-		data["min_height"] = -1;		// ???
-		data["max_height"] = 1;		// ???
-		ps->shape_set_data(m_shapeRID, data);
+//		// Initial data - This is a workaround to https://github.com/godotengine/godot/issues/25304
+//#ifdef REAL_T_IS_DOUBLE
+//		PackedFloat64Array arr;
+//#else
+//		PackedFloat32Array arr;
+//#endif // REAL_T_IS_DOUBLE
+//		arr.resize(4);
+//		arr.set(0, 0);
+//		arr.set(1, 0);
+//		arr.set(2, 0);
+//		arr.set(3, 0);
+//		Dictionary data;
+//		data["width"] = 2;			// data["map_width"];	
+//		data["depth"] = 2;			// data["map_depth"];
+//		data["heights"] = arr;		// data["map_data"];
+//		data["min_height"] = -1;		// ???
+//		data["max_height"] = 1;		// ???
+//		ps->shape_set_data(m_shapeRID, data);
 
 		m_shapeIdx = ps->body_get_shape_count(m_bodyRID);
 		ps->body_add_shape(m_bodyRID, m_shapeRID);

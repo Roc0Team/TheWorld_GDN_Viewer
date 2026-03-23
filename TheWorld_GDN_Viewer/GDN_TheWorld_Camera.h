@@ -9,13 +9,16 @@
 #include <godot_cpp/classes/noise_texture2d.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/camera2d.hpp>
+#include <godot_cpp/classes/shape_cast3d.hpp>
+#include <godot_cpp/classes/sphere_shape3d.hpp>
 #pragma warning (pop)
 
 #include "Utils.h"
 
-#define GD_ACTIVE_CAMERA_GROUP	"TheWorldViewerActiveCamera"
-#define GD_CUSTOM_CAMERAS_GROUP	"TheWorldViewerCustomCameras"
-#define INVALID_CAMERA_ALTITUDE	-999999999.9f
+constexpr auto GD_ACTIVE_CAMERA_GROUP = "TheWorldViewerActiveCamera";
+constexpr auto GD_CUSTOM_CAMERAS_GROUP = "TheWorldViewerCustomCameras";
+constexpr auto INVALID_CAMERA_ALTITUDE = -999999999.9f;
+constexpr auto MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA = 1.0f;
 
 constexpr float CAMERA_INITIAL_SCALE_FACTOR = 0.5;		// 1.0;
 
@@ -206,6 +209,11 @@ namespace godot {
 
 		void updateAltitudeFromTerrain(bool force);
 
+		//void debugCheckCollisions(void);
+		bool checkCollisionWithTerrain(godot::Vector3& movementLocalCoord);
+		godot::Vector3 manageCollisionsPreMovement(godot::Vector3 cameraMovementLocalCoord);
+		void manageCollisionsPostMovement(float preMoveCameraAltitudeFromTerrain, godot::Vector3 preMoveCameraPos);
+
 		float cameraMaxAltitudeFromTerrainDetected(void) const;
 		float cameraAltitudeFromTerrain(void) const
 		{
@@ -295,13 +303,16 @@ namespace godot {
 
 		bool m_mouseMovementPaused = false;
 
-		
+		//godot::ShapeCast3D* m_shapeCast;
+
 		godot::Vector3 m_savedCameraPosAfterSetFar = godot::Vector3(0.0f, 0.0f, 0.0f);
 		bool m_forceRecalcCameraFar = false;
+
+		bool m_forceRecalcCameraAltitude = false;
 		godot::Vector3 m_savedCameraPosAfterCalcAltitude = godot::Vector3(0.0f, 0.0f, 0.0f);
 		godot::Vector3 m_lastComputedCameraVerticalOnTerrain;
 		float m_lastCameraAltitudeFromTerrain = INVALID_CAMERA_ALTITUDE;
-		bool m_forceRecalcCameraAltitude = false;
+
 		//godot::Vector3 m_lastComputedCameraVerticalOnTerrain = godot::Vector3(0.0f, 0.0f, 0.0f);
 
 		float m_angleFromNorthDeg;	// angle expressed in degrees of the projection of the camera on XZ plane: 0 ==> camera points to north, 90 camera points to east, 180 camera points to south, 270 camera points to west

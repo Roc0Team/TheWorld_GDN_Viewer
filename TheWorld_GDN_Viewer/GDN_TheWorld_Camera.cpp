@@ -25,12 +25,12 @@
 
 using namespace godot;
 
-#define DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE	5.0f
-#define DISTANCE_THRESHOLD_TO_UPDATE_CAMERA_FAR	50.0f
-#define MAX_ALTITUDE_DETECTED					6000.0f
+constexpr auto DISTANCE_THRESHOLD_TO_UPDATE_ALTITUDE = 5.0f;
+constexpr auto DISTANCE_THRESHOLD_TO_UPDATE_CAMERA_FAR = 50.0f;
+constexpr auto MAX_ALTITUDE_DETECTED = 6000.0f;
 
-#define	POST_PROCESSING_UNDER_WATER_NODE			"PostProcessingUnderWater"
-#define	POST_PROCESSING_UNDER_WATER_OVERRIDE_NODE	"PostProcessingUnderWaterOverride"
+constexpr auto POST_PROCESSING_UNDER_WATER_NODE = "PostProcessingUnderWater";
+constexpr auto POST_PROCESSING_UNDER_WATER_OVERRIDE_NODE = "PostProcessingUnderWaterOverride";
 
 void GDN_TheWorld_MapCamera::_bind_methods(void)
 {
@@ -919,6 +919,8 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 		bool b = updateCamera(_delta);
 		calcYawPitchRoll();
 	}
+	
+	//debugCheckCollisions();
 }
 
 void GDN_TheWorld_Camera::calcYawPitchRoll(void)
@@ -1201,6 +1203,17 @@ bool GDN_TheWorld_Camera::initCameraInWorld(godot::Vector3 cameraPos, godot::Vec
 
 	m_WorldCamera = true;
 
+	//{
+	//	godot::Ref<godot::SphereShape3D> sphereShape = memnew(godot::SphereShape3D);
+	//	sphereShape->set_radius(MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA / 2);
+	//	sphereShape->set_margin(0.1f);
+	//	m_shapeCast = memnew(godot::ShapeCast3D);
+	//	add_child(m_shapeCast);
+	//	m_shapeCast->set_shape(sphereShape);
+	//	m_shapeCast->set_target_position(godot::Vector3(0, 0, 0));
+	//	m_shapeCast->set_collision_mask(4294967295);
+	//}
+	
 	return true;
 }
 
@@ -1429,8 +1442,8 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 	m_updateCameraRequired = false;
 
 	//updateAltitude(true);
-	godot::Vector3 savedCameraPos = get_global_position();
-	float savedLastCameraAltitudeComputed = m_lastCameraAltitudeFromTerrain;
+	godot::Vector3 preMoveCameraPos = get_global_position();
+	float preMoveCameraAltitudeFromTerrain = m_lastCameraAltitudeFromTerrain;
 
 	if (m_mouseRelativePosToRotate != godot::Vector2(0, 0))
 	{
@@ -1469,16 +1482,18 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		m_lastPitch = m_pitch;
 	}
 
+	godot::Vector3 resultantCameraMovement;
+
 	if (m_mouseRelativePosToShift != godot::Vector2(0, 0))
 	{
 		float sensitivity = m_sensitivity;
 		if (m_ctrlPressed)
 			sensitivity *= 2;
 		m_mouseRelativePosToShift *= sensitivity;
-
-		translate_object_local(godot::Vector3(-m_mouseRelativePosToShift.x, 0, -m_mouseRelativePosToShift.y));
-
+		godot::Vector3 cameraMovement = godot::Vector3(-m_mouseRelativePosToShift.x, 0, -m_mouseRelativePosToShift.y);
 		m_mouseRelativePosToShift = godot::Vector2(0, 0);
+		//translate_object_local(cameraMovement);
+		resultantCameraMovement += cameraMovement;
 	}
 
 	//if (m_mouseRelativePosToShiftVert != godot::Vector2(0, 0))
@@ -1492,14 +1507,18 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 
 	if (m_numLongMoveStepForward)
 	{
-		translate_object_local(godot::Vector3(0, 0, m_numLongMoveStepForward * m_wheelVeryFastVelocity));
+		godot::Vector3 cameraMovement = godot::Vector3(0, 0, m_numLongMoveStepForward * m_wheelVeryFastVelocity);
 		m_numLongMoveStepForward = 0;
+		//translate_object_local(cameraMovement);
+		resultantCameraMovement += cameraMovement;
 	}
 
 	if (m_numLongMoveStepLeft)
 	{
-		translate_object_local(godot::Vector3(-m_numLongMoveStepLeft * m_wheelVeryFastVelocity, 0, 0));
+		godot::Vector3 cameraMovement = godot::Vector3(-m_numLongMoveStepLeft * m_wheelVeryFastVelocity, 0, 0);
 		m_numLongMoveStepLeft = 0;
+		//translate_object_local(cameraMovement);
+		resultantCameraMovement += cameraMovement;
 	}
 
 	float delayDegree = Globals()->Viewer()->getDelayDegree();
@@ -1509,120 +1528,328 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 
 	if (m_numMoveStepForward)
 	{
+		godot::Vector3 cameraMovement;
 		if (m_altPressed)
 		{
 			if (m_shiftPressed)
 			{
-				translate_object_local(godot::Vector3(0, -m_numMoveStepForward * m_wheelSlowVelocity, 0));
+				cameraMovement = godot::Vector3(0, -m_numMoveStepForward * m_wheelSlowVelocity, 0);
 			}
 			else if (m_ctrlPressed)
 			{
-				translate_object_local(godot::Vector3(0, -m_numMoveStepForward * m_wheelFastVelocity * delayFactor, 0));
+				cameraMovement = godot::Vector3(0, -m_numMoveStepForward * m_wheelFastVelocity * delayFactor, 0);
 			}
 			else
 			{
-				translate_object_local(godot::Vector3(0, -m_numMoveStepForward * m_wheelNormalVelocity, 0));
+				cameraMovement = godot::Vector3(0, -m_numMoveStepForward * m_wheelNormalVelocity, 0);
 			}
 		}
 		else
 		{
 			if (m_shiftPressed)
 			{
-				translate_object_local(godot::Vector3(0, 0, m_numMoveStepForward * m_wheelSlowVelocity));
+				cameraMovement = godot::Vector3(0, 0, m_numMoveStepForward * m_wheelSlowVelocity);
 			}
 			else if (m_ctrlPressed)
 			{
-				translate_object_local(godot::Vector3(0, 0, m_numMoveStepForward * m_wheelFastVelocity * delayFactor));
+				cameraMovement = godot::Vector3(0, 0, m_numMoveStepForward * m_wheelFastVelocity * delayFactor);
 			}
 			else
 			{
-				translate_object_local(godot::Vector3(0, 0, m_numMoveStepForward * m_wheelNormalVelocity));
+				cameraMovement = godot::Vector3(0, 0, m_numMoveStepForward * m_wheelNormalVelocity);
 			}
 		}
 		m_numMoveStepForward = 0;
+		//translate_object_local(cameraMovement);
+		resultantCameraMovement += cameraMovement;
 	}
 
 	if (m_numMoveStepLeft)
 	{
-		//if (m_altPressed)
-		//{
-		//	Transform t = get_global_transform();
-		//	if (m_shiftPressed)
-		//	{
-		//		t.origin += godot::Vector3(-m_numMoveStepLeft * m_wheelSlowVelocity, 0, 0);
-		//	}
-		//	else if (m_ctrlPressed)
-		//	{
-		//		t.origin += godot::Vector3(-m_numMoveStepLeft * m_wheelFastVelocity, 0, 0);
-		//	}
-		//	else
-		//	{
-		//		t.origin += godot::Vector3(-m_numMoveStepLeft * m_wheelNormalVelocity, 0, 0);
-		//	}
-		//	set_global_transform(t);
-		//}
-		//else
-		//{
-			if (m_shiftPressed)
-			{
-				translate_object_local(godot::Vector3(-m_numMoveStepLeft * m_wheelSlowVelocity, 0, 0));
-			}
-			else if (m_ctrlPressed)
-			{
-				translate_object_local(godot::Vector3(-m_numMoveStepLeft * m_wheelFastVelocity * delayFactor, 0, 0));
-			}
-			else
-			{
-				translate_object_local(godot::Vector3(-m_numMoveStepLeft * m_wheelNormalVelocity, 0, 0));
-			}
-		//}
+		godot::Vector3 cameraMovement;
+		if (m_shiftPressed)
+		{
+			cameraMovement = godot::Vector3(-m_numMoveStepLeft * m_wheelSlowVelocity, 0, 0);
+		}
+		else if (m_ctrlPressed)
+		{
+			cameraMovement = godot::Vector3(-m_numMoveStepLeft * m_wheelFastVelocity * delayFactor, 0, 0);
+		}
+		else
+		{
+			cameraMovement = godot::Vector3(-m_numMoveStepLeft * m_wheelNormalVelocity, 0, 0);
+		}
 		m_numMoveStepLeft = 0;
+		//translate_object_local(cameraMovement);
+		resultantCameraMovement += cameraMovement;
 	}
 
 	if (m_numMoveStepUp)
 	{
-		Transform3D t = get_global_transform();
+		godot::Vector3 cameraMovement;
 		if (m_shiftPressed)
 		{
-			t.origin += godot::Vector3(0, m_numMoveStepUp * m_wheelSlowVelocity, 0);
+			cameraMovement = godot::Vector3(0, m_numMoveStepUp * m_wheelSlowVelocity, 0);
 		}
 		else if (m_ctrlPressed)
 		{
-			t.origin += godot::Vector3(0, m_numMoveStepUp * m_wheelFastVelocity * delayFactor, 0);
+			cameraMovement = godot::Vector3(0, m_numMoveStepUp * m_wheelFastVelocity * delayFactor, 0);
 		}
 		else
 		{
-			t.origin += godot::Vector3(0, m_numMoveStepUp * m_wheelNormalVelocity, 0);
+			cameraMovement = godot::Vector3(0, m_numMoveStepUp * m_wheelNormalVelocity, 0);
 		}
-		set_global_transform(t);
 		m_numMoveStepUp = 0;
+		//translate_object_local(cameraMovement);
+		resultantCameraMovement += cameraMovement;
 	}
 
+	if (resultantCameraMovement != godot::Vector3())
+	{
+		translate_object_local(manageCollisionsPreMovement(resultantCameraMovement));
+	}
+
+	manageCollisionsPostMovement(preMoveCameraAltitudeFromTerrain, preMoveCameraPos);
+	
+	return true;
+}
+
+bool GDN_TheWorld_Camera::checkCollisionWithTerrain(godot::Vector3& movementLocalCoord)
+{
+	bool collisionDetected = false;
+
+	if (IS_EDITOR_HINT())
+		return collisionDetected;
+
+	godot::Vector3 movementGlobalCoord = get_global_basis().xform(movementLocalCoord);	// transform movement from local camera coordinates to global coordinates
+	
+	godot::Vector3 cameraGlobalPosition = get_global_position();
+	godot::Vector3 newCameraMovement = movementGlobalCoord;
+
+	static size_t maxNumIterations = 0;
+
+	const size_t maxIterationsBeforeGivingUp = 20;	// to prevent infinite loop in case of unexpected collision configuration (ex: camera stuck in a corner between 2 or more terrain triangles)
+	size_t numIterations = 0;
+	while (numIterations < maxIterationsBeforeGivingUp)
+	{
+		numIterations++;
+
+		godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
+		godot::Dictionary rayArray;
+		godot::Vector3 rayOrigin = cameraGlobalPosition;
+		godot::Vector3 rayEnd = rayOrigin + movementGlobalCoord;
+		godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
+		rayArray = spaceState->intersect_ray(query);
+		if (not rayArray.has("position"))
+			break;	// no collision, we can move camera as desidered
+
+		// we have to manage collision with terrain, we will try to move camera as close as possible to collision point without crossing it and then check if we are still colliding (ex: in case of collision with a slope, we may need to move camera up to not be colliding anymore)
+		collisionDetected = true;
+
+		godot::Vector3 collisionPos = rayArray["position"];
+		godot::Vector3 collisionNormal = rayArray["normal"];
+		//collisionNormal.normalize();	// DEBUG - Check that collision normal is normalized as it should be, if not it means there is a problem with the collision detection in terrain collider
+		
+		godot::Vector3 movementDir = movementGlobalCoord.normalized();
+		//godot::Vector3 movementDirCheck = fromCameraToCollision.normalized();	// DEBUG - Check that movement direction is the same as direction from ray origin to collision position
+		//assert(movementDir == movementDirCheck);								// DEBUG - Check that movement direction is the same as direction from ray origin to collision position
+
+		//{
+		//	m_shapeCast->set_global_position(cameraGlobalPosition);
+		//	if (m_shapeCast->is_colliding())
+		//	{
+		//		int numColliders = m_shapeCast->get_collision_count();
+		//		godot::Vector3 collisionPos1 = m_shapeCast->get_collision_point(0);
+		//		godot::Vector3 collisionNormal1 = m_shapeCast->get_collision_normal(0);
+		//		godot::Object* collider = m_shapeCast->get_collider(0);
+
+		//		collisionPos = collisionPos1;
+		//		collisionNormal = collisionNormal1;
+		//	}
+		//}
+		
+		godot::Vector3 fromCameraToCollision = collisionPos - rayOrigin;
+		float dot = movementDir.dot(collisionNormal);
+
+		if (1.0f - abs(dot) < 0.01f)
+		{
+			// movement is nearly in the same direction as collision normal, we can just stop camera movement near the collision point
+			newCameraMovement = fromCameraToCollision - movementDir * MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
+			break;
+		}
+
+		bool isFacingCollisionNormal = dot < 0;
+		if (not isFacingCollisionNormal)
+		{
+			// movement is going away from terrain (dot > 0) or is parallel to terrain (dot == 0), no collision to manage
+			break;
+		}
+
+		
+		float penetrationDepth = fromCameraToCollision.dot(collisionNormal);
+		if (penetrationDepth < 0)
+		{
+			// move camera out of collision
+			//godot::Vector3 correctionVector = collisionNormal * (-penetrationDepth + 0.1f);	// add a small offset to prevent sticking to terrain
+			godot::Vector3 correctionVector = collisionNormal;
+			newCameraMovement = fromCameraToCollision + correctionVector;
+			break;
+		}
+		else
+		{
+			my_assert(false);
+		}
+	}
+
+	if (numIterations > maxNumIterations)
+		maxNumIterations = numIterations;
+
+	if (numIterations >= maxIterationsBeforeGivingUp)
+	{
+		//	assert(numIterations < maxIterationsBeforeGivingUp);
+		newCameraMovement = godot::Vector3();	// give up, we will not move camera this frame to prevent possible infinite loop in case of unexpected collision configuration (ex: camera stuck in a corner between 2 or more terrain triangles)
+	}
+	
+	movementLocalCoord = get_global_basis().xform_inv(newCameraMovement);
+
+	return collisionDetected;
+}
+
+//void GDN_TheWorld_Camera::debugCheckCollisions(void)
+//{
+//	bool testCollisions = false;
+//
+//	if (!testCollisions)
+//		return;
+//	
+//	godot::Camera3D* camera = getRealSceneCamera();
+//	if (camera == nullptr)
+//		return;
+//
+//	godot::Vector3 cameraGlobalPosition = camera->get_global_position();
+//	godot::Vector3 cameraGlobalDirection = -camera->get_global_transform().basis.rows[godot::Vector3::Axis::AXIS_Z].normalized();
+//	godot::Vector3 camdirCollisionOnTerrainPos, camdirCollisionOnTerrainNormal;
+//	float distanceFromCamdirCollisionOnTerrainPos;
+//
+//	//godot::Vector3 downCollisionOnTerrainPos, downCollisionOnTerrainNormal;
+//	//float distanceFromDownCollisionOnTerrainPos;
+//	//{
+//	//	godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
+//	//	godot::Dictionary rayArray;
+//	//	godot::Vector3 rayOrigin = cameraGlobalPosition;
+//	//	godot::Vector3 rayEnd = rayOrigin + godot::Vector3(0.0f, -MAX_ALTITUDE_DETECTED, 0.0f);
+//	//	godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
+//	//	rayArray = spaceState->intersect_ray(query);
+//	//	if (rayArray.has("position"))
+//	//	{
+//	//		downCollisionOnTerrainPos = rayArray["position"];
+//	//		distanceFromDownCollisionOnTerrainPos = (downCollisionOnTerrainPos - cameraGlobalPosition).length();
+//	//	}
+//	//	if (rayArray.has("normal"))
+//	//		downCollisionOnTerrainNormal = rayArray["normal"];
+//	//}
+//
+//	{
+//		godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
+//		godot::Dictionary rayArray;
+//		godot::Vector3 rayOrigin = cameraGlobalPosition;
+//		godot::Vector3 rayEnd = rayOrigin + cameraGlobalDirection * MAX_ALTITUDE_DETECTED * 3;
+//		godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
+//		rayArray = spaceState->intersect_ray(query);
+//		if (rayArray.has("position"))
+//		{
+//			camdirCollisionOnTerrainPos = rayArray["position"];
+//			distanceFromCamdirCollisionOnTerrainPos = (camdirCollisionOnTerrainPos - cameraGlobalPosition).length();
+//		}
+//		if (rayArray.has("normal"))
+//			camdirCollisionOnTerrainNormal = rayArray["normal"];
+//		if (camdirCollisionOnTerrainPos != godot::Vector3() and camdirCollisionOnTerrainNormal != godot::Vector3())
+//		{
+//			//godot::UtilityFunctions::print((std::string("Camera collision in cam dir - Distance: ") + std::to_string(distanceFromCamdirCollisionOnTerrainPos) + " - Normal: " + std::to_string(camdirCollisionOnTerrainNormal.x) + "," + std::to_string(camdirCollisionOnTerrainNormal.y) + "," + std::to_string(camdirCollisionOnTerrainNormal.z)).c_str());
+//			float penetrationDepth = (camdirCollisionOnTerrainPos - rayOrigin).dot(camdirCollisionOnTerrainNormal);
+//			if (penetrationDepth < 0)
+//			{
+//				//godot::UtilityFunctions::print((std::string("Camera penetration depth: ") + std::to_string(penetrationDepth)).c_str());
+//				bool isFacingCollisionNormal = cameraGlobalDirection.dot(camdirCollisionOnTerrainNormal) < 0;
+//				bool no_penetration = true;
+//				//godot::UtilityFunctions::print((std::string("Camera is penetrating terrain with depth: ") + std::to_string(penetrationDepth)).c_str());
+//			}
+//			else
+//			{
+//				//godot::UtilityFunctions::print((std::string("Camera penetration depth: ") + std::to_string(penetrationDepth)).c_str());
+//				bool isFacingCollisionNormal = cameraGlobalDirection.dot(camdirCollisionOnTerrainNormal) < 0;
+//				bool no_penetration = false;
+//			}
+//		}
+//	}
+//}
+
+godot::Vector3 GDN_TheWorld_Camera::manageCollisionsPreMovement(godot::Vector3 cameraMovementLocalCoord)
+{
+	if (IS_EDITOR_HINT())
+		return cameraMovementLocalCoord;
+	
+	if (!Globals()->Viewer()->isCameraQuadrantColliderSet())
+		return cameraMovementLocalCoord;
+
+	godot::Vector3 newCameraMovement = cameraMovementLocalCoord;
+	bool b = checkCollisionWithTerrain(newCameraMovement);
+	return newCameraMovement;
+	
+	//while (newCameraMovement != godot::Vector3())
+	//{
+	//	godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
+	//	godot::Dictionary rayArray;
+	//	godot::Vector3 rayOrigin = get_global_position();
+	//	godot::Vector3 rayEnd = rayOrigin + newCameraMovement;
+	//	godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
+	//	rayArray = spaceState->intersect_ray(query);
+	//	if (not rayArray.has("position"))
+	//		break;
+
+	//	godot::Vector3 collisionPoint = rayArray["position"];
+	//	godot::Vector3 collisionNormal = rayArray["normal"];
+	//	godot::Vector3 movementDir = newCameraMovement.normalized();
+	//	float penetrationDepth = (collisionPoint - rayOrigin).dot(collisionNormal);
+	//	if (penetrationDepth < 0)
+	//		break;	// No penetration, we can move freely
+	//	// Slide the camera along the collision surface
+	//	godot::Vector3 slideDirection = movementDir - collisionNormal * movementDir.dot(collisionNormal);
+	//	newCameraMovement = slideDirection.normalized() * newCameraMovement.length();
+	//	// If the new movement is very small, we stop to prevent jittering
+	//	if (newCameraMovement.length() < 0.5f)
+	//		break;
+
+	//	newCameraMovement /= 2;
+	//}
+
+	//return newCameraMovement;
+}
+
+void GDN_TheWorld_Camera::manageCollisionsPostMovement(float preMoveCameraAltitudeFromTerrain, godot::Vector3 preMoveCameraPos)
+{
 	updateAltitudeFromTerrain(true);
 
 	if (m_lastCameraAltitudeFromTerrain == INVALID_CAMERA_ALTITUDE)
 	{
-		if (savedLastCameraAltitudeComputed != INVALID_CAMERA_ALTITUDE)
+		if (preMoveCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE)
 		{
-			if (savedLastCameraAltitudeComputed < MAX_ALTITUDE_DETECTED - (MAX_ALTITUDE_DETECTED * 0.1f))	// Far above terrain we leave camera move else we force camera still
+			if (preMoveCameraAltitudeFromTerrain < MAX_ALTITUDE_DETECTED - (MAX_ALTITUDE_DETECTED * 0.1f))	// Far above terrain we leave camera move else we force camera still
 			{
-				set_global_position(savedCameraPos);
-				m_lastCameraAltitudeFromTerrain = savedLastCameraAltitudeComputed;
+				set_global_position(preMoveCameraPos);
+				m_lastCameraAltitudeFromTerrain = preMoveCameraAltitudeFromTerrain;
 			}
 		}
 	}
 	else
 	{
-#define MIN_ALTITUDE_ALLOWED_FOR_CAMERA	3.0f
 		godot::Vector3 postMoveCameraPos = get_global_position();
-		if (postMoveCameraPos.y < savedCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_ALTITUDE_ALLOWED_FOR_CAMERA))
+		if (postMoveCameraPos.y < preMoveCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA))
 		{
-			set_global_position(godot::Vector3(postMoveCameraPos.x, savedCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_ALTITUDE_ALLOWED_FOR_CAMERA), postMoveCameraPos.z));
-			m_lastCameraAltitudeFromTerrain = MIN_ALTITUDE_ALLOWED_FOR_CAMERA;
+			set_global_position(godot::Vector3(postMoveCameraPos.x, preMoveCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA), postMoveCameraPos.z));
+			m_lastCameraAltitudeFromTerrain = MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
 		}
 	}
-
-	return true;
 }
 
 void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
@@ -1641,7 +1868,7 @@ void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 
 			if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE)
 			{
-				float altitudeFromTerrain = MIN_ALTITUDE_ALLOWED_FOR_CAMERA;
+				float altitudeFromTerrain = MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
 				altitudeFromTerrain = 50;
 				float cameraAltitudeComputed = m_lastComputedCameraVerticalOnTerrain.y + altitudeFromTerrain;
 				if (m_overSea)

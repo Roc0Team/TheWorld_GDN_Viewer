@@ -210,8 +210,8 @@ namespace godot {
 		void updateAltitudeFromTerrain(bool force);
 
 		//void debugCheckCollisions(void);
-		bool checkCollisionWithTerrain(godot::Vector3& cameraTargetLocalCoord);
-		godot::Vector3 manageCollisionsPreMovement(godot::Vector3 cameraTargetLocalCoord);
+		bool checkCollisionWithTerrain(godot::Vector3& cameraMovementLocalCoord);
+		godot::Vector3 manageCollisionsPreMovement(godot::Vector3 cameraMovementLocalCoord);
 		void manageCollisionsPostMovement(float preMoveCameraAltitudeFromTerrain, godot::Vector3 preMoveCameraPos);
 
 		float cameraMaxAltitudeFromTerrainDetected(void) const;

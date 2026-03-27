@@ -2876,28 +2876,28 @@ void GDN_TheWorld_Edit::changeTextureAction()
 	{
 		strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_lowElevationTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_lowElevationLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_lowElevationLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 		m_innerData->m_lowElevationTex->set_texture(texturePreview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_highElevationEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_highElevationTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_highElevationLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_highElevationLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 		m_innerData->m_highElevationTex->set_texture(texturePreview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_dirtEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_dirtTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_dirtLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_dirtLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 		m_innerData->m_dirtTex->set_texture(texturePreview);
 	}
 	else if (m_innerData->m_selTexturePanel->m_newTexSlotName == c_rocksEditTextureName)
 	{
 		strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 		m_innerData->m_rocksTexName->set_text(m_innerData->m_selTexturePanel->m_newTexName.c_str());
-		m_innerData->m_rocksLayoutName->set_text(textureLayout.c_str());
+		m_innerData->m_rocksLayoutName->set_text((std::string("(Layout: ") + textureLayout + ")").c_str());
 		m_innerData->m_rocksTex->set_texture(texturePreview);
 	}
 

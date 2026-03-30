@@ -213,7 +213,7 @@ namespace godot
 			godot::Vector4 m_groundTextureLayers;
 			godot::Color m_upperLeftCornerSplatmapTexel;
 			bool m_shaderUpdated = false;
-			uint16_t m_heightmapCorner;
+			uint16_t m_heightmapCorner = 0;
 			TheWorld_Utils::MemoryBuffer m_heightmapBorderRow;
 			std::chrono::system_clock::time_point m_lastHeightmapBorderRefreshTs;
 			TheWorld_Utils::MemoryBuffer m_splatmapBorderRow;
@@ -1425,7 +1425,7 @@ namespace godot
 
 		void mouseHitChanged(godot::Vector2 mouseHit);
 
-		godot::Ref<godot::Image> addExtraBordersToHeightmap(godot::Ref<godot::Image> heightmap);
+		godot::Ref<godot::Image> addExtraBordersToHeightmap(godot::Ref<godot::Image> heightmap, size_t optimizationLevel);
 		
 		godot::Ref<godot::Image> getOrCreateHeightmapImage();
 		static godot::Ref<godot::Image> createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution, Quadrant* quadrant);
@@ -1729,7 +1729,7 @@ namespace godot
 	{
 	public:
 
-		Quad(enum class QuadType chunkType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
+		Quad(QuadType chunkType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree);
 		~Quad();
 
 		int slotPosX() const

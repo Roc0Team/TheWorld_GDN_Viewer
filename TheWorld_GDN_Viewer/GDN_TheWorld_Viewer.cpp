@@ -3639,7 +3639,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				heightmapTexture = godot::ImageTexture::create_from_image(image);
 				if (ShaderTerrainData::s_extraNeighbourBorderInHeightmap)
 				{
-					image = m_quadTree->getQuadrant()->getShaderTerrainData()->addExtraBordersToHeightmap(image);
+					image = m_quadTree->getQuadrant()->getShaderTerrainData()->addExtraBordersToHeightmap(image, optimizationLevel);
 					godot::Ref<godot::ImageTexture> heightmapTexture = godot::ImageTexture::create_from_image(image);
 					material->set_shader_parameter(SHADER_PARAM_TERRAIN_HEIGHTMAP, heightmapTexture);
 					material->set_shader_parameter(SHADER_EXTRA_VERTICES_ON_HEIGHTMAP, size_t(1));
@@ -4509,7 +4509,7 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		size_t imageResolution = Globals()->resolutionForOptimizationLevel((size_t)MapQuadrantImagesMap::getMapQuadrantOptimizationLevel());
 		godot::Ref<godot::Image> quadrantMapImage = MapQuadrantImage::quadrantMapBufferToQuadrantMapImage(*cookedGlobalmap, Globals()->numVerticesPerQuadrantSize(), imageResolution);
 		godot::PackedByteArray quadrantMapImageData = quadrantMapImage->get_data();
-		std::string outFileName = quadTree->getQuadrant()->getCacheFilePath() + ".map2.png";	// DEBUG
+		//std::string outFileName = quadTree->getQuadrant()->getCacheFilePath() + ".map2.png";	// DEBUG
 		//quadrantMapImage->save_png(outFileName.c_str());										// DEBUG
 		//globalmapBuffer.reserve(quadrantMapImageData.size() + sizeof(int32_t) + sizeof(int32_t) + sizeof(int64_t));
 		size_t offset = 0;

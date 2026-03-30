@@ -217,7 +217,7 @@ void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std:
 	return;
 }
 
-Quad::Quad(enum class QuadType quadType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
+Quad::Quad(QuadType quadType, int slotPosX, int slotPosZ, int lod, enum PosInQuad posInQuad, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
 {
 	m_quadType = quadType;
 	m_slotPosX = slotPosX;
@@ -370,7 +370,7 @@ void Quad::setCameraPosInMap(Vector3 cameraPosInMap)
 	}
 }
 	
-std::string QuadTree::quadTypeToString(enum class QuadType type)
+std::string QuadTree::quadTypeToString(QuadType type)
 {
 	switch (type)
 	{
@@ -3326,56 +3326,89 @@ godot::Ref<godot::Image> ShaderTerrainData::getOrCreateHeightmapImage()
 	return m_hiresHeightmapImage;
 }
 
-godot::Ref<godot::Image> ShaderTerrainData::addExtraBordersToHeightmap(godot::Ref<godot::Image> heightmap)
+godot::Ref<godot::Image> ShaderTerrainData::addExtraBordersToHeightmap(godot::Ref<godot::Image> heightmap, size_t optimizationLevel)
 {
+	size_t heightmapResolution = heightmap->get_width();
 	godot::PackedByteArray heightmapImageData = heightmap->get_data();
+	
 	TheWorld_Utils::MemoryBuffer heightmapImageBuffer((BYTE*)heightmapImageData.ptr(), heightmapImageData.size());
 	
-	int heightmapResolution = heightmap->get_width();
-	int newHeightmapResolution = heightmapResolution + 2;
+	size_t newHeightmapResolution = heightmapResolution + 2;
+	int32_t step = 1 << optimizationLevel;
+	if (optimizationLevel > 0)
+		step = 1 << optimizationLevel;
+
 	TheWorld_Utils::MemoryBuffer newHeightmapImageBuffer;
-	newHeightmapImageBuffer.reserve<uint16_t>(size_t(newHeightmapResolution) * size_t(newHeightmapResolution));
-	newHeightmapImageBuffer.adjustSize<uint16_t>(size_t(newHeightmapResolution) * size_t(newHeightmapResolution));
+	newHeightmapImageBuffer.reserve<uint16_t>(newHeightmapResolution * newHeightmapResolution);
+	newHeightmapImageBuffer.adjustSize<uint16_t>(newHeightmapResolution * newHeightmapResolution);
 	memset(newHeightmapImageBuffer.ptr(), 0, newHeightmapImageBuffer.size());
 
-	uint16_t* westBorder = nullptr;
-	uint16_t* eastBorder = nullptr;
-	uint16_t* heightmapData = (uint16_t*)heightmapImageBuffer.ptr();
-
 	Quadrant* quadrant = m_quadTree->getQuadrant();
-	
-	// Set first row of the heightmap image with neighbour quadrant border (north) if it is initialized, otherwise it will be set to 0 (***sea level***)
+
+	// Set first row of the heightmap image with neighbour quadrant border (north) if it is initialized, otherwise it will be left to 0 (***sea level***)
 	if (quadrant->northWestQuadrantData().initialized())
 		newHeightmapImageBuffer.set_at<uint16_t>(quadrant->northWestQuadrantData().getHeightmapCorner(), 0, 0, newHeightmapResolution);
 	if (quadrant->northQuadrantData().initialized())
-		newHeightmapImageBuffer.setPartOfRow<uint16_t>((uint16_t*)quadrant->northQuadrantData().getHeightmapBorderRow().ptr(), quadrant->northQuadrantData().getHeightmapBorderRow().size<uint16_t>(), 0, 1, newHeightmapResolution);
+	{
+		size_t northBorderSize = quadrant->northQuadrantData().getHeightmapBorderRow().size<uint16_t>();
+		uint16_t* northBorder = (uint16_t*)quadrant->northQuadrantData().getHeightmapBorderRow().ptr();
+		assert(northBorderSize - 1 == (heightmapResolution - 1) * step);
+		if (optimizationLevel == 0)		// Optimization
+			newHeightmapImageBuffer.setPartOfRow<uint16_t>(northBorder, northBorderSize, 0, 1, newHeightmapResolution);
+		else
+		{
+			for (size_t col = 1; col < newHeightmapResolution - 1; col++)
+				newHeightmapImageBuffer.set_at<uint16_t>(northBorder[(col - 1) * step], 0, col, newHeightmapResolution);
+		}
+	}
 	if (quadrant->northEastQuadrantData().initialized())
 		newHeightmapImageBuffer.set_at<uint16_t>(quadrant->northEastQuadrantData().getHeightmapCorner(), 0, newHeightmapResolution - 1, newHeightmapResolution);
-	// Set last row of the heightmap image with neighbour quadrant border (south) if it is initialized, otherwise it will be set to 0 (***sea level***)
+	
+	// Set last row of the heightmap image with neighbour quadrant border (south) if it is initialized, otherwise it will be left to 0 (***sea level***)
 	if (quadrant->southWestQuadrantData().initialized())
 		newHeightmapImageBuffer.set_at<uint16_t>(quadrant->southWestQuadrantData().getHeightmapCorner(), newHeightmapResolution - 1, 0, newHeightmapResolution);
 	if (quadrant->southQuadrantData().initialized())
-		newHeightmapImageBuffer.setPartOfRow<uint16_t>((uint16_t*)quadrant->southQuadrantData().getHeightmapBorderRow().ptr(), quadrant->southQuadrantData().getHeightmapBorderRow().size<uint16_t>(),
-			newHeightmapResolution - 1, 1, newHeightmapResolution);
+	{
+		size_t southBorderSize = quadrant->southQuadrantData().getHeightmapBorderRow().size<uint16_t>();
+		uint16_t* southBorder = (uint16_t*)quadrant->southQuadrantData().getHeightmapBorderRow().ptr();
+		assert(southBorderSize - 1 == (heightmapResolution - 1) * step);
+		if (optimizationLevel == 0)		// Optimization
+			newHeightmapImageBuffer.setPartOfRow<uint16_t>(southBorder, southBorderSize, newHeightmapResolution - 1, 1, newHeightmapResolution);
+		else
+		{
+			for (size_t col = 1; col < newHeightmapResolution - 1; col++)
+				newHeightmapImageBuffer.set_at<uint16_t>(southBorder[(col - 1) * step], newHeightmapResolution - 1, col, newHeightmapResolution);
+		}
+	}
 	if (quadrant->southEastQuadrantData().initialized())
 		newHeightmapImageBuffer.set_at<uint16_t>(quadrant->southEastQuadrantData().getHeightmapCorner(), newHeightmapResolution - 1, newHeightmapResolution - 1, newHeightmapResolution);
 
 
+	// Completing with full heightmap image and lateral (west/east) neighbour quadrant borders
+	uint16_t* westBorder = nullptr;
+	size_t westBorderSize = 0;
 	if (quadrant->westQuadrantData().initialized())
+	{
+		westBorderSize = quadrant->westQuadrantData().getHeightmapBorderRow().size<uint16_t>();
 		westBorder = (uint16_t*)quadrant->westQuadrantData().getHeightmapBorderRow().ptr();
+		assert(westBorderSize - 1 == (heightmapResolution - 1)* step);
+	}
+	uint16_t* eastBorder = nullptr;
+	size_t eastBorderSize = 0;
 	if (quadrant->eastQuadrantData().initialized())
+	{
+		eastBorderSize = quadrant->eastQuadrantData().getHeightmapBorderRow().size<uint16_t>();
 		eastBorder = (uint16_t*)quadrant->eastQuadrantData().getHeightmapBorderRow().ptr();
-
-	// Completing with heightmap image and lateral (west/east) neighbour quadrant borders
-	int idx = 0;
+		assert(eastBorderSize - 1 == (heightmapResolution - 1) * step);
+	}
+	uint16_t* heightmapData = (uint16_t*)heightmapImageBuffer.ptr();
 	for (size_t row = 1; row < newHeightmapResolution - 1; row++)
 	{
 		if (westBorder != nullptr)
-			newHeightmapImageBuffer.set_at<uint16_t>(westBorder[row - 1], row, 0, newHeightmapResolution);
+			newHeightmapImageBuffer.set_at<uint16_t>(westBorder[(row - 1) * step], row, 0, newHeightmapResolution);
 		newHeightmapImageBuffer.setPartOfRow<uint16_t>(heightmapData + (row - 1) * heightmapResolution, heightmapResolution, row, 1, newHeightmapResolution);
 		if (eastBorder != nullptr)
-			newHeightmapImageBuffer.set_at<uint16_t>(eastBorder[row - 1], row, newHeightmapResolution - 1, newHeightmapResolution);
-		idx++;
+			newHeightmapImageBuffer.set_at<uint16_t>(eastBorder[(row - 1) * step], row, newHeightmapResolution - 1, newHeightmapResolution);
 	}
 
 	godot::PackedByteArray data;
@@ -4026,9 +4059,9 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 				std::string profileHeader("WorldDeploy 3.1.1 ");
 				quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(0);
 				godot::Ref<godot::Image> image = getImageAtResolution(profileHeader, ImageType::heightmap, optimizationLevel, newResolution);
-				if (ShaderTerrainData::s_extraNeighbourBorderInHeightmap and optimizationLevel == 0)
+				if (ShaderTerrainData::s_extraNeighbourBorderInHeightmap /*and optimizationLevel == 0*/)
 				{
-					image = addExtraBordersToHeightmap(image);
+					image = addExtraBordersToHeightmap(image, optimizationLevel);
 					quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(1);
 					//// SUPERDEBUGRIC 12/03/2026
 				}

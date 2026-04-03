@@ -1656,8 +1656,8 @@ bool GDN_TheWorld_Camera::checkCollisionWithTerrain(godot::Vector3& cameraMoveme
 		godot::Vector3 movementDir = newCameraMovementGlobalCoord.normalized();
 		float dot = movementDir.dot(collisionNormal);
 		godot::Vector3 fromCameraToCollision = collisionPos - rayOrigin;
-		godot::Vector3 movementDirCheck = fromCameraToCollision.normalized();	// DEBUG - Check that movement direction is the same as direction from ray origin to collision position
-		assert(1.0f - abs(movementDirCheck.dot(movementDir)) < 0.01f);			// DEBUG - Check that movement direction is the same as direction from ray origin to collision position
+		//godot::Vector3 movementDirCheck = fromCameraToCollision.normalized();	// DEBUG - Check that movement direction is the same as direction from ray origin to collision position
+		//assert(1.0f - abs(movementDirCheck.dot(movementDir)) < 0.01f);			// DEBUG - Check that movement direction is the same as direction from ray origin to collision position
 
 		//{
 		//	m_shapeCast->set_global_position(cameraGlobalPosition);

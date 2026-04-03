@@ -4063,7 +4063,6 @@ void ShaderTerrainData::resetMaterialParams(enum class QuadType type, bool& last
 				{
 					image = addExtraBordersToHeightmap(image, optimizationLevel);
 					quadrant->getShaderTerrainData()->numExtraNeighbourVerticesInHeightmap(1);
-					//// SUPERDEBUGRIC 12/03/2026
 				}
 
 				if (image != nullptr)

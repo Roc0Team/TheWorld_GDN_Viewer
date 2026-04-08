@@ -16,6 +16,7 @@
 #include <godot_cpp/classes/world3d.hpp>
 #include <godot_cpp/classes/physics_direct_space_state3d.hpp>
 #include <godot_cpp/classes/physics_ray_query_parameters3d.hpp>
+#include <godot_cpp/classes/physics_shape_query_parameters3d.hpp>
 #include <godot_cpp/classes/quad_mesh.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/fast_noise_lite.hpp>
@@ -1207,11 +1208,12 @@ bool GDN_TheWorld_Camera::initCameraInWorld(godot::Vector3 cameraPos, godot::Vec
 		godot::Ref<godot::SphereShape3D> sphereShape = memnew(godot::SphereShape3D);
 		sphereShape->set_radius(MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA);
 		sphereShape->set_margin(0.1f);
-		m_shapeCast = memnew(godot::ShapeCast3D);
-		add_child(m_shapeCast);
-		m_shapeCast->set_shape(sphereShape);
-		m_shapeCast->set_target_position(godot::Vector3(0, 0, 0));
-		m_shapeCast->set_collision_mask(4294967295);
+		m_cameraShape = sphereShape;
+		//m_shapeCast = memnew(godot::ShapeCast3D);
+		//add_child(m_shapeCast);
+		//m_shapeCast->set_shape(sphereShape);
+		//m_shapeCast->set_target_position(godot::Vector3(0, 0, 0));
+		//m_shapeCast->set_collision_mask(4294967295);
 	}
 	
 	return true;
@@ -1441,6 +1443,8 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 
 	m_updateCameraRequired = false;
 
+	bool canSlide = false;
+	
 	//updateAltitude(true);
 	godot::Vector3 preMoveCameraPos = get_global_position();
 	float preMoveCameraAltitudeFromTerrain = m_lastCameraAltitudeFromTerrain;
@@ -1505,15 +1509,16 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 	//	m_mouseRelativePosToShiftVert = godot::Vector2(0, 0);
 	//}
 
-	if (m_numLongMoveStepForward)
+	if (m_numLongMoveStepForward != 0)
 	{
+		canSlide = true;
 		godot::Vector3 cameraMovement = godot::Vector3(0, 0, m_numLongMoveStepForward * m_wheelVeryFastVelocity);
 		m_numLongMoveStepForward = 0;
 		//translate_object_local(cameraMovement);
 		resultantCameraMovement += cameraMovement;
 	}
 
-	if (m_numLongMoveStepLeft)
+	if (m_numLongMoveStepLeft != 0)
 	{
 		godot::Vector3 cameraMovement = godot::Vector3(-m_numLongMoveStepLeft * m_wheelVeryFastVelocity, 0, 0);
 		m_numLongMoveStepLeft = 0;
@@ -1526,8 +1531,9 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 	float delayFactor = 1 / delayDegree;
 	//delayFactor = 1;	// DEBUG - Disable delay factor for camera movement for now as it is not really useful and make camera movement more difficult to control (especially with mouse wheel)	
 
-	if (m_numMoveStepForward)
+	if (m_numMoveStepForward != 0)
 	{
+		canSlide = true;
 		godot::Vector3 cameraMovement;
 		if (m_altPressed)
 		{
@@ -1564,7 +1570,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		resultantCameraMovement += cameraMovement;
 	}
 
-	if (m_numMoveStepLeft)
+	if (m_numMoveStepLeft != 0)
 	{
 		godot::Vector3 cameraMovement;
 		if (m_shiftPressed)
@@ -1584,7 +1590,7 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 		resultantCameraMovement += cameraMovement;
 	}
 
-	if (m_numMoveStepUp)
+	if (m_numMoveStepUp != 0)
 	{
 		godot::Vector3 cameraMovement;
 		if (m_shiftPressed)
@@ -1606,15 +1612,14 @@ bool GDN_TheWorld_Camera::updateFreeLookCamera(double _delta)
 
 	if (resultantCameraMovement != godot::Vector3())
 	{
-		translate_object_local(manageCollisionsPreMovement(resultantCameraMovement));
+		translate_object_local(manageCollisionsPreMovement(resultantCameraMovement, canSlide));
+		manageCollisionsPostMovement(preMoveCameraAltitudeFromTerrain, preMoveCameraPos);
 	}
 
-	manageCollisionsPostMovement(preMoveCameraAltitudeFromTerrain, preMoveCameraPos);
-	
 	return true;
 }
 
-bool GDN_TheWorld_Camera::checkCollisionWithTerrain(godot::Vector3& cameraMovementLocalCoord)
+bool GDN_TheWorld_Camera::checkCollisionWithTerrain(godot::Vector3& cameraMovementLocalCoord, bool canSlide)
 {
 	bool collisionDetected = false;
 
@@ -1625,99 +1630,122 @@ bool GDN_TheWorld_Camera::checkCollisionWithTerrain(godot::Vector3& cameraMoveme
 	// it must be transformed in global coordinates to check collision with terrain as terrain collider is in global coordinates, then if there is a collision we will try to move camera as close as possible
 	// to collision point without crossing it and then check if we are still colliding (ex: in case of collision with a slope, we may need to move camera up to not be colliding anymore)
 	godot::Vector3 newCameraMovementGlobalCoord = get_global_basis().xform(cameraMovementLocalCoord);	// transform movement from local camera coordinates to global coordinates
+	//godot::Vector3 v = get_global_basis().xform_inv(newCameraMovementGlobalCoord);	// DEBUG - Check that transforming movement from local to global coordinates and then from global to local coordinates give the same movement in local coordinates, if not it means there is a problem with the transformation of movement between local and global coordinates
 	
 	godot::Vector3 cameraGlobalPosition = get_global_position();
 
 	static size_t maxNumDetectedAttempts = 0;		// DEBUG
-	//static size_t maxNumInternalIterations = 0;	// DEBUG
 
-	const size_t maxAttemptsAllowedBeforeGivingUp = 2;	// to prevent infinite loop in case of unexpected collision configuration (ex: camera stuck in a corner between 2 or more terrain triangles)
+	const size_t maxAttemptsAllowedBeforeGivingUp = 10;	// to prevent infinite loop in case of unexpected collision configuration (ex: camera stuck in a corner between 2 or more terrain triangles)
 	size_t numAttempts = 0;
 	while (numAttempts < maxAttemptsAllowedBeforeGivingUp)
 	{
 		numAttempts++;
 
-		godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
-		godot::Dictionary rayArray;
-		godot::Vector3 rayOrigin = cameraGlobalPosition;
-		godot::Vector3 rayEnd = rayOrigin + newCameraMovementGlobalCoord;
-		godot::Ref<godot::PhysicsRayQueryParameters3D> query = PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
-		rayArray = spaceState->intersect_ray(query);
-		if (not rayArray.has("position"))
-			break;	// no collision to next position, we can move camera as desidered
+		godot::Vector3 movementDir = newCameraMovementGlobalCoord.normalized();
 
-		// we have to manage collision with terrain, we will try to move camera as close as possible to collision point without crossing it and then check if we are still colliding (ex: in case of collision with a slope, we may need to move camera up to not be colliding anymore)
+		godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
+
+		// Centering collision shape on camera then checking collisions with anything before movement to be able to move camera as close as possible to collision point without crossing it
+		godot::TypedArray<godot::Dictionary> shapeDictArray;
+		godot::Ref<godot::PhysicsShapeQueryParameters3D> physicsShapeQueryParameters3D = memnew(godot::PhysicsShapeQueryParameters3D);
+		physicsShapeQueryParameters3D->set_shape(m_cameraShape);
+		physicsShapeQueryParameters3D->set_transform(get_global_transform());
+		shapeDictArray = spaceState->intersect_shape(physicsShapeQueryParameters3D, 1);
+
+		int64_t shapeDictArraySize = shapeDictArray.size();
+		if (shapeDictArraySize > 0)	// Shape intersect something, it can be terrain or something else
+		{
+			// camera shape is colliding somewhere (somehow we have pushed collision shape to collide in previous movement) we can accept only movement away from terrain to try to move camera out of collision, if movement is going toward terrain we will not move camera to prevent sticking in terrain
+			collisionDetected = true;
+			//int64_t colliderId = shapeDictArray[0]["collider_id"];	// DEBUG
+
+			godot::Dictionary rayArray;
+			godot::Vector3 rayOrigin = cameraGlobalPosition;
+			godot::Vector3 rayEnd = rayOrigin + movementDir * 1000;
+			//uint32_t collisionMask = THEWORLD_TERRAIN_COLLISION_LAYER;
+			uint32_t collisionMask = THEWORLD_EVERY_LAYER;
+			godot::Ref<godot::PhysicsRayQueryParameters3D> rayQuery = godot::PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, collisionMask);
+			rayArray = spaceState->intersect_ray(rayQuery);
+
+			if (rayArray.has("position"))
+			{
+				// we know the normal of the collision with terrain so we can check if movement is going toward or away from terrain to decide if we will move camera to try to move it out of collision or not
+				
+				//godot::Vector3 collisionPos = rayArray["position"];	// DEBUG - Check that collision position is near camera position, if not it means there is a problem with the collision detection in terrain collider
+				godot::Vector3 collisionNormal = rayArray["normal"];		//collisionNormal.normalize();	// DEBUG - Check that collision normal is normalized as it should be, if not it means there is a problem with the collision detection in terrain collider
+				float dot = movementDir.dot(collisionNormal);
+				bool isFacingCollisionNormal = dot < 0;
+				if (isFacingCollisionNormal)
+				{
+					// it seems that movement is going toward terrain we will not move camera to prevent sticking in terrain
+					newCameraMovementGlobalCoord = godot::Vector3();
+					break;	// FORCE STOP MOVEMENT TO PREVENT COLLISIONS
+				}
+				else
+				{
+					// movement is going away from terrain (dot > 0) or is normal to terrain / parallel to normal (dot == 0): we can accept movement to try to move camera out of collision
+					break;	// ACCEPT MOVEMENT TO TRY TO MOVE CAMERA OUT OF COLLISION
+				}
+			}
+			else
+			{
+				// we don't know the direction of the movement toward terrain but we know that camera shape is colliding somewhere (somehow we have push collison shape to collide in previous movement): we must accept every movement
+				break;	// ACCEPT MOVEMENT
+			}
+		}
+
+		// Camera shape is not colliding with anything we try to simulate camera movement to see what happens
+		godot::Vector3 movement = newCameraMovementGlobalCoord /* - movementDir * MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA*/;	// we reduce movement to be able to move camera as close as possible to terrain without crossing it in case of collision, this is to prevent sticking in terrain when camera is very close to it and we try to move it with desidered movement that would cross terrain collider
+		//godot::Vector3 m = get_global_basis().xform_inv(movement);	// DEBUG - Check that transforming movement from local to global coordinates and then from global to local coordinates give the same movement in local coordinates, if not it means there is a problem with the transformation of movement between local and global coordinates
+		physicsShapeQueryParameters3D->set_motion(movement);
+		godot::PackedFloat32Array ret = spaceState->cast_motion(physicsShapeQueryParameters3D);
+		if (ret.is_empty())
+		{
+			// Shape cannot move at all
+			newCameraMovementGlobalCoord = godot::Vector3();
+			break;	// FORCE STOP MOVEMENT TO PREVENT COLLISIONS
+		}
+		//float f1 = ret[0];	// DEBUG
+		//float f2 = ret[1];	// DEBUG
+		if (ret[0] == 1.0f and ret[1] == 1.0f)
+		{
+			// no collision during movement, we can move camera with the desidered movement without any problem
+			break;	// ACCEPT MOVEMENT
+		}
+		
+		// Camera shape would collide with something if we move camera with desidered movement
 		collisionDetected = true;
 
-		godot::Vector3 collisionPos = rayArray["position"];
-		godot::Vector3 collisionNormal = rayArray["normal"];
-		//collisionNormal.normalize();	// DEBUG - Check that collision normal is normalized as it should be, if not it means there is a problem with the collision detection in terrain collider
-		
-		godot::Vector3 movementDir = newCameraMovementGlobalCoord.normalized();
-		float dot = movementDir.dot(collisionNormal);
-		godot::Vector3 fromCameraToCollision = collisionPos - rayOrigin;
-		//godot::Vector3 movementDirCheck = fromCameraToCollision.normalized();	// DEBUG - Check that movement direction is the same as direction from ray origin to collision position
-		//assert(1.0f - abs(movementDirCheck.dot(movementDir)) < 0.01f);			// DEBUG - Check that movement direction is the same as direction from ray origin to collision position
+		godot::Dictionary rayArray;
+		godot::Vector3 rayOrigin = cameraGlobalPosition;
+		godot::Vector3 rayEnd = rayOrigin + movementDir * 1000;
+		godot::Ref<godot::PhysicsRayQueryParameters3D> rayQuery = godot::PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, THEWORLD_TERRAIN_COLLISION_LAYER);
+		rayArray = spaceState->intersect_ray(rayQuery);
 
-		//{
-		//	m_shapeCast->set_global_position(cameraGlobalPosition);
-		//	if (m_shapeCast->is_colliding())
-		//	{
-		//		int numColliders = m_shapeCast->get_collision_count();
-		//		godot::Vector3 collisionPos1 = m_shapeCast->get_collision_point(0);
-		//		godot::Vector3 collisionNormal1 = m_shapeCast->get_collision_normal(0);
-		//		godot::Object* collider = m_shapeCast->get_collider(0);
-
-		//		collisionPos = collisionPos1;
-		//		collisionNormal = collisionNormal1;
-		//	}
-		//}
-
-		if (1.0f - abs(dot) < 0.01f)
+		if (rayArray.has("position"))
 		{
-			// movement is nearly in the same direction as collision normal, we can just stop camera movement near the collision point
-			newCameraMovementGlobalCoord = fromCameraToCollision - movementDir * MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
-			break;
-		}
+			// we know the collison normal with terrain, we can try to slide on terrain
+			godot::Vector3 collisionNormal = rayArray["normal"];
+			float dot = movementDir.dot(collisionNormal);
+			if (not canSlide or 1.0f - abs(dot) < 0.01f)
+			{
+				// sliding in this movement is not accepted or movement is nearly in the same direction as collision normal, we move camera as near we can to terrain without collisions but witghout sliding on terrain
+				newCameraMovementGlobalCoord *= ret[0];	// reduce movement to avoid collision, ret[0] is in range 0.0 (full collision at the end of movement) to 1.0 (no collision during movement)
+				break;	// ACCEPT MOVEMENT WITH REDUCTION TO AVOID COLLISION AS SLIDING IS NOT ACCEPTED
+			}
 
-		bool isFacingCollisionNormal = dot < 0;
-		if (not isFacingCollisionNormal)
-		{
-			// movement is going away from terrain (dot > 0) or is parallel to terrain (dot == 0), no collision to manage
-			break;
-		}
-
-		//float sphereRadius = MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
-		
-		float penetrationDepth = fromCameraToCollision.dot(collisionNormal);
-		if (penetrationDepth < 0)
-		{
-			// move camera out of collision
-			//godot::Vector3 correctionVector = collisionNormal * (-penetrationDepth + 0.1f);	// add a small offset to prevent sticking to terrain
-			godot::Vector3 correctionVector = collisionNormal;
+			godot::Vector3 collisionPos = rayArray["position"];
+			godot::Vector3 correctionVector = collisionNormal * newCameraMovementGlobalCoord.length() / 2;
+			godot::Vector3 fromCameraToCollision = collisionPos - rayOrigin;
 			newCameraMovementGlobalCoord = fromCameraToCollision + correctionVector;
 
-			//m_shapeCast->set_global_transform(get_global_transform());	// same position and orientation as camera
-			//const size_t maxIterationsBeforeGivingUp = 10;	// to prevent infinite loop in case of unexpected collision configuration (ex: camera stuck in a corner between 2 or more terrain triangles)
-			//size_t numIterations = 0;
-			//while (numIterations < maxIterationsBeforeGivingUp)
-			//{
-			//	numIterations++;
-
-			//	m_shapeCast->set_target_position(m_shapeCast->get_global_basis().xform_inv(newCameraMovementGlobalCoord));
-			//	if (not m_shapeCast->is_colliding())
-			//		break;
-
-			//	newCameraMovementGlobalCoord = fromCameraToCollision + correctionVector * float(numIterations + 1);
-			//}
-			//if (numIterations > maxNumInternalIterations)		// DEBUG
-			//	maxNumInternalIterations = numIterations;		// DEBUG
-
-			break;
+			// NEW ATTEMPT TO CHECK WITH SLIDING MOVEMENT ON TERRAIN CORRECTION: we project desidered movement on plane defined by collision normal to try to slide on terrain
 		}
 		else
 		{
-			my_assert(false);
+			// camera would collide moving with desidered movement but we don't know collision normal with terrain, we can only try to move camera as near we can to everything without crossing it (eventually stop the camera)
+			newCameraMovementGlobalCoord *= ret[0];	// eventually reduce movement to avoid collision, ret[0] is in range 0.0 (full collision at the end of movement) to 1.0 (no collision during movement)
 		}
 	}
 
@@ -1728,11 +1756,33 @@ bool GDN_TheWorld_Camera::checkCollisionWithTerrain(godot::Vector3& cameraMoveme
 	{
 		//	assert(numIterations < maxIterationsBeforeGivingUp);
 		newCameraMovementGlobalCoord = godot::Vector3();	// give up, we will not move camera this frame to prevent possible infinite loop in case of unexpected collision configuration (ex: camera stuck in a corner between 2 or more terrain triangles)
+		// FORCE STOP MOVEMENT TO PREVENT POSSIBLE INFINITE LOOP IN CASE OF UNEXPECTED COLLISION CONFIGURATION (EX: CAMERA STUCK IN A CORNER BETWEEN 2 OR MORE TERRAIN TRIANGLES)
 	}
 	
 	cameraMovementLocalCoord = get_global_basis().xform_inv(newCameraMovementGlobalCoord);
 
 	return collisionDetected;
+}
+
+float GDN_TheWorld_Camera::distanceFromTerrainAlongMovement(godot::Vector3 movementDirection)
+{
+	float _distanceFromTerrainAlongMovement = INVALID_CAMERA_ALTITUDE;
+
+	if (IS_EDITOR_HINT())
+		return _distanceFromTerrainAlongMovement;
+
+	godot::Dictionary rayArray;
+	godot::Vector3 rayOrigin = get_global_position();
+	godot::Vector3 rayEnd = rayOrigin + movementDirection * 1000;
+	//uint32_t collisionMask = THEWORLD_TERRAIN_COLLISION_LAYER;
+	uint32_t collisionMask = THEWORLD_EVERY_LAYER;
+	godot::Ref<godot::PhysicsRayQueryParameters3D> rayQuery = godot::PhysicsRayQueryParameters3D::create(rayOrigin, rayEnd, collisionMask);
+	godot::PhysicsDirectSpaceState3D* spaceState = get_world_3d()->get_direct_space_state();
+	rayArray = spaceState->intersect_ray(rayQuery);
+	if (rayArray.has("position"))
+		_distanceFromTerrainAlongMovement = rayOrigin.distance_to(rayArray["position"]);
+
+	return _distanceFromTerrainAlongMovement;
 }
 
 //void GDN_TheWorld_Camera::debugCheckCollisions(void)
@@ -1804,7 +1854,7 @@ bool GDN_TheWorld_Camera::checkCollisionWithTerrain(godot::Vector3& cameraMoveme
 //	}
 //}
 
-godot::Vector3 GDN_TheWorld_Camera::manageCollisionsPreMovement(godot::Vector3 cameraMovementLocalCoord)
+godot::Vector3 GDN_TheWorld_Camera::manageCollisionsPreMovement(godot::Vector3 cameraMovementLocalCoord, bool canSlide)
 {
 	if (IS_EDITOR_HINT())
 		return cameraMovementLocalCoord;
@@ -1813,7 +1863,7 @@ godot::Vector3 GDN_TheWorld_Camera::manageCollisionsPreMovement(godot::Vector3 c
 		return cameraMovementLocalCoord;
 
 	godot::Vector3 newCameraMovement = cameraMovementLocalCoord;
-	bool collisionDetected = checkCollisionWithTerrain(newCameraMovement);
+	bool collisionDetected = checkCollisionWithTerrain(newCameraMovement, canSlide);
 	return newCameraMovement;
 }
 
@@ -1834,12 +1884,12 @@ void GDN_TheWorld_Camera::manageCollisionsPostMovement(float preMoveCameraAltitu
 	}
 	else
 	{
-		godot::Vector3 postMoveCameraPos = get_global_position();
-		if (postMoveCameraPos.y < preMoveCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA))
-		{
-			set_global_position(godot::Vector3(postMoveCameraPos.x, preMoveCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA), postMoveCameraPos.z));
-			m_lastCameraAltitudeFromTerrain = MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
-		}
+		//godot::Vector3 postMoveCameraPos = get_global_position();
+		//if (postMoveCameraPos.y < preMoveCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA))
+		//{
+		//	//set_global_position(godot::Vector3(postMoveCameraPos.x, preMoveCameraPos.y - (m_lastCameraAltitudeFromTerrain - MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA), postMoveCameraPos.z));
+		//	//m_lastCameraAltitudeFromTerrain = MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
+		//}
 	}
 }
 
@@ -1860,7 +1910,7 @@ void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 			if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE)
 			{
 				float altitudeFromTerrain = MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
-				altitudeFromTerrain = 50;
+				//altitudeFromTerrain = 50;
 				float cameraAltitudeComputed = m_lastComputedCameraVerticalOnTerrain.y + altitudeFromTerrain;
 				if (m_overSea)
 					cameraAltitudeComputed = THEWORLD_SEA_LEVEL + THEWORLD_SEA_MAX_WAVE_HEIGHT * 2;

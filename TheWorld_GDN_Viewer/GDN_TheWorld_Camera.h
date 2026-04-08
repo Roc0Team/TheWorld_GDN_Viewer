@@ -210,8 +210,9 @@ namespace godot {
 		void updateAltitudeFromTerrain(bool force);
 
 		//void debugCheckCollisions(void);
-		bool checkCollisionWithTerrain(godot::Vector3& cameraMovementLocalCoord);
-		godot::Vector3 manageCollisionsPreMovement(godot::Vector3 cameraMovementLocalCoord);
+		float distanceFromTerrainAlongMovement(godot::Vector3 movementDirection);
+		bool checkCollisionWithTerrain(godot::Vector3& cameraMovementLocalCoord, bool canSlide);
+		godot::Vector3 manageCollisionsPreMovement(godot::Vector3 cameraMovementLocalCoord, bool canSlide);
 		void manageCollisionsPostMovement(float preMoveCameraAltitudeFromTerrain, godot::Vector3 preMoveCameraPos);
 
 		float cameraMaxAltitudeFromTerrainDetected(void) const;
@@ -303,7 +304,8 @@ namespace godot {
 
 		bool m_mouseMovementPaused = false;
 
-		godot::ShapeCast3D* m_shapeCast;
+		//godot::ShapeCast3D* m_shapeCast;
+		godot::Ref<godot::SphereShape3D> m_cameraShape;
 
 		godot::Vector3 m_savedCameraPosAfterSetFar = godot::Vector3(0.0f, 0.0f, 0.0f);
 		bool m_forceRecalcCameraFar = false;

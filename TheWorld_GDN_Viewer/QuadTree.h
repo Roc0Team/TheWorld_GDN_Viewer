@@ -34,6 +34,14 @@ namespace godot
 	class MapQuadrantImage
 	{
 	public:
+		//enum class Status
+		//{
+		//	NotSet = -1
+		//	, UpdateRequired = 0
+		//	//, UpdateInProgress = 1
+		//	//, ToDelete = 2
+		//};
+
 		MapQuadrantImage(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, size_t optimizationLevel);
 		~MapQuadrantImage();
 
@@ -79,9 +87,13 @@ namespace godot
 
 		std::time_t getRefreshTime(void);
 
+		bool lockInternalData(void);
+		void unlockInternalData(void);
+
 		static godot::Ref<godot::Image> quadrantMapBufferToQuadrantMapImage(TheWorld_Utils::MemoryBuffer& quadrantMapBuffer, size_t numVerticesPerQuadrantSize, size_t imageResolution);
 
 	private:
+		//enum class Status m_status = Status::NotSet;
 		GDN_TheWorld_Viewer* m_viewer = nullptr;
 		TheWorld_Utils::QuadrantPos m_quadrantPos;
 		TheWorld_Utils::MeshCacheBuffer m_cache;
@@ -90,6 +102,9 @@ namespace godot
 		int64_t m_lastUpdateTime = 0;
 		//size_t m_optimizationLevel = 0;		// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
 		int32_t m_imageResolution = 0;
+		bool m_internalDataLocked;
+		DWORD m_internalDataLockingTid = 0;
+		std::recursive_mutex m_mtxInternalData;
 
 		// Datas
 		godot::Ref<godot::Image> m_mapImage;

@@ -117,7 +117,7 @@ void MapQuadrantImagesMap::eraseUpdatingQuadrant(TheWorld_Utils::QuadrantPos& po
 	m_updatingQuadrants.erase(pos);
 }
 
-void MapQuadrantImagesMap::erase(TheWorld_Utils::QuadrantPos& pos)
+void MapQuadrantImagesMap::eraseByRef(TheWorld_Utils::QuadrantPos& pos)
 {
 	//std::lock_guard<std::recursive_mutex> lock(m_internalMutex);
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
@@ -158,7 +158,7 @@ void MapQuadrantImagesMap::unlock(void)
 //	addUpdatedQuadrant(quadrantPos);
 //}
 
-void MapQuadrantImagesMap::clearThasher(void)
+void MapQuadrantImagesMap::clearThrash(void)
 {
 	std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
 	std::vector<TheWorld_Utils::QuadrantPos> toDelete;
@@ -2560,26 +2560,26 @@ GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getMapTextureRect(TheWorld_U
 	return m_mapTextureRectContainer[mapTextureRectPos].get();
 }
 
-bool GDN_TheWorld_Map::eraseMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
-{
-	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
-	std::lock_guard<std::recursive_mutex> lock(viewer->getMainProcessingMutex());
-
-	GDN_TheWorld_Globals* globals = viewer->Globals();
-
-	std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
-	mapTextureRectPos.getAllContainedQuadrantPos(quadrantsPos, viewer->getLevel(), (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
-	for (auto& pos : quadrantsPos)
-		viewer->eraseMapQuadrant(pos);
-
-	if (m_mapTextureRectContainer.contains(mapTextureRectPos))
-	{
-		m_mapTextureRectContainer.erase(mapTextureRectPos);
-		return true;
-	}
-	else
-		return false;
-}
+//bool GDN_TheWorld_Map::eraseMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos)
+//{
+//	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+//	std::lock_guard<std::recursive_mutex> lock(viewer->getMainProcessingMutex());
+//
+//	GDN_TheWorld_Globals* globals = viewer->Globals();
+//
+//	std::vector<TheWorld_Utils::QuadrantPos> quadrantsPos;
+//	mapTextureRectPos.getAllContainedQuadrantPos(quadrantsPos, viewer->getLevel(), (int)globals->numVerticesPerQuadrantSize(), globals->gridStepInWU());
+//	for (auto& pos : quadrantsPos)
+//		viewer->eraseMapQuadrant(pos);
+//
+//	if (m_mapTextureRectContainer.contains(mapTextureRectPos))
+//	{
+//		m_mapTextureRectContainer.erase(mapTextureRectPos);
+//		return true;
+//	}
+//	else
+//		return false;
+//}
 
 GDN_TheWorld_Map::MapTextureRect* GDN_TheWorld_Map::getMapTextureRect(const TheWorld_Utils::QuadrantPos& quadrantPos, bool add)
 {
@@ -5261,7 +5261,7 @@ bool GDN_TheWorld_Viewer::init(void)
 	}
 	
 	m_worldQuadrantsMap.init(this);
-	m_mapQuadrantsMap.init(this);
+	m_mapQuadrantImagesMap.init(this);
 
 	// Shader Global Params
 	{
@@ -5915,7 +5915,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 								//if (worldQuadrant)
 								//{
 								//	godot::Ref<godot::Image> mapImage = quadTree->getQuadrant()->getMapImage();
-								//	m_mapQuadrantsMap.setMapData(mapImage, quadrantPos, meshIdFromServer);
+								//	m_mapQuadrantImagesMap.setMapData(mapImage, quadrantPos, meshIdFromServer);
 								//	updateMapQuadrantMap = false;
 								//}
 							}
@@ -6012,25 +6012,30 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							Sleep(1);
 
 					MapQuadrantImage* mapQuadrant = nullptr;
-					m_mapQuadrantsMap.lock();
-					if (m_mapQuadrantsMap.contains(quadrantPos))
+
+					m_mapQuadrantImagesMap.lock();
+					if (m_mapQuadrantImagesMap.contains(quadrantPos))
 					{
-						mapQuadrant = m_mapQuadrantsMap[quadrantPos].get();
+						mapQuadrant = m_mapQuadrantImagesMap[quadrantPos].get();
+						while (mapQuadrant->lockInternalData() == false)
+							Sleep(1);
 					}
 					else
 					{
 						// clear everything
-						m_mapQuadrantsMap.erase(quadrantPos);
+						m_mapQuadrantImagesToDeleteMap[quadrantPos] = true;
+						//m_mapQuadrantImagesMap.eraseByRef(quadrantPos);
 					}
-					m_mapQuadrantsMap.unlock();
+					m_mapQuadrantImagesMap.unlock();
 
 					if (mapQuadrant != nullptr)
 					{
 						std::string outMeshIdFromBuffer;
 						mapQuadrant->refreshDataFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
-						m_mapQuadrantsMap.lock();
-						m_mapQuadrantsMap.addUpdatedQuadrant(quadrantPos);
-						m_mapQuadrantsMap.unlock();
+						mapQuadrant->unlockInternalData();
+						m_mapQuadrantImagesMap.lock();
+						m_mapQuadrantImagesMap.addUpdatedQuadrant(quadrantPos);
+						m_mapQuadrantImagesMap.unlock();
 					}
 
 #pragma warning(suppress: 26117)
@@ -10612,7 +10617,7 @@ void GDN_TheWorld_Viewer::writeStreamingNewQuadrantsStatistics(void)
 
 	GDN_TheWorld_Map* map = Map();
 	std::string mapQuadrantsMessage = "MAP QUADRANTS\n"
-		+ std::string("Num Map Quadrants = ") + std::to_string(m_mapQuadrantsMap.size())
+		+ std::string("Num Map Quadrants = ") + std::to_string(m_mapQuadrantImagesMap.size())
 		+ std::string(" Num Updated Map Quadrants = ") + std::to_string(fetchUpdatedMapQuadrants())
 		+ std::string(" Num Map Texture Rects = ") + std::to_string(m_mapQuadrantRects /*map->getNumTextureRects()*/);
 
@@ -12135,7 +12140,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 	GDN_TheWorld_Map* map = Map();
 	if (map != nullptr)
 	{
-		m_mapQuadrantsMap.lock();
+		m_mapQuadrantImagesMap.lock();
 
 		// Check quadrant update request timed out
 		constexpr int64_t  secondsBetweenCheck = 1;
@@ -12146,8 +12151,8 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 
 			// Erasing MapQuadrants with refreshTime less than textureRectRefreshTime (the updated time on disk of the texture png)
 			{
-				std::vector<TheWorld_Utils::QuadrantPos> quadrantsPosToErase;
-				for (auto& item : m_mapQuadrantsMap)
+				std::map<TheWorld_Utils::QuadrantPos, bool> quadrantsPosToErase;
+				for (auto& item : m_mapQuadrantImagesMap)
 				{
 					MapQuadrantImage* mapQuadrant = item.second.get();
 					std::time_t quadrantRefreshTime = mapQuadrant->getRefreshTime();
@@ -12158,29 +12163,46 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 						TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
 						GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
 						if (mapTextureRect == nullptr)
-							quadrantsPosToErase.push_back(quadrantPos);	// if quadrant belongs to e texture rect not in map (texture rect no more in screen) we can delete it
+							quadrantsPosToErase[quadrantPos] = true;	// if quadrant belongs to e texture rect not in map (texture rect no more in screen) we can delete it
 						if (mapTextureRect != nullptr and !mapTextureRect->fileTimeStr().empty())
 							mapRectTextureRefreshTime = TheWorld_Utils::str_time_to_time_t(mapTextureRect->fileTimeStr());
 
 						if (quadrantRefreshTime < mapRectTextureRefreshTime)
-							quadrantsPosToErase.push_back(quadrantPos);
+							quadrantsPosToErase[quadrantPos] = true;
 					}
 					else if (quadrantRefreshTime == 0)	// Empty quadrant
 					{
 						TheWorld_Utils::QuadrantPos quadrantPos = mapQuadrant->getPos();
 						GDN_TheWorld_Map::MapTextureRect* mapTextureRect = map->getMapTextureRect(quadrantPos, false);
 						if (mapTextureRect == nullptr)
-							quadrantsPosToErase.push_back(quadrantPos);	// if empty quadrant and it's not in map (texture rect no more in screen) we can delete it
+							quadrantsPosToErase[quadrantPos] = true;	// if empty quadrant and it's not in map (texture rect no more in screen) we can delete it
 						if (mapTextureRect != nullptr and !mapTextureRect->fileTimeStr().empty())
-							quadrantsPosToErase.push_back(quadrantPos);	// if empty quadrant and its map texture rect is rendered we can delete it
+							quadrantsPosToErase[quadrantPos] = true;	// if empty quadrant and its map texture rect is rendered we can delete it
 					}
 				}
-				for (auto& pos : quadrantsPosToErase)
-					m_mapQuadrantsMap.erase(pos);
-				m_mapQuadrantsMap.clearThasher();
+				
+				for (auto& [pos, dummy] : m_mapQuadrantImagesToDeleteMap)	// add previously accumulated quadrants to delete (those are quadrants that were not deleted in previous checks because they were still in use by the map)
+				{
+					quadrantsPosToErase[pos] = true;
+				}
+				m_mapQuadrantImagesToDeleteMap.clear();
+				
+				for (auto& [pos, dummy] : quadrantsPosToErase)
+				{
+					bool canBeErased = true;
+					if (m_mapQuadrantImagesMap.contains(pos))
+						if (not m_mapQuadrantImagesMap[pos]->lockInternalData())
+							canBeErased = false;	// if we can't lock the internal data of the quadrant it means that it's still in use by the map (map is reading data from server to update texture rects) so we can't delete it now
+					if (canBeErased)
+						m_mapQuadrantImagesMap.eraseByValue(pos);
+					else
+						m_mapQuadrantImagesToDeleteMap[pos] = true;	// if the quadrant is still in use by the map we will try to delete it later (in next checks)
+				}
+				
+				m_mapQuadrantImagesMap.clearThrash();
 			}
 
-			bool statusChanged = m_mapQuadrantsMap.checkUpdatingQuadrants();
+			bool statusChanged = m_mapQuadrantImagesMap.checkUpdatingQuadrants();
 			if (statusChanged)
 				forceProcessNewMapQuadrants(true);
 
@@ -12193,7 +12215,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 
 		// Request update for new quadrants (when map camera moves / scales)
 		if (forceProcessNewMapQuadrants()
-			or m_mapQuadrantsMap.updated()
+			or m_mapQuadrantImagesMap.updated()
 			or m_lastProcessedCameraForMapQuadrants == godot::Vector2()
 			or (m_lastProcessedCameraForMapQuadrants != mapCameraWorldPos))
 		{
@@ -12259,9 +12281,9 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 							rectPosItem.getAllContainedQuadrantPos(quadrantsPos, m_worldViewerLevel, numVerticesPerQuadrantSize, gridStepInWU);
 							for (auto& quadrantPosItem : quadrantsPos)
 							{
-								if (m_mapQuadrantsMap.contains(quadrantPosItem))
+								if (m_mapQuadrantImagesMap.contains(quadrantPosItem))
 								{
-									MapQuadrantImage* mapQuadrant = m_mapQuadrantsMap[quadrantPosItem].get();
+									MapQuadrantImage* mapQuadrant = m_mapQuadrantImagesMap[quadrantPosItem].get();
 									if (mapQuadrant->updated())
 									{
 										//PLOG_DEBUG << "#################### mapQuadrant->updated() - Pos: " << mapQuadrant->getPos().getIndexPosX() << "," << mapQuadrant->getPos().getIndexPosZ();
@@ -12273,9 +12295,9 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 									}
 									else
 									{
-										if (m_mapQuadrantsMap.updateNeeded(quadrantPosItem))
+										if (m_mapQuadrantImagesMap.updateNeeded(quadrantPosItem))
 										{
-											bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(quadrantPosItem);
+											bool scheduled = m_mapQuadrantImagesMap.scheduleQuadrantForUpdate(quadrantPosItem);
 											if (scheduled)
 											{
 												map->addRefreshingMapQuadrantOverride(quadrantPosItem);
@@ -12287,7 +12309,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 								}
 								else
 								{
-									bool scheduled = m_mapQuadrantsMap.scheduleQuadrantForUpdate(quadrantPosItem);
+									bool scheduled = m_mapQuadrantImagesMap.scheduleQuadrantForUpdate(quadrantPosItem);
 									if (scheduled)
 									{
 										map->addRefreshingMapQuadrantOverride(quadrantPosItem);
@@ -12303,7 +12325,10 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 					{
 						//atLeastAFullRectRendered = true;
 						for (auto& pos : quadrantsPos)
-							m_mapQuadrantsMap.erase(pos);
+						{
+							m_mapQuadrantImagesToDeleteMap[pos] = true;
+							//m_mapQuadrantImagesMap.eraseByRef(pos);
+						}
 						if (map->AcqQuadrantsNeeded(rectPosItem) or map->AcqQuadrantsInProgress(rectPosItem))
 							map->setStatus(rectPosItem, GDN_TheWorld_Map::MapTextureRect::Status::AcqQuadrantsDone);
 					}
@@ -12321,7 +12346,7 @@ void GDN_TheWorld_Viewer::process_mapQuadrants(godot::Vector2 mapCameraWorldPos)
 			}
 		}
 
-		m_mapQuadrantsMap.unlock();
+		m_mapQuadrantImagesMap.unlock();
 	}
 }
 
@@ -14454,9 +14479,9 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	}
 
 	GDN_TheWorld_Map* map = Map();
-	m_mapQuadrantNum = m_mapQuadrantsMap.size();
-	m_updatingMapQuadrantNum = m_mapQuadrantsMap.getNumUpdatingQuadrants();
-	m_toShowMapQuadrantNum = m_mapQuadrantsMap.getNumQuadrantsToShow();
+	m_mapQuadrantNum = m_mapQuadrantImagesMap.size();
+	m_updatingMapQuadrantNum = m_mapQuadrantImagesMap.getNumUpdatingQuadrants();
+	m_toShowMapQuadrantNum = m_mapQuadrantImagesMap.getNumQuadrantsToShow();
 	m_mapQuadrantOverrideNum = map->mapQuadrantOverrideNum();
 	m_mapQuadrantColorOverrideNum = map->getMapQuadrantColorOverrideNum();
 	m_mapQuadrantTextureOverrideNum = map->getMapQuadrantTextureOverrideNum();

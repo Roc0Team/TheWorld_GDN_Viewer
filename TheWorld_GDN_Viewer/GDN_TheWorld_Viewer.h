@@ -136,12 +136,16 @@ namespace godot
 		//void setMapData(godot::Ref<godot::Image> mapImage, TheWorld_Utils::QuadrantPos& quadrantPos, std::string& meshId);
 		bool updated(void);
 
-		void clearThasher(void);
+		void clearThrash(void);
 		void addUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		//TheWorld_Utils::QuadrantPos fetchUpdatedQuadrant(void);
 		void eraseUpdatedQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void eraseUpdatingQuadrant(TheWorld_Utils::QuadrantPos& pos);
-		void erase(TheWorld_Utils::QuadrantPos& pos);
+		void eraseByValue(TheWorld_Utils::QuadrantPos pos)
+		{
+			eraseByRef(pos);
+		}
+		void eraseByRef(TheWorld_Utils::QuadrantPos& pos);
 
 		bool updateNeeded(TheWorld_Utils::QuadrantPos& pos);
 		bool scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos& pos);
@@ -894,7 +898,7 @@ namespace godot
 
 		MapTextureRect* getMapTextureRect(const TheWorld_Utils::QuadrantPos& quadrantPos, bool add = true);
 		MapTextureRect* getMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, bool add = true);
-		bool eraseMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
+		//bool eraseMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool destroyTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool isTextureRectRendered(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
 		bool eraseCachedTexture(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos);
@@ -2753,14 +2757,14 @@ namespace godot
 
 		int32_t getImageNumPixelsPerSize(void)
 		{
-			return m_mapQuadrantsMap.getImageNumPixelsPerSize();
+			return m_mapQuadrantImagesMap.getImageNumPixelsPerSize();
 		}
 
-		void eraseMapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos)
-		{
-			std::lock_guard<std::recursive_mutex> lock(getMainProcessingMutex());
-			m_mapQuadrantsMap.erase(quadrantPos);
-		}
+		//void eraseMapQuadrant(TheWorld_Utils::QuadrantPos& quadrantPos)
+		//{
+		//	std::lock_guard<std::recursive_mutex> lock(getMainProcessingMutex());
+		//	m_mapQuadrantImagesMap.erase(quadrantPos);
+		//}
 
 		void forceProcessNewMapQuadrants(bool b)
 		{
@@ -3245,7 +3249,8 @@ namespace godot
 		TheWorld_Utils::QuadrantPos m_computedWorldCameraQuadrantPos;
 		TheWorld_Utils::QuadrantPos m_gridWorldCameraQuadrantPos;
 		WorldQuadrantsMap m_extraQuadsMap;
-		MapQuadrantImagesMap m_mapQuadrantsMap;
+		MapQuadrantImagesMap m_mapQuadrantImagesMap;
+		std::map < TheWorld_Utils::QuadrantPos, bool > m_mapQuadrantImagesToDeleteMap;
 		std::recursive_mutex m_mtxQuadrantsAndMainProcessing;
 		std::map<TheWorld_Utils::QuadrantPos, bool> m_toErase;
 		TheWorld_Utils::QuadrantPos m_originShiftedQuadrantPos;

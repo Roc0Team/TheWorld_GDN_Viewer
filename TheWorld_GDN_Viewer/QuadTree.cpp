@@ -51,6 +51,7 @@ bool ShaderTerrainData::s_extraNeighbourBorderInHeightmap = true;
 
 MapQuadrantImage::MapQuadrantImage(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, size_t optimizationLevel)
 {
+	//m_status = Status::UpdateRequired;
 	m_quadrantPos = quadrantPos;
 	m_viewer = viewer;
 	//m_optimizationLevel = optimizationLevel;	// 0 = 2049, 2 = 513, 4 = 129, 6 = 33
@@ -101,6 +102,38 @@ void MapQuadrantImage::setMapData(godot::Ref<godot::Image> mapImage)
 	m_lastUpdateTime = TIME()->get_ticks_msec();
 	updated(true);
 	//PLOG_DEBUG << "#################### updated(true) - Pos: " << getPos().getIndexPosX() << "," << getPos().getIndexPosZ();
+}
+
+bool MapQuadrantImage::lockInternalData(void)
+{
+	bool lockAcquired = false;
+
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
+		if (!m_internalDataLocked)
+		{
+			m_internalDataLocked = true;
+			m_internalDataLockingTid = GetCurrentThreadId();
+			lockAcquired = true;
+		}
+	}
+
+	return lockAcquired;
+}
+
+void MapQuadrantImage::unlockInternalData(void)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
+	assert(m_internalDataLocked and m_internalDataLockingTid == GetCurrentThreadId());
+	if (m_internalDataLocked)
+	{
+		m_internalDataLocked = false;
+	}
+	else
+	{
+		m_internalDataLocked = false;
+	}
+	m_internalDataLockingTid = 0;
 }
 
 void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std::string& meshIdFromServer, std::string outMeshIdFromBuffer, bool updateCache)

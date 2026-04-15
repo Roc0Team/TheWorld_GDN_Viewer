@@ -1024,6 +1024,7 @@ namespace godot
 #define SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL	"u_north_west_corner_splatmap_texel"
 #define SHADER_PARAM_NORTH_BORDER_SPLATMAP			"u_north_border_splatmap"
 #define SHADER_PARAM_WEST_BORDER_SPLATMAP			"u_west_border_splatmap"
+#define SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE	"u_texture_overflow_size_override"
 
 #define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"
 #define SHADER_PARAM_MOUSE_HIT_UV_QUADRANT			"u_mouse_hit_uv_quadrant"

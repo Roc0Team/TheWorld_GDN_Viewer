@@ -855,8 +855,13 @@ namespace godot
 		virtual void _process(double _delta) override;
 		virtual void _input(const Ref<InputEvent>& event) override;
 		virtual void _unhandled_input(const Ref<InputEvent>& event) override;
+		virtual void _physics_process(double _delta) override;
 
 	public:
+		bool dragBoxOn(void) const
+		{
+			return m_dragBoxOn;
+		}
 		static int32_t numImagesForTexture(void);
 		void init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 containerSize);
 		void enterMapMode(void);
@@ -893,8 +898,10 @@ namespace godot
 		godot::Vector2 getMousePosInGlobalCoord(void) const;
 		godot::Vector2 getMousePosInGlobalCoord(godot::Vector2 mousePosInViewport) const;
 
-		godot::Vector2 globalPosToWorldPos(godot::Vector2 global);
+		godot::Vector2 globalPosToWorldPos(godot::Vector2 globalPos);
 		godot::Vector2 worldPosToGlobalPos(godot::Vector2 worldPos);
+		float globalSizeToWorldSize(float globalSize);
+		float worldSizeToGlobalSize(float worldSize);
 
 		MapTextureRect* getMapTextureRect(const TheWorld_Utils::QuadrantPos& quadrantPos, bool add = true);
 		MapTextureRect* getMapTextureRect(TheWorld_Utils::MapTextureRectPos& mapTextureRectPos, bool add = true);
@@ -949,17 +956,13 @@ namespace godot
 		void releaseQuadrantColorOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void releaseQuadrantTextureOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void getAllMapQuadrantOverridePos(std::list<TheWorld_Utils::QuadrantPos>& list, bool onlyEdited = false);
+		size_t getAllMapQuadrantOverrideNum(bool onlyEdited = false);
 		MapQuadrantOverride* getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		MapQuadrantOverride* addEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos, TheWorld_Utils::TerrainEdit& terrainEdit);
 		void removeEditedMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		MapQuadrantOverride* addRefreshingMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void removeRefreshingMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos);
 		void editMode(TheWorld_Utils::QuadrantPos& quadrantPos, bool b);
-
-		size_t mapQuadrantOverrideNum(void) const
-		{
-			return m_mapQuadrantOverrideContainer.size();
-		}
 
 		void incMapTextureRectNum(void)
 		{
@@ -984,6 +987,23 @@ namespace godot
 		void decMapQuadrantTextureOverrideNum(void)
 		{
 			m_mapQuadrantTextureOverrideNum--;
+		}
+
+		void resetDragInputEvents(void)
+		{
+			m_dragBoxOn = false;
+			m_dragBoxType = DragBoxType::Unknown;
+			m_shiftPressed = false;
+			m_ctrlPressed = false;
+			m_altPressed = false;
+			if (m_dragBox != nullptr)
+			{
+				m_dragBox->hide();
+				m_dragBox->queue_free();
+				m_dragBox = nullptr;
+			}
+			m_startDragBoxQuadrantPos.reset();
+			m_endDragBoxQuadrantPos.reset();
 		}
 
 	private:
@@ -1020,6 +1040,24 @@ namespace godot
 		int32_t m_mapQuadrantTextureOverrideNum = 0;
 
 		bool m_destroying = false;
+
+		//bool m_startDragging = false;
+		//bool m_stopDragging = false;
+		enum class DragBoxType
+		{
+			Unknown = -1,
+			Select,
+			Unselect
+		};
+		bool m_dragBoxOn = false;
+		DragBoxType m_dragBoxType = DragBoxType::Unknown;
+		godot::ColorRect* m_dragBox = nullptr;
+		TheWorld_Utils::QuadrantPos m_startDragBoxQuadrantPos;
+		TheWorld_Utils::QuadrantPos m_endDragBoxQuadrantPos;
+
+		bool m_shiftPressed = false;
+		bool m_ctrlPressed = false;
+		bool m_altPressed = false;
 	};
 
 	class GDN_TheWorld_HudControls : public godot::Container
@@ -2802,6 +2840,10 @@ namespace godot
 		{
 			return m_mapQuadrantOverrideNum;
 		}
+		size_t getMapQuadrantEditedOverrideNum(void) const
+		{
+			return m_mapQuadrantEditedOverrideNum;
+		}
 		size_t getMapQuadrantColorOverrideNum(void) const
 		{
 			return m_mapQuadrantColorOverrideNum;
@@ -3118,6 +3160,7 @@ namespace godot
 		size_t m_updatingMapQuadrantNum = 0;
 		size_t m_toShowMapQuadrantNum = 0;
 		size_t m_mapQuadrantOverrideNum = 0;
+		size_t m_mapQuadrantEditedOverrideNum = 0;
 		size_t m_mapQuadrantColorOverrideNum = 0;
 		size_t m_mapQuadrantTextureOverrideNum = 0;
 		size_t m_mapQuadrantRects = 0;

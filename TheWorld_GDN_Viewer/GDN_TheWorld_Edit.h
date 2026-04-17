@@ -493,13 +493,13 @@ namespace godot
 		void setMouseQuadSelPosLabelText(std::string text);
 
 		void setNumQuadrantToSave(size_t num);
-		void setNumQuadrantToUpload(size_t num);
+		void setNumQuadrantToUpload(size_t num, size_t numInMapView);
 		void setQuadrantsToBlend(std::list<TheWorld_Utils::QuadrantPos> quadrantsToBlend);
 		void setNumQuadrantLocked(size_t num);
 		void getQuadrantsToBlend(std::list<TheWorld_Utils::QuadrantPos>& quadrantsToBlend);
 		size_t getNumQuadrantsToBlend(void);
 
-		void refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numLocked);
+		void refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numToUploadInMapView, size_t& numLocked);
 
 		void setMessage(std::string text, bool add = false);
 		void setMessage(godot::String text, bool add = false);

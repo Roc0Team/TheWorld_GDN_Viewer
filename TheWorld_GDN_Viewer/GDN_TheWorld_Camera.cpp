@@ -89,6 +89,10 @@ void GDN_TheWorld_MapCamera::_input(const Ref<InputEvent>& event)
 	
 	if (!viewer->mapMode())
 		return;
+	
+	GDN_TheWorld_Map* map = m_mapViewer->getMap();
+	if (map == nullptr)
+		return;
 
 	if (mouseMovementSuspended())
 		m_mouseShiftCameraOn = false;
@@ -106,7 +110,7 @@ void GDN_TheWorld_MapCamera::_input(const Ref<InputEvent>& event)
 			m_updateCameraRequired = true;
 		}
 
-		if (event->is_action_pressed("ui_mouse_button_left"))
+		if (event->is_action_pressed("ui_mouse_button_left") and !map->dragBoxOn())
 			m_mouseShiftCameraOn = true;
 
 		if (event->is_action_released("ui_mouse_button_left"))
@@ -116,7 +120,7 @@ void GDN_TheWorld_MapCamera::_input(const Ref<InputEvent>& event)
 		if (eventMouseMotion != nullptr)
 		{
 			//Globals()->debugPrint("GDN_TheWorld_Camera::_input: " + event->as_text());
-			if (m_mouseShiftCameraOn)
+			if (m_mouseShiftCameraOn and not map->dragBoxOn())
 			{
 				m_mouseRelativePosToShift = eventMouseMotion->get_relative();
 				m_updateCameraRequired = true;
@@ -174,7 +178,7 @@ void GDN_TheWorld_MapCamera::_physics_process(double _delta)
 	else
 		m_altPressed = false;
 
-#define MAPCAMERA_MOVE_INCREMENT	20.0
+constexpr auto MAPCAMERA_MOVE_INCREMENT = 20.0;
 	if (input->is_action_pressed("ui_left") && !m_altPressed)
 	{
 		m_mouseRelativePosToShift += godot::Vector2(MAPCAMERA_MOVE_INCREMENT, 0);

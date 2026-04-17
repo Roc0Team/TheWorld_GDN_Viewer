@@ -1375,6 +1375,8 @@ void GDN_TheWorld_Map::init(GDN_TheWorld_MapViewer* mapViewer, godot::Vector2 co
 
 void GDN_TheWorld_Map::enterMapMode(void)
 {
+	resetDragInputEvents();
+	
 	for (auto& textureRectItem : m_mapTextureRectContainer)
 	{
 		if (textureRectItem.second->getStatus() == MapTextureRect::Status::AcqQuadrantsDone)
@@ -1386,7 +1388,7 @@ void GDN_TheWorld_Map::enterMapMode(void)
 
 void GDN_TheWorld_Map::exitMapMode(void)
 {
-
+	resetDragInputEvents();
 }
 
 void GDN_TheWorld_Map::setMapGridLineThickness(float multiplier)
@@ -1550,6 +1552,97 @@ void GDN_TheWorld_Map::_notification(int p_what)
 	}
 }
 
+void GDN_TheWorld_Map::_physics_process(double _delta)
+{
+	if (m_mapViewer == nullptr)
+		return;
+
+	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+	if (viewer == nullptr)
+		return;
+
+	if (!viewer->mapMode())
+		return;
+
+	godot::Input* input = godot::Input::get_singleton();
+
+	if (input->is_action_pressed("ui_shift"))
+		m_shiftPressed = true;
+	else
+		m_shiftPressed = false;
+
+	if (input->is_action_pressed("ui_ctrl"))
+		m_ctrlPressed = true;
+	else
+		m_ctrlPressed = false;
+
+	if (input->is_action_pressed("ui_alt"))
+		m_altPressed = true;
+	else
+		m_altPressed = false;
+
+	if (not m_shiftPressed)
+	{
+		resetDragInputEvents();
+	}
+	
+	bool startDragging = false;
+	bool stopDragging = false;
+	if (m_shiftPressed and input->is_action_pressed("ui_mouse_button_left"))
+	{
+		if (not m_dragBoxOn)
+		{
+			startDragging = true;
+			m_dragBoxOn = true;
+		}
+		m_dragBoxType = DragBoxType::Select;
+	}
+
+	if (m_shiftPressed and input->is_action_just_released("ui_mouse_button_left"))
+	{
+		if (m_dragBoxOn)
+		{
+			stopDragging = true;
+			m_dragBoxOn = false;
+		}
+	}
+
+	if (m_shiftPressed and input->is_action_pressed("ui_mouse_button_right"))
+	{
+		if (not m_dragBoxOn)
+		{
+			startDragging = true;
+			m_dragBoxOn = true;
+		}
+		m_dragBoxType = DragBoxType::Unselect;
+	}
+
+	if (m_shiftPressed and input->is_action_just_released("ui_mouse_button_right"))
+	{
+		if (m_dragBoxOn)
+		{
+			stopDragging = true;
+			m_dragBoxOn = false;
+		}
+	}
+
+	if (startDragging)
+	{
+		godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
+		godot::Vector2 mouseGlobalPos = getMousePosInGlobalCoord(mousePosInViewport);
+		godot::Vector2 mouseWorldPos = globalPosToWorldPos(mouseGlobalPos);
+		m_startDragBoxQuadrantPos = TheWorld_Utils::QuadrantPos(mouseWorldPos.x, mouseWorldPos.y, viewer->getLevel(), (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+	}
+
+	if (stopDragging)
+	{
+		godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
+		godot::Vector2 mouseGlobalPos = getMousePosInGlobalCoord(mousePosInViewport);
+		godot::Vector2 mouseWorldPos = globalPosToWorldPos(mouseGlobalPos);
+		m_endDragBoxQuadrantPos = TheWorld_Utils::QuadrantPos(mouseWorldPos.x, mouseWorldPos.y, viewer->getLevel(), (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+	}
+}
+
 void GDN_TheWorld_Map::_input(const Ref<InputEvent>& event)
 {
 	//const godot::InputEventMouseMotion* eventMouseMotion = godot::Object::cast_to<godot::InputEventMouseMotion>(event.ptr());
@@ -1559,6 +1652,72 @@ void GDN_TheWorld_Map::_input(const Ref<InputEvent>& event)
 	//{
 	//	int a = 0;
 	//}
+
+	if (m_mapViewer == nullptr)
+		return;
+
+	GDN_TheWorld_Viewer* viewer = m_mapViewer->getViewer();
+	if (viewer == nullptr)
+		return;
+
+	if (!viewer->mapMode())
+		return;
+
+	bool startDragging = false;
+	bool stopDragging = false;
+	if (m_shiftPressed and event->is_action_pressed("ui_mouse_button_left"))
+	{
+		if (not m_dragBoxOn)
+		{
+			startDragging = true;
+			m_dragBoxOn = true;
+		}
+		m_dragBoxType = DragBoxType::Select;
+	}
+
+	if (m_shiftPressed and event->is_action_released("ui_mouse_button_left"))
+	{
+		if (m_dragBoxOn)
+		{
+			stopDragging = true;
+			m_dragBoxOn = false;
+		}
+	}
+
+	if (m_shiftPressed and event->is_action_pressed("ui_mouse_button_right"))
+	{
+		if (not m_dragBoxOn)
+		{
+			startDragging = true;
+			m_dragBoxOn = true;
+		}
+		m_dragBoxType = DragBoxType::Unselect;
+	}
+
+	if (m_shiftPressed and event->is_action_released("ui_mouse_button_right"))
+	{
+		if (m_dragBoxOn)
+		{
+			stopDragging = true;
+			m_dragBoxOn = false;
+		}
+	}
+
+	if (startDragging)
+	{
+		godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
+		godot::Vector2 mouseGlobalPos = getMousePosInGlobalCoord(mousePosInViewport);
+		godot::Vector2 mouseWorldPos = globalPosToWorldPos(mouseGlobalPos);
+		m_startDragBoxQuadrantPos = TheWorld_Utils::QuadrantPos(mouseWorldPos.x, mouseWorldPos.y, viewer->getLevel(), (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+	}
+
+	if (stopDragging)
+	{
+		godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
+		godot::Vector2 mouseGlobalPos = getMousePosInGlobalCoord(mousePosInViewport);
+		godot::Vector2 mouseWorldPos = globalPosToWorldPos(mouseGlobalPos);
+		m_endDragBoxQuadrantPos = TheWorld_Utils::QuadrantPos(mouseWorldPos.x, mouseWorldPos.y, viewer->getLevel(), (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+	}
 }
 
 void GDN_TheWorld_Map::_unhandled_input(const Ref<InputEvent>& event)
@@ -1629,6 +1788,59 @@ void GDN_TheWorld_Map::_process(double _delta)
 	for (auto& item : toErase)
 	{
 		m_uploadingMapTextureRectContainer.erase(item);
+	}
+
+
+	if (m_dragBoxOn)
+	{
+		if (m_dragBox == nullptr)
+		{
+			m_dragBox = memnew(godot::ColorRect);
+			add_child(m_dragBox);
+			m_dragBox->set_name("MapDragBox");
+			m_dragBox->set_color(GDN_TheWorld_Globals::g_color_yellow_apricot_transparent);
+			m_dragBox->show();
+		
+		}
+		godot::Vector2 rectPos = worldPosToGlobalPos(godot::Vector2(m_startDragBoxQuadrantPos.getLowerXGridVertex(), m_startDragBoxQuadrantPos.getLowerZGridVertex()));;
+		godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
+		godot::Vector2 mouseGlobalPos = getMousePosInGlobalCoord(mousePosInViewport);
+		godot::Vector2 mouseWorldPos = globalPosToWorldPos(mouseGlobalPos);
+		TheWorld_Utils::QuadrantPos currentDragBoxQuadrantPos = TheWorld_Utils::QuadrantPos(mouseWorldPos.x, mouseWorldPos.y, viewer->getLevel(), (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+		godot::Vector2 currentEndDragBoxGlobalPos = worldPosToGlobalPos(godot::Vector2(currentDragBoxQuadrantPos.getLowerXGridVertex() + currentDragBoxQuadrantPos.getSizeInWU(), currentDragBoxQuadrantPos.getLowerZGridVertex() + currentDragBoxQuadrantPos.getSizeInWU()));
+		godot::Vector2 rectSize = currentEndDragBoxGlobalPos - rectPos;
+		if (rectSize.x <= 0)
+		{
+			rectPos.x += rectSize.x;
+			rectPos.x -= worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
+			rectSize.x = -rectSize.x + 2 * worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
+		}
+		if (rectSize.y <= 0)
+		{
+			rectPos.y += rectSize.y;
+			rectPos.y -= worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
+			rectSize.y = -rectSize.y + 2 * worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
+		}
+		m_dragBox->set_global_position(rectPos);
+		m_dragBox->set_size(rectSize);
+	}
+	else
+	{
+		if (m_dragBox != nullptr)
+		{
+			m_dragBox->hide();
+			m_dragBox->queue_free();
+			m_dragBox = nullptr;
+
+			{
+				// Select/unselect quadrants in rect
+
+
+				m_dragBoxType = DragBoxType::Unknown;
+				m_startDragBoxQuadrantPos.reset();
+				m_endDragBoxQuadrantPos.reset();
+			}
+		}
 	}
 }
 
@@ -1800,10 +2012,10 @@ godot::Vector2i GDN_TheWorld_Map::getImageSize(void) const
 	return godot::Vector2i((int32_t)getQuadrantGlobalSize(), (int32_t)getQuadrantGlobalSize());
 }
 
-godot::Vector2 GDN_TheWorld_Map::globalPosToWorldPos(godot::Vector2 global)
+godot::Vector2 GDN_TheWorld_Map::globalPosToWorldPos(godot::Vector2 globalPos)
 {
 	//godot::Vector2 worldPos = global / (getImageSize() - godot::Vector2(1, 1));
-	godot::Vector2 worldPos = global / getImageSize();
+	godot::Vector2 worldPos = globalPos / getImageSize();
 	worldPos = worldPos * Globals()->heightmapSizeInWUs();
 	return worldPos;
 }
@@ -1814,6 +2026,20 @@ godot::Vector2 GDN_TheWorld_Map::worldPosToGlobalPos(godot::Vector2 worldPos)
 	//globalPos = globalPos * (getImageSize() - godot::Vector2(1, 1));
 	globalPos = globalPos * getImageSize();
 	return globalPos;
+}
+
+float GDN_TheWorld_Map::globalSizeToWorldSize(float globalSize)
+{
+	float worldSize = globalSize / getImageSize().x;
+	worldSize = worldSize * Globals()->heightmapSizeInWUs();
+	return worldSize;
+}
+
+float GDN_TheWorld_Map::worldSizeToGlobalSize(float worldSize)
+{
+	float globalSize = worldSize / Globals()->heightmapSizeInWUs();
+	globalSize = globalSize * getImageSize().x;
+	return globalSize;
 }
 
 int32_t GDN_TheWorld_Map::getNumTextureRects(void)
@@ -1959,6 +2185,24 @@ void GDN_TheWorld_Map::getAllMapQuadrantOverridePos(std::list<TheWorld_Utils::Qu
 		else
 			list.push_back(item.first);
 	}
+}
+
+size_t GDN_TheWorld_Map::getAllMapQuadrantOverrideNum(bool onlyEdited)
+{
+	std::lock_guard<std::recursive_mutex> lockM(m_mapViewer->getViewer()->getMainProcessingMutex());
+	
+	if (onlyEdited)
+	{
+		size_t count = 0;
+		for (auto& item : m_mapQuadrantOverrideContainer)
+		{
+			if (item.second->edited())
+				count++;
+		}
+		return count;
+	}
+	else
+		return m_mapQuadrantOverrideContainer.size();
 }
 
 GDN_TheWorld_Map::MapQuadrantOverride* GDN_TheWorld_Map::getMapQuadrantOverride(TheWorld_Utils::QuadrantPos& quadrantPos)
@@ -3638,7 +3882,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				}
 			}
 
-			material->set_shader_parameter(SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE, 0.0f);		// Disable texture override for global map
+			material->set_shader_parameter(SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE, 0.0f);		// Disable texture override for global map generation
 
 			material->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, godot::Plane(6.0f, 6.0f, 6.0f, 6.0f));
 			material->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, true);
@@ -9328,9 +9572,17 @@ void GDN_TheWorld_Viewer::doSelectMapQuadrant(TheWorld_Utils::QuadrantPos& pos)
 		}
 		else
 		{
-			TheWorld_Utils::TerrainEdit terrainEditUnknown(TheWorld_Utils::TerrainEdit::TerrainType::unknown);
-			MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEditUnknown);
-			terrainEdit = terrainEditUnknown;
+			std::string dir = GDN_TheWorld_Globals::getClientDataDir();
+			std::string mapName = Globals()->getMapName();
+			TheWorld_Utils::MeshCacheBuffer cache(dir, mapName, pos.getGridStepInWU(), pos.getNumVerticesPerSize(), pos.getLevel(), pos.getLowerXGridVertex(), pos.getLowerZGridVertex());
+			TheWorld_Utils::MemoryBuffer dummyBuffer;
+			TheWorld_Utils::TerrainEdit t(TheWorld_Utils::TerrainEdit::TerrainType::unknown);
+			cache.readBufferFromDisk("", dummyBuffer, false, &t, true);
+			terrainEdit = t;
+			MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEdit);
+			//TheWorld_Utils::TerrainEdit terrainEditUnknown(TheWorld_Utils::TerrainEdit::TerrainType::unknown);
+			//MapQuadrantOverride = map->addEditedMapQuadrantOverride(pos, terrainEditUnknown);
+			//terrainEdit = terrainEditUnknown;
 		}
 
 		if (sameQuadrant)
@@ -14383,7 +14635,8 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	m_mapQuadrantNum = m_mapQuadrantImagesMap.size();
 	m_updatingMapQuadrantNum = m_mapQuadrantImagesMap.getNumUpdatingQuadrants();
 	m_toShowMapQuadrantNum = m_mapQuadrantImagesMap.getNumQuadrantsToShow();
-	m_mapQuadrantOverrideNum = map->mapQuadrantOverrideNum();
+	m_mapQuadrantOverrideNum = map->getAllMapQuadrantOverrideNum(false);
+	m_mapQuadrantEditedOverrideNum = map->getAllMapQuadrantOverrideNum(true);
 	m_mapQuadrantColorOverrideNum = map->getMapQuadrantColorOverrideNum();
 	m_mapQuadrantTextureOverrideNum = map->getMapQuadrantTextureOverrideNum();
 	m_mapQuadrantRects = map->getNumTextureRects();

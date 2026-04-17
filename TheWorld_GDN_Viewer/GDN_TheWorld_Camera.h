@@ -81,6 +81,9 @@ namespace godot {
 		void resetInputEvents(void)
 		{
 			m_mouseShiftCameraOn = false;
+			m_shiftPressed = false;
+			m_ctrlPressed = false;
+			m_altPressed = false;
 		}
 
 	private:

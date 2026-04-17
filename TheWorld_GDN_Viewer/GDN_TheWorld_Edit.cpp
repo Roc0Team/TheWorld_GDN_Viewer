@@ -1026,10 +1026,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 
 	controlNeedResize();
 
-	size_t numToSave;
-	size_t numToUpload;
-	size_t numLocked;
-	refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
+	size_t numToSave = 0, numToUpload = 0, numToUploadInMapView = 0, numLocked = 0;
+	refreshNumToSaveUpload(numToSave, numToUpload, numToUploadInMapView, numLocked);
 
 	m_tp.Start("EditModeWorker", 1, this);
 
@@ -2113,9 +2111,9 @@ void GDN_TheWorld_Edit::setNumQuadrantToSave(size_t num)
 	m_innerData->m_numQuadrantToSaveLabel->set_text(std::to_string(num).c_str());
 }
 
-void GDN_TheWorld_Edit::setNumQuadrantToUpload(size_t num)
+void GDN_TheWorld_Edit::setNumQuadrantToUpload(size_t num, size_t numInMapView)
 {
-	m_innerData->m_numQuadrantToUploadLabel->set_text(std::to_string(num).c_str());
+	m_innerData->m_numQuadrantToUploadLabel->set_text((std::to_string(num) + "/" + std::to_string(numInMapView)).c_str());
 }
 
 void GDN_TheWorld_Edit::setQuadrantsToBlend(std::list<TheWorld_Utils::QuadrantPos> quadrantsToBlend)
@@ -2152,7 +2150,7 @@ void GDN_TheWorld_Edit::setNumQuadrantLocked(size_t num)
 	m_innerData->m_numQuadrantLocked->set_text(std::to_string(num).c_str());
 }
 
-void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numLocked)
+void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numToUploadInMapView, size_t& numLocked)
 {
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
@@ -2180,8 +2178,10 @@ void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToU
 		}
 	}
 
+	numToUploadInMapView = m_viewer->getMapQuadrantEditedOverrideNum();
+
 	setNumQuadrantToSave(numToSave);
-	setNumQuadrantToUpload(numToUpload);
+	setNumQuadrantToUpload(numToUpload, numToUploadInMapView);
 	setNumQuadrantLocked(numLocked);
 }
 
@@ -2415,8 +2415,8 @@ void GDN_TheWorld_Edit::_physics_process(double _delta)
 			{
 				m_innerData->m_message->set_text(m_innerData->m_lastMessage);
 
-				size_t numToSave, numToUpload, numLocked;
-				refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
+				size_t numToSave = 0, numToUpload = 0, numToUploadInMapView = 0, numLocked = 0;
+				refreshNumToSaveUpload(numToSave, numToUpload, numToUploadInMapView, numLocked);
 
 				m_lastMessageChanged = false;
 			}
@@ -2520,8 +2520,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	{
 		m_refreshUI.tick();
 
-		size_t numToSave = 0, numToUpload = 0, numLocked = 0;
-		refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
+		size_t numToSave = 0, numToUpload = 0, numToUploadInMapView = 0, numLocked = 0;
+		refreshNumToSaveUpload(numToSave, numToUpload, numToUploadInMapView, numLocked);
 	}
 
 	if (m_requiredUIAcceptFocus != m_UIAcceptingFocus)
@@ -2618,8 +2618,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	{
 		m_innerData->m_message->set_text(m_innerData->m_lastMessage);
 
-		size_t numToSave, numToUpload, numLocked;
-		refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
+		size_t numToSave = 0, numToUpload = 0, numToUploadInMapView = 0, numLocked = 0;
+		refreshNumToSaveUpload(numToSave, numToUpload, numToUploadInMapView, numLocked);
 
 		m_lastMessageChanged = false;
 	}

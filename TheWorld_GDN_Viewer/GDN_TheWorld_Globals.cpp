@@ -41,10 +41,11 @@ const godot::Color godot::GDN_TheWorld_Globals::g_color_blue = godot::Color(0.0F
 const godot::Color godot::GDN_TheWorld_Globals::g_color_cyan = godot::Color(0.0F / 255.0F, 255.0F / 255.0F, 255.0F / 255.0F);
 const godot::Color godot::GDN_TheWorld_Globals::g_color_light_cyan = godot::Color(150.0F / 255.0F, 255.0F / 255.0F, 255.0F / 255.0F);
 const godot::Color godot::GDN_TheWorld_Globals::g_color_yellow = godot::Color(255.0F / 255.0F, 255.0F / 255.0F, 0.0F / 255.0F);
+const godot::Color godot::GDN_TheWorld_Globals::g_color_yellow_transparent = godot::Color(255.0F / 255.0F, 255.0F / 255.0F, 0.0F / 255.0F, 64.0F / 255.0F);
 const godot::Color godot::GDN_TheWorld_Globals::g_color_yellow_almond = godot::Color(234.0F / 255.0F, 221.0F / 255.0F, 202.0F / 255.0F);
 const godot::Color godot::GDN_TheWorld_Globals::g_color_yellow_amber = godot::Color(255.0F / 255.0F, 191.0F / 255.0F, 0.0F / 255.0F);
 const godot::Color godot::GDN_TheWorld_Globals::g_color_yellow_apricot = godot::Color(251.0F / 255.0F, 206.0F / 255.0F, 177.0F / 255.0F);
-const godot::Color godot::GDN_TheWorld_Globals::g_color_yellow_apricot_transparent = godot::Color(251.0F / 255.0F, 206.0F / 255.0F, 177.0F / 255.0F, 128.0F / 255.0F);
+const godot::Color godot::GDN_TheWorld_Globals::g_color_yellow_apricot_transparent = godot::Color(251.0F / 255.0F, 206.0F / 255.0F, 177.0F / 255.0F, 64.0F / 255.0F);
 const godot::Color godot::GDN_TheWorld_Globals::g_color_black = godot::Color(0.0F / 255.0F, 0.0F / 255.0F, 0.0F / 255.0F);
 
 // DEBUG

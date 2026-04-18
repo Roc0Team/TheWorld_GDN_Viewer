@@ -1405,6 +1405,8 @@ void GDN_TheWorld_Map::mapGridOn(bool b)
 	{
 		item.second->setVisible(m_mapGridOn);
 	}
+
+	resetDragInputEvents();
 }
 
 void GDN_TheWorld_Map::viewportSizeChanged(void)
@@ -1790,55 +1792,57 @@ void GDN_TheWorld_Map::_process(double _delta)
 		m_uploadingMapTextureRectContainer.erase(item);
 	}
 
-
-	if (m_dragBoxOn)
+	if (viewer->isEditMode())
 	{
-		if (m_dragBox == nullptr)
+		if (m_dragBoxOn)
 		{
-			m_dragBox = memnew(godot::ColorRect);
-			add_child(m_dragBox);
-			m_dragBox->set_name("MapDragBox");
-			m_dragBox->set_color(GDN_TheWorld_Globals::g_color_yellow_apricot_transparent);
-			m_dragBox->show();
-		
-		}
-		godot::Vector2 rectPos = worldPosToGlobalPos(godot::Vector2(m_startDragBoxQuadrantPos.getLowerXGridVertex(), m_startDragBoxQuadrantPos.getLowerZGridVertex()));;
-		godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
-		godot::Vector2 mouseGlobalPos = getMousePosInGlobalCoord(mousePosInViewport);
-		godot::Vector2 mouseWorldPos = globalPosToWorldPos(mouseGlobalPos);
-		TheWorld_Utils::QuadrantPos currentDragBoxQuadrantPos = TheWorld_Utils::QuadrantPos(mouseWorldPos.x, mouseWorldPos.y, viewer->getLevel(), (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
-		godot::Vector2 currentEndDragBoxGlobalPos = worldPosToGlobalPos(godot::Vector2(currentDragBoxQuadrantPos.getLowerXGridVertex() + currentDragBoxQuadrantPos.getSizeInWU(), currentDragBoxQuadrantPos.getLowerZGridVertex() + currentDragBoxQuadrantPos.getSizeInWU()));
-		godot::Vector2 rectSize = currentEndDragBoxGlobalPos - rectPos;
-		if (rectSize.x <= 0)
-		{
-			rectPos.x += rectSize.x;
-			rectPos.x -= worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
-			rectSize.x = -rectSize.x + 2 * worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
-		}
-		if (rectSize.y <= 0)
-		{
-			rectPos.y += rectSize.y;
-			rectPos.y -= worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
-			rectSize.y = -rectSize.y + 2 * worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
-		}
-		m_dragBox->set_global_position(rectPos);
-		m_dragBox->set_size(rectSize);
-	}
-	else
-	{
-		if (m_dragBox != nullptr)
-		{
-			m_dragBox->hide();
-			m_dragBox->queue_free();
-			m_dragBox = nullptr;
-
+			if (m_dragBox == nullptr)
 			{
-				// Select/unselect quadrants in rect
+				m_dragBox = memnew(godot::ColorRect);
+				add_child(m_dragBox);
+				m_dragBox->set_name("MapDragBox");
+				m_dragBox->set_color(GDN_TheWorld_Globals::g_color_yellow_transparent);
+				m_dragBox->show();
+
+			}
+			godot::Vector2 rectPos = worldPosToGlobalPos(godot::Vector2(m_startDragBoxQuadrantPos.getLowerXGridVertex(), m_startDragBoxQuadrantPos.getLowerZGridVertex()));;
+			godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
+			godot::Vector2 mouseGlobalPos = getMousePosInGlobalCoord(mousePosInViewport);
+			godot::Vector2 mouseWorldPos = globalPosToWorldPos(mouseGlobalPos);
+			TheWorld_Utils::QuadrantPos currentDragBoxQuadrantPos = TheWorld_Utils::QuadrantPos(mouseWorldPos.x, mouseWorldPos.y, viewer->getLevel(), (int)Globals()->numVerticesPerQuadrantSize(), Globals()->gridStepInWU());
+			godot::Vector2 currentEndDragBoxGlobalPos = worldPosToGlobalPos(godot::Vector2(currentDragBoxQuadrantPos.getLowerXGridVertex() + currentDragBoxQuadrantPos.getSizeInWU(), currentDragBoxQuadrantPos.getLowerZGridVertex() + currentDragBoxQuadrantPos.getSizeInWU()));
+			godot::Vector2 rectSize = currentEndDragBoxGlobalPos - rectPos;
+			if (rectSize.x <= 0)
+			{
+				rectPos.x += rectSize.x;
+				rectPos.x -= worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
+				rectSize.x = -rectSize.x + 2 * worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
+			}
+			if (rectSize.y <= 0)
+			{
+				rectPos.y += rectSize.y;
+				rectPos.y -= worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
+				rectSize.y = -rectSize.y + 2 * worldSizeToGlobalSize(currentDragBoxQuadrantPos.getSizeInWU());
+			}
+			m_dragBox->set_global_position(rectPos);
+			m_dragBox->set_size(rectSize);
+		}
+		else
+		{
+			if (m_dragBox != nullptr)
+			{
+				m_dragBox->hide();
+				m_dragBox->queue_free();
+				m_dragBox = nullptr;
+
+				{
+					// Select/unselect quadrants in rect
 
 
-				m_dragBoxType = DragBoxType::Unknown;
-				m_startDragBoxQuadrantPos.reset();
-				m_endDragBoxQuadrantPos.reset();
+					m_dragBoxType = DragBoxType::Unknown;
+					m_startDragBoxQuadrantPos.reset();
+					m_endDragBoxQuadrantPos.reset();
+				}
 			}
 		}
 	}
@@ -7700,7 +7704,9 @@ void GDN_TheWorld_Viewer::setEditMode(bool editMode)
 			trackMouse(true);
 			GDN_TheWorld_Map* map = Map();
 			if (map != nullptr)
+			{
 				map->mapGridOn(true);
+			}
 		}
 		else
 		{
@@ -7709,7 +7715,9 @@ void GDN_TheWorld_Viewer::setEditMode(bool editMode)
 			//gridOn(false);
 			GDN_TheWorld_Map* map = Map();
 			if (map != nullptr)
+			{
 				map->mapGridOn(false);
+			}
 		}
 	}
 }

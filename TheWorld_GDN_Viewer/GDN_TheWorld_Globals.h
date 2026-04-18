@@ -185,6 +185,7 @@ namespace godot
 		const static Color g_color_aquamarine_green;
 		const static Color g_color_blue;
 		const static Color g_color_yellow;
+		const static Color g_color_yellow_transparent;
 		const static Color g_color_yellow_almond;
 		const static Color g_color_yellow_amber;
 		const static Color g_color_yellow_apricot;

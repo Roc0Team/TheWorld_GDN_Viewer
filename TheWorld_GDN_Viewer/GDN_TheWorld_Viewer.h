@@ -2013,6 +2013,10 @@ namespace godot
 		void selectMapQuadrant(TheWorld_Utils::QuadrantPos pos);
 		void selectMapQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
 		void deselectMapQuadrant(void);
+		void clearOverrideMapQuadrant(TheWorld_Utils::QuadrantPos pos);
+		void clearOverrideMapQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
+		void addClearOverrideMapQuadrant(TheWorld_Utils::QuadrantPos pos);
+		void addClearOverrideMapQuadrantRef(TheWorld_Utils::QuadrantPos& pos);
 		godot::Camera3D* getCustomCamera(void);
 		godot::Camera3D* getWorldCamera(void);
 		godot::Camera3D* getWorldCamera2(bool force = false);

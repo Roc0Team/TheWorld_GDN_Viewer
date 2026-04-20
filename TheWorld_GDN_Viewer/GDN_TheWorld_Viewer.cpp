@@ -566,7 +566,7 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride* GDN_TheWorld_Map::Ma
 			colorRect->set_material(mat);
 			colorRect->set_size(rectSize);
 			colorRect->set_global_position(globalQuadrantPos);
-			colorRect->set_z_index(2);
+			colorRect->set_z_index(GDN_TheWorld_Map::c_map_z_index_quadrant_color_override);
 			colorRect->set_visible(m_map->mapGridOn());
 
 			if (not m_quadrantColorOverrideContainer.contains(quadrantPos))
@@ -606,7 +606,7 @@ GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride* GDN_TheWorld_Map::
 			textureRect->add_to_group("MapQuadrantTextureRect");
 			textureRect->set_size(rectSize);
 			textureRect->set_global_position(globalQuadrantPos);
-			textureRect->set_z_index(1);
+			textureRect->set_z_index(GDN_TheWorld_Map::c_map_z_index_quadrant_texture_override);
 			textureRect->set_visible(m_map->mapGridOn());
 			textureRect->set_expand_mode(godot::TextureRect::EXPAND_IGNORE_SIZE);
 			textureRect->set_stretch_mode(godot::TextureRect::StretchMode::STRETCH_SCALE);
@@ -1049,7 +1049,7 @@ void GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay::init(MapTextureRe
 	godot::Vector2i rectSize = m_mapTextureRect->getMap()->getTextureRectSize();
 	set_name((std::string("Color_") + m_mapTextureRect->pos().getName()).c_str());
 	add_to_group("MapColorRect");
-	set_z_index(3);
+	set_z_index(GDN_TheWorld_Map::c_map_z_index_rect_color_overlay);
 	set_size(rectSize);
 	godot::Vector2 pos(m_mapTextureRect->pos().getGlobalLowerPosX(), m_mapTextureRect->pos().getGlobalLowerPosY());
 	set_position(pos);
@@ -1596,14 +1596,16 @@ void GDN_TheWorld_Map::_physics_process(double _delta)
 		{
 			startDragging = true;
 			m_dragBoxOn = true;
+			m_dragBoxType = DragBoxType::Select;
 		}
-		m_dragBoxType = DragBoxType::Select;
 	}
 
 	if (m_shiftPressed and input->is_action_just_released("ui_mouse_button_left"))
 	{
 		if (m_dragBoxOn)
 		{
+			if (m_dragBoxType != DragBoxType::Select and m_dragBox != nullptr)
+				m_dragBox->hide();	// cancel dragging operation if release button is different from press button
 			stopDragging = true;
 			m_dragBoxOn = false;
 		}
@@ -1615,14 +1617,16 @@ void GDN_TheWorld_Map::_physics_process(double _delta)
 		{
 			startDragging = true;
 			m_dragBoxOn = true;
+			m_dragBoxType = DragBoxType::Unselect;
 		}
-		m_dragBoxType = DragBoxType::Unselect;
 	}
 
 	if (m_shiftPressed and input->is_action_just_released("ui_mouse_button_right"))
 	{
 		if (m_dragBoxOn)
 		{
+			if (m_dragBoxType != DragBoxType::Unselect and m_dragBox != nullptr)
+				m_dragBox->hide();	// cancel dragging operation if release button is different from press button
 			stopDragging = true;
 			m_dragBoxOn = false;
 		}
@@ -1673,14 +1677,16 @@ void GDN_TheWorld_Map::_input(const Ref<InputEvent>& event)
 		{
 			startDragging = true;
 			m_dragBoxOn = true;
+			m_dragBoxType = DragBoxType::Select;
 		}
-		m_dragBoxType = DragBoxType::Select;
 	}
 
 	if (m_shiftPressed and event->is_action_released("ui_mouse_button_left"))
 	{
 		if (m_dragBoxOn)
 		{
+			if (m_dragBoxType != DragBoxType::Select and m_dragBox != nullptr)
+				m_dragBox->hide();	// cancel dragging operation if release button is different from press button
 			stopDragging = true;
 			m_dragBoxOn = false;
 		}
@@ -1692,14 +1698,16 @@ void GDN_TheWorld_Map::_input(const Ref<InputEvent>& event)
 		{
 			startDragging = true;
 			m_dragBoxOn = true;
+			m_dragBoxType = DragBoxType::Unselect;
 		}
-		m_dragBoxType = DragBoxType::Unselect;
 	}
 
 	if (m_shiftPressed and event->is_action_released("ui_mouse_button_right"))
 	{
 		if (m_dragBoxOn)
 		{
+			if (m_dragBoxType != DragBoxType::Unselect and m_dragBox != nullptr)
+				m_dragBox->hide();	// cancel dragging operation if release button is different from press button
 			stopDragging = true;
 			m_dragBoxOn = false;
 		}
@@ -1801,9 +1809,10 @@ void GDN_TheWorld_Map::_process(double _delta)
 				m_dragBox = memnew(godot::ColorRect);
 				add_child(m_dragBox);
 				m_dragBox->set_name("MapDragBox");
+				//m_dragBox->set_color(GDN_TheWorld_Globals::g_color_yellow_transparent);
 				m_dragBox->set_color(GDN_TheWorld_Globals::g_color_yellow_transparent);
+				m_dragBox->set_z_index(GDN_TheWorld_Map::c_map_z_index_drag_box);
 			}
-			else
 			m_dragBox->show();
 			godot::Vector2 rectPos = worldPosToGlobalPos(godot::Vector2(m_startDragBoxQuadrantPos.getLowerXGridVertex(), m_startDragBoxQuadrantPos.getLowerZGridVertex()));
 			godot::Vector2 mousePosInViewport = viewer->getMousePosInViewport();
@@ -1829,9 +1838,9 @@ void GDN_TheWorld_Map::_process(double _delta)
 		}
 		else
 		{
-			if (m_dragBox != nullptr)
+			if (m_dragBox != nullptr and m_dragBox->is_visible())
 			{
-				m_dragBox->hide();
+				//m_dragBox->hide();
 				//m_dragBox->queue_free();
 				//m_dragBox = nullptr;
 
@@ -1875,6 +1884,8 @@ void GDN_TheWorld_Map::_process(double _delta)
 					m_startDragBoxQuadrantPos.reset();
 					m_endDragBoxQuadrantPos.reset();
 				}
+
+				resetDragInputEvents();
 			}
 		}
 	}
@@ -2314,6 +2325,23 @@ void GDN_TheWorld_Map::editMode(TheWorld_Utils::QuadrantPos& quadrantPos, bool b
 		m_mapQuadrantOverrideContainer[quadrantPos]->editMode(b);
 		m_mapQuadrantOverrideContainer[quadrantPos]->applyColor();
 	}
+}
+
+void GDN_TheWorld_Map::resetDragInputEvents(void)
+{
+	m_dragBoxOn = false;
+	m_dragBoxType = DragBoxType::Unknown;
+	//m_shiftPressed = false;
+	//m_ctrlPressed = false;
+	//m_altPressed = false;
+	if (m_dragBox != nullptr)
+	{
+		m_dragBox->hide();
+		//m_dragBox->queue_free();
+		//m_dragBox = nullptr;
+	}
+	//m_startDragBoxQuadrantPos.reset();
+	//m_endDragBoxQuadrantPos.reset();
 }
 
 void GDN_TheWorld_Map::worldQuadrantsMapReset(void)
@@ -2890,7 +2918,7 @@ void GDN_TheWorld_Map::setWorldFlag(godot::String name, godot::Color c, bool set
 		add_child(worldFlag);
 		worldFlag->set_name("WorldFlag_" + name);
 		worldFlag->set_visible(false);
-		worldFlag->set_z_index(worldFlag->get_z_index() + 1);
+		worldFlag->set_z_index(c_map_z_index_rect_color_overlay);
 
 		constexpr int32_t FLAG_RADIUS = 7;
 		godot::Ref<godot::SphereMesh> sphereFlag = memnew(godot::SphereMesh);
@@ -9475,7 +9503,7 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 			{
 				if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_RIGHT, &trackedInputEvent))
 				{
-					if (not m_selectedMapQuadrantPos.isInitialized() and not map->dragBoxOn())
+					if (/*not m_selectedMapQuadrantPos.isInitialized()*/ not isMapQuadrantSelectedForEdit() and not map->dragBoxOn())
 					{
 						godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
 						godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);
@@ -9488,7 +9516,7 @@ void GDN_TheWorld_Viewer::process_mapModeInputEvents(void)
 
 			if (isInputEventTracked(TrackedInputEvent::TrackedInputEventType::MOUSE_BUTTON_LEFT, &trackedInputEvent))
 			{
-				if (not m_selectedMapQuadrantPos.isInitialized() and not map->dragBoxOn())
+				if (/*not m_selectedMapQuadrantPos.isInitialized()*/ not isMapQuadrantSelectedForEdit() and not map->dragBoxOn())
 				{
 					godot::Vector2 mousePosInViewport = trackedInputEvent.mousePosInViewport();
 					godot::Vector2 mouseGlobalPos = map->getMousePosInGlobalCoord(mousePosInViewport);

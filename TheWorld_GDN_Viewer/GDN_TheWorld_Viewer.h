@@ -379,6 +379,11 @@ namespace godot
 		void _notification(int p_what);
 
 	public:
+		const static int32_t c_map_z_index_quadrant_texture_override = 1;
+		const static int32_t c_map_z_index_quadrant_color_override = 2;
+		const static int32_t c_map_z_index_rect_color_overlay = 3;
+		const static int32_t c_map_z_index_drag_box = 99;
+		
 		class MapQuadrantOverride
 		{
 		public:
@@ -989,22 +994,7 @@ namespace godot
 			m_mapQuadrantTextureOverrideNum--;
 		}
 
-		void resetDragInputEvents(void)
-		{
-			m_dragBoxOn = false;
-			m_dragBoxType = DragBoxType::Unknown;
-			m_shiftPressed = false;
-			m_ctrlPressed = false;
-			m_altPressed = false;
-			if (m_dragBox != nullptr)
-			{
-				m_dragBox->hide();
-				m_dragBox->queue_free();
-				m_dragBox = nullptr;
-			}
-			m_startDragBoxQuadrantPos.reset();
-			m_endDragBoxQuadrantPos.reset();
-		}
+		void resetDragInputEvents(void);
 
 	private:
 		GDN_TheWorld_Globals* Globals(bool useCache = true);

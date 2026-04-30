@@ -664,9 +664,9 @@ namespace godot
 			m_terrainDataJustLoaded = b;
 		}
 		
-		godot::Vector4 northQuadrantTextureLayersFromTerrainData(void);
-		godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
-		godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
+		//godot::Vector4 northQuadrantTextureLayersFromTerrainData(void);
+		//godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
+		//godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
 		void getHeightmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& heightmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		void getHeightmapCorner(std::chrono::system_clock::time_point& lastBorderRefreshTs, uint16_t& heightmapCorner, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		//godot::Ref<godot::ImageTexture> getHeightmapBorderQuadrantRowsTexture(int32_t& numValidBorders);

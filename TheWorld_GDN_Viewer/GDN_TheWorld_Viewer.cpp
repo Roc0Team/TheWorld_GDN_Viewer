@@ -3906,13 +3906,21 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			godot::Vector4 v = m_quadTree->getQuadrant()->quadrantTextureLayers();
 			material->set_shader_parameter(SHADER_PARAM_GROUND_LAYERS, v);
-			v = m_quadTree->getQuadrant()->northQuadrantTextureLayersFromTerrainData();
-			material->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, v);
-			v = m_quadTree->getQuadrant()->westQuadrantTextureLayersFromTerrainData();
-			material->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, v);
-			v = m_quadTree->getQuadrant()->northwestQuadrantTextureLayersFromTerrainData();
-			material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, v);
-			
+
+			{
+				// ATM texture override is disabled for for global map generation because we should generate accordingly splatmap for north//west/morthwest quadrants and pass them to the shader in 
+				// SHADER_PARAM_NORTH_BORDER_SPLATMAP/SHADER_PARAM_WEST_BORDER_SPLATMAP/SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL 
+				// look at where setNorthGroundTextures/setWestGroundTextures/setNorthWestGroundTextures are called for more details
+
+				//v = m_quadTree->getQuadrant()->northQuadrantTextureLayersFromTerrainData();
+				//material->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, v);
+				//v = m_quadTree->getQuadrant()->westQuadrantTextureLayersFromTerrainData();
+				//material->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, v);
+				//v = m_quadTree->getQuadrant()->northwestQuadrantTextureLayersFromTerrainData();
+				//material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, v);
+				material->set_shader_parameter(SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE, 0.0f);		// Disable texture override for global map generation
+			}
+
 			material->set_shader_parameter(SHADER_PARAM_OVERRIDE_CAM_ALTITUDE, -1);		// we force, as override for this quadrant, camera altitude from terrain to -1 so the shader will not consider the real camera altitude which is expressed as a global shader param valid for every quadrant
 						
 			material->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_VERTICAL_FACTOR, terrainEdit->extraValues.slopeVerticalFactor);
@@ -3945,8 +3953,6 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 					material->set_shader_parameter(SHADER_EXTRA_VERTICES_ON_HEIGHTMAP, size_t(0));
 				}
 			}
-
-			material->set_shader_parameter(SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE, 0.0f);		// Disable texture override for global map generation
 
 			material->set_shader_parameter(SHADER_PARAM_GROUND_UV_SCALE_PER_TEXTURE, godot::Plane(6.0f, 6.0f, 6.0f, 6.0f));
 			material->set_shader_parameter(SHADER_PARAM_DEPTH_BLENDING, true);

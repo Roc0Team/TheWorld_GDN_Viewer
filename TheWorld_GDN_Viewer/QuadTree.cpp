@@ -5940,65 +5940,65 @@ void Quadrant::updateTerrainEditTextureLayers(void)
 	}
 }
 
-godot::Vector4 Quadrant::northQuadrantTextureLayersFromTerrainData(void)
-{
-	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
-	terrainData->getNorthGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
-
-	TheWorld_Utils::QuadrantPos northQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-	std::string northQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(northQuadrantPos);
-
-	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-	std::string layoutForFoundTexture;
-	godot::Vector4 v(-1, -1, -1, -1);
-	v.x = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
-	v.y = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
-	v.z = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
-	v.w = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
-
-	return v;
-}
-
-godot::Vector4 Quadrant::westQuadrantTextureLayersFromTerrainData(void)
-{
-	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
-	terrainData->getWestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
-
-	TheWorld_Utils::QuadrantPos westQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-	std::string westQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(westQuadrantPos);
-
-	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-	std::string layoutForFoundTexture;
-	godot::Vector4 v(-1, -1, -1, -1);
-	v.x = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
-	v.y = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
-	v.z = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
-	v.w = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
-
-	return v;
-}
-
-godot::Vector4 Quadrant::northwestQuadrantTextureLayersFromTerrainData(void)
-{
-	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
-	terrainData->getNorthwestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
-
-	TheWorld_Utils::QuadrantPos northwestQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-	std::string northwestQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(northwestQuadrantPos);
-
-	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-	std::string layoutForFoundTexture;
-	godot::Vector4 v(-1, -1, -1, -1);
-	v.x = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
-	v.y = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
-	v.z = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
-	v.w = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
-
-	return v;
-}
+//godot::Vector4 Quadrant::northQuadrantTextureLayersFromTerrainData(void)
+//{
+//	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+//	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
+//	terrainData->getNorthGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
+//
+//	TheWorld_Utils::QuadrantPos northQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+//	std::string northQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(northQuadrantPos);
+//
+//	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+//	std::string layoutForFoundTexture;
+//	godot::Vector4 v(-1, -1, -1, -1);
+//	v.x = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
+//	v.y = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
+//	v.z = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
+//	v.w = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
+//
+//	return v;
+//}
+//
+//godot::Vector4 Quadrant::westQuadrantTextureLayersFromTerrainData(void)
+//{
+//	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+//	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
+//	terrainData->getWestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
+//
+//	TheWorld_Utils::QuadrantPos westQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+//	std::string westQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(westQuadrantPos);
+//
+//	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+//	std::string layoutForFoundTexture;
+//	godot::Vector4 v(-1, -1, -1, -1);
+//	v.x = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
+//	v.y = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
+//	v.z = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
+//	v.w = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
+//
+//	return v;
+//}
+//
+//godot::Vector4 Quadrant::northwestQuadrantTextureLayersFromTerrainData(void)
+//{
+//	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+//	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
+//	terrainData->getNorthwestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
+//
+//	TheWorld_Utils::QuadrantPos northwestQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+//	std::string northwestQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(northwestQuadrantPos);
+//
+//	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+//	std::string layoutForFoundTexture;
+//	godot::Vector4 v(-1, -1, -1, -1);
+//	v.x = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
+//	v.y = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
+//	v.z = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
+//	v.w = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
+//
+//	return v;
+//}
 
 godot::Vector2i Quadrant::quadrantPosInGrid(QuadrantTypeInGrid& type)
 {

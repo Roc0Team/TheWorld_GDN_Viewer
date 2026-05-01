@@ -2566,11 +2566,11 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			size_t procgenDurationMs = m_innerData->m_procgenClock.partialDuration().count();
 			std::string procgenDurationStr = " " + TheWorld_Utils::milliseconds_to_hhhmmss(procgenDurationMs);;
 
-			// WARNIG: DISPLAING ONLY FIRST ELEMENET OF MAP, ASSUMING ATM ONLY 1 LEVEL IS PRESENT
+			// WARNING: DISPLAING ONLY FIRST ELEMENET OF MAP, ASSUMING ATM ONLY 1 LEVEL IS PRESENT
 			m_innerData->m_procgenHeader->set_text((std::string("Proc. Gen (Vert ") + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numVerticesPerSize) + ")").c_str());
 			m_innerData->m_procgenStatus->set_text((std::string("RUNNING") + procgenDurationStr).c_str());
 			m_innerData->m_procgenLevel->set_text(std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_level).c_str());
-			std::string s = std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_quadrantsWithHeigthsGenerated) + "/" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_quadrantsToGenerateHeights) + " (" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_currentHeightGenCycle) + ")";
+			std::string s = std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_quadrantsWithHeigthsGenerated) + "/" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_quadrantsToGenerateHeights) + " (" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_currentHeightGenCycle) + "-" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_quadrantsToProcessServerSide) + ")";
 			m_innerData->m_procgenHeightsProgress->set_text(s.c_str());
 			s = std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numBlendedQuadrants) + "/" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numQuadrantsToBlend) + " (" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_currentBlendingCycle) + "/" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numBlendingCycles) + ")";
 			m_innerData->m_procgenBlendProgress->set_text(s.c_str());

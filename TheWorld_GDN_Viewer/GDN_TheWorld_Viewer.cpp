@@ -259,7 +259,7 @@ bool MapQuadrantImagesMap::scheduleQuadrantForUpdate(TheWorld_Utils::QuadrantPos
 			TheWorld_Utils::MeshCacheBuffer cache = (*this)[pos]->getMeshCacheBuffer();
 			std::string meshId = cache.getMeshIdFromDisk(false, nullptr, false);
 			//std::string meshId;
-			m_viewer->Globals()->Client()->MapManagerGetQuadrantVertices(m_viewer->isInEditor(), 0, 0, 0, 0, 0, 0, pos.getLowerXGridVertex(), pos.getLowerZGridVertex(),
+			m_viewer->Globals()->Client()->MapManagerGetQuadrantBuffer(m_viewer->isInEditor(), 0, 0, 0, 0, 0, 0, pos.getLowerXGridVertex(), pos.getLowerZGridVertex(),
 				1, // TheWorld_MapManager::MapManager::anchorType::upperleftcorner
 				pos.getNumVerticesPerSize(), pos.getGridStepInWU(), pos.getLevel(), false, 0, meshId);
 
@@ -5889,15 +5889,15 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 		return;
 	}
 
-	//try
+	//try	
 	{
-		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES)
+		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER)
 		{
 			std::string profilerFunction = std::string("WorldDeploy 1 ") + __FUNCTION__;
-			std::string profilerName = THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES;
+			std::string profilerName = THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER;
 			TheWorld_Utils::Profiler::addElapsedMs(profilerFunction, profilerName, reply.duration());
 			
-			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2 ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES);
+			TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2 ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER);
 
 			enum class TheWorldStatus status = Globals()->status();
 			if (status == TheWorldStatus::worldUnDeployInProgress || status < TheWorldStatus::worldDeployInProgress)
@@ -5905,7 +5905,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				GDN_TheWorld_Globals* globals = Globals();
 				if (globals != nullptr)
 				{
-					std::string msg = std::string("GDN_TheWorld_Viewer::replyFromServer - ") + THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES + " - Status=" + std::to_string(int(status)) + " (" + globals->statusStr(status) + "): cannot proceed deploying quadrant";
+					std::string msg = std::string("GDN_TheWorld_Viewer::replyFromServer - ") + THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER + " - Status=" + std::to_string(int(status)) + " (" + globals->statusStr(status) + "): cannot proceed deploying quadrant";
 					globals->debugPrint(msg.c_str());
 				}
 			}
@@ -6259,13 +6259,13 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				}
 			}
 		}
-		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER)
+		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER)
 		{
 			GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 			if (editModeUIControl != nullptr && editModeUIControl->initialized())
 				editModeUIControl->replyFromServer(reply);
 		}
-		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES)
+		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADGENERATIONQUADOVERRIDES)
 		{
 			GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 			if (editModeUIControl != nullptr && editModeUIControl->initialized())
@@ -15625,8 +15625,8 @@ void GDN_TheWorld_Viewer::streamer(void)
 					GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 					if (editModeUIControl != nullptr and editModeUIControl->initialized())
 						editorUploadToServerInProgress = editModeUIControl->uploadToServerInProgress();
-					if (editorUploadToServerInProgress)
-						editorUploadToServerInProgress = true;
+					//if (editorUploadToServerInProgress)			// DEBUG
+					//	editorUploadToServerInProgress = true;	// DEBUG
 					
 					std::string quadrants;
 					std::string mapTextureRects;
@@ -15646,44 +15646,50 @@ void GDN_TheWorld_Viewer::streamer(void)
 							size_t cursor = 1;
 							buffer.adjustSize(cursor);
 
-							size_t size;
-							TheWorld_Utils::serializeToByteStream<size_t>(m_worldQuadrantsMap.size(), buffer.ptr() + cursor, size);
-							cursor += size;
-							buffer.adjustSize(cursor);
-							
-							for (auto& worldQuadrantsMapItem : m_worldQuadrantsMap)
+							// Check with server if updated versions of world quadrant data exist server side
 							{
-								TheWorld_Utils::MemoryBuffer quadrantPosBuffer;
-								worldQuadrantsMapItem.first.serialize(quadrantPosBuffer);
-
-								buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
-								TheWorld_Utils::serializeToByteStream<size_t>(quadrantPosBuffer.size(), buffer.ptr() + cursor, size);
+								size_t size;
+								TheWorld_Utils::serializeToByteStream<size_t>(m_worldQuadrantsMap.size(), buffer.ptr() + cursor, size);
 								cursor += size;
 								buffer.adjustSize(cursor);
 
-								buffer.reserve(cursor + quadrantPosBuffer.size());		// to avoid memory overflow
-								memcpy(buffer.ptr() + cursor, quadrantPosBuffer.ptr(), quadrantPosBuffer.size());
-								cursor += quadrantPosBuffer.size();
-								buffer.adjustSize(cursor);
+								for (auto& worldQuadrantsMapItem : m_worldQuadrantsMap)
+								{
+									TheWorld_Utils::MemoryBuffer quadrantPosBuffer;
+									worldQuadrantsMapItem.first.serialize(quadrantPosBuffer);
 
-								std::string meshId = worldQuadrantsMapItem.second->getQuadrant()->getMeshId();
+									buffer.reserve(cursor + sizeof(size_t));		// to avoid memory overflow
+									TheWorld_Utils::serializeToByteStream<size_t>(quadrantPosBuffer.size(), buffer.ptr() + cursor, size);
+									cursor += size;
+									buffer.adjustSize(cursor);
 
-								buffer.reserve(cursor + 8);		// to avoid memory overflow
-								TheWorld_Utils::serializeToByteStream<size_t>(meshId.size(), buffer.ptr() + cursor, size);
-								cursor += size;
-								buffer.adjustSize(cursor);
+									buffer.reserve(cursor + quadrantPosBuffer.size());		// to avoid memory overflow
+									memcpy(buffer.ptr() + cursor, quadrantPosBuffer.ptr(), quadrantPosBuffer.size());
+									cursor += quadrantPosBuffer.size();
+									buffer.adjustSize(cursor);
 
-								buffer.reserve(cursor + meshId.size());		// to avoid memory overflow
-								memcpy(buffer.ptr() + cursor, meshId.c_str(), meshId.size());
-								cursor += meshId.size();
-								buffer.adjustSize(cursor);
+									std::string meshId = worldQuadrantsMapItem.second->getQuadrant()->getMeshId();
+
+									buffer.reserve(cursor + 8);		// to avoid memory overflow
+									TheWorld_Utils::serializeToByteStream<size_t>(meshId.size(), buffer.ptr() + cursor, size);
+									cursor += size;
+									buffer.adjustSize(cursor);
+
+									buffer.reserve(cursor + meshId.size());		// to avoid memory overflow
+									memcpy(buffer.ptr() + cursor, meshId.c_str(), meshId.size());
+									cursor += meshId.size();
+									buffer.adjustSize(cursor);
+								}
+
+								//buffer.adjustSize(cursor);
+								buffer.toString(quadrants);
 							}
-							
-							//buffer.adjustSize(cursor);
-							buffer.toString(quadrants);
+
 
 							if (mapMode() and not serverGenerationInProgress() and not worldStreamingInProgress())
 							{
+								// Check with server if updated versions of map texture rects exist server side
+
 								GDN_TheWorld_Map* map = Map();
 								if (map != nullptr)
 								{

@@ -5501,7 +5501,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 				terrainEdit->needUploadToServer = false;
 				std::string buffer;
 				getQuadrantBufferForCache(buffer);
-				m_viewer->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
+				m_viewer->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
 				unlockInternalData();
 				editModeUIControl->terrainDataLocked(false);
 				return;
@@ -6474,7 +6474,7 @@ void Quadrant::populateGridVertices(float cameraX, float cameraY, float cameraZ,
 	if (meshId.length() > 0)
 	{
 		//clock.tick();
-		m_quadTree->Viewer()->Globals()->Client()->MapManagerGetQuadrantVertices(m_quadTree->Viewer()->isInEditor(), cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll,
+		m_quadTree->Viewer()->Globals()->Client()->MapManagerGetQuadrantBuffer(m_quadTree->Viewer()->isInEditor(), cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll,
 																		 lowerXGridVertex, lowerZGridVertex,
 																		 1, // TheWorld_MapManager::MapManager::anchorType::upperleftcorner
 																		 numVerticesPerSize, gridStepInWU, lvl, setCamera, cameraDistanceFromTerrainForced, meshId);
@@ -6484,7 +6484,7 @@ void Quadrant::populateGridVertices(float cameraX, float cameraY, float cameraZ,
 	else
 	{
 		//clock.tick();
-		m_quadTree->Viewer()->Globals()->Client()->MapManagerGetQuadrantVertices(m_quadTree->Viewer()->isInEditor(), cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll,
+		m_quadTree->Viewer()->Globals()->Client()->MapManagerGetQuadrantBuffer(m_quadTree->Viewer()->isInEditor(), cameraX, cameraY, cameraZ, cameraYaw, cameraPitch, cameraRoll,
 																		 lowerXGridVertex, lowerZGridVertex,
 																		 1, // TheWorld_MapManager::MapManager::anchorType::upperleftcorner
 																		 numVerticesPerSize, gridStepInWU, lvl, setCamera, cameraDistanceFromTerrainForced, meshId);

@@ -494,9 +494,9 @@ namespace TheWorld_ClientServer
 				reply->replyParam(TheWorld_Utils::time_point_to_str_time(groundJsonUtc));
 				reply->replyComplete();
 			}
-			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER)
+			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("UploadBuffer 1a ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER);
+				TheWorld_Utils::GuardProfiler profiler(std::string("UploadBuffer 1a ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER);
 
 				float* lowerXGridVertex = std::get_if<float>(&reply->m_inputParams[0]);
 				if (lowerXGridVertex == nullptr)
@@ -570,9 +570,9 @@ namespace TheWorld_ClientServer
 
 				reply->replyComplete();
 			}
-			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES)
+			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 1a ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES);
+				TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 1a ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER);
 
 				float* cameraX = std::get_if<float>(&reply->m_inputParams[0]);
 				if (cameraX == nullptr)
@@ -662,9 +662,9 @@ namespace TheWorld_ClientServer
 
 				reply->replyComplete();
 			}
-			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES)
+			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADGENERATIONQUADOVERRIDES)
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("Upload quadrant overrides ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES);
+				TheWorld_Utils::GuardProfiler profiler(std::string("Upload quadrant overrides ") + __FUNCTION__, THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADGENERATIONQUADOVERRIDES);
 			
 				bool* isInEditor = std::get_if<bool>(&reply->m_inputParams[0]);
 				if (isInEditor == nullptr)
@@ -941,7 +941,7 @@ namespace TheWorld_ClientServer
 
 	void ServerInterface::queueJob(const std::function<void()>& job, ClientServerExecution* clientServerExecution)
 	{
-		if (clientServerExecution->getMethod() == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES)
+		if (clientServerExecution->getMethod() == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER)
 			m_tpSlowExecutions.QueueJob(job);
 		else
 			m_tp.QueueJob(job);

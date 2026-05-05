@@ -45,9 +45,9 @@ namespace TheWorld_ClientServer
 	class ClientCallback;
 
 #define THEWORLD_CLIENTSERVER_METHOD_SERVER_INITIALIZATION				"Server::initializeSession"
-#define THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES			"MapManager::getQuadrantVertices"
-#define THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER				"MapManager::uploadCacheBuffer"
-#define THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES			"MapManager::uploadQuadrantOverrides"
+#define THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER				"MapManager::getQuadrantBuffer"
+#define THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER			"MapManager::uploadQuadrantBuffer"
+#define THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADGENERATIONQUADOVERRIDES	"MapManager::uploadGenerationQuadrantOverrides"
 #define THEWORLD_CLIENTSERVER_METHOD_MAPM_DEPLOYWORLD					"MapManager::deployWorld"
 #define THEWORLD_CLIENTSERVER_METHOD_MAPM_DEPLOYLEVEL					"MapManager::deployLevel"
 #define THEWORLD_CLIENTSERVER_METHOD_MAPM_UNDEPLOYWORLD					"MapManager::undeployWorld"

@@ -117,7 +117,7 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 
 	try
 	{
-		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER)
+		if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER)
 		{
 			ClientServerVariant v = reply.getInputParam(0);
 			const auto _lowerXGridVertex(std::get_if<float>(&v));
@@ -187,7 +187,7 @@ void GDN_TheWorld_Edit::replyFromServer(TheWorld_ClientServer::ClientServerExecu
 			m_lastElapsed = partialCount - m_elapsedCompleted;
 			m_elapsedCompleted = partialCount;
 		}
-		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES)
+		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADGENERATIONQUADOVERRIDES)
 		{
 			m_uploadMapQuadrantOverridesInProgress = false;
 		}
@@ -3864,7 +3864,7 @@ bool GDN_TheWorld_Edit::editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* m
 				int numVerticesPerSize = pos.getNumVerticesPerSize();
 				float gridStepInWU = pos.getGridStepInWU();
 				int lvl = pos.getLevel();
-				quadTree->Viewer()->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
+				quadTree->Viewer()->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
 
 				quadTree->getQuadrant()->unlockInternalData();
 
@@ -3999,7 +3999,7 @@ void GDN_TheWorld_Edit::editModeUploadMapQuadrantOverrides(GDN_TheWorld_Map* map
 		int lvl = m_viewer->getLevel();
 		std::string strBuffer;
 		buffer.toString(strBuffer);
-		m_viewer->Globals()->Client()->MapManagerUploadQuadrantOverrides(m_viewer->isInEditor(), numVerticesPerSize, gridStepInWU, lvl, strBuffer);
+		m_viewer->Globals()->Client()->MapManagerUploadGenerationQuadrantOverrides(m_viewer->isInEditor(), numVerticesPerSize, gridStepInWU, lvl, strBuffer);
 	}
 
 	while (m_uploadMapQuadrantOverridesInProgress)
@@ -4756,7 +4756,7 @@ void GDN_TheWorld_Edit::manageSaveAndUploadAfterBlending(Quadrant* quadrant)
 		quadrant->getTerrainEdit()->needUploadToServer = false;
 		std::string buffer;
 		quadrant->getQuadrantBufferForCache(buffer);
-		m_viewer->Globals()->Client()->MapManagerUploadBuffer(m_viewer->isInEditor(), quadrantPos.getLowerXGridVertex(), quadrantPos.getLowerZGridVertex(), quadrantPos.getNumVerticesPerSize(), quadrantPos.getGridStepInWU(), quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
+		m_viewer->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), quadrantPos.getLowerXGridVertex(), quadrantPos.getLowerZGridVertex(), quadrantPos.getNumVerticesPerSize(), quadrantPos.getGridStepInWU(), quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
 	}
 }
 

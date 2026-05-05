@@ -177,7 +177,7 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::MapManagerGetQuadrantVertices(bool isInEditor, float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, float lowerXGridVertex, float lowerZGridVertex, int anchorType, int numVerticesPerSize, float gridStepInWU, int level, bool setCamera, float cameraDistanceFromTerrainForced, std::string meshId)
+	void GDN_TheWorld_Globals_Client::MapManagerGetQuadrantBuffer(bool isInEditor, float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, float lowerXGridVertex, float lowerZGridVertex, int anchorType, int numVerticesPerSize, float gridStepInWU, int level, bool setCamera, float cameraDistanceFromTerrainForced, std::string meshId)
 	{
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(cameraX);
@@ -197,10 +197,10 @@ namespace godot
 		inputParams.push_back(cameraRoll);
 		inputParams.push_back(isInEditor);
 		std::string ref;
-		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
+		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
 		{
-			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES " error ") + std::to_string(rc);
+			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER " error ") + std::to_string(rc);
 			throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", rc));
 		}
 	}
@@ -229,7 +229,7 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::MapManagerUploadBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepInWU, int level, std::string buffer, int32_t numQuadrantsPerSize, float quadrantGlobalSize, float quadrantWorldSize)
+	void GDN_TheWorld_Globals_Client::MapManagerUploadQuadrantBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepInWU, int level, std::string buffer, int32_t numQuadrantsPerSize, float quadrantGlobalSize, float quadrantWorldSize)
 	{
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(lowerXGridVertex);
@@ -244,15 +244,15 @@ namespace godot
 		inputParams.push_back(quadrantGlobalSize);
 		inputParams.push_back(quadrantWorldSize);
 		std::string ref;
-		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
+		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
 		{
-			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADCACHEBUFFER " error ") + std::to_string(rc);
+			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER " error ") + std::to_string(rc);
 			throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", rc));
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::MapManagerUploadQuadrantOverrides(bool isInEditor, int numVerticesPerSize, float gridStepInWU, int level, std::string& buffer)
+	void GDN_TheWorld_Globals_Client::MapManagerUploadGenerationQuadrantOverrides(bool isInEditor, int numVerticesPerSize, float gridStepInWU, int level, std::string& buffer)
 	{
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(isInEditor);
@@ -262,10 +262,10 @@ namespace godot
 		std::vector<unsigned char> _buffer(buffer.begin(), buffer.end());
 		inputParams.push_back(_buffer);
 		std::string ref;
-		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES, ref, inputParams, THEWORLD_CLIENTSERVER_DEFAULT_TIME_TO_LIVE, m_globals->Viewer());
+		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADGENERATIONQUADOVERRIDES, ref, inputParams, THEWORLD_CLIENTSERVER_DEFAULT_TIME_TO_LIVE, m_globals->Viewer());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
 		{
-			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADOVERRIDES " error ") + std::to_string(rc);
+			std::string m = std::string("ClientInterface::execMethodSync ==> " THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADGENERATIONQUADOVERRIDES " error ") + std::to_string(rc);
 			throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", rc));
 		}
 	}

@@ -592,9 +592,9 @@ namespace godot
 
 		void getQuadrantBufferForCache(TheWorld_Utils::MemoryBuffer& buffer);
 		void getQuadrantBufferForCache(std::string& buffer);
-		bool saveQuadrantToDiskCache2(std::string& buffer, bool needUploadToserver = true, bool newMeshId = false, bool lock = false);
-		bool saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, bool needUploadToserver = true, bool newMeshId = false, bool lock = false);
-		bool saveQuadrantToDiskCache2(bool newMeshId = false, bool lock = false);
+		bool saveQuadrantToDiskCache2(std::string& buffer, std::string& writtenMeshId, bool needUploadToserver = true, bool newMeshId = false, bool lock = false);
+		bool saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, std::string& writtenMeshId, bool needUploadToserver = true, bool newMeshId = false, bool lock = false);
+		bool saveQuadrantToDiskCache2(std::string& writtenMeshId, bool newMeshId = false, bool lock = false);
 
 		void renderGlobalMap(bool b)
 		{

@@ -803,7 +803,7 @@ namespace godot
 			logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_log.txt";
 		if (!g_plogInitialized)
 		{
-			plog::init(m_debugLogSeveverity, logPath.c_str(), 1000000, 3);
+			plog::init(m_debugLogSeveverity, logPath.c_str(), 10000000, 3);
 			TheWorld_Utils::Utils::plogInit(m_debugLogSeveverity, plog::get());
 			g_plogInitialized = true;
 		}

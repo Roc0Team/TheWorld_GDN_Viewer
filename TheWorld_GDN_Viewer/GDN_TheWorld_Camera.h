@@ -56,7 +56,7 @@ namespace godot {
 		void init(GDN_TheWorld_MapViewer* mapViewer)
 		{
 			m_mapViewer = mapViewer;
-			setZoom(CAMERA_INITIAL_SCALE_FACTOR);
+			setZoomFactor(CAMERA_INITIAL_SCALE_FACTOR);
 			//setZoom(0.1f);
 		}
 
@@ -73,7 +73,7 @@ namespace godot {
 			return m_mouseMovementPaused;
 		}
 
-		void setZoom(float zoomFactor);
+		void setZoomFactor(float zoomFactor);
 		float getZoomFactor(void) const
 		{
 			return m_zoomFactor;
@@ -84,6 +84,11 @@ namespace godot {
 			m_shiftPressed = false;
 			m_ctrlPressed = false;
 			m_altPressed = false;
+		}
+
+		bool initialized(void) const
+		{
+			return m_mapViewer != nullptr;
 		}
 
 	private:

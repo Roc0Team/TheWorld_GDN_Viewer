@@ -603,7 +603,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_serverInfoVBoxContainer);
 		m_innerData->m_procgenHeader = createControl<godot::Label>(hBoxContainer, "", "");
 		m_innerData->m_procgenStatus = createControl<godot::Label>(hBoxContainer);
-		m_innerData->m_procgenClient = createControl<godot::Label>(hBoxContainer);
+		//m_innerData->m_procgenClient = createControl<godot::Label>(hBoxContainer);
 
 		separator = createControl<godot::HSeparator>(m_innerData->m_serverInfoVBoxContainer);
 
@@ -614,6 +614,13 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_procgenHeightsProgress = createControl<godot::Label>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Blend");
 		m_innerData->m_procgenBlendProgress = createControl<godot::Label>(hBoxContainer);
+		//label = createControl<godot::Label>(hBoxContainer, "", "To Cli");
+		//m_innerData->m_procgenClientElabProgress = createControl<godot::Label>(hBoxContainer);
+
+		//separator = createControl<godot::HSeparator>(m_innerData->m_serverInfoVBoxContainer);
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_serverInfoVBoxContainer);
+		m_innerData->m_procgenClient = createControl<godot::Label>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "To Cli");
 		m_innerData->m_procgenClientElabProgress = createControl<godot::Label>(hBoxContainer);
 	}
@@ -3691,7 +3698,8 @@ void GDN_TheWorld_Edit::editModeSave(void)
 			
 			if (quadToSave != nullptr)
 			{
-				bool saved = quadToSave->getQuadrant()->saveQuadrantToDiskCache2(true);
+				std::string writtenMeshId;
+				bool saved = quadToSave->getQuadrant()->saveQuadrantToDiskCache2(writtenMeshId, true);
 				my_assert(saved);
 				if (!saved)
 					throw(GDN_TheWorld_Exception(__FUNCTION__, "Quadrant not saved!"));
@@ -3850,7 +3858,8 @@ bool GDN_TheWorld_Edit::editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* m
 				TheWorld_Utils::GuardProfiler profiler(std::string("EditUpload 1.1 ") + __FUNCTION__, "Single QuadTree");
 
 				std::string buffer;
-				bool saved = quadTree->getQuadrant()->saveQuadrantToDiskCache2(buffer, false, true, false);
+				std::string writtenMeshId;
+				bool saved = quadTree->getQuadrant()->saveQuadrantToDiskCache2(buffer, writtenMeshId, false, true, false);
 				my_assert(saved);
 
 				if (!saved)
@@ -4752,7 +4761,8 @@ void GDN_TheWorld_Edit::manageSaveAndUploadAfterBlending(Quadrant* quadrant)
 	bool manual = true;
 	if (isQuadToSave(quadrantPos, manual))
 	{
-		quadrant->saveQuadrantToDiskCache2(true, false);
+		std::string writtenMeshId;
+		quadrant->saveQuadrantToDiskCache2(writtenMeshId, true, false);
 		removeQuadToSave(quadrantPos);
 		quadrant->getTerrainEdit()->needUploadToServer = false;
 		std::string buffer;

@@ -673,7 +673,7 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 {
 	if (m_worldQuadrant != nullptr)
 	{
-		//m_worldQuadrant->getPos().trackQuadrantForDebug("", std::string("Set world quadrant status to ") + statusToString(status));
+		m_worldQuadrant->getPos().trackQuadrantForDebug("", std::string("Set world quadrant status to ") + statusToString(status));
 	}
 	
 	m_lastStatusChange = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -5411,7 +5411,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 	if (!m_mapModder->ready())
 		return;
 
-	//m_quadTree->getQuadrant()->getPos().trackQuadrantForDebug("", "Quadrant process_mapModder");
+	m_quadTree->getQuadrant()->getPos().trackQuadrantForDebug("", "Quadrant process_mapModder");
 
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
 	if (editModeUIControl == nullptr or not editModeUIControl->initialized() or editModeUIControl->terrainDataLocked())
@@ -5476,7 +5476,9 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 			bool lockAcquired = lockInternalData();
 			if (lockAcquired)
 			{
-				saveQuadrantToDiskCache2(true, false);
+				std::string writtenMeshId;
+				saveQuadrantToDiskCache2(writtenMeshId, true, false);
+				PLOG_VERBOSE << "Quadrant " << getPos().getIdStr() << " saved to disk cache with hash [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(writtenMeshId) << "]";	
 				editModeUIControl->removeQuadToSave(m_quadrantPos);
 				terrainEdit->needUploadToServer = false;
 				std::string buffer;
@@ -5586,10 +5588,10 @@ void Quadrant::getQuadrantBufferForCache(TheWorld_Utils::MemoryBuffer& buffer)
 	m_cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
 }
 
-bool Quadrant::saveQuadrantToDiskCache2(std::string& buffer, bool needUploadToserver, bool newMeshId, bool lock)
+bool Quadrant::saveQuadrantToDiskCache2(std::string& buffer, std::string& writtenMeshId, bool needUploadToserver, bool newMeshId, bool lock)
 {
 	TheWorld_Utils::MemoryBuffer _buffer;
-	bool saved = saveQuadrantToDiskCache2(_buffer, needUploadToserver, newMeshId, lock);
+	bool saved = saveQuadrantToDiskCache2(_buffer, writtenMeshId, needUploadToserver, newMeshId, lock);
 	if (saved)
 	{
 		buffer.clear();
@@ -5598,7 +5600,7 @@ bool Quadrant::saveQuadrantToDiskCache2(std::string& buffer, bool needUploadTose
 	return saved;
 }
 
-bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, bool needUploadToserver, bool newMeshId, bool lock)
+bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, std::string& writtenMeshId, bool needUploadToserver, bool newMeshId, bool lock)
 {
 	bool locked = true;
 	if (lock)
@@ -5629,7 +5631,6 @@ bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, bo
 		cacheQuadrantData.globalmapBuffer = &getGlobalmapBuffer(true);
 		TheWorld_Utils::QuadrantPos pos = getPos();
 		m_cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
-		std::string writtenMeshId;
 		m_cache.writeBufferToDiskCache(buffer, writtenMeshId);
 		m_quadTree->autoSaveRequired(true);
 
@@ -5642,10 +5643,10 @@ bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, bo
 		return false;
 }
 
-bool Quadrant::saveQuadrantToDiskCache2(bool newMeshId, bool lock)
+bool Quadrant::saveQuadrantToDiskCache2(std::string& writtenMeshId, bool newMeshId, bool lock)
 {
 	TheWorld_Utils::MemoryBuffer buffer;
-	return saveQuadrantToDiskCache2(buffer, true, newMeshId, lock);
+	return saveQuadrantToDiskCache2(buffer, writtenMeshId, true, newMeshId, lock);
 }
 
 godot::AABB Quadrant::getGlobalAABB(void)

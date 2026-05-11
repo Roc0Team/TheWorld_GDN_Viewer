@@ -35,8 +35,10 @@ constexpr auto POST_PROCESSING_UNDER_WATER_OVERRIDE_NODE = "PostProcessingUnderW
 
 void GDN_TheWorld_MapCamera::_bind_methods(void)
 {
+	ClassDB::bind_method(D_METHOD("initialized"), &GDN_TheWorld_MapCamera::initialized);
 	ClassDB::bind_method(D_METHOD("get_camera_world_transform"), &GDN_TheWorld_MapCamera::getCameraWorldTransform);
 	ClassDB::bind_method(D_METHOD("get_zoom_factor"), &GDN_TheWorld_MapCamera::getZoomFactor);
+	ClassDB::bind_method(D_METHOD("set_zoom_factor"), &GDN_TheWorld_MapCamera::setZoomFactor);
 }
 
 GDN_TheWorld_MapCamera::GDN_TheWorld_MapCamera(void)
@@ -210,7 +212,7 @@ constexpr auto MAPCAMERA_MOVE_INCREMENT = 20.0;
 			constexpr float ZOOM_INCREMENET = 0.02f;
 			float zoomFactor = getZoomFactor();
 			zoomFactor += ZOOM_INCREMENET * m_zoomRequired;
-			setZoom(zoomFactor);
+			setZoomFactor(zoomFactor);
 
 			m_zoomRequired = 0;
 		}
@@ -233,7 +235,7 @@ constexpr auto MAPCAMERA_MOVE_INCREMENT = 20.0;
 	}
 }
 
-void GDN_TheWorld_MapCamera::setZoom(float zoomFactor)
+void GDN_TheWorld_MapCamera::setZoomFactor(float zoomFactor)
 {
 	if (zoomFactor >= 0.09 /*zoomFactor > 0.03*/ and zoomFactor <= 1)
 	{

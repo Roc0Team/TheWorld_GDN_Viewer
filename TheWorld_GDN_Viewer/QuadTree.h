@@ -1844,7 +1844,8 @@ namespace godot
 
 	enum class QuadrantStatus
 	{
-		loadTerrainDataFromCacheNeeded = -4
+		notSet = -99
+		,loadTerrainDataFromCacheNeeded = -4
 		,loadTerrainDataFromCacheInProgress = -3
 		,refreshTerrainDataNeeded = -2
 		,refreshTerrainDataInProgress = -1
@@ -2191,7 +2192,7 @@ namespace godot
 			return m_forceRecalcOptimizationLevel;
 		}
 
-		void requestInitDelayed(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced)
+		void requestDelayedInit(float cameraX, float cameraY, float cameraZ, float cameraYaw, float cameraPitch, float cameraRoll, bool setCamera, float cameraDistanceFromTerrainForced)
 		{
 			my_assert(status() == QuadrantStatus::uninitialized && !m_initDelayedRequested);
 			if (status() != QuadrantStatus::uninitialized || m_initDelayedRequested)
@@ -2219,6 +2220,7 @@ namespace godot
 			{
 				init(m_cameraX, m_cameraY, m_cameraZ, m_cameraYaw, m_cameraPitch, m_cameraRoll, m_setCamera, m_cameraDistanceFromTerrainForced);
 				m_initDelayedRequested = false;
+				PLOG_VERBOSE << "Initializing quadrant (delayed init): sending data for quadrant " << getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(getQuadrant()->getMeshId());
 			}
 		}
 

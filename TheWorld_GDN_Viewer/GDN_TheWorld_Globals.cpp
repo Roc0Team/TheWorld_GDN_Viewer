@@ -379,7 +379,6 @@ namespace godot
 		m_initialized = false;
 		m_ready = false;
 		setStatus(TheWorldStatus::uninitialized);
-		m_isDebugEnabled = DEFAULT_DEBUG_ENABLED;
 		m_bAppInError = false;
 		m_lastErrorCode = 0;
 
@@ -443,8 +442,9 @@ namespace godot
 		ClassDB::bind_method(D_METHOD("prepare_disconnect_from_server"), &GDN_TheWorld_Globals::prepareDisconnectFromServer);
 		ClassDB::bind_method(D_METHOD("disconnect_from_server"), &GDN_TheWorld_Globals::disconnectFromServer);
 
-		ClassDB::bind_method(D_METHOD("set_debug_enabled"), &GDN_TheWorld_Globals::setDebugEnabled);
-		ClassDB::bind_method(D_METHOD("is_debug_enabled"), &GDN_TheWorld_Globals::isDebugEnabled);
+		ClassDB::bind_method(D_METHOD("set_debug_level"), &GDN_TheWorld_Globals::setDebugLevel);
+		//ClassDB::bind_method(D_METHOD("set_debug_enabled"), &GDN_TheWorld_Globals::setDebugEnabled);
+		//ClassDB::bind_method(D_METHOD("is_debug_enabled"), &GDN_TheWorld_Globals::isDebugEnabled);
 		ClassDB::bind_method(D_METHOD("debug_print"), &GDN_TheWorld_Globals::debugPrint);
 		ClassDB::bind_method(D_METHOD("error_print"), &GDN_TheWorld_Globals::errorPrint);
 		ClassDB::bind_method(D_METHOD("warning_print"), &GDN_TheWorld_Globals::warningPrint);
@@ -801,13 +801,10 @@ namespace godot
 			logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_EDITOR_log.txt";
 		else
 			logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_log.txt";
-		plog::Severity sev = PLOG_DEFAULT_LEVEL;
-		if (m_isDebugEnabled)
-			sev = PLOG_DEBUG_LEVEL;
 		if (!g_plogInitialized)
 		{
-			plog::init(sev, logPath.c_str(), 1000000, 3);
-			TheWorld_Utils::Utils::plogInit(sev, plog::get());
+			plog::init(m_debugLogSeveverity, logPath.c_str(), 1000000, 3);
+			TheWorld_Utils::Utils::plogInit(m_debugLogSeveverity, plog::get());
 			g_plogInitialized = true;
 		}
 		PLOG(plog::get()->getMaxSeverity()) << "***************";
@@ -1014,11 +1011,7 @@ namespace godot
 		if (m_client != nullptr)
 			throw(GDN_TheWorld_Exception(__FUNCTION__, (std::string("Connect to server failed: pointer to client is not null").c_str())));
 
-		plog::Severity sev = PLOG_DEFAULT_LEVEL;
-		if (m_isDebugEnabled)
-			sev = PLOG_DEBUG_LEVEL;
-
-		m_client = new GDN_TheWorld_Globals_Client(this, sev);
+		m_client = new GDN_TheWorld_Globals_Client(this, m_debugLogSeveverity);
 		int rc = m_client->connect();
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)
 			throw(GDN_TheWorld_Exception(__FUNCTION__, "Connect to server failed with code " + rc));
@@ -1027,7 +1020,7 @@ namespace godot
 
 		infoPrint("GDN_TheWorld_Globals::connectToServer DONE!");
 
-		m_client->ServerInitializeSession(IS_EDITOR_HINT(), sev);
+		m_client->ServerInitializeSession(IS_EDITOR_HINT(), m_debugLogSeveverity);
 	}
 
 	void GDN_TheWorld_Globals::prepareDisconnectFromServer(void)
@@ -1437,22 +1430,54 @@ namespace godot
 	//		viewer->resetMaterialParamsForEveryQuadrant();
 	//}
 
-	void GDN_TheWorld_Globals::setDebugEnabled(bool b)
-	{
+	void GDN_TheWorld_Globals::setDebugLevel(int sev)
+	{ 
 		if (m_client == nullptr)
 			return;
-		
-		m_isDebugEnabled = b;
 
-		plog::Severity sev = PLOG_DEFAULT_LEVEL;
-		if (b)
-			sev = PLOG_DEBUG_LEVEL;
+		if (sev == 0)
+		{
+			m_debugLogSeveverity = PLOG_INFO_LEVEL;
+			//m_isDebugEnabled = false;
+		}
+		else if (sev == 1)
+		{
+			m_debugLogSeveverity = PLOG_DEBUG_LEVEL;
+			//m_isDebugEnabled = true;
+		}
+		else if (sev == 2)
+		{
+			m_debugLogSeveverity = PLOG_VERBOSE_LEVEL;
+			//m_isDebugEnabled = true;
+		}
+		else
+		{
+			m_debugLogSeveverity = PLOG_DEFAULT_LEVEL;
+			//m_isDebugEnabled = DEFAULT_DEBUG_ENABLED;
+		}
 
-		plog::get()->setMaxSeverity(sev);
-		PLOG(plog::get()->getMaxSeverity()) << "Log severity changed to: " << std::to_string(sev);
-		TheWorld_Utils::Utils::plogSetMaxSeverity(sev);
-		m_client->MapManagerSetLogMaxSeverity(sev);
+		plog::get()->setMaxSeverity(m_debugLogSeveverity);
+		PLOG(plog::get()->getMaxSeverity()) << "Log severity changed to: " << std::to_string(m_debugLogSeveverity);
+		TheWorld_Utils::Utils::plogSetMaxSeverity(m_debugLogSeveverity);
+		m_client->MapManagerSetLogMaxSeverity(m_debugLogSeveverity);
 	}
+
+	//void GDN_TheWorld_Globals::setDebugEnabled(bool b)
+	//{
+	//	if (m_client == nullptr)
+	//		return;
+	//	
+	//	m_isDebugEnabled = b;
+	//	
+	//	plog::Severity sev = PLOG_INFO_LEVEL;
+	//	if (m_isDebugEnabled)
+	//		sev = PLOG_DEBUG_LEVEL;
+
+	//	plog::get()->setMaxSeverity(sev);
+	//	PLOG(plog::get()->getMaxSeverity()) << "Log severity changed to: " << std::to_string(sev);
+	//	TheWorld_Utils::Utils::plogSetMaxSeverity(sev);
+	//	m_client->MapManagerSetLogMaxSeverity(sev);
+	//}
 
 	size_t GDN_TheWorld_Globals::resolutionForOptimizationLevel(size_t optimizationLevel)
 	{

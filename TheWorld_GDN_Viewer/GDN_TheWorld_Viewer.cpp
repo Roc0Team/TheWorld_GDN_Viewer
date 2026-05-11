@@ -3351,8 +3351,8 @@ void GDN_TheWorld_MapModder::initForNormals(QuadTree* quadtree, TheWorld_Utils::
 
 	if (m_initialized == MapType::uninitialized)
 	{
-		PLOG_DEBUG << "MapModder Init For Normals - Quadrant " << quadtree->getQuadrant()->getPos().getIndexPosX() << "," << quadtree->getQuadrant()->getPos().getIndexPosZ();
-		
+		PLOG_DEBUG << "MapModder Init For Normals - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadtree->getQuadrant()->getMeshId());
+
 		GDN_TheWorld_MapModder::incNumWorking();
 		
 		m_signalRequired = signalRequired;
@@ -3384,7 +3384,7 @@ void GDN_TheWorld_MapModder::initForSplatmap(QuadTree* quadtree, TheWorld_Utils:
 
 	if (m_initialized == MapType::uninitialized)
 	{
-		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadtree->getQuadrant()->getPos().getIndexPosX() << "," << quadtree->getQuadrant()->getPos().getIndexPosZ();
+		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadtree->getQuadrant()->getMeshId());
 
 		GDN_TheWorld_MapModder::incNumWorking();
 		
@@ -3419,7 +3419,7 @@ void GDN_TheWorld_MapModder::initForGlobalMap(QuadTree* quadtree, size_t tileSiz
 
 	if (m_initialized == MapType::uninitialized)
 	{
-		PLOG_DEBUG << "MapModder Init For Globalmap - Quadrant " << quadtree->getQuadrant()->getPos().getIndexPosX() << "," << quadtree->getQuadrant()->getPos().getIndexPosZ();
+		PLOG_DEBUG << "MapModder Init For Globalmap - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadtree->getQuadrant()->getMeshId());
 
 		GDN_TheWorld_MapModder::incNumWorking();
 
@@ -4662,7 +4662,7 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 
 		save = true;
 
-		PLOG_DEBUG << "MapModder Init For Normals - Quadrant " << quadTree->getQuadrant()->getPos().getIndexPosX() << "," << quadTree->getQuadrant()->getPos().getIndexPosZ() << " Work Done";
+		PLOG_DEBUG << "MapModder Init For Normals - Quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Work Done";
 	}
 	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForSplatmap)
 	{
@@ -4708,7 +4708,7 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 
 		save = true;
 
-		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadTree->getQuadrant()->getPos().getIndexPosX() << "," << quadTree->getQuadrant()->getPos().getIndexPosZ() << " Work Done";
+		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Work Done";
 
 	}
 	else if (mapType == GDN_TheWorld_MapModder::MapType::initializedForGlobalmap)
@@ -4750,7 +4750,7 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 
 		save = true;
 
-		PLOG_DEBUG << "MapModder Init For Globalmap - Quadrant " << quadTree->getQuadrant()->getPos().getIndexPosX() << "," << quadTree->getQuadrant()->getPos().getIndexPosZ() << " Work Done";
+		PLOG_DEBUG << "MapModder Init For Globalmap - Quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Work Done";
 	}
 
 	if (save)
@@ -6078,7 +6078,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					
 					QuadTree* quadTree = nullptr;
 					bool refreshingQuadrant = false;
-					bool worldQuadrant = true;
+					//bool worldQuadrant = true;
 					if (m_worldQuadrantsMap.contains(quadrantPos))
 					{
 						quadTree = m_worldQuadrantsMap[quadrantPos].get();
@@ -6090,21 +6090,9 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					else
 					{
 						quadTree = m_extraQuadsMap[quadrantPos].get();
-						worldQuadrant = false;
-						//if (quadrantPos.getIndexPosX() == 93 && quadrantPos.getIndexPosZ() == 99)
-						//	PLOG_DEBUG << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " Reply from server";
 					}
 					
 					m_mtxQuadrantsAndMainProcessing.unlock();
-
-					//PLOG_DEBUG << "GDN_TheWorld_Viewer::replyFromServer - " << quadTree->getQuadrant()->getPos().getName();
-
-					//// #####
-					//if (quadTree->getQuadrant()->getPos().getIndexPosX() == -10 && quadTree->getQuadrant()->getPos().getIndexPosZ() == -17)
-					//{
-					//	PLOG_DEBUG << "TRACKING replyFromServer " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << quadTree->getQuadrant()->getPos().getIndexPosZ();
-					//}	
-					//// #####
 
 					if (m_stopDeploy)
 					{
@@ -6116,6 +6104,19 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					{
 						if (quadTree->statusGetTerrainDataInProgress() || quadTree->statusRefreshTerrainDataInProgress())
 						{
+							if (quadTree->statusRefreshTerrainDataInProgress())
+							{
+								//Globals()->debugPrint((std::string("Refreshing quadrant: received terrain data for quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshIdFromServer) + " ").c_str());
+								PLOG_VERBOSE << "Refreshing quadrant: received terrain data for quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshIdFromServer);
+								//quadrantPos.trackQuadrantForDebug("", "Refreshing quadrant: received terrain data for quadrant");
+							}
+							else
+							{
+								//Globals()->debugPrint((std::string("Initializing quadrant: received terrain data for quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+								PLOG_VERBOSE << "Initializing quadrant: received terrain data for quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId());
+								//quadrantPos.trackQuadrantForDebug("", "Initializing quadrant: received terrain data for quadrant");
+							}
+
 							//std::recursive_mutex& quadrantMutex = quadTree->getQuadrantMutex();
 							//std::lock_guard<std::recursive_mutex> lock(quadrantMutex);
 							while (quadTree->getQuadrant()->lockInternalData() == false)
@@ -6171,7 +6172,15 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							}
 
 							if (quadTree->statusRefreshTerrainDataInProgress())
-								Globals()->debugPrint((std::string("Refreshed quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " " + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+							{
+								//Globals()->debugPrint((std::string("Refreshed quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+								PLOG_VERBOSE << "Refreshed quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId());
+							}
+							else
+							{
+								//Globals()->debugPrint((std::string("Initialized quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+								PLOG_VERBOSE << "Initialized quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId());
+							}
 
 							if (refreshingQuadrant)
 							{
@@ -6389,7 +6398,8 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			m_worldQuadrantsMap[quadrantPos] = make_unique<QuadTree>(this, quadrantPos);
 			m_worldQuadrantsMap[quadrantPos]->numQuadrantsFromCameraQuadrant(0);
 			m_worldQuadrantsMap[quadrantPos]->quadrantDepth(QuadTree::QuadrantDepth::Initial);
-			m_worldQuadrantsMap[quadrantPos]->requestInitDelayed(cameraPosX, cameraPosY, cameraPosZ, cameraYaw, cameraPitch, cameraRoll, true, cameraDistanceFromTerrainForced);
+			m_worldQuadrantsMap[quadrantPos]->requestDelayedInit(cameraPosX, cameraPosY, cameraPosZ, cameraYaw, cameraPitch, cameraRoll, true, cameraDistanceFromTerrainForced);
+			PLOG_INFO << "Requested delayed init for start-up quadrant " << quadrantPos.getIdStr();
 		}
 		else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_DEPLOYWORLD)
 		{
@@ -6633,108 +6643,122 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 			}
 			std::string replyMapTextureRects((*_replyMapTextureRects).begin(), (*_replyMapTextureRects).end());
 
-			if (clientQuadrants.length() > 0 && replyClientQuadrants.length() > 0)
+			// *
+			// We manage actual world quadrants that need syncronization with server as the server has a newer version
+			// *
 			{
-				size_t size = 0;
-
-				//size_t l1 = clientQuadrants.size();	// DEBUG
-				//size_t l2 = replyQuadrants.size();	// DEBUG
-				size_t clientQuadrantsCursor = 1;	// bypassing first byte '0'
-				size_t numClientQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
-				clientQuadrantsCursor += size;
-
-				size_t replyCursor = 1;				// bypassing first byte '0'
-				size_t numReplyQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyClientQuadrants.c_str() + replyCursor, size);
-				replyCursor += size;
-
-				if (numClientQuadrants != numReplyQuadrants)
-					my_assert(numClientQuadrants == numReplyQuadrants);
-
-				if (numClientQuadrants > 0)
+				if (clientQuadrants.length() > 0 && replyClientQuadrants.length() > 0)
 				{
-					for (size_t idx = 0; idx < numClientQuadrants; idx++)
+					size_t size = 0;
+
+					//size_t l1 = clientQuadrants.size();	// DEBUG
+					//size_t l2 = replyQuadrants.size();	// DEBUG
+					size_t clientQuadrantsCursor = 1;	// bypassing first byte '0'
+					size_t numClientQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
+					clientQuadrantsCursor += size;
+
+					size_t replyCursor = 1;				// bypassing first byte '0'
+					size_t numReplyQuadrants = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyClientQuadrants.c_str() + replyCursor, size);
+					replyCursor += size;
+
+					if (numClientQuadrants != numReplyQuadrants)
+						my_assert(numClientQuadrants == numReplyQuadrants);
+
+					if (numClientQuadrants > 0)
 					{
-						size_t quadrantPosSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
-						clientQuadrantsCursor += size;
-
-						TheWorld_Utils::MemoryBuffer tmpBuffer((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, quadrantPosSize);
-						clientQuadrantsCursor += quadrantPosSize;
-
-						TheWorld_Utils::QuadrantPos pos;
-						pos.deserialize(tmpBuffer);
-
-						size_t meshIdSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
-						clientQuadrantsCursor += size;
-
-						std::string clientMeshId((char*)clientQuadrants.c_str() + clientQuadrantsCursor, meshIdSize);
-						clientQuadrantsCursor += meshIdSize;
-
-						bool quadrantRefreshNeeded = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyClientQuadrants.c_str() + replyCursor, size);
-						replyCursor += size;
-
-						if (quadrantRefreshNeeded)
+						for (size_t idx = 0; idx < numClientQuadrants; idx++)
 						{
-							std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+							size_t quadrantPosSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
+							clientQuadrantsCursor += size;
 
-							if (m_worldQuadrantsMap.contains(pos))
+							TheWorld_Utils::MemoryBuffer tmpBuffer((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, quadrantPosSize);
+							clientQuadrantsCursor += quadrantPosSize;
+
+							TheWorld_Utils::QuadrantPos pos;
+							pos.deserialize(tmpBuffer);
+
+							size_t meshIdSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)clientQuadrants.c_str() + clientQuadrantsCursor, size);
+							clientQuadrantsCursor += size;
+
+							std::string clientMeshId((char*)clientQuadrants.c_str() + clientQuadrantsCursor, meshIdSize);
+							clientQuadrantsCursor += meshIdSize;
+
+							bool quadrantRefreshNeeded = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyClientQuadrants.c_str() + replyCursor, size);
+							replyCursor += size;
+
+							if (quadrantRefreshNeeded)
 							{
-								QuadTree* quadTree = m_worldQuadrantsMap[pos].get();
-								if (quadTree->isValid() && quadTree->getQuadrant()->getPos().isInitialized() && quadTree->getQuadrant()->mapModderWorkDone())
-									quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+								std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+
+								if (m_worldQuadrantsMap.contains(pos))
+								{
+									QuadTree* quadTree = m_worldQuadrantsMap[pos].get();
+									if (quadTree->isValid() && quadTree->getQuadrant()->getPos().isInitialized() && quadTree->getQuadrant()->mapModderWorkDone())
+									{
+										//pos.trackQuadrantForDebug("", "Requesting refresh for quadrant");
+										quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+										PLOG_VERBOSE << "Requested refresh for quadrant in world quads map " << pos.getIdStr();
+									}
+								}
 							}
 						}
 					}
 				}
 			}
 
-			GDN_TheWorld_Map* map = Map(true, true);
-			if (map != nullptr and mapTextureRects.length() > 0 and replyMapTextureRects.length() > 0)
+			// *
+			// We manage actual map texture rects that need syncronization with server as the server has a newer version
+			// *
 			{
-				size_t size = 0;
-
-				size_t mapTextureRectsCursor = 1;	// bypassing first byte '0'
-				size_t numMapTextureRects = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
-				mapTextureRectsCursor += size;
-
-				size_t replyMapTextureRectsCursor = 1;	// bypassing first byte '0'
-				size_t numMapTextureRectsReplied = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyMapTextureRects.c_str() + replyMapTextureRectsCursor, size);
-				replyMapTextureRectsCursor += size;
-
-				for (int idx = 0; idx < numMapTextureRectsReplied; idx++)
+				GDN_TheWorld_Map* map = Map(true, true);
+				if (map != nullptr and mapTextureRects.length() > 0 and replyMapTextureRects.length() > 0)
 				{
-					size_t mapTextureRectPosSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
+					size_t size = 0;
+
+					size_t mapTextureRectsCursor = 1;	// bypassing first byte '0'
+					size_t numMapTextureRects = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
 					mapTextureRectsCursor += size;
 
-					TheWorld_Utils::MemoryBuffer tmpBuffer((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, mapTextureRectPosSize);
-					mapTextureRectsCursor += mapTextureRectPosSize;
-
-					TheWorld_Utils::MapTextureRectPos pos;
-					pos.deserialize(tmpBuffer);
-
-					size_t fileTimeSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
-					mapTextureRectsCursor += size;
-
-					std::string fileTime(mapTextureRects.c_str() + mapTextureRectsCursor, fileTimeSize);
-					mapTextureRectsCursor += fileTimeSize;
-
-					bool refreshRequired = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyMapTextureRects.c_str() + replyMapTextureRectsCursor, size);
+					size_t replyMapTextureRectsCursor = 1;	// bypassing first byte '0'
+					size_t numMapTextureRectsReplied = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)replyMapTextureRects.c_str() + replyMapTextureRectsCursor, size);
 					replyMapTextureRectsCursor += size;
 
-					if (refreshRequired)
+					for (int idx = 0; idx < numMapTextureRectsReplied; idx++)
 					{
-						map->addMapTextureRectRefreshScheduled(pos);
-						
-						//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
-						//bool success = map->destroyTextureRect(pos);
-						//success = map->eraseCachedTexture(pos);
-						//success = map->eraseMapTextureRect(pos);
+						size_t mapTextureRectPosSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
+						mapTextureRectsCursor += size;
+
+						TheWorld_Utils::MemoryBuffer tmpBuffer((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, mapTextureRectPosSize);
+						mapTextureRectsCursor += mapTextureRectPosSize;
+
+						TheWorld_Utils::MapTextureRectPos pos;
+						pos.deserialize(tmpBuffer);
+
+						size_t fileTimeSize = TheWorld_Utils::deserializeFromByteStream<size_t>((BYTE*)mapTextureRects.c_str() + mapTextureRectsCursor, size);
+						mapTextureRectsCursor += size;
+
+						std::string fileTime(mapTextureRects.c_str() + mapTextureRectsCursor, fileTimeSize);
+						mapTextureRectsCursor += fileTimeSize;
+
+						bool refreshRequired = TheWorld_Utils::deserializeFromByteStream<bool>((BYTE*)replyMapTextureRects.c_str() + replyMapTextureRectsCursor, size);
+						replyMapTextureRectsCursor += size;
+
+						if (refreshRequired)
+						{
+							map->addMapTextureRectRefreshScheduled(pos);
+
+							//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+							//bool success = map->destroyTextureRect(pos);
+							//success = map->eraseCachedTexture(pos);
+							//success = map->eraseMapTextureRect(pos);
+						}
 					}
 				}
 			}
 
-			if (clientQuadrants.length() > 0)
-				m_quadrantSyncInProgress = false;
-
+			// *
+			// We manage server procedural generation status to show it in the edit mode UI
+			// *
 			{
 				GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
 				if (replyProceGenStatus.length() > 0)
@@ -6772,6 +6796,9 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 				}
 			}
 
+			// *
+			// We manage extra world quadrants that need syncronization with server as the server has a newer version (this quadrants are modified after inital server load)
+			// *
 			{
 				//size_t l = replyExtraQuadrants.size();	// DEBUG
 				if (replyExtraQuadrants.length() > 0 && isEditMode())
@@ -6796,34 +6823,36 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 						
 						if (m_worldQuadrantsMap.contains(pos))
 						{
+							// Quadrants needing client work but despite being in world quads map they are up to date (itherwise they would be in replyClientQuadrants list): we force mapModderWork (QuadTree::process_mapModder) /*we need to refresh them*/
 							QuadTree* quadTree = m_worldQuadrantsMap[pos].get();
 							if (quadTree->isValid() && quadTree->getQuadrant()->getPos().isInitialized() && quadTree->getQuadrant()->mapModderWorkDone())
 							{
+								//pos.trackQuadrantForDebug("",  "Requesting refresh for quadrant up to date as client work is needed");
 								quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
-								{	// DEBUG
-									//"TRACKING 
-									//if (quadTree->getQuadrant()->getTerrainEdit()->terrainType == TheWorld_Utils::TerrainEdit::TerrainType::empty)
-									//	if (quadTree->getQuadrant()->getTerrainEdit()->heightsNeedRegen)
-									//		quadTree->getQuadrant()->getTerrainEdit()->heightsNeedRegen = true;
-									//	else
-									//		quadTree->getQuadrant()->getTerrainEdit()->heightsNeedRegen = false;
-								}	// DEBUG
+								PLOG_VERBOSE << "Requested refresh for quadrant in extra quads map and world quads map " << pos.getIdStr();
+								//pos.trackQuadrantForDebug("", "Requested map modder work for quadrant up to date");
+								//quadTree->getQuadrant()->mapModderWorkDone(false);
+								//PLOG_VERBOSE << "Requested map modder work for quadrant up to date " << pos.getIdStr();
 							}
 						}
 						else
 						{
+							// Quadrants needing client work but not being in world quads map: we need to create a new copy of them in extra quads map to initialize them let the client work begin (QuadTree::process_mapModder)
 							if (!m_extraQuadsMap.contains(pos) && (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
 							{
-								//if (pos.getIndexPosX() == 93 && pos.getIndexPosZ() == 99)
-								//	PLOG_DEBUG << "Quadrant added to m_extraQuadsMap";
-								m_extraQuadsMap[pos] = make_unique<QuadTree>(this, pos);
+								//pos.trackQuadrantForDebug("", "Adding newely created quadrant to extra quads map and requesting delayed init");
+								m_extraQuadsMap[pos] = make_unique<QuadTree>(this, pos);	// Quadrant is uninitialized now
 								float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
-								m_extraQuadsMap[pos]->requestInitDelayed(x, y, z, yaw, pitch, roll, false, 0.0f);
+								m_extraQuadsMap[pos]->requestDelayedInit(x, y, z, yaw, pitch, roll, false, 0.0f);	// To initialize in process procedure
+								PLOG_VERBOSE << "Requested delayed init for quadrant just added to extra quads map " << pos.getIdStr();
 							}
 						}
 					}
 				}
 			}
+
+			if (clientQuadrants.length() > 0)
+				m_quadrantSyncInProgress = false;
 		}
 		else
 		{
@@ -9089,25 +9118,6 @@ void GDN_TheWorld_Viewer::_process(double _delta)
 
 		if (m_rayFromCameraDrawer != nullptr)
 			m_rayFromCameraDrawer->set_camera(activeWorldCamera, this);
-
-		//// DEBUG
-		//{
-		//	godot::Camera3D::ProjectionType type = activeWorldCamera->get_projection();
-		//	int i = activeWorldCamera->get_cull_mask();
-		//	bool b = activeWorldCamera->is_current();
-		//	godot::Camera3D::DopplerTracking d = activeWorldCamera->get_doppler_tracking();
-		//	double far1 = activeWorldCamera->get_far();
-		//	double fov = activeWorldCamera->get_fov();
-		//	godot::Vector2 frustumOffset = activeWorldCamera->get_frustum_offset();
-		//	double hOffset = activeWorldCamera->get_h_offset();
-		//	double vOffset = activeWorldCamera->get_v_offset();
-		//	double near1 = activeWorldCamera->get_near();
-		//	double size1 = activeWorldCamera->get_size();
-		//	godot::Camera3D::KeepAspect k = activeWorldCamera->get_keep_aspect_mode();
-		//	type = (godot::Camera3D::ProjectionType)0;
-		//}
-		//// DEBUG
-
 		{
 			TimerMcs clock;
 			clock.tick();
@@ -9820,11 +9830,22 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 
 	toErase.clear();
 	for (auto& item : m_extraQuadsMap)
-		if (item.second->getQuadrant()->mapModderWorkDone())
+		if (/*item.second->statusInitialized() and*/ item.second->getQuadrant()->mapModderWorkDone())
 			toErase.push_back(item.first);
 	for (auto& pos : toErase)
 	{
+		//pos.trackQuadrantForDebug("", "Erasing quadrant from extra quads map");
+
+		enum class QuadrantStatus status = QuadrantStatus::notSet;
+		IF_PLOG(plog::verbose)
+		{
+			if (m_extraQuadsMap.contains(pos))
+			{
+				status = m_extraQuadsMap[pos]->status();
+			}
+		}
 		m_extraQuadsMap.erase(pos);
+		PLOG_VERBOSE << "Erased quadrant from extra quads map " << pos.getIdStr() << " - Status=" << QuadTree::statusToString(status);
 	}
 }
 
@@ -10797,12 +10818,14 @@ bool GDN_TheWorld_Viewer::initNewQuadsAtPriority(size_t numQuadrantsFromCameraQu
 					if (quadTree->statusUninitialized())
 					{
 						quadTree->init(x, y, z, yaw, pitch, roll, false, 0.0f);
-						//Globals()->debugPrint((std::string("Initializing quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " " + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+						//Globals()->debugPrint((std::string("Initializing quadrant: sending data for quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+						PLOG_VERBOSE << "Initializing quadrant: sending data for quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId());
 					}
 					else	// quadTree->statusRefreshTerrainDataNeeded()
 					{
 						quadTree->refreshTerrainData(x, y, z, yaw, pitch, roll, false, 0.0f);
-						Globals()->debugPrint((std::string("Refreshing quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " " + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+						//Globals()->debugPrint((std::string("Refreshing quadrant: sending data for quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+						PLOG_VERBOSE << "Refreshing quadrant: sending data for quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId());
 					}
 
 					numInitialized++;
@@ -15628,6 +15651,37 @@ void GDN_TheWorld_Viewer::streamer(void)
 					//if (editorUploadToServerInProgress)			// DEBUG
 					//	editorUploadToServerInProgress = true;	// DEBUG
 					
+					// *
+					// The client sends the list of quadrants and map texture rects it has and the server reply with the list of quadrants and map texture rects that need to be refreshed on the client side because they are different
+					// from the server ones (for example because they have been modified after last synchronization)
+					// *
+					// - MapManagerSync sends the list of the quadrants and the map texture rects (only in map mode) currently owned by the client
+					// - The server (MapManager::sync) checks if the client quadrants and map texture rects are up to date or not compared to the server ones and send back the list of quadrants and map texture rects that need to be
+					//   refreshed on the client side because they are different from the server ones (for example because they have been modified after last synchronization). The server answer with 
+					//   - replyClientQuadrants: the quadrants currently owned by the client that need refresh (because they are newer on server and/or becasue they need client work to create splatmap/globalmap)
+					//   - replyExtraQuadrants: the quadrants currently not owned by the client that need client work to create splatmap/globalmap
+					//   - replyMapTextureRects: the map texture rects that need refresh
+					//   - replyProceGenStatus: a strucutr containing the status of the procedural generation for the world
+					// - The client (GDN_TheWorld_Viewer::replyFromServer, method == THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC) receive the above structures and:
+					//   - for the quadrants in replyClientQuadrants that need refresh or for the quadrants in replyExtraQuadrants owned by the client (they are contained in m_worldQuadrantsMap but don't need a refresh):
+					//     - set quadrant status to "need refresh" for the quadrants in m_worldQuadrantsMap (quadrants currently owned by the client) ==> quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded)
+					//     - in the process procedure (GDN_TheWorld_Viewer::process_initNewQuads \ GDN_TheWorld_Viewer::initNewQuadsAtPriority) refresh is scheduled to server for the quadrant in status QuadrantStatus::refreshTerrainDataNeeded
+					//       using QuadTree::refreshTerrainData / Quadrant::populateGridVertices and status change to refreshTerrainDataInProgress ==> quadTree->setStatus(QuadrantStatus::refreshTerrainDataInProgress)
+					//     - The client (GDN_TheWorld_Viewer::replyFromServer, method == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER) receive quadrant server data and change status to initialized ==> quadTree->setStatus(QuadrantStatus::initialized)
+					//   - for the quadrants in replyExtraQuadrants not owned by the client (not contained in m_worldQuadrantsMap), they are the ones that need client work but are not owned by the client:
+					//     - add them to m_extraQuadsMap initializing new quadrant (status = QuadrantStatus::uninitialized) with the pos and the meshid received from the server for the quadrant and call 
+					//       m_extraQuadsMap[pos]->requestInitDelayed
+					//     - in the process procedure (GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution) for the quadrants in m_extraQuadsMap with status == QuadrantStatus::uninitialized, call
+					//       m_extraQuadsMap[pos]->initDelayed that will call for the quadrant buffer data to server changing the status to getTerrainDataInProgress ==> setStatus(QuadrantStatus::getTerrainDataInProgress)
+					//     - The client (GDN_TheWorld_Viewer::replyFromServer, method == THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTBUFFER) receive quadrant server data and change status to initialized ==> quadTree->setStatus(QuadrantStatus::initialized)
+					//   - for the rects in replyMapTextureRects that need refresh:
+					//     - call for the map texture rects that need refresh map->addMapTextureRectRefreshScheduled(pos);
+					//     - ???
+					//   - for the structure replyProceGenStatus manage the procedural generation status for the world passing its values to the editor
+					// - From there the process procedure (GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution \ getQuadrant()->process_mapModder) if splatmap / globalmap is to generate 
+					//   calls m_mapModder->initForSplatMap / m_mapModder->initForGlobalMap and so the map modder manage the creation of the splatmap / globalmap for the quadrants and when ready quadrantModderWorkDone perform the upload
+					//   of the modified buffer to the server updating the hash of the quadrant (the meshid) so that the new version of the quadrant data are refreshed with a new sync ...
+
 					std::string quadrants;
 					std::string mapTextureRects;
 					if (not m_quadrantSyncInProgress and not editorUploadToServerInProgress and (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
@@ -15635,6 +15689,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 						std::unique_lock<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing, std::try_to_lock);
 						if (lock.owns_lock())
 						{
+
 							m_quadrantSyncInProgress = true;
 
 							size_t allocationSlot = 100000;

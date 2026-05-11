@@ -60,11 +60,13 @@ constexpr auto THEWORLD_DEFAULT_SHOW_WIREFRAME =								false;
 constexpr auto THEWORLD_DEFAULT_FOG_DISTANCE_FACTOR =							1.0f;
 //constexpr auto THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO =				0;
 
-#define PLOG_DEFAULT_LEVEL plog::Severity::info
-#define PLOG_DEBUG_LEVEL plog::Severity::verbose
+constexpr auto PLOG_INFO_LEVEL = plog::Severity::info;
+constexpr auto PLOG_DEBUG_LEVEL = plog::Severity::debug;
+constexpr auto PLOG_VERBOSE_LEVEL = plog::Severity::verbose;
+constexpr auto PLOG_DEFAULT_LEVEL = PLOG_DEBUG_LEVEL;
+constexpr auto DEFAULT_DEBUG_ENABLED = true;
 
 constexpr auto VISUAL_SERVER_WIREFRAME_MODE = true;
-constexpr auto DEFAULT_DEBUG_ENABLED = true;
 
 constexpr auto THEWORLD_MAIN_NODE_NAME =						"GDN_TW_Main";
 constexpr auto THEWORLD_GLOBALS_NODE_NAME =						"GDN_TW_Globals";
@@ -364,7 +366,7 @@ namespace godot
 
 		void debugPrint(String message, bool godotPrint = true)
 		{
-			if (m_isDebugEnabled)
+			if (isDebugEnabled())
 			{
 				String editor_string = "";
 				if (IS_EDITOR_HINT())
@@ -564,9 +566,11 @@ namespace godot
 
 		bool isDebugEnabled(void) const
 		{ 
-			return m_isDebugEnabled;
+			//return m_isDebugEnabled;
+			return m_debugLogSeveverity > plog::Severity::info;
 		}
-		void setDebugEnabled(bool b = true);
+		//void setDebugEnabled(bool b = true);
+		void setDebugLevel(int sev);
 
 		size_t resolutionForOptimizationLevel(size_t optimizationLevel);
 		size_t getMaxTextureOptimizationLevel(void);
@@ -896,7 +900,8 @@ namespace godot
 		bool m_ready;
 		enum class TheWorldStatus m_status;
 		TimerMs m_statusChangeClock;
-		bool m_isDebugEnabled;
+		//bool m_isDebugEnabled = DEFAULT_DEBUG_ENABLED;
+		plog::Severity m_debugLogSeveverity = PLOG_DEFAULT_LEVEL;
 		int m_chunkSizeShift;
 		int m_heightmapResolutionShift;
 		int m_numVerticesPerChuckSide;

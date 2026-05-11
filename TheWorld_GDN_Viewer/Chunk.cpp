@@ -38,10 +38,6 @@ void Chunk::SeaInfoChangedChunkAction::postExec(QuadTree* quadTree)
 
 void Chunk::TerrainHeightsChangedChunkAction::preExec(QuadTree* quadTree)
 {
-	//if (quadTree->getQuadrant()->getPos().getIndexPosX() == 2 && quadTree->getQuadrant()->getPos().getIndexPosZ() == 3)
-	//{
-	//	PLOG_DEBUG << "TRACKING Chunk::TerrainHeightsChangedChunkAction::preExec " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << quadTree->getQuadrant()->getPos().getIndexPosZ();
-	//}
 	ChunkAction::preExec(quadTree);
 	quadTree->canContainSea(QUADRANT_SEA_INFO_NOTSET);
 	quadTree->refreshSeaInfo();

@@ -653,7 +653,6 @@ enum class QuadrantStatus QuadTree::status(void)
 		if (elapsedFromStatusChange > (THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE))
 		{
 			m_status = QuadrantStatus::uninitialized;
-			//PLOG_DEBUG << "TRACKING status (set to QuadrantStatus::uninitialized for timeout) " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << getQuadrant()->getPos().getIndexPosX() << "Z=" << getQuadrant()->getPos().getIndexPosZ();
 		}
 	}
 	return m_status;
@@ -672,10 +671,10 @@ void QuadTree::setPrevStatus(void)
 
 void QuadTree::setStatus(enum class QuadrantStatus status)
 {
-	//if (m_worldQuadrant != nullptr && m_worldQuadrant->getPos().isInitialized() && m_worldQuadrant->getPos().getIndexPosX() == -2 && m_worldQuadrant->getPos().getIndexPosZ() == 3)
-	//{
-	//	PLOG_DEBUG << "TRACKING setStatus to " << statusToString(status) << " " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << getQuadrant()->getPos().getIndexPosX() << "Z=" << getQuadrant()->getPos().getIndexPosZ();
-	//}
+	if (m_worldQuadrant != nullptr)
+	{
+		//m_worldQuadrant->getPos().trackQuadrantForDebug("", std::string("Set world quadrant status to ") + statusToString(status));
+	}
 	
 	m_lastStatusChange = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
 
@@ -732,11 +731,6 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 
 	if (m_status == QuadrantStatus::initialized && canContainSea() == QUADRANT_SEA_INFO_NOTSET)
 	{
-		//if (this->getQuadrant()->getPos().getIndexPosX() == 2 && this->getQuadrant()->getPos().getIndexPosZ() == 3)
-		//{
-		//	PLOG_DEBUG << "TRACKING Chunk::TerrainHeightsChangedChunkAction::preExec " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << this->getQuadrant()->getPos().getIndexPosX() << "Z=" << this->getQuadrant()->getPos().getIndexPosZ();
-		//}
-
 		refreshSeaInfo();
 	}
 
@@ -5411,27 +5405,13 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 	if (m_quadTree->getQuadrant()->empty())
 	{
 		mapModderWorkDone(true);
-		//{	// DEBUG
-		//	if (m_quadTree->getQuadrant()->getPos().getIndexPosX() == -2 && m_quadTree->getQuadrant()->getPos().getIndexPosZ() == 3)
-		//	{
-		//		PLOG_DEBUG << "TRACKING process_mapModder exit empty " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << m_quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << m_quadTree->getQuadrant()->getPos().getIndexPosZ();
-		//	}
-		//	TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
-		//	if (terrainEdit->heightsNeedRegen)
-		//		terrainEdit->heightsNeedRegen = true;
-		//	else
-		//		terrainEdit->heightsNeedRegen = false;
-		//}	// DEBUG
 		return;
 	}
 	
 	if (!m_mapModder->ready())
 		return;
 
-	//if (m_quadTree->getQuadrant()->getPos().getIndexPosX() == -2 && m_quadTree->getQuadrant()->getPos().getIndexPosZ() == 3)
-	//{
-	//	PLOG_DEBUG << "TRACKING process_mapModder " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << m_quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << m_quadTree->getQuadrant()->getPos().getIndexPosZ();
-	//}
+	//m_quadTree->getQuadrant()->getPos().trackQuadrantForDebug("", "Quadrant process_mapModder");
 
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
 	if (editModeUIControl == nullptr or not editModeUIControl->initialized() or editModeUIControl->terrainDataLocked())
@@ -5508,11 +5488,6 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 			}
 		}
 	}
-
-	//if (m_quadTree->getQuadrant()->getPos().getIndexPosX() == -2 && m_quadTree->getQuadrant()->getPos().getIndexPosZ() == 3)
-	//{
-	//	PLOG_DEBUG << "TRACKING process_mapModder exit " << THEWORLD_CLIENTSERVER_METHOD_MAPM_GETQUADRANTVERTICES << " X=" << m_quadTree->getQuadrant()->getPos().getIndexPosX() << "Z=" << m_quadTree->getQuadrant()->getPos().getIndexPosZ();
-	//}
 
 	mapModderWorkDone(true);
 

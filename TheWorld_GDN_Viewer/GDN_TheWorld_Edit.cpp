@@ -4674,7 +4674,8 @@ void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadran
 			TheWorld_Utils::GuardProfiler profiler(std::string("Blend execution 1.1.1 ") + __FUNCTION__, "Single QuadTree blendQuadrant");
 
 			//lastPhase = false;	// DEBUG
-			bool updated = lockHolder->quadrant()->getInternalMeshCacheBuffer().blendQuadrant(lockHolder->quadrant()->getPos().getNumVerticesPerSize(), lockHolder->quadrant()->getPos().getGridStepInWU(), lastPhase,
+			bool renewMeshIdOnUpdate = false;	// MeshId Will be renewed in manageUpdatedHeightsAfterQuadrantBlend function
+			bool updated = lockHolder->quadrant()->getInternalMeshCacheBuffer().blendQuadrant(lockHolder->quadrant()->getPos().getNumVerticesPerSize(), lockHolder->quadrant()->getPos().getGridStepInWU(), lastPhase, renewMeshIdOnUpdate,
 				quadrantData,
 				northQuadrantData,
 				southQuadrantData,
@@ -5078,7 +5079,8 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.3 ") + __FUNCTION__, "Single QuadTree blendQuadrant");
 
 					//lastPhase = false;	// DEBUG
-					bool updated = quadTree->getQuadrant()->getInternalMeshCacheBuffer().blendQuadrant(pos.getNumVerticesPerSize(), pos.getGridStepInWU(), lastPhase,
+					bool renewMeshIdOnUpdate = false;	// MeshId Will be renewed in manageUpdatedHeightsAfterQuadrantBlend function
+					bool updated = quadTree->getQuadrant()->getInternalMeshCacheBuffer().blendQuadrant(pos.getNumVerticesPerSize(), pos.getGridStepInWU(), lastPhase, renewMeshIdOnUpdate,
 						quadrantData,
 						northQuadrantData,
 						southQuadrantData,

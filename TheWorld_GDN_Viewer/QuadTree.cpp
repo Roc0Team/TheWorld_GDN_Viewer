@@ -152,12 +152,13 @@ void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std:
 	TheWorld_Utils::MemoryBuffer splatmapBuffer;
 	TheWorld_Utils::MemoryBuffer colormapBuffer;
 	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+	TheWorld_Utils::NamedDataBuffer namedDataBuffer;
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.1 ") + __FUNCTION__, "cache.refreshMapsFromBuffer");
 
 		//TheWorld_Utils::MeshCacheBuffer cache;
-		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, updateCache);
+		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, namedDataBuffer, updateCache);
 	}
 
 	if (outMeshIdFromBuffer.size() > 0)
@@ -175,7 +176,7 @@ void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std:
 	{
 		// Buffer from server was empty
 		TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.1 ") + __FUNCTION__, "cache.refreshMapsFromDisk");
-		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer);
+		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, namedDataBuffer);
 	}
 
 	setMeshId(meshIdFromServer);
@@ -229,13 +230,13 @@ void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std:
 		else
 		{
 			size_t offset = 0;
-			int32_t resolution = globalmapBuffer.deserialize<int32_t>(offset);
-			int32_t format = globalmapBuffer.deserialize<int32_t>(offset);
-			int64_t dataSize = globalmapBuffer.deserialize<int64_t>(offset);
+			int32_t resolution = globalmapBuffer.deserializeFromBuffer<int32_t>(offset);
+			int32_t format = globalmapBuffer.deserializeFromBuffer<int32_t>(offset);
+			int64_t dataSize = globalmapBuffer.deserializeFromBuffer<int64_t>(offset);
 			godot::PackedByteArray data;
 			data.resize(dataSize);
 			{
-				globalmapBuffer.deserialize((BYTE*)data.ptrw(), dataSize, offset);
+				globalmapBuffer.deserializeFromBuffer((BYTE*)data.ptrw(), dataSize, offset);
 			}
 			resizedImage = godot::Image::create_from_data(resolution, resolution, false, (godot::Image::Format)format, data);
 			if (resolution != getImageResolution())
@@ -5129,6 +5130,7 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 		//	m_colormapBuffer.clear(__FUNCTION__);
 		//if (m_globalmapBuffer.size() > 0)
 		//	m_globalmapBuffer.clear(__FUNCTION__);
+		//m_namedDataBuffer.free();
 
 		//// Needed for Shader: at init time or when optimization level changes from level > 0 to level == 0 because for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant)
 		//getShaderTerrainData()->getHeightmapImageRef().unref();
@@ -5151,6 +5153,7 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 			m_colormapBuffer.clear(__FUNCTION__);
 		if (m_globalmapBuffer.size() > 0)
 			m_globalmapBuffer.clear(__FUNCTION__);
+		m_namedDataBuffer.free();
 
 		// Needed for Shader: created at init time or when optimization level changes from level > 0 to level == 0 but destroyd at end of _process
 		//if (optimizationLevel() > 0)	//   (for level > 0 we use resized imaages which are cached for all the lifecycle of the quadrant and hires images can be freed)	// occhio!!!
@@ -5584,6 +5587,7 @@ void Quadrant::getQuadrantBufferForCache(TheWorld_Utils::MemoryBuffer& buffer)
 	cacheQuadrantData.splatmapBuffer = &getSplatmapBuffer(false);
 	cacheQuadrantData.colormapBuffer = &getColormapBuffer(false);
 	cacheQuadrantData.globalmapBuffer = &getGlobalmapBuffer(false);
+	cacheQuadrantData.namedDataBuffer = &getNamedDataBuffer(false);
 	TheWorld_Utils::QuadrantPos pos = getPos();
 	m_cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
 }
@@ -5629,6 +5633,7 @@ bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, st
 		cacheQuadrantData.splatmapBuffer = &getSplatmapBuffer(true);
 		cacheQuadrantData.colormapBuffer = &getColormapBuffer(true);
 		cacheQuadrantData.globalmapBuffer = &getGlobalmapBuffer(true);
+		cacheQuadrantData.namedDataBuffer = &getNamedDataBuffer(false);
 		TheWorld_Utils::QuadrantPos pos = getPos();
 		m_cache.setBufferFromCacheQuadrantData(pos.getNumVerticesPerSize(), cacheQuadrantData, buffer);
 		m_cache.writeBufferToDiskCache(buffer, writtenMeshId);
@@ -5775,7 +5780,7 @@ void Quadrant::loadTerrainDataFromCache(void)
 	TheWorld_Utils::MemoryBuffer terrainEditValues;
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.1 ") + __FUNCTION__, "m_cache.refreshMapsFromDisk");
-		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValues, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
+		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValues, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer);
 		//if (terrainEditValues.size() > 0)
 		//	getTerrainEdit()->deserialize(terrainEditValues);
 		//if (empty)
@@ -6393,8 +6398,8 @@ godot::Vector3 Quadrant::getNormal(size_t index, bool& ok)
 		float gridStepInWU = m_quadrantPos.getGridStepInWU();
 		TheWorld_Utils::MemoryBuffer& heightmap = getFloat32HeightsBuffer();
 
-		float normalX, normalY, normalZ;
-		TheWorld_Utils::MeshCacheBuffer::calcNormal(heightmap, numVerticesPerSize, gridStepInWU, index, normalX, normalY, normalZ);
+		float normalX, normalY, normalZ, h;
+		TheWorld_Utils::MeshCacheBuffer::calcNormal(heightmap, index, numVerticesPerSize, gridStepInWU, normalX, normalY, normalZ, h);
 
 		return godot::Vector3(normalX, normalY, normalZ);
 	}
@@ -6614,7 +6619,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.1 ") + __FUNCTION__, "m_cache.refreshMapsFromBuffer");
 
-		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, updateCache);
+		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, updateCache);
 		if (terrainEditValuesBuffer.size() > 0)
 		{
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);
@@ -6641,7 +6646,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		// Buffer from server was empty
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.2 ") + __FUNCTION__, "m_cache.readMapsFromMeshCache");
 
-		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer);
+		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer);
 		if (terrainEditValuesBuffer.size() > 0)
 		{
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);

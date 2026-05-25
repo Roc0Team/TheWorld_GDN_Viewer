@@ -1,3 +1,4 @@
+* Predisposizione per altri dati nel file che contiene i dati del quadrante
 * Ottimizzazione dello shader terrain/water (riducendo if)
 * Consentire nell'editor di Godot la map-view e la generazione dei terreni
 * Implementare il detiling come in Terrain3D e correggere il calcolo dell'UV

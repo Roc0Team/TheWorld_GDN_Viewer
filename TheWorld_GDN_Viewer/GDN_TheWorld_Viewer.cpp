@@ -3919,6 +3919,7 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 				//v = m_quadTree->getQuadrant()->northwestQuadrantTextureLayersFromTerrainData();
 				//material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, v);
 				material->set_shader_parameter(SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE, 0.0f);		// Disable texture override for global map generation
+				// SHADER_PARAM_NORTH_BORDER_SPLATMAP SHADER_PARAM_WEST_BORDER_SPLATMAP SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL (godot::Color)
 			}
 
 			material->set_shader_parameter(SHADER_PARAM_OVERRIDE_CAM_ALTITUDE, -1);		// we force, as override for this quadrant, camera altitude from terrain to -1 so the shader will not consider the real camera altitude which is expressed as a global shader param valid for every quadrant
@@ -4728,10 +4729,10 @@ void GDN_TheWorld_Viewer::quadrantModderWorkDone(int32_t map_type, float x, floa
 		//quadrantMapImage->save_png(outFileName.c_str());										// DEBUG
 		//globalmapBuffer.reserve(quadrantMapImageData.size() + sizeof(int32_t) + sizeof(int32_t) + sizeof(int64_t));
 		size_t offset = 0;
-		globalmapBuffer.serialize<int32_t>(quadrantMapImage->get_width(), offset);
-		globalmapBuffer.serialize<int32_t>(quadrantMapImage->get_format(), offset);
-		globalmapBuffer.serialize<int64_t>(quadrantMapImageData.size(), offset);
-		globalmapBuffer.serialize((BYTE*)quadrantMapImageData.ptr(), quadrantMapImageData.size(), offset);
+		globalmapBuffer.serializeToBufferAndTruncate<int32_t>(quadrantMapImage->get_width(), offset);
+		globalmapBuffer.serializeToBufferAndTruncate<int32_t>(quadrantMapImage->get_format(), offset);
+		globalmapBuffer.serializeToBufferAndTruncate<int64_t>(quadrantMapImageData.size(), offset);
+		globalmapBuffer.serializeToBufferAndTruncate((BYTE*)quadrantMapImageData.ptr(), quadrantMapImageData.size(), offset);
 
 		mapModder->deinitRequired(true);
 
@@ -6827,12 +6828,12 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							QuadTree* quadTree = m_worldQuadrantsMap[pos].get();
 							if (quadTree->isValid() && quadTree->getQuadrant()->getPos().isInitialized() && quadTree->getQuadrant()->mapModderWorkDone())
 							{
-								pos.trackQuadrantForDebug("",  "Requesting refresh for quadrant up to date as client work is needed");
-								quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
-								PLOG_VERBOSE << "Requested refresh for quadrant in extra quads map and world quads map " << pos.getIdStr();
-								//pos.trackQuadrantForDebug("", "Requested map modder work for quadrant up to date");
-								//quadTree->getQuadrant()->mapModderWorkDone(false);
-								//PLOG_VERBOSE << "Requested map modder work for quadrant up to date " << pos.getIdStr();
+								//pos.trackQuadrantForDebug("",  "Requesting refresh for quadrant up to date as client work is needed");
+								//quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+								//PLOG_VERBOSE << "Requested refresh for quadrant in extra quads map and world quads map " << pos.getIdStr();
+								pos.trackQuadrantForDebug("", "Requested map modder work for quadrant up to date");	// XXXXX
+								quadTree->getQuadrant()->mapModderWorkDone(false);
+								PLOG_VERBOSE << "Requested map modder work for quadrant up to date " << pos.getIdStr();
 							}
 						}
 						else
@@ -9830,7 +9831,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 
 	toErase.clear();
 	for (auto& item : m_extraQuadsMap)
-		if (/*item.second->statusInitialized() and*/ item.second->getQuadrant()->mapModderWorkDone())
+		if (item.second->statusInitialized() and item.second->getQuadrant()->mapModderWorkDone())	// XXXXX
 			toErase.push_back(item.first);
 	for (auto& pos : toErase)
 	{
@@ -15757,7 +15758,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 									*buffer.ptr() = '0';
 									cursor = 1;
 
-									buffer.serialize<size_t>(rectsPos.size(), cursor);
+									buffer.serializeToBufferAndTruncate<size_t>(rectsPos.size(), cursor);
 									//TheWorld_Utils::serializeToByteStream<size_t>(rectsPos.size(), buffer.ptr() + cursor, size);
 									//cursor += size;
 									//buffer.adjustSize(cursor);
@@ -15777,13 +15778,11 @@ void GDN_TheWorld_Viewer::streamer(void)
 										assert(textureRectPos.initialized());
 										TheWorld_Utils::MemoryBuffer textureRectPosBuffer;
 										textureRectPos.serialize(textureRectPosBuffer);
-										buffer.serialize<size_t>(textureRectPosBuffer.size(), cursor);
-										buffer.serialize(textureRectPosBuffer, cursor);
+										buffer.serializeToBufferAndTruncate(textureRectPosBuffer, cursor);
 
 										// File Time Str
 										std::string fileTime = mapTextureRect->fileTimeStr();
-										buffer.serialize<size_t>(fileTime.size(), cursor);
-										buffer.serialize(fileTime, cursor);
+										buffer.serializeToBufferAndTruncate(fileTime, cursor);
 									}
 									
 									//buffer.adjustSize(cursor);

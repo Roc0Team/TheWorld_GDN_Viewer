@@ -424,6 +424,9 @@ namespace godot
 			return m_namedDataBuffer;
 		}
 
+		godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
+		godot::Color getSplatmapBorderRowTexel(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
+
 		//void fillQuadrantData(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData)
 		//{
 		//	quadrantData.meshId = getMeshCacheBuffer().getMeshId();
@@ -676,9 +679,9 @@ namespace godot
 			m_terrainDataJustLoaded = b;
 		}
 		
-		//godot::Vector4 northQuadrantTextureLayersFromTerrainData(void);
-		//godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
-		//godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
+		godot::Vector4 northQuadrantTextureLayersFromTerrainData(void);
+		godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
+		godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
 		void getHeightmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& heightmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		void getHeightmapCorner(std::chrono::system_clock::time_point& lastBorderRefreshTs, uint16_t& heightmapCorner, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		//godot::Ref<godot::ImageTexture> getHeightmapBorderQuadrantRowsTexture(int32_t& numValidBorders);

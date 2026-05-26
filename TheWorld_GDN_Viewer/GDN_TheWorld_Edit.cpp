@@ -547,7 +547,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		label = createControl<godot::Label>(hBoxContainer, "", "To upload");
 		m_innerData->m_numQuadrantToUploadLabel = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantToUploadLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
-		label = createControl<godot::Label>(hBoxContainer, "", "To blend");
+		label = createControl<godot::Label>(hBoxContainer, "", "To sew");
 		m_innerData->m_numQuadrantToBlendLabel = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantToBlendLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
 		label = createControl<godot::Label>(hBoxContainer, "", "Locked");
@@ -877,7 +877,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_checkBlend->set_toggle_mode(true);
 		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_checkBlend, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 		m_innerData->m_autoBlendCheckBox = createControl<godot::CheckBox>(hBoxContainer);
-		m_innerData->m_autoBlendCheckBox->set_text("Auto Blend (Save/Upload)");
+		m_innerData->m_autoBlendCheckBox->set_text("Auto Sew (Save/Upload)");
 		m_innerData->m_autoBlendCheckBox->set_toggle_mode(true);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
@@ -4818,7 +4818,7 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 	{
 		m_actionClock.tock();
 		m_actionInProgress = false;
-		setMessage(godot::String("No quadrant to blend!"), true);
+		setMessage(godot::String("No quadrant to sew!"), true);
 		terrainDataLocked(false);
 		return;
 	}

@@ -5921,65 +5921,65 @@ void Quadrant::updateTerrainEditTextureLayers(void)
 	}
 }
 
-//godot::Vector4 Quadrant::northQuadrantTextureLayersFromTerrainData(void)
-//{
-//	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-//	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
-//	terrainData->getNorthGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
-//
-//	TheWorld_Utils::QuadrantPos northQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-//	std::string northQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(northQuadrantPos);
-//
-//	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-//	std::string layoutForFoundTexture;
-//	godot::Vector4 v(-1, -1, -1, -1);
-//	v.x = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
-//	v.y = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
-//	v.z = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
-//	v.w = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
-//
-//	return v;
-//}
-//
-//godot::Vector4 Quadrant::westQuadrantTextureLayersFromTerrainData(void)
-//{
-//	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-//	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
-//	terrainData->getWestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
-//
-//	TheWorld_Utils::QuadrantPos westQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-//	std::string westQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(westQuadrantPos);
-//
-//	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-//	std::string layoutForFoundTexture;
-//	godot::Vector4 v(-1, -1, -1, -1);
-//	v.x = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
-//	v.y = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
-//	v.z = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
-//	v.w = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
-//
-//	return v;
-//}
-//
-//godot::Vector4 Quadrant::northwestQuadrantTextureLayersFromTerrainData(void)
-//{
-//	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-//	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
-//	terrainData->getNorthwestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
-//
-//	TheWorld_Utils::QuadrantPos northwestQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-//	std::string northwestQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(northwestQuadrantPos);
-//
-//	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
-//	std::string layoutForFoundTexture;
-//	godot::Vector4 v(-1, -1, -1, -1);
-//	v.x = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
-//	v.y = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
-//	v.z = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
-//	v.w = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
-//
-//	return v;
-//}
+godot::Vector4 Quadrant::northQuadrantTextureLayersFromTerrainData(void)
+{
+	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
+	terrainData->getNorthGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
+
+	TheWorld_Utils::QuadrantPos northQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+	std::string northQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(northQuadrantPos);
+
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+	std::string layoutForFoundTexture;
+	godot::Vector4 v(-1, -1, -1, -1);
+	v.x = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
+	v.y = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
+	v.z = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
+	v.w = (float)groundTextures.getTextureIdx(northQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
+
+	return v;
+}
+
+godot::Vector4 Quadrant::westQuadrantTextureLayersFromTerrainData(void)
+{
+	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
+	terrainData->getWestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
+
+	TheWorld_Utils::QuadrantPos westQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+	std::string westQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(westQuadrantPos);
+
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+	std::string layoutForFoundTexture;
+	godot::Vector4 v(-1, -1, -1, -1);
+	v.x = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
+	v.y = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
+	v.z = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
+	v.w = (float)groundTextures.getTextureIdx(westQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
+
+	return v;
+}
+
+godot::Vector4 Quadrant::northwestQuadrantTextureLayersFromTerrainData(void)
+{
+	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
+	terrainData->getNorthwestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
+
+	TheWorld_Utils::QuadrantPos northwestQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+	std::string northwestQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(northwestQuadrantPos);
+
+	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+	std::string layoutForFoundTexture;
+	godot::Vector4 v(-1, -1, -1, -1);
+	v.x = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, lowElevationTexName, layoutForFoundTexture);
+	v.y = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, highElevationTexName, layoutForFoundTexture);
+	v.z = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, dirtTexName, layoutForFoundTexture);
+	v.w = (float)groundTextures.getTextureIdx(northwestQuadrantTextureLayout, rocksTexName, layoutForFoundTexture);
+
+	return v;
+}
 
 godot::Vector2i Quadrant::quadrantPosInGrid(QuadrantTypeInGrid& type)
 {
@@ -6384,6 +6384,71 @@ bool Quadrant::checkWestSideBlendNeeded(QuadTree* westQuadrantTree)
 	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
 	TheWorld_Utils::TerrainEdit* westQuadrantTerrainData = westQuadrantTree->getQuadrant()->getTerrainEdit();
 	return not terrainData->westSideXMinus.almostEqual(westQuadrantTerrainData->eastSideXPlus);
+}
+
+godot::Ref<godot::Texture2D> Quadrant::getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir)
+{
+	TheWorld_Utils::NamedDataBuffer& namedDataBuffer = getNamedDataBuffer();
+
+	int32_t flags;
+	TheWorld_Utils::NamedDataBuffer::NamedDataBufferVariant quadrantSplatmapBorderRowVariant;
+	if (dir == TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus)
+	{
+		quadrantSplatmapBorderRowVariant = namedDataBuffer.getVariant(THEWORLD_QUADRANT_NAMEDATA_NORTHQUADSPLATMAPROW, flags);
+		if (TheWorld_Utils::NamedDataBuffer::emptyVariant(quadrantSplatmapBorderRowVariant))
+			return nullptr;
+	}
+	else if (dir == TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus)
+	{
+		quadrantSplatmapBorderRowVariant = namedDataBuffer.getVariant(THEWORLD_QUADRANT_NAMEDATA_WESTQUADSPLATMAPROW, flags);
+		if (TheWorld_Utils::NamedDataBuffer::emptyVariant(quadrantSplatmapBorderRowVariant))
+			return nullptr;
+	}
+	else
+		return nullptr;
+
+	TheWorld_Utils::MemoryBuffer quadrantSplatmapBorderRowBuffer = std::get<TheWorld_Utils::MemoryBuffer>(quadrantSplatmapBorderRowVariant);
+	
+	int numVerticesPerQuadrantSize = (int)getQuadTree()->Viewer()->Globals()->numVerticesPerQuadrantSize();
+
+	godot::Ref<godot::Texture2D> tex;
+
+	godot::PackedByteArray data;
+	size_t splatmapBufferSizeRowInBytes = (size_t)numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+	data.resize((int)splatmapBufferSizeRowInBytes);
+	my_assert(splatmapBufferSizeRowInBytes == quadrantSplatmapBorderRowBuffer.size());
+	{
+		memcpy((char*)data.ptrw(), quadrantSplatmapBorderRowBuffer.ptr(), splatmapBufferSizeRowInBytes);
+	}
+	Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, 1, false, godot::Image::Format::FORMAT_RGBA8, data);
+	tex = godot::ImageTexture::create_from_image(image);
+
+	return tex;
+}
+
+godot::Color Quadrant::getSplatmapBorderRowTexel(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir)
+{
+	godot::Color c(0.0, 0.0, 0.0, 0.0);
+
+	TheWorld_Utils::NamedDataBuffer& namedDataBuffer = getNamedDataBuffer();
+
+	int32_t flags;
+	TheWorld_Utils::NamedDataBuffer::NamedDataBufferVariant quadrantSplatmapCornerTexelVariant;
+	if (dir == TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus)
+	{
+		quadrantSplatmapCornerTexelVariant = namedDataBuffer.getVariant(THEWORLD_QUADRANT_NAMEDATA_NORTHWESTQUADSPLATMAPTEXEL, flags);
+		if (TheWorld_Utils::NamedDataBuffer::emptyVariant(quadrantSplatmapCornerTexelVariant))
+			return c;
+	}
+	else
+		return c;
+
+	TheWorld_Utils::MemoryBuffer quadrantSplatmapCornerTexelBuffer = std::get<TheWorld_Utils::MemoryBuffer>(quadrantSplatmapCornerTexelVariant);
+	my_assert(quadrantSplatmapCornerTexelBuffer.size() == sizeof(struct TheWorld_Utils::_RGBA));
+
+	struct TheWorld_Utils::_RGBA* rgba = (struct TheWorld_Utils::_RGBA*)quadrantSplatmapCornerTexelBuffer.ptr();
+	c = godot::Color(float(rgba->r) / 255, float(rgba->g) / 255, float(rgba->b) / 255, float(rgba->a) / 255);
+	return c;
 }
 
 godot::Vector3 Quadrant::getNormal(size_t index, bool& ok)

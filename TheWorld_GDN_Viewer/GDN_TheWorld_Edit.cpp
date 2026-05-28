@@ -33,6 +33,7 @@
 #include <godot_cpp/classes/sprite2d.hpp>
 #include <godot_cpp/classes/plane_mesh.hpp>
 #include <godot_cpp/classes/input.hpp>
+#include <godot_cpp/classes/theme.hpp>
 #pragma warning (pop)
 
 #include <string>
@@ -75,6 +76,7 @@ void GDN_TheWorld_Edit::_bind_methods()
 	ClassDB::bind_method(D_METHOD("void_signal_manager", "p_object", "p_signal", "p_class_name", "p_instance_id", "p_object_name", "p_custom1", "p_custom2", "p_custom3"), &GDN_TheWorld_Edit::voidSignalManager);
 	ClassDB::bind_method(D_METHOD("gui_input_event", "p_event, p_object", "p_signal", "p_class_name", "p_instance_id", "p_object_name", "p_custom1", "p_custom2", "p_custom3"), &GDN_TheWorld_Edit::guiInputEvent);
 	ClassDB::bind_method(D_METHOD("toggled_signal_manager", "p_button_pressed", "p_object", "p_signal", "p_class_name", "p_instance_id", "p_object_name", "p_custom1", "p_custom2", "p_custom3"), &GDN_TheWorld_Edit::toggledSignalManager);
+	ClassDB::bind_method(D_METHOD("test_hslider_value_changed", "p_value"), &GDN_TheWorld_Edit::testHSliderValueChanged);
 }
 
 GDN_TheWorld_Edit::GDN_TheWorld_Edit()
@@ -580,6 +582,19 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		//m_innerData->m_collisonLowResGridCheckBox->set_text("Coll. Low Res Grid");
 		//m_innerData->m_collisonLowResGridCheckBox->set_toggle_mode(true);
 		//e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_collisonLowResGridCheckBox, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
+		m_innerData->m_testHSlider = createControl<godot::HSlider>(hBoxContainer);
+		m_innerData->m_testHSlider->set_min(0);
+		m_innerData->m_testHSlider->set_max(1.0);
+		m_innerData->m_testHSlider->set_step(0.01);
+		float textureOverflowSize = globals->getTextureOverflowSize();
+		m_innerData->m_testHSlider->set_value(textureOverflowSize);
+		m_innerData->m_testHSlider->set_custom_minimum_size(godot::Vector2(200.0f, 16.0f));
+		//m_innerData->m_testHSlider->connect("value_changed", Callable(globals->getWorldMainNode(), "_set_shader_param_texture_overflow_size"));
+		m_innerData->m_testHSlider->connect("value_changed", Callable(this, "test_hslider_value_changed"));
+		m_innerData->m_testHSliderLabel = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_testHSliderLabel->set_text(std::format("{:.2f}", textureOverflowSize).c_str());
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		m_innerData->m_message = createControl<godot::Label>(hBoxContainer);
@@ -3429,6 +3444,12 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 //{
 //	return m_innerData->m_collisonLowResGridCheckBox->is_pressed();
 //}
+
+void GDN_TheWorld_Edit::testHSliderValueChanged(double d)
+{
+	Globals()->getWorldMainNode()->call("_set_shader_param_texture_overflow_size", d);
+	m_innerData->m_testHSliderLabel->set_text(std::format("{:.2f}", d).c_str());
+}
 
 void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
 {

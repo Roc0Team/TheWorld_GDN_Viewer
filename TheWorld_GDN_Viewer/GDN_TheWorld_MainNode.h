@@ -45,13 +45,13 @@ namespace godot
 		void _init(void);
 
 	private:
-		bool m_initialized;
-		bool m_quitting;
-		bool m_ready;
-		bool m_initInProgress;
+		bool m_initialized = false;
+		bool m_quitting = false;
+		bool m_ready = false;
+		bool m_initInProgress = false;
 
 		// Node cache
-		GDN_TheWorld_Globals* m_globals;
-		GDN_TheWorld_Viewer* m_viewer;
+		GDN_TheWorld_Globals* m_globals = nullptr;
+		GDN_TheWorld_Viewer* m_viewer = nullptr;
 	};
 }

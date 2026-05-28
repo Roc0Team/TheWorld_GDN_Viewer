@@ -878,6 +878,15 @@ namespace godot
 			loadingScreenExitOnFullWorldDeploy(b);
 		}
 		
+		godot::Node3D* getWorldMainNode(void) const
+		{
+			return m_pWorldMainNode;
+		}
+		void setWorldMainNode(godot::Node3D* pNode)
+		{
+			m_pWorldMainNode = pNode;
+		}
+
 		// DEBUG
 		//static size_t s_num;
 		//static size_t s_elapsed1;
@@ -896,6 +905,7 @@ namespace godot
 		static std::recursive_mutex s_internalMutex;
 
 		bool m_initialized;
+		godot::Node3D* m_pWorldMainNode = nullptr;
 		bool m_quitting;
 		bool m_ready;
 		enum class TheWorldStatus m_status;

@@ -3864,10 +3864,17 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			TheWorld_Utils::TerrainEdit* terrainEdit = m_quadTree->getQuadrant()->getTerrainEdit();
 
-			godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getRegularTerrainMaterial();
-			//godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getLookDevMaterial(ShaderTerrainData::LookDev::Splat);		// SHADER_PARAM_LOOKDEV_MAP
 			godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
-			material->set_shader(currentMaterial->get_shader());
+			//{
+			//	godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getRegularTerrainMaterial();
+			//	material->set_shader(currentMaterial->get_shader());
+			//}
+			{
+				String shaderPath = "res://addons/twviewer/test/terrain_globalmap.gdshader";
+				godot::Ref<godot::Shader> shader;
+				shader = godot::ResourceLoader::get_singleton()->load(shaderPath);
+				material->set_shader(shader);
+			}
 
 			//{
 			//	godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
@@ -3943,6 +3950,9 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 					material->set_shader_parameter(SHADER_PARAM_NORTH_BORDER_SPLATMAP, northQuadrantSplatmapBorderRowTexture);
 					material->set_shader_parameter(SHADER_PARAM_WEST_BORDER_SPLATMAP, westQuadrantSplatmapBorderRowTexture);
 					material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL, northWestQuadrantCornerSplatmapTexel);
+
+					float f = m_viewer->Globals()->getTextureOverflowSize();
+					material->set_shader_parameter(SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE, f);
 				}
 				else
 					material->set_shader_parameter(SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE, 0.0f);		// Disable texture override for global map generation

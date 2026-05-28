@@ -27,13 +27,6 @@ void GDN_TheWorld_MainNode::_bind_methods()
 
 GDN_TheWorld_MainNode::GDN_TheWorld_MainNode()
 {
-	m_quitting = false;
-	m_initialized = false;
-	m_ready = false;
-	m_initInProgress = false;
-	m_globals = nullptr;
-	m_viewer = nullptr;
-
 	_init();
 }
 
@@ -320,6 +313,7 @@ bool GDN_TheWorld_MainNode::init(Node3D* pWorldMainNode, bool isInEditor)
 	
 	m_initInProgress = false;
 	m_initialized = true;
+	globals->setWorldMainNode(pWorldMainNode);
 	PLOG_INFO << "TheWorld Main Node Initialized!";
 
 	return true;
@@ -393,6 +387,7 @@ void GDN_TheWorld_MainNode::deinit(void)
 			//globals->queue_free();									// TESTING
 		}
 
+		globals->setWorldMainNode(nullptr);
 		m_initialized = false;
 
 		Globals()->debugPrint("GDN_TheWorld_MainNode::deinit DONE!");

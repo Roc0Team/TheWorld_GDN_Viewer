@@ -20,6 +20,7 @@
 #include <godot_cpp/classes/h_split_container.hpp>
 #include <godot_cpp/classes/sub_viewport.hpp>
 #include <godot_cpp/classes/sprite2d.hpp>
+#include <godot_cpp/classes/h_slider.hpp>
 #pragma warning (pop)
 
 #include <WorldModifier.h>
@@ -154,6 +155,9 @@ namespace godot
 
 			godot::Label* m_message;
 			godot::String m_lastMessage;
+
+			godot::HSlider* m_testHSlider = nullptr;
+			godot::Label* m_testHSliderLabel = nullptr;
 
 			//godot::CheckBox* m_allCheckBox = nullptr;
 			//godot::CheckBox* m_collisonHiResGridCheckBox = nullptr;
@@ -339,6 +343,7 @@ namespace godot
 		void voidSignalManager(godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
 		void guiInputEvent(const godot::Ref<godot::InputEvent>& event, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
 		void toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
+		void testHSliderValueChanged(double d);
 		void controlNeedResize(void);
 		//void editModeNoisePanel(void);
 		//void editModeInfoPanel(void);

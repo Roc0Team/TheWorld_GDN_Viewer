@@ -887,6 +887,15 @@ namespace godot
 			m_pWorldMainNode = pNode;
 		}
 
+		bool debugBuild(void) const
+		{
+#ifdef _DEBUG
+			return true;
+#else
+			return false;
+#endif // _DEBUG
+		}
+
 		// DEBUG
 		//static size_t s_num;
 		//static size_t s_elapsed1;

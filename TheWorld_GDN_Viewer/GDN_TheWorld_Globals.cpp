@@ -478,6 +478,8 @@ namespace godot
 
 		ClassDB::bind_method(D_METHOD("set_splatmap_overflow_size"), &GDN_TheWorld_Globals::setSplatmapOverflowSize);
 
+		ClassDB::bind_method(D_METHOD("debug_build"), &GDN_TheWorld_Globals::debugBuild);
+
 		// perfparam_
 		ClassDB::bind_method(D_METHOD("set_perfparam_stream_world"), &GDN_TheWorld_Globals::setStreamWorld);
 		ClassDB::bind_method(D_METHOD("get_perfparam_stream_world"), &GDN_TheWorld_Globals::getStreamWorld);

@@ -4382,10 +4382,14 @@ void ShaderTerrainData::updateMaterialParams(enum class QuadType type, LookDev l
 						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_VERTICAL_FACTOR, terrainEdit->extraValues.slopeVerticalFactor);
 						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_FLAT_FACTOR, terrainEdit->extraValues.slopeFlatFactor);
 						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_DIRT_ON_ROCKS_FACTOR, terrainEdit->extraValues.dirtOnRocksFactor);
-						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_HIGH_ELEVATION_FACTOR, terrainEdit->extraValues.highElevationFactor);
-						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_LOW_ELEVATION_FACTOR, terrainEdit->extraValues.lowElevationFactor);
-						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_MIN_HEIGHT, terrainEdit->minHeight);
-						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_MAX_HEIGHT, terrainEdit->maxHeight);
+						//currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_HIGH_ELEVATION_FACTOR, terrainEdit->extraValues.highElevationFactor);
+						//currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_LOW_ELEVATION_FACTOR, terrainEdit->extraValues.lowElevationFactor);
+						//currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_MIN_HEIGHT, terrainEdit->minHeight);
+						//currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_MAX_HEIGHT, terrainEdit->maxHeight);
+						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_HIGH_ELEVATION_FACTOR, TheWorld_Utils::TerrainEdit::THEWORLD_SPLATMAP_HIGH_ELEVATION_FACTOR);
+						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_LOW_ELEVATION_FACTOR, TheWorld_Utils::TerrainEdit::THEWORLD_SPLATMAP_LOW_ELEVATION_FACTOR);
+						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_MIN_HEIGHT, TheWorld_Utils::TerrainEdit::THEWORLD_SPLATMAP_MIN_HEIGHT);
+						currentMaterial->set_shader_parameter(SHADER_PARAM_SPLAT_MAX_HEIGHT, TheWorld_Utils::TerrainEdit::THEWORLD_SPLATMAP_MAX_HEIGHT);
 
 						if (quadrant->textureUpdated() && lookdev == LookDev::NotSet)
 						{
@@ -4909,6 +4913,7 @@ Quadrant::Quadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer
 
 	m_mapModder = memnew(GDN_TheWorld_MapModder);
 	bool mapModderWithDebug = false;
+	//bool mapModderWithDebug = true;
 	m_mapModder->custom_ready(m_viewer, m_viewer, mapModderWithDebug);
 	godot::Error e = m_mapModder->connect("tw_modder_work_done", Callable(m_viewer, "quadrant_modder_work_done"));
 
@@ -5449,7 +5454,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 		bool lockAcquired = lockInternalData();
 		if (lockAcquired)
 		{
-			m_mapModder->initForSplatmap(m_quadTree, &getFloat32HeightsBuffer(), &getNormalsBuffer(), terrainEdit->extraValues.slopeVerticalFactor, terrainEdit->extraValues.slopeFlatFactor, terrainEdit->extraValues.dirtOnRocksFactor, terrainEdit->extraValues.highElevationFactor, terrainEdit->extraValues.lowElevationFactor, terrainEdit->minHeight, terrainEdit->maxHeight, /*1024*/ getPos().getNumVerticesPerSize(), 0, true);
+			m_mapModder->initForSplatmap(m_quadTree, &getFloat32HeightsBuffer(), &getNormalsBuffer(), terrainEdit->extraValues.slopeVerticalFactor, terrainEdit->extraValues.slopeFlatFactor, terrainEdit->extraValues.dirtOnRocksFactor, terrainEdit->extraValues.highElevationFactor_not_used, terrainEdit->extraValues.lowElevationFactor_not_used, terrainEdit->minHeight, terrainEdit->maxHeight, /*1024*/ getPos().getNumVerticesPerSize(), 0, true);
 		}
 		editModeUIControl->terrainDataLocked(false);
 		return;
@@ -5947,7 +5952,7 @@ godot::Vector4 Quadrant::westQuadrantTextureLayersFromTerrainData(void)
 	std::string lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName;
 	terrainData->getWestGroundTextures(lowElevationTexName, highElevationTexName, dirtTexName, rocksTexName);
 
-	TheWorld_Utils::QuadrantPos westQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+	TheWorld_Utils::QuadrantPos westQuadrantPos = getPos().getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
 	std::string westQuadrantTextureLayout = ShaderTerrainData::layoutFromQuadrantPos(westQuadrantPos);
 
 	ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
@@ -6386,45 +6391,45 @@ bool Quadrant::checkWestSideBlendNeeded(QuadTree* westQuadrantTree)
 	return not terrainData->westSideXMinus.almostEqual(westQuadrantTerrainData->eastSideXPlus);
 }
 
-godot::Ref<godot::Texture2D> Quadrant::getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir)
-{
-	TheWorld_Utils::NamedDataBuffer& namedDataBuffer = getNamedDataBuffer();
-
-	int32_t flags;
-	TheWorld_Utils::NamedDataBuffer::NamedDataBufferVariant quadrantSplatmapBorderRowVariant;
-	if (dir == TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus)
-	{
-		quadrantSplatmapBorderRowVariant = namedDataBuffer.getVariant(THEWORLD_QUADRANT_NAMEDATA_NORTHQUADSPLATMAPROW, flags);
-		if (TheWorld_Utils::NamedDataBuffer::emptyVariant(quadrantSplatmapBorderRowVariant))
-			return nullptr;
-	}
-	else if (dir == TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus)
-	{
-		quadrantSplatmapBorderRowVariant = namedDataBuffer.getVariant(THEWORLD_QUADRANT_NAMEDATA_WESTQUADSPLATMAPROW, flags);
-		if (TheWorld_Utils::NamedDataBuffer::emptyVariant(quadrantSplatmapBorderRowVariant))
-			return nullptr;
-	}
-	else
-		return nullptr;
-
-	TheWorld_Utils::MemoryBuffer quadrantSplatmapBorderRowBuffer = std::get<TheWorld_Utils::MemoryBuffer>(quadrantSplatmapBorderRowVariant);
-	
-	int numVerticesPerQuadrantSize = (int)getQuadTree()->Viewer()->Globals()->numVerticesPerQuadrantSize();
-
-	godot::Ref<godot::Texture2D> tex;
-
-	godot::PackedByteArray data;
-	size_t splatmapBufferSizeRowInBytes = (size_t)numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
-	data.resize((int)splatmapBufferSizeRowInBytes);
-	my_assert(splatmapBufferSizeRowInBytes == quadrantSplatmapBorderRowBuffer.size());
-	{
-		memcpy((char*)data.ptrw(), quadrantSplatmapBorderRowBuffer.ptr(), splatmapBufferSizeRowInBytes);
-	}
-	Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, 1, false, godot::Image::Format::FORMAT_RGBA8, data);
-	tex = godot::ImageTexture::create_from_image(image);
-
-	return tex;
-}
+//godot::Ref<godot::Texture2D> Quadrant::getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir)
+//{
+//	TheWorld_Utils::NamedDataBuffer& namedDataBuffer = getNamedDataBuffer();
+//
+//	int32_t flags;
+//	TheWorld_Utils::NamedDataBuffer::NamedDataBufferVariant quadrantSplatmapBorderRowVariant;
+//	if (dir == TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus)
+//	{
+//		quadrantSplatmapBorderRowVariant = namedDataBuffer.getVariant(THEWORLD_QUADRANT_NAMEDATA_NORTHQUADSPLATMAPROW, flags);
+//		if (TheWorld_Utils::NamedDataBuffer::emptyVariant(quadrantSplatmapBorderRowVariant))
+//			return nullptr;
+//	}
+//	else if (dir == TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus)
+//	{
+//		quadrantSplatmapBorderRowVariant = namedDataBuffer.getVariant(THEWORLD_QUADRANT_NAMEDATA_WESTQUADSPLATMAPROW, flags);
+//		if (TheWorld_Utils::NamedDataBuffer::emptyVariant(quadrantSplatmapBorderRowVariant))
+//			return nullptr;
+//	}
+//	else
+//		return nullptr;
+//
+//	TheWorld_Utils::MemoryBuffer quadrantSplatmapBorderRowBuffer = std::get<TheWorld_Utils::MemoryBuffer>(quadrantSplatmapBorderRowVariant);
+//	
+//	int numVerticesPerQuadrantSize = (int)getQuadTree()->Viewer()->Globals()->numVerticesPerQuadrantSize();
+//
+//	godot::Ref<godot::Texture2D> tex;
+//
+//	godot::PackedByteArray data;
+//	size_t splatmapBufferSizeRowInBytes = (size_t)numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+//	data.resize((int)splatmapBufferSizeRowInBytes);
+//	my_assert(splatmapBufferSizeRowInBytes == quadrantSplatmapBorderRowBuffer.size());
+//	{
+//		memcpy((char*)data.ptrw(), quadrantSplatmapBorderRowBuffer.ptr(), splatmapBufferSizeRowInBytes);
+//	}
+//	Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, 1, false, godot::Image::Format::FORMAT_RGBA8, data);
+//	tex = godot::ImageTexture::create_from_image(image);
+//
+//	return tex;
+//}
 
 godot::Color Quadrant::getSplatmapBorderRowTexel(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir)
 {

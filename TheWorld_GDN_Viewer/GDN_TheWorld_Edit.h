@@ -126,8 +126,8 @@ namespace godot
 				m_slopeVerticalFactor = nullptr;
 				m_slopeFlatFactor = nullptr;
 				m_dirtOnRocksFactor = nullptr;
-				m_highElevationFactor = nullptr;
-				m_lowElevationFactor = nullptr;
+				//m_highElevationFactor = nullptr;
+				//m_lowElevationFactor = nullptr;
 				m_splatMapMode = nullptr;
 			}
 			~InnerData()
@@ -156,8 +156,9 @@ namespace godot
 			godot::Label* m_message;
 			godot::String m_lastMessage;
 
-			godot::HSlider* m_testHSlider = nullptr;
-			godot::Label* m_testHSliderLabel = nullptr;
+			godot::Label* m_textureOverflowSizeLabel_1 = nullptr;
+			godot::HSlider* m_textureOverflowSizeHSlider = nullptr;
+			godot::Label* m_textureOverflowSizeLabel_2 = nullptr;
 
 			//godot::CheckBox* m_allCheckBox = nullptr;
 			//godot::CheckBox* m_collisonHiResGridCheckBox = nullptr;
@@ -229,8 +230,8 @@ namespace godot
 			godot::LineEdit* m_slopeVerticalFactor;
 			godot::LineEdit* m_slopeFlatFactor;
 			godot::LineEdit* m_dirtOnRocksFactor;
-			godot::LineEdit* m_highElevationFactor;
-			godot::LineEdit* m_lowElevationFactor;
+			//godot::LineEdit* m_highElevationFactor;
+			//godot::LineEdit* m_lowElevationFactor;
 			godot::LineEdit* m_splatMapMode;
 			godot::LineEdit* m_groundLayout = nullptr;
 			godot::PanelContainer* m_lowElevationTexPanel;
@@ -343,7 +344,7 @@ namespace godot
 		void voidSignalManager(godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
 		void guiInputEvent(const godot::Ref<godot::InputEvent>& event, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
 		void toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
-		void testHSliderValueChanged(double d);
+		void m_textureOverflowSizeHSliderValueChanged(double d);
 		void controlNeedResize(void);
 		//void editModeNoisePanel(void);
 		//void editModeInfoPanel(void);
@@ -470,12 +471,12 @@ namespace godot
 		void resetDirtOnRocksFactor(void);
 		void setDirtOnRocksFactor(float value);
 		float dirtOnRocksFactor(void);
-		void resetHighElevationFactor(void);
-		void setHighElevationFactor(float value);
-		float highElevationFactor(void);
-		void resetLowElevationFactor(void);
-		void setLowElevationFactor(float value);
-		float lowElevationFactor(void);
+		//void resetHighElevationFactor(void);
+		//void setHighElevationFactor(float value);
+		//float highElevationFactor(void);
+		//void resetLowElevationFactor(void);
+		//void setLowElevationFactor(float value);
+		//float lowElevationFactor(void);
 		void resetSplatMapMode(void);
 		void setSplatMapMode(size_t value);
 		size_t splatMapMode(void);

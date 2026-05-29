@@ -424,7 +424,7 @@ namespace godot
 			return m_namedDataBuffer;
 		}
 
-		godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
+		//godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
 		godot::Color getSplatmapBorderRowTexel(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
 
 		//void fillQuadrantData(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData)
@@ -1037,9 +1037,9 @@ namespace godot
 #define SHADER_PARAM_NORTH_WEST_GROUND_LAYERS		"u_north_west_ground_layers"
 //#define SHADER_PARAM_SOUTH_EAST_GROUND_LAYERS		"u_south_east_ground_layers"
 
-#define SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL	"u_north_west_corner_splatmap_texel"
-#define SHADER_PARAM_NORTH_BORDER_SPLATMAP			"u_north_border_splatmap"
-#define SHADER_PARAM_WEST_BORDER_SPLATMAP			"u_west_border_splatmap"
+//#define SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL	"u_north_west_corner_splatmap_texel"
+//#define SHADER_PARAM_NORTH_BORDER_SPLATMAP			"u_north_border_splatmap"
+//#define SHADER_PARAM_WEST_BORDER_SPLATMAP			"u_west_border_splatmap"
 #define SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE	"u_texture_overflow_size_override"
 
 #define SHADER_PARAM_EDITMODE_SELECTED				"u_editmode_selected"

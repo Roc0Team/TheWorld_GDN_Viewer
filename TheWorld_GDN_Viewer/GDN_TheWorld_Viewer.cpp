@@ -3865,16 +3865,16 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			TheWorld_Utils::TerrainEdit* terrainEdit = m_quadTree->getQuadrant()->getTerrainEdit();
 
 			godot::Ref<godot::ShaderMaterial> material = memnew(godot::ShaderMaterial);
-			//{
-			//	godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getRegularTerrainMaterial();
-			//	material->set_shader(currentMaterial->get_shader());
-			//}
 			{
-				String shaderPath = "res://addons/twviewer/test/terrain_globalmap.gdshader";
-				godot::Ref<godot::Shader> shader;
-				shader = godot::ResourceLoader::get_singleton()->load(shaderPath);
-				material->set_shader(shader);
+				godot::Ref<godot::ShaderMaterial> currentMaterial = m_quadTree->getQuadrant()->getShaderTerrainData()->getRegularTerrainMaterial();
+				material->set_shader(currentMaterial->get_shader());
 			}
+			//{
+			//	String shaderPath = "res://addons/twviewer/test/terrain_globalmap.gdshader";
+			//	godot::Ref<godot::Shader> shader;
+			//	shader = godot::ResourceLoader::get_singleton()->load(shaderPath);
+			//	material->set_shader(shader);
+			//}
 
 			//{
 			//	godot::RenderingServer* rs = godot::RenderingServer::get_singleton();
@@ -3916,40 +3916,59 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 
 			{
 				bool proceedWithBorderOverflow = true;
-				godot::Ref<godot::Texture2D> northQuadrantSplatmapBorderRowTexture;
+				//godot::Ref<godot::Texture2D> northQuadrantSplatmapBorderRowTexture;
+				//if (proceedWithBorderOverflow)
+				//{
+				//	northQuadrantSplatmapBorderRowTexture = m_quadTree->getQuadrant()->getSplatmapBorderRowTexture(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+				//	if (northQuadrantSplatmapBorderRowTexture == nullptr)
+				//		proceedWithBorderOverflow = false;
+				//}
+				//godot::Ref<godot::Texture2D> westQuadrantSplatmapBorderRowTexture;
+				//if (proceedWithBorderOverflow)
+				//{
+				//	westQuadrantSplatmapBorderRowTexture = m_quadTree->getQuadrant()->getSplatmapBorderRowTexture(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
+				//	if (westQuadrantSplatmapBorderRowTexture == nullptr)
+				//		proceedWithBorderOverflow = false;
+				//}
+				//godot::Color northWestQuadrantCornerSplatmapTexel;
+				//if (proceedWithBorderOverflow)
+				//{
+				//	northWestQuadrantCornerSplatmapTexel = m_quadTree->getQuadrant()->getSplatmapBorderRowTexel(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus);
+				//	if (northWestQuadrantCornerSplatmapTexel == godot::Color(0, 0, 0, 0))
+				//		proceedWithBorderOverflow = false;
+				//}
+
+				godot::Vector4 northQuadrantTextureLayers;
 				if (proceedWithBorderOverflow)
 				{
-					northQuadrantSplatmapBorderRowTexture = m_quadTree->getQuadrant()->getSplatmapBorderRowTexture(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
-					if (northQuadrantSplatmapBorderRowTexture == nullptr)
+					northQuadrantTextureLayers = m_quadTree->getQuadrant()->northQuadrantTextureLayersFromTerrainData();
+					if (northQuadrantTextureLayers.x < 0 or northQuadrantTextureLayers.y < 0 or northQuadrantTextureLayers.z < 0 or northQuadrantTextureLayers.w < 0)
 						proceedWithBorderOverflow = false;
 				}
-				godot::Ref<godot::Texture2D> westQuadrantSplatmapBorderRowTexture;
+				godot::Vector4 westQuadrantTextureLayers;
 				if (proceedWithBorderOverflow)
 				{
-					westQuadrantSplatmapBorderRowTexture = m_quadTree->getQuadrant()->getSplatmapBorderRowTexture(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
-					if (westQuadrantSplatmapBorderRowTexture == nullptr)
+					westQuadrantTextureLayers = m_quadTree->getQuadrant()->westQuadrantTextureLayersFromTerrainData();
+					if (westQuadrantTextureLayers.x < 0 or westQuadrantTextureLayers.y < 0 or westQuadrantTextureLayers.z < 0 or westQuadrantTextureLayers.w < 0)
 						proceedWithBorderOverflow = false;
 				}
-				godot::Color northWestQuadrantCornerSplatmapTexel;
+				godot::Vector4 northwestQuadrantTextureLayers;
 				if (proceedWithBorderOverflow)
 				{
-					northWestQuadrantCornerSplatmapTexel = m_quadTree->getQuadrant()->getSplatmapBorderRowTexel(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus);
-					if (northWestQuadrantCornerSplatmapTexel == godot::Color(0, 0, 0, 0))
+					northwestQuadrantTextureLayers = m_quadTree->getQuadrant()->northwestQuadrantTextureLayersFromTerrainData();
+					if (northwestQuadrantTextureLayers.x < 0 or northwestQuadrantTextureLayers.y < 0 or northwestQuadrantTextureLayers.z < 0 or northwestQuadrantTextureLayers.w < 0)
 						proceedWithBorderOverflow = false;
 				}
 
 				if (proceedWithBorderOverflow)
 				{
-					v = m_quadTree->getQuadrant()->northQuadrantTextureLayersFromTerrainData();
-					material->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, v);
-					v = m_quadTree->getQuadrant()->westQuadrantTextureLayersFromTerrainData();
-					material->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, v);
-					v = m_quadTree->getQuadrant()->northwestQuadrantTextureLayersFromTerrainData();
-					material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, v);
+					material->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, northQuadrantTextureLayers);
+					material->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, westQuadrantTextureLayers);
+					material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, northwestQuadrantTextureLayers);
 
-					material->set_shader_parameter(SHADER_PARAM_NORTH_BORDER_SPLATMAP, northQuadrantSplatmapBorderRowTexture);
-					material->set_shader_parameter(SHADER_PARAM_WEST_BORDER_SPLATMAP, westQuadrantSplatmapBorderRowTexture);
-					material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL, northWestQuadrantCornerSplatmapTexel);
+					//material->set_shader_parameter(SHADER_PARAM_NORTH_BORDER_SPLATMAP, northQuadrantSplatmapBorderRowTexture);
+					//material->set_shader_parameter(SHADER_PARAM_WEST_BORDER_SPLATMAP, westQuadrantSplatmapBorderRowTexture);
+					//material->set_shader_parameter(SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL, northWestQuadrantCornerSplatmapTexel);
 
 					float f = m_viewer->Globals()->getTextureOverflowSize();
 					material->set_shader_parameter(SHADER_PARAM_TEXTURE_OVERFLOW_SIZE_OVERRIDE, f);
@@ -3963,10 +3982,14 @@ void GDN_TheWorld_MapModder::startProcessing(void)
 			material->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_VERTICAL_FACTOR, terrainEdit->extraValues.slopeVerticalFactor);
 			material->set_shader_parameter(SHADER_PARAM_SPLAT_SLOPE_FLAT_FACTOR, terrainEdit->extraValues.slopeFlatFactor);
 			material->set_shader_parameter(SHADER_PARAM_SPLAT_DIRT_ON_ROCKS_FACTOR, terrainEdit->extraValues.dirtOnRocksFactor);
-			material->set_shader_parameter(SHADER_PARAM_SPLAT_HIGH_ELEVATION_FACTOR, terrainEdit->extraValues.highElevationFactor);
-			material->set_shader_parameter(SHADER_PARAM_SPLAT_LOW_ELEVATION_FACTOR, terrainEdit->extraValues.lowElevationFactor);
-			material->set_shader_parameter(SHADER_PARAM_SPLAT_MIN_HEIGHT, terrainEdit->minHeight);
-			material->set_shader_parameter(SHADER_PARAM_SPLAT_MAX_HEIGHT, terrainEdit->maxHeight);
+			//material->set_shader_parameter(SHADER_PARAM_SPLAT_HIGH_ELEVATION_FACTOR, terrainEdit->extraValues.highElevationFactor);
+			//material->set_shader_parameter(SHADER_PARAM_SPLAT_LOW_ELEVATION_FACTOR, terrainEdit->extraValues.lowElevationFactor);
+			//material->set_shader_parameter(SHADER_PARAM_SPLAT_MIN_HEIGHT, terrainEdit->minHeight);
+			//material->set_shader_parameter(SHADER_PARAM_SPLAT_MAX_HEIGHT, terrainEdit->maxHeight);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_HIGH_ELEVATION_FACTOR, TheWorld_Utils::TerrainEdit::THEWORLD_SPLATMAP_HIGH_ELEVATION_FACTOR);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_LOW_ELEVATION_FACTOR, TheWorld_Utils::TerrainEdit::THEWORLD_SPLATMAP_LOW_ELEVATION_FACTOR);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_MIN_HEIGHT, TheWorld_Utils::TerrainEdit::THEWORLD_SPLATMAP_MIN_HEIGHT);
+			material->set_shader_parameter(SHADER_PARAM_SPLAT_MAX_HEIGHT, TheWorld_Utils::TerrainEdit::THEWORLD_SPLATMAP_MAX_HEIGHT);
 
 			int numVerticesPerQuadrantSize = (int)m_viewer->Globals()->numVerticesPerQuadrantSize();
 
@@ -13131,7 +13154,7 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 			{
 				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
 				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_WEST_GROUND_LAYERS, northWestQuadrantData.groundTextureLayers());
-				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL, northWestQuadrantData.getUpperLeftCornerSplatmapTexel());
+				//currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_WEST_CORNER_SPLATMAP_TEXEL, northWestQuadrantData.getUpperLeftCornerSplatmapTexel());
 				northWestQuadrantData.shaderUpdated(true);
 			}
 
@@ -13139,7 +13162,7 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 			{
 				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
 				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_GROUND_LAYERS, northQuadrantData.groundTextureLayers());
-				currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_BORDER_SPLATMAP, northQuadrantData.getSplatmapBorderRowTexture());
+				//currentMaterial->set_shader_parameter(SHADER_PARAM_NORTH_BORDER_SPLATMAP, northQuadrantData.getSplatmapBorderRowTexture());
 				northQuadrantData.shaderUpdated(true);
 
 				//updateHeightmapBorderRowsToShader = true;
@@ -13155,7 +13178,7 @@ void GDN_TheWorld_Viewer::process_neighbourQuadrantData(QuadTree* quadTree)
 			{
 				godot::Ref<godot::ShaderMaterial> currentMaterial = quadrant->getShaderTerrainData()->getRegularTerrainMaterial();
 				currentMaterial->set_shader_parameter(SHADER_PARAM_WEST_GROUND_LAYERS, westQuadrantData.groundTextureLayers());
-				currentMaterial->set_shader_parameter(SHADER_PARAM_WEST_BORDER_SPLATMAP, westQuadrantData.getSplatmapBorderRowTexture());
+				//currentMaterial->set_shader_parameter(SHADER_PARAM_WEST_BORDER_SPLATMAP, westQuadrantData.getSplatmapBorderRowTexture());
 				westQuadrantData.shaderUpdated(true);
 
 				//updateHeightmapBorderRowsToShader = true;

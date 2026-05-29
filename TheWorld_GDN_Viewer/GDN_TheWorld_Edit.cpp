@@ -76,7 +76,7 @@ void GDN_TheWorld_Edit::_bind_methods()
 	ClassDB::bind_method(D_METHOD("void_signal_manager", "p_object", "p_signal", "p_class_name", "p_instance_id", "p_object_name", "p_custom1", "p_custom2", "p_custom3"), &GDN_TheWorld_Edit::voidSignalManager);
 	ClassDB::bind_method(D_METHOD("gui_input_event", "p_event, p_object", "p_signal", "p_class_name", "p_instance_id", "p_object_name", "p_custom1", "p_custom2", "p_custom3"), &GDN_TheWorld_Edit::guiInputEvent);
 	ClassDB::bind_method(D_METHOD("toggled_signal_manager", "p_button_pressed", "p_object", "p_signal", "p_class_name", "p_instance_id", "p_object_name", "p_custom1", "p_custom2", "p_custom3"), &GDN_TheWorld_Edit::toggledSignalManager);
-	ClassDB::bind_method(D_METHOD("test_hslider_value_changed", "p_value"), &GDN_TheWorld_Edit::testHSliderValueChanged);
+	ClassDB::bind_method(D_METHOD("texture_overflow_size_hslider_value_changed", "p_value"), &GDN_TheWorld_Edit::m_textureOverflowSizeHSliderValueChanged);
 }
 
 GDN_TheWorld_Edit::GDN_TheWorld_Edit()
@@ -276,8 +276,8 @@ void GDN_TheWorld_Edit::setUIAcceptFocus(bool b)
 	m_innerData->m_slopeVerticalFactor->set_focus_mode(focusMode);
 	m_innerData->m_slopeFlatFactor->set_focus_mode(focusMode);
 	m_innerData->m_dirtOnRocksFactor->set_focus_mode(focusMode);
-	m_innerData->m_highElevationFactor->set_focus_mode(focusMode);
-	m_innerData->m_lowElevationFactor->set_focus_mode(focusMode);
+	//m_innerData->m_highElevationFactor->set_focus_mode(focusMode);
+	//m_innerData->m_lowElevationFactor->set_focus_mode(focusMode);
 	m_innerData->m_splatMapMode->set_focus_mode(focusMode);
 	m_innerData->m_groundLayout->set_focus_mode(focusMode);
 	m_innerData->m_showGizmo->set_focus_mode(focusMode);
@@ -546,10 +546,10 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		label = createControl<godot::Label>(hBoxContainer, "", "Quads to save");
 		m_innerData->m_numQuadrantToSaveLabel = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantToSaveLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
-		label = createControl<godot::Label>(hBoxContainer, "", "To upload");
+		label = createControl<godot::Label>(hBoxContainer, "", "To upl");
 		m_innerData->m_numQuadrantToUploadLabel = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantToUploadLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
-		label = createControl<godot::Label>(hBoxContainer, "", "To sew");
+		label = createControl<godot::Label>(hBoxContainer, "", "To blend");
 		m_innerData->m_numQuadrantToBlendLabel = createControl<godot::Label>(hBoxContainer);
 		m_innerData->m_numQuadrantToBlendLabel->set_horizontal_alignment(godot::HorizontalAlignment::HORIZONTAL_ALIGNMENT_RIGHT);
 		label = createControl<godot::Label>(hBoxContainer, "", "Locked");
@@ -584,17 +584,19 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		//e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_collisonLowResGridCheckBox, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
-		m_innerData->m_testHSlider = createControl<godot::HSlider>(hBoxContainer);
-		m_innerData->m_testHSlider->set_min(0);
-		m_innerData->m_testHSlider->set_max(1.0);
-		m_innerData->m_testHSlider->set_step(0.01);
+		m_innerData->m_textureOverflowSizeLabel_1 = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_textureOverflowSizeLabel_1->set_text("Texture Overflow Size     ");
+		m_innerData->m_textureOverflowSizeHSlider = createControl<godot::HSlider>(hBoxContainer);
+		m_innerData->m_textureOverflowSizeHSlider->set_min(0);
+		m_innerData->m_textureOverflowSizeHSlider->set_max(1.0);
+		m_innerData->m_textureOverflowSizeHSlider->set_step(0.01);
 		float textureOverflowSize = globals->getTextureOverflowSize();
-		m_innerData->m_testHSlider->set_value(textureOverflowSize);
-		m_innerData->m_testHSlider->set_custom_minimum_size(godot::Vector2(200.0f, 16.0f));
+		m_innerData->m_textureOverflowSizeHSlider->set_value(textureOverflowSize);
+		m_innerData->m_textureOverflowSizeHSlider->set_custom_minimum_size(godot::Vector2(150.0f, 16.0f));
 		//m_innerData->m_testHSlider->connect("value_changed", Callable(globals->getWorldMainNode(), "_set_shader_param_texture_overflow_size"));
-		m_innerData->m_testHSlider->connect("value_changed", Callable(this, "test_hslider_value_changed"));
-		m_innerData->m_testHSliderLabel = createControl<godot::Label>(hBoxContainer);
-		m_innerData->m_testHSliderLabel->set_text(std::format("{:.2f}", textureOverflowSize).c_str());
+		m_innerData->m_textureOverflowSizeHSlider->connect("value_changed", Callable(this, "texture_overflow_size_hslider_value_changed"));
+		m_innerData->m_textureOverflowSizeLabel_2 = createControl<godot::Label>(hBoxContainer);
+		m_innerData->m_textureOverflowSizeLabel_2->set_text(std::format("{:.2f}", textureOverflowSize).c_str());
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
 		m_innerData->m_message = createControl<godot::Label>(hBoxContainer);
@@ -892,7 +894,7 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_checkBlend->set_toggle_mode(true);
 		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_checkBlend, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 		m_innerData->m_autoBlendCheckBox = createControl<godot::CheckBox>(hBoxContainer);
-		m_innerData->m_autoBlendCheckBox->set_text("Auto Sew (Save/Upload)");
+		m_innerData->m_autoBlendCheckBox->set_text("Auto Blend (Save/Upload)");
 		m_innerData->m_autoBlendCheckBox->set_toggle_mode(true);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
@@ -943,16 +945,16 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		separator = createControl<HSeparator>(m_innerData->m_quadrantTextureEditVBoxContainer);
 
 		godot::Size2 labelMinimumSize(180, 0);
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "High Elev. Factor");
-		label->set_custom_minimum_size(labelMinimumSize);
-		m_innerData->m_highElevationFactor = createControl<godot::LineEdit>(hBoxContainer);
-		m_innerData->m_highElevationFactor->set_editable(false);
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
-		label = createControl<godot::Label>(hBoxContainer, "", "Low Elev. Factor");
-		label->set_custom_minimum_size(labelMinimumSize);
-		m_innerData->m_lowElevationFactor = createControl<godot::LineEdit>(hBoxContainer);
-		m_innerData->m_lowElevationFactor->set_editable(false);
+		//hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
+		//label = createControl<godot::Label>(hBoxContainer, "", "High Elev. Factor");
+		//label->set_custom_minimum_size(labelMinimumSize);
+		//m_innerData->m_highElevationFactor = createControl<godot::LineEdit>(hBoxContainer);
+		//m_innerData->m_highElevationFactor->set_editable(false);
+		//hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
+		//label = createControl<godot::Label>(hBoxContainer, "", "Low Elev. Factor");
+		//label->set_custom_minimum_size(labelMinimumSize);
+		//m_innerData->m_lowElevationFactor = createControl<godot::LineEdit>(hBoxContainer);
+		//m_innerData->m_lowElevationFactor->set_editable(false);
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_quadrantTextureEditVBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Slope Vert. Factor");
 		label->set_custom_minimum_size(labelMinimumSize);
@@ -1339,8 +1341,8 @@ void GDN_TheWorld_Edit::setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrai
 	setSlopeVerticalFactor(terrainEdit.extraValues.slopeVerticalFactor);
 	setSlopeFlatFactor(terrainEdit.extraValues.slopeFlatFactor);
 	setDirtOnRocksFactor(terrainEdit.extraValues.dirtOnRocksFactor);
-	setHighElevationFactor(terrainEdit.extraValues.highElevationFactor);
-	setLowElevationFactor(terrainEdit.extraValues.lowElevationFactor);
+	//setHighElevationFactor(terrainEdit.extraValues.highElevationFactor_not_used);
+	//setLowElevationFactor(terrainEdit.extraValues.lowElevationFactor_not_used);
 	setSplatMapMode(terrainEdit.extraValues.splatMapMode);
 	//std::string layout = ShaderTerrainData::layoutFromContinentId(terrainEdit.extraValues1.continentId);
 	
@@ -1431,8 +1433,8 @@ void GDN_TheWorld_Edit::resetPanelsOnQuadrantDeselection()
 	resetSlopeVerticalFactor();
 	resetSlopeFlatFactor();
 	resetDirtOnRocksFactor();
-	resetHighElevationFactor();
-	resetLowElevationFactor();
+	//resetHighElevationFactor();
+	//resetLowElevationFactor();
 	resetSplatMapMode();
 	resetGroundLayout();
 
@@ -1863,47 +1865,47 @@ float GDN_TheWorld_Edit::dirtOnRocksFactor(void)
 	return ret;
 }
 
-void GDN_TheWorld_Edit::resetHighElevationFactor(void)
-{
-	m_innerData->m_highElevationFactor->set_text("");
-	m_innerData->m_highElevationFactor->set_editable(false);
-}
+//void GDN_TheWorld_Edit::resetHighElevationFactor(void)
+//{
+//	m_innerData->m_highElevationFactor->set_text("");
+//	m_innerData->m_highElevationFactor->set_editable(false);
+//}
 
-void GDN_TheWorld_Edit::setHighElevationFactor(float value)
-{
-	m_innerData->m_highElevationFactor->set_text(std::to_string(value).c_str());
-	m_innerData->m_highElevationFactor->set_editable(true);
-}
+//void GDN_TheWorld_Edit::setHighElevationFactor(float value)
+//{
+//	m_innerData->m_highElevationFactor->set_text(std::to_string(value).c_str());
+//	m_innerData->m_highElevationFactor->set_editable(true);
+//}
 
-float GDN_TheWorld_Edit::highElevationFactor(void)
-{
-	std::string s(m_innerData->m_highElevationFactor->get_text().utf8().get_data());
-	float ret = 0;
-	if (s.length() > 0)
-		ret = std::stof(s);
-	return ret;
-}
+//float GDN_TheWorld_Edit::highElevationFactor(void)
+//{
+//	std::string s(m_innerData->m_highElevationFactor->get_text().utf8().get_data());
+//	float ret = 0;
+//	if (s.length() > 0)
+//		ret = std::stof(s);
+//	return ret;
+//}
 
-void GDN_TheWorld_Edit::resetLowElevationFactor(void)
-{
-	m_innerData->m_lowElevationFactor->set_text("");
-	m_innerData->m_lowElevationFactor->set_editable(false);
-}
+//void GDN_TheWorld_Edit::resetLowElevationFactor(void)
+//{
+//	m_innerData->m_lowElevationFactor->set_text("");
+//	m_innerData->m_lowElevationFactor->set_editable(false);
+//}
 
-void GDN_TheWorld_Edit::setLowElevationFactor(float value)
-{
-	m_innerData->m_lowElevationFactor->set_text(std::to_string(value).c_str());
-	m_innerData->m_lowElevationFactor->set_editable(true);
-}
+//void GDN_TheWorld_Edit::setLowElevationFactor(float value)
+//{
+//	m_innerData->m_lowElevationFactor->set_text(std::to_string(value).c_str());
+//	m_innerData->m_lowElevationFactor->set_editable(true);
+//}
 
-float GDN_TheWorld_Edit::lowElevationFactor(void)
-{
-	std::string s(m_innerData->m_lowElevationFactor->get_text().utf8().get_data());
-	float ret = 0;
-	if (s.length() >0)
-		ret = std::stof(s);
-	return ret;
-}
+//float GDN_TheWorld_Edit::lowElevationFactor(void)
+//{
+//	std::string s(m_innerData->m_lowElevationFactor->get_text().utf8().get_data());
+//	float ret = 0;
+//	if (s.length() >0)
+//		ret = std::stof(s);
+//	return ret;
+//}
 
 void GDN_TheWorld_Edit::resetSplatMapMode(void)
 {
@@ -3445,10 +3447,10 @@ void GDN_TheWorld_Edit::guiInputEvent(const godot::Ref<godot::InputEvent>& event
 //	return m_innerData->m_collisonLowResGridCheckBox->is_pressed();
 //}
 
-void GDN_TheWorld_Edit::testHSliderValueChanged(double d)
+void GDN_TheWorld_Edit::m_textureOverflowSizeHSliderValueChanged(double d)
 {
 	Globals()->getWorldMainNode()->call("_set_shader_param_texture_overflow_size", d);
-	m_innerData->m_testHSliderLabel->set_text(std::format("{:.2f}", d).c_str());
+	m_innerData->m_textureOverflowSizeLabel_2->set_text(std::format("{:.2f}", d).c_str());
 }
 
 void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3)
@@ -4839,7 +4841,7 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 	{
 		m_actionClock.tock();
 		m_actionInProgress = false;
-		setMessage(godot::String("No quadrant to sew!"), true);
+		setMessage(godot::String("No quadrant to blend!"), true);
 		terrainDataLocked(false);
 		return;
 	}

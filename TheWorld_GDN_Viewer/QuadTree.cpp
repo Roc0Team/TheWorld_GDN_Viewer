@@ -158,7 +158,7 @@ void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std:
 		TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.1 ") + __FUNCTION__, "cache.refreshMapsFromBuffer");
 
 		//TheWorld_Utils::MeshCacheBuffer cache;
-		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, namedDataBuffer, updateCache);
+		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, namedDataBuffer, updateCache, true);
 	}
 
 	if (outMeshIdFromBuffer.size() > 0)
@@ -176,7 +176,7 @@ void MapQuadrantImage::refreshDataFromServer(std::string& bufferFromServer, std:
 	{
 		// Buffer from server was empty
 		TheWorld_Utils::GuardProfiler profiler(std::string("refreshDataFromServer 1.1 ") + __FUNCTION__, "cache.refreshMapsFromDisk");
-		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, namedDataBuffer);
+		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, float16HeigthsBuffer, float32HeigthsBuffer, normalsBuffer, splatmapBuffer, colormapBuffer, globalmapBuffer, namedDataBuffer, true);
 	}
 
 	setMeshId(meshIdFromServer);
@@ -674,7 +674,7 @@ void QuadTree::setStatus(enum class QuadrantStatus status)
 {
 	if (m_worldQuadrant != nullptr)
 	{
-		m_worldQuadrant->getPos().trackQuadrantForDebug("", std::string("Set world quadrant status to ") + statusToString(status));
+		m_worldQuadrant->getPos().TRACK_QUADRANT_FOR_DEBUG(std::string("Set world quadrant status to ") + statusToString(status), getQuadrant() != nullptr ? getQuadrant()->getMeshId() : "");
 	}
 	
 	m_lastStatusChange = std::chrono::time_point_cast<TheWorld_Viewer_Utils::MsTimePoint::duration>(std::chrono::system_clock::now());
@@ -5419,7 +5419,8 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 	if (!m_mapModder->ready())
 		return;
 
-	m_quadTree->getQuadrant()->getPos().trackQuadrantForDebug("", "Quadrant process_mapModder");
+	std::string meshId = m_quadTree->getQuadrant()->getMeshId();
+	//m_quadTree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("Quadrant process_mapModder", meshId);
 
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
 	if (editModeUIControl == nullptr or not editModeUIControl->initialized() or editModeUIControl->terrainDataLocked())
@@ -5432,12 +5433,14 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 
 	if (terrainEdit->heightsNeedRegen)
 	{
+		m_quadTree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("Quadrant process_mapModder - HeightsNeedRegen", meshId);
 		editModeUIControl->terrainDataLocked(false);
 		return;
 	}
 		
 	if (terrainEdit->normalsNeedRegen)
 	{
+		m_quadTree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("Quadrant process_mapModder - NormalsNeedRegen", meshId);
 		bool lockAcquired = lockInternalData();
 		if (lockAcquired)
 		{
@@ -5449,8 +5452,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 
 	if (terrainEdit->splatmapNeedRegen())
 	{
-		//if (!terrainEdit->splatmapNeedRegen)	// DEBUG ONLY
-		//	bool b = true;						// DEBUG ONLY
+		m_quadTree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("Quadrant process_mapModder - SplatmapNeedRegen", meshId);
 		bool lockAcquired = lockInternalData();
 		if (lockAcquired)
 		{
@@ -5467,6 +5469,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 
 	if (terrainEdit->globalmapNeedRegen)
 	{
+		m_quadTree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("Quadrant process_mapModder - GlobalMapNeedRegen", meshId);
 		bool lockAcquired = lockInternalData();
 		if (lockAcquired)
 		{
@@ -5479,6 +5482,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 	bool manual = true;
 	if (editModeUIControl->isQuadToSave(m_quadrantPos, manual))
 	{
+		m_quadTree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("Quadrant process_mapModder - SaveQuad", meshId);
 		if (!manual)
 		{
 			bool lockAcquired = lockInternalData();
@@ -5785,7 +5789,7 @@ void Quadrant::loadTerrainDataFromCache(void)
 	TheWorld_Utils::MemoryBuffer terrainEditValues;
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("loadTerrainDataFromCache 1.1 ") + __FUNCTION__, "m_cache.refreshMapsFromDisk");
-		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValues, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer);
+		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValues, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, true);
 		//if (terrainEditValues.size() > 0)
 		//	getTerrainEdit()->deserialize(terrainEditValues);
 		//if (empty)
@@ -6686,10 +6690,12 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	
 	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 
+	getPos().TRACK_QUADRANT_FOR_DEBUG("refreshGridVerticesFromServer", getMeshId());
+	
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.1 ") + __FUNCTION__, "m_cache.refreshMapsFromBuffer");
 
-		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, updateCache);
+		m_cache.refreshMapsFromBuffer(bufferFromServer, outMeshIdFromBuffer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, updateCache, true);
 		if (terrainEditValuesBuffer.size() > 0)
 		{
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);
@@ -6716,7 +6722,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		// Buffer from server was empty
 		TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1.2 ") + __FUNCTION__, "m_cache.readMapsFromMeshCache");
 
-		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer);
+		bool empty = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), meshIdFromServer, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, true);
 		if (terrainEditValuesBuffer.size() > 0)
 		{
 			getTerrainEdit()->deserialize(terrainEditValuesBuffer);
@@ -6761,7 +6767,10 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	else
 	{
 		if (m_splatmapBuffer.empty() && !getTerrainEdit()->splatmapNeedRegen())
+		{
+			getPos().TRACK_QUADRANT_FOR_DEBUG("refreshGridVerticesFromServer splatmapNeedRegen", getMeshId());
 			getTerrainEdit()->splatmapNeedRegen(true);
+		}
 		if (TheWorld_Utils::MeshCacheBuffer::cacheQuadrantFormat0())
 		{
 			if (m_normalsBuffer.empty() && !getTerrainEdit()->normalsNeedRegen)

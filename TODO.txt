@@ -1,4 +1,13 @@
+* dopo un upload manuale del quadrante schedulare la generazione server-side che porta ad un nuovo upload questa volta automatico
+* evitare la necessità dell'auto-blending
+* Eliminare dal modder la creazione della normalmap e della splatmap e togliere dal codicie i riferimenti a u_terrain_normalmap e u_terrain_splatmap
 * Predisposizione per altri dati nel file che contiene i dati del quadrante
+* generare le informazioni sulle linee di livello (un array di linee di livello) per capire se i livelli di acqua corrispondono a laghi o al mare:
+  * un item di un array per ogni linea di livello che comprenda:
+    * header: info sulla linea di livello (altitudine, lago/mare/terreno)
+	* bitmap che indichi con una coppia di bit, per ogni quadrato della heigthmap, se quel quadrato è tutto sopra la linea (10), contiene la linea di livello (01), o è tutto al di sotto di tale linea (00)
+  * gestire in modo opportuno laghi e mare nel water shader
+* gestione dei laghi a livelli differenti da quelli del mare e depressioni sotto il livello del mare senza acqua
 * Ottimizzazione dello shader terrain/water (riducendo if)
 * Consentire nell'editor di Godot la map-view e la generazione dei terreni
 * Implementare il detiling come in Terrain3D e correggere il calcolo dell'UV

@@ -3349,9 +3349,12 @@ void GDN_TheWorld_MapModder::initForNormals(QuadTree* quadtree, TheWorld_Utils::
 {
 	my_assert(m_initialized == MapType::uninitialized);
 
+	std::string meshId = quadtree->getQuadrant()->getMeshId();
+	quadtree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("InitForNormals", meshId);
+
 	if (m_initialized == MapType::uninitialized)
 	{
-		PLOG_DEBUG << "MapModder Init For Normals - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadtree->getQuadrant()->getMeshId());
+		PLOG_DEBUG << "MapModder Init For Normals - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshId);
 
 		GDN_TheWorld_MapModder::incNumWorking();
 		
@@ -3382,10 +3385,12 @@ void GDN_TheWorld_MapModder::initForSplatmap(QuadTree* quadtree, TheWorld_Utils:
 {
 	my_assert(m_initialized == MapType::uninitialized);
 
+	std::string meshId = quadtree->getQuadrant()->getMeshId();
+	quadtree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("InitForSplatmap", meshId);
+
 	if (m_initialized == MapType::uninitialized)
 	{
-		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadtree->getQuadrant()->getMeshId());
-
+		PLOG_DEBUG << "MapModder Init For Splatmap - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshId);
 		GDN_TheWorld_MapModder::incNumWorking();
 		
 		m_signalRequired = signalRequired;
@@ -3417,10 +3422,12 @@ void GDN_TheWorld_MapModder::initForGlobalMap(QuadTree* quadtree, size_t tileSiz
 {
 	my_assert(m_initialized == MapType::uninitialized);
 
+	std::string meshId = quadtree->getQuadrant()->getMeshId();
+	quadtree->getQuadrant()->getPos().TRACK_QUADRANT_FOR_DEBUG("InitForGlobalMap", meshId);
+
 	if (m_initialized == MapType::uninitialized)
 	{
-		PLOG_DEBUG << "MapModder Init For Globalmap - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadtree->getQuadrant()->getMeshId());
-
+		PLOG_DEBUG << "MapModder Init For Globalmap - Quadrant " << quadtree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshId);
 		GDN_TheWorld_MapModder::incNumWorking();
 
 		m_signalRequired = signalRequired;
@@ -6168,13 +6175,13 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							{
 								//Globals()->debugPrint((std::string("Refreshing quadrant: received terrain data for quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshIdFromServer) + " ").c_str());
 								PLOG_VERBOSE << "Refreshing quadrant: received terrain data for quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshIdFromServer);
-								quadrantPos.trackQuadrantForDebug("", "Refreshing quadrant: received terrain data for quadrant");
+								quadrantPos.TRACK_QUADRANT_FOR_DEBUG("Refreshing quadrant: received terrain data for quadrant", meshIdFromServer);
 							}
 							else
 							{
 								//Globals()->debugPrint((std::string("Initializing quadrant: received terrain data for quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
 								PLOG_VERBOSE << "Initializing quadrant: received terrain data for quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId());
-								quadrantPos.trackQuadrantForDebug("", "Initializing quadrant: received terrain data for quadrant");
+								quadrantPos.TRACK_QUADRANT_FOR_DEBUG("Initializing quadrant: received terrain data for quadrant", quadTree->getQuadrant()->getMeshId());
 							}
 
 							//std::recursive_mutex& quadrantMutex = quadTree->getQuadrantMutex();
@@ -6755,7 +6762,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 									QuadTree* quadTree = m_worldQuadrantsMap[pos].get();
 									if (quadTree->isValid() && quadTree->getQuadrant()->getPos().isInitialized() && quadTree->getQuadrant()->mapModderWorkDone())
 									{
-										pos.trackQuadrantForDebug("", "Requesting refresh for quadrant");
+										pos.TRACK_QUADRANT_FOR_DEBUG("Requesting refresh for quadrant", quadTree->getQuadrant()->getMeshId());
 										quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
 										PLOG_VERBOSE << "Requested refresh for quadrant in world quads map " << pos.getIdStr();
 									}
@@ -6890,7 +6897,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 								//pos.trackQuadrantForDebug("",  "Requesting refresh for quadrant up to date as client work is needed");
 								//quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
 								//PLOG_VERBOSE << "Requested refresh for quadrant in extra quads map and world quads map " << pos.getIdStr();
-								pos.trackQuadrantForDebug("", "Requested map modder work for quadrant up to date");	// XXXXX
+								pos.TRACK_QUADRANT_FOR_DEBUG("Requested map modder work for quadrant up to date", quadTree->getQuadrant()->getMeshId());	// XXXXX
 								quadTree->getQuadrant()->mapModderWorkDone(false);
 								PLOG_VERBOSE << "Requested map modder work for quadrant up to date " << pos.getIdStr();
 							}
@@ -6900,7 +6907,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							// Quadrants needing client work but not being in world quads map: we need to create a new copy of them in extra quads map to initialize them let the client work begin (QuadTree::process_mapModder)
 							if (!m_extraQuadsMap.contains(pos) && (Globals()->status() == TheWorldStatus::worldDeployed or Globals()->status() == TheWorldStatus::minimalWorldDeployed))
 							{
-								pos.trackQuadrantForDebug("", "Adding newely created quadrant to extra quads map and requesting delayed init");
+								pos.TRACK_QUADRANT_FOR_DEBUG("Adding newely created quadrant to extra quads map and requesting delayed init", m_extraQuadsMap[pos]->getQuadrant() != nullptr ? m_extraQuadsMap[pos]->getQuadrant()->getMeshId() : "");
 								m_extraQuadsMap[pos] = make_unique<QuadTree>(this, pos);	// Quadrant is uninitialized now
 								float x = 0, y = 0, z = 0, yaw = 0, pitch = 0, roll = 0;
 								m_extraQuadsMap[pos]->requestDelayedInit(x, y, z, yaw, pitch, roll, false, 0.0f);	// To initialize in process procedure
@@ -9894,7 +9901,7 @@ void GDN_TheWorld_Viewer::process_eraseOutOfViewQuads(GDN_TheWorld_Edit* editMod
 			toErase.push_back(item.first);
 	for (auto& pos : toErase)
 	{
-		pos.trackQuadrantForDebug("", "Erasing quadrant from extra quads map");
+		pos.TRACK_QUADRANT_FOR_DEBUG("Erasing quadrant from extra quads map", "");
 
 		enum class QuadrantStatus status = QuadrantStatus::notSet;
 		IF_PLOG(plog::verbose)
@@ -16018,7 +16025,7 @@ bool GDN_TheWorld_Viewer::loadQuadrantData(float posX, float posZ, int level)
 	cacheQuadrantData.splatmapBuffer = &splatmapBuffer;
 	cacheQuadrantData.globalmapBuffer = &globalmapBuffer;
 	cacheQuadrantData.colormapBuffer = &colormapBuffer;
-	loadedCache.refreshCacheQuadrantDataFromBuffer(buffer, cacheQuadrantData, false);
+	loadedCache.refreshCacheQuadrantDataFromBuffer(buffer, cacheQuadrantData, false, true);
 	
 	m_tempPos = pos;
 

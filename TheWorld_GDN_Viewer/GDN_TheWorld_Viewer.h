@@ -1095,8 +1095,8 @@ namespace godot
 		{
 
 			uninitialized = 0
-			,initializedForNormals = 1
-			,initializedForSplatmap = 2
+			//,initializedForNormals = 1
+			//,initializedForSplatmap = 2
 			,initializedForGlobalmap = 3
 		};
 
@@ -1121,16 +1121,16 @@ namespace godot
 
 		void framePostDraw(void);
 
-		void initForNormals(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
-		void initForSplatmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer,
-			float slopeVerticalFactor,
-			float slopeFlatFactor,
-			float dirtOnRocksFactor,
-			float highElevationFactor,
-			float lowElevationFactor,
-			float minHeigth,
-			float maxHeigth,
-			size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
+		//void initForNormals(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
+		//void initForSplatmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer,
+		//	float slopeVerticalFactor,
+		//	float slopeFlatFactor,
+		//	float dirtOnRocksFactor,
+		//	float highElevationFactor,
+		//	float lowElevationFactor,
+		//	float minHeigth,
+		//	float maxHeigth,
+		//	size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
 		void initForGlobalMap(QuadTree* quadtree, size_t tileSize = 512, bool signalRequired = false);
 		void deinit(void);
 		void startProcessing(void);
@@ -1196,10 +1196,10 @@ namespace godot
 		size_t m_tileSize = 0;
 		size_t m_viewportBorder = 0;
 		size_t m_imageSize = 0;
-		TheWorld_Utils::MemoryBuffer* m_float32HeigthsBuffer = nullptr;
-		size_t m_numHeights = 0;
-		TheWorld_Utils::MemoryBuffer* m_normalsBuffer = nullptr;
-		size_t m_numNormals = 0;
+		//TheWorld_Utils::MemoryBuffer* m_float32HeigthsBuffer = nullptr;
+		//size_t m_numHeights = 0;
+		//TheWorld_Utils::MemoryBuffer* m_normalsBuffer = nullptr;
+		//size_t m_numNormals = 0;
 		float m_slopeVerticalFactor = 0;
 		float m_slopeFlatFactor = 0;
 		float m_dirtOnRocksFactor = 0;
@@ -1855,19 +1855,19 @@ namespace godot
 
 		void replyFromServer(TheWorld_ClientServer::ClientServerExecution& reply);
 
-		void setDesideredLookDev(enum class ShaderTerrainData::LookDev desideredLookDev)
-		{
-			if (m_desiderdLookDev != desideredLookDev)
-			{
-				m_desiderdLookDev = desideredLookDev;
-				m_desideredLookDevChanged = true;
-			}
-		}
+		//void setDesideredLookDev(enum class ShaderTerrainData::LookDev desideredLookDev)
+		//{
+		//	if (m_desiderdLookDev != desideredLookDev)
+		//	{
+		//		m_desiderdLookDev = desideredLookDev;
+		//		m_desideredLookDevChanged = true;
+		//	}
+		//}
 
-		enum class ShaderTerrainData::LookDev getDesideredLookDev(void) const
-		{
-			return m_desiderdLookDev;
-		}
+		//enum class ShaderTerrainData::LookDev getDesideredLookDev(void) const
+		//{
+		//	return m_desiderdLookDev;
+		//}
 
 		//
 		// Godot Standard Functions
@@ -3017,7 +3017,7 @@ namespace godot
 		void process_updateLodInQuads(godot::Vector3& cameraPosInMap, enum class QuadType type);
 		void process_updateMeshForUpdatedChunks(void);
 		void process_updateMeshForUpdatedChunks(enum class QuadType type);
-		void process_lookDev(void);
+		//void process_lookDev(void);
 		void process_materialParams(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void process_neighbourQuadrantData(QuadTree* quadTree);
 		void process_mapQuadrants(godot::Vector2 cameraWorldPos);
@@ -3065,8 +3065,8 @@ namespace godot
 		bool m_dumpScheduled = false;
 		Chunk* lastTrackedChunk;
 		//Vector3 m_mapScaleVector;
-		enum class ShaderTerrainData::LookDev m_desiderdLookDev;
-		bool m_desideredLookDevChanged;
+		//enum class ShaderTerrainData::LookDev m_desiderdLookDev = ShaderTerrainData::LookDev::NotSet;
+		//bool m_desideredLookDevChanged = false;
 		bool m_stopDeploy;
 
 		//std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadrantToShader;	// Remarked function GDN_TheWorld_Viewer::updateTerrainMaterial

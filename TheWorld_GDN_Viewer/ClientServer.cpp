@@ -560,11 +560,18 @@ namespace TheWorld_ClientServer
 					return;
 				}
 
+				bool* regenOnServer = std::get_if<bool>(&reply->m_inputParams[10]);
+				if (regenOnServer == nullptr)
+				{
+					reply->replyError(THEWORLD_CLIENTSERVER_RC_INPUT_PARAM_ERROR, "Tenth param must be a bool");
+					return;
+				}
+
 				if (expiredTimeToLive(reply))
 					return;
 
 				bool refreshRequired;
-				m_threadContextPool->getCurrentContext()->getMapManager()->uploadCacheBuffer(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, *gridStepInWU, *level, buffer, refreshRequired, *numQuadrantsPerSize, *quadrantGlobalSize, *quadrantWorldSize);
+				m_threadContextPool->getCurrentContext()->getMapManager()->uploadCacheBuffer(*lowerXGridVertex, *lowerZGridVertex, *numVerticesPerSize, *gridStepInWU, *level, buffer, refreshRequired, *numQuadrantsPerSize, *quadrantGlobalSize, *quadrantWorldSize, *regenOnServer);
 
 				reply->replyParam(refreshRequired);
 

@@ -202,15 +202,15 @@ namespace godot
 			}
 			void init(Quadrant* owningQuadrant, Quadrant* neighbourQuadrant, TheWorld_Utils::QuadrantPos::DirectionSlot neighbourQuadrantDir, TheWorld_Utils::QuadrantPos& owningQuadrantPos);
 
-			TheWorld_Utils::MemoryBuffer& getSplatmapBorderRow(void)
-			{
-				return m_splatmapBorderRow;
-			}
-			godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(void);
+			//TheWorld_Utils::MemoryBuffer& getSplatmapBorderRow(void)
+			//{
+			//	return m_splatmapBorderRow;
+			//}
+			//godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(void);
 
-			TheWorld_Utils::MemoryBuffer& getHeightmapBorderRow(void)
+			TheWorld_Utils::MemoryBuffer& getInternalHeightmapBorderRow(void)
 			{
-				return m_heightmapBorderRow;
+				return m_internalHeightmapBorderRow;
 			}
 			uint16_t getHeightmapCorner(void) const
 			{
@@ -229,10 +229,10 @@ namespace godot
 			godot::Color m_upperLeftCornerSplatmapTexel;
 			bool m_shaderUpdated = false;
 			uint16_t m_heightmapCorner = 0;
-			TheWorld_Utils::MemoryBuffer m_heightmapBorderRow;
+			TheWorld_Utils::MemoryBuffer m_internalHeightmapBorderRow;
 			std::chrono::system_clock::time_point m_lastHeightmapBorderRefreshTs;
-			TheWorld_Utils::MemoryBuffer m_splatmapBorderRow;
-			std::chrono::system_clock::time_point m_lastSplatmapBorderRefreshTs;
+			//TheWorld_Utils::MemoryBuffer m_splatmapBorderRow;
+			//std::chrono::system_clock::time_point m_lastSplatmapBorderRefreshTs;
 			//// #####
 			//TheWorld_Utils::QuadrantPos m_owningQuadrantPos;
 			//TheWorld_Utils::QuadrantPos m_neighbourQuadrantPos;
@@ -300,7 +300,7 @@ namespace godot
 		void refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache);
 
 		void heightmapChanged(void);
-		void splatmapChanged(void);
+		//void splatmapChanged(void);
 
 		AABB& getGlobalCoordAABB(void)
 		{
@@ -335,6 +335,7 @@ namespace godot
 				TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getFloat16HeightsBuffer 1 ") + __FUNCTION__, "Heightmap16 reload from disk");
 				TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 				float minAltitude, maxAltitude;
+				TheWorld_Utils::MemoryBuffer m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer;
 				bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
 			}
 			return m_float16HeigthsBuffer;
@@ -347,65 +348,67 @@ namespace godot
 				TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getFloat32HeightsBuffer 1 ") + __FUNCTION__, "Heightmap32 reload from disk");
 				TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 				float minAltitude, maxAltitude;
+				TheWorld_Utils::MemoryBuffer m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer;
 				bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
 			}
 			return m_float32HeigthsBuffer;
 		}
 
-		TheWorld_Utils::MemoryBuffer& getNormalsBuffer(bool reloadFromCache = true, bool force = false)
-		{
-			if (reloadFromCache and m_normalsBuffer.empty())
-			{
-				if (!getTerrainEdit()->normalsNeedRegen || force)
-				{
-					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getNormalsBuffer 1 ") + __FUNCTION__, "Normalmap reload from disk");
-					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-					float minAltitude, maxAltitude;
-					bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
-				}
-			}
-			return m_normalsBuffer;
-		}
+		//TheWorld_Utils::MemoryBuffer& getNormalsBuffer(bool reloadFromCache = true, bool force = false)
+		//{
+		//	if (reloadFromCache and m_normalsBuffer.empty())
+		//	{
+		//		if (!getTerrainEdit()->normalsNeedRegen() || force)
+		//		{
+		//			TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getNormalsBuffer 1 ") + __FUNCTION__, "Normalmap reload from disk");
+		//			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+		//			float minAltitude, maxAltitude;
+		//			bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
+		//		}
+		//	}
+		//	return m_normalsBuffer;
+		//}
 
-		TheWorld_Utils::MemoryBuffer& getSplatmapBuffer(bool reloadFromCache = true)
-		{
-			if (reloadFromCache and m_splatmapBuffer.empty())
-			{
-				if (!getTerrainEdit()->splatmapNeedRegen())
-				{
-					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getSplatmapBuffer 1 ") + __FUNCTION__, "Splatmap reload from disk");
-					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-					float minAltitude, maxAltitude;
-					bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
-				}
-			}
-			return m_splatmapBuffer;
-		}
+		//TheWorld_Utils::MemoryBuffer& getSplatmapBuffer(bool reloadFromCache = true)
+		//{
+		//	if (reloadFromCache and m_splatmapBuffer.empty())
+		//	{
+		//		if (!getTerrainEdit()->splatmapNeedRegen())
+		//		{
+		//			TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getSplatmapBuffer 1 ") + __FUNCTION__, "Splatmap reload from disk");
+		//			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+		//			float minAltitude, maxAltitude;
+		//			bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
+		//		}
+		//	}
+		//	return m_splatmapBuffer;
+		//}
 
-		TheWorld_Utils::MemoryBuffer& getColormapBuffer(bool reloadFromCache = true)
-		{
-			if (reloadFromCache and m_colormapBuffer.empty())
-			{
-				if (!getTerrainEdit()->colormapNeedRegen)
-				{
-					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getColormapBuffer 1 ") + __FUNCTION__, "Colormap reload from disk");
-					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-					float minAltitude, maxAltitude;
-					bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
-				}
-			}
-			return m_colormapBuffer;
-		}
+		//TheWorld_Utils::MemoryBuffer& getColormapBuffer(bool reloadFromCache = true)
+		//{
+		//	if (reloadFromCache and m_colormapBuffer.empty())
+		//	{
+		//		if (!getTerrainEdit()->colormapNeedRegen())
+		//		{
+		//			TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getColormapBuffer 1 ") + __FUNCTION__, "Colormap reload from disk");
+		//			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+		//			float minAltitude, maxAltitude;
+		//			bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
+		//		}
+		//	}
+		//	return m_colormapBuffer;
+		//}
 
 		TheWorld_Utils::MemoryBuffer& getGlobalmapBuffer(bool reloadFromCache = true)
 		{
 			if (reloadFromCache and m_globalmapBuffer.empty())
 			{
-				if (!getTerrainEdit()->globalmapNeedRegen)
+				if (!getTerrainEdit()->globalmapNeedRegen())
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getGlobalmapBuffer 1 ") + __FUNCTION__, "Globalmap reload from disk");
 					TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 					float minAltitude, maxAltitude;
+					TheWorld_Utils::MemoryBuffer m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer;
 					bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
 				}
 			}
@@ -419,13 +422,14 @@ namespace godot
 				TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getNamedDataBuffer 1 ") + __FUNCTION__, "NamedData reload from disk");
 				TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 				float minAltitude, maxAltitude;
+				TheWorld_Utils::MemoryBuffer m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer;
 				bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
 			}
 			return m_namedDataBuffer;
 		}
 
 		//godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
-		godot::Color getSplatmapBorderRowTexel(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
+		//godot::Color getSplatmapBorderRowTexel(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
 
 		//void fillQuadrantData(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData)
 		//{
@@ -461,35 +465,35 @@ namespace godot
 		//	resetColormapBuffer();
 		//}
 
-		void resetNormalsBuffer(std::string actor)
-		{
-			getNormalsBuffer(false).clear(actor);
-			getTerrainEdit()->normalsNeedRegen = true;
-			sendNormalsToShader(true);
+		//void resetNormalsBuffer(std::string actor)
+		//{
+		//	getNormalsBuffer(false).clear(actor);
+		//	getTerrainEdit()->normalsNeedRegen(true);
+		//	sendNormalsToShader(true);
 
-			resetSplatmapBuffer(actor);
-		}
+		//	resetSplatmapBuffer(actor);
+		//}
 
-		void resetSplatmapBuffer(std::string actor)
-		{
-			getSplatmapBuffer(false).clear(actor);
-			getTerrainEdit()->splatmapNeedRegen(true);
-			sendSplatmapToShader(true);
-			
-			resetGlobalmapBuffer(actor);
-		}
+		//void resetSplatmapBuffer(std::string actor)
+		//{
+		//	getSplatmapBuffer(false).clear(actor);
+		//	getTerrainEdit()->splatmapNeedRegen(true);
+		//	sendSplatmapToShader(true);
+		//	
+		//	resetGlobalmapBuffer(actor);
+		//}
 
-		void resetColormapBuffer(std::string actor)
-		{
-			getColormapBuffer(false).clear(actor);
-			getTerrainEdit()->colormapNeedRegen = true;
-			sendColorsToShader(true);
-		}
+		//void resetColormapBuffer(std::string actor)
+		//{
+		//	getColormapBuffer(false).clear(actor);
+		//	getTerrainEdit()->colormapNeedRegen(true);
+		//	sendColorsToShader(true);
+		//}
 
 		void resetGlobalmapBuffer(std::string actor)
 		{
 			getGlobalmapBuffer(false).clear(actor);
-			getTerrainEdit()->globalmapNeedRegen = true;
+			getTerrainEdit()->globalmapNeedRegen(true);
 			sendGlobalmapToShader(true);
 		}
 
@@ -566,14 +570,14 @@ namespace godot
 		void releaseTerrainValuesMemory(bool visible);
 
 		size_t calcMapMemoryOccupation(void);
-		size_t calcBorderHeightEdges(void);
-		size_t calcBorderSplatEdges(void);
+		size_t calcBorderHeightEdgesMemoryOccupation(void);
+		//size_t calcBorderSplatEdgesMemoryOccupation(void);
 		size_t calcHeightmap16MemoryOccupation(void);
 		size_t calcHeightmap32MemoryOccupation(void);
-		size_t calcNormalmapMemoryOccupation(void);
-		size_t calcSplatmapMemoryOccupation(void);
+		//size_t calcNormalmapMemoryOccupation(void);
+		//size_t calcSplatmapMemoryOccupation(void);
 		size_t calcGlobalmapMemoryOccupation(void);
-		size_t calcColormapMemoryOccupation(void);
+		//size_t calcColormapMemoryOccupation(void);
 		size_t calcTerrainEditMemoryOccupation(void);
 		size_t calcColliderHeightsMemoryOccupation(void);
 
@@ -685,8 +689,8 @@ namespace godot
 		void getHeightmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& heightmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		void getHeightmapCorner(std::chrono::system_clock::time_point& lastBorderRefreshTs, uint16_t& heightmapCorner, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		//godot::Ref<godot::ImageTexture> getHeightmapBorderQuadrantRowsTexture(int32_t& numValidBorders);
-		void getSplatmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& splatmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
-		godot::Color getLowerRightCornerSplatmapTexel(void);
+		//void getSplatmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& splatmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
+		//godot::Color getLowerRightCornerSplatmapTexel(void);
 		godot::Vector4 quadrantTextureLayers(void) const;
 		NeighbourQuadrantData& northQuadrantData(void)
 		{
@@ -787,15 +791,15 @@ namespace godot
 
 		void updateTerrainEditTextureLayers(void);
 
-		godot::Ref<godot::ImageTexture> getHeightmapBorderRowsTexture(void)
-		{
-			return m_heightmapBorderRowsTexture;
-		}
+		//godot::Ref<godot::ImageTexture> getHeightmapBorderRowsTexture(void)
+		//{
+		//	return m_heightmapBorderRowsTexture;
+		//}
 
-		void setHeightmapBorderRowsTexture(godot::Ref<godot::ImageTexture> texture)
-		{
-			m_heightmapBorderRowsTexture = texture;
-		}
+		//void setHeightmapBorderRowsTexture(godot::Ref<godot::ImageTexture> texture)
+		//{
+		//	m_heightmapBorderRowsTexture = texture;
+		//}
 
 		enum class QuadrantTypeInGrid
 		{
@@ -844,9 +848,9 @@ namespace godot
 		std::string m_meshId;
 		TheWorld_Utils::MemoryBuffer m_float16HeigthsBuffer;	// each height is expressed as a 16-bit float (image with FORMAT_RH) and are serialized line by line (each line from x=0 to x=numVertexPerQuadrant, first line ==> z=0, last line z=numVertexPerQuadrant)
 		TheWorld_Utils::MemoryBuffer m_float32HeigthsBuffer;	// each height is expressed as a 32-bit and are serialized as above
-		TheWorld_Utils::MemoryBuffer m_normalsBuffer;			// each normal is expressed as a three bytes color (r=normal x, g=normal z, b=normal y) and are serialized in the same order as heights
-		TheWorld_Utils::MemoryBuffer m_splatmapBuffer;			// for each vertex there is a four bytes color (r=lowElevationTex %, g=dirtTex %, b=highElevationTex %, a=slope %) and are serialized in the same order as heights
-		TheWorld_Utils::MemoryBuffer m_colormapBuffer;			// Vertices color
+		//TheWorld_Utils::MemoryBuffer m_normalsBuffer;			// each normal is expressed as a three bytes color (r=normal x, g=normal z, b=normal y) and are serialized in the same order as heights
+		//TheWorld_Utils::MemoryBuffer m_splatmapBuffer;			// for each vertex there is a four bytes color (r=lowElevationTex %, g=dirtTex %, b=highElevationTex %, a=slope %) and are serialized in the same order as heights
+		//TheWorld_Utils::MemoryBuffer m_colormapBuffer;			// Vertices color
 		TheWorld_Utils::MemoryBuffer m_globalmapBuffer;
 		TheWorld_Utils::NamedDataBuffer m_namedDataBuffer;
 		std::unique_ptr<TheWorld_Utils::TerrainEdit> m_terrainEdit;
@@ -854,18 +858,20 @@ namespace godot
 		static TheWorld_Utils::MemoryBuffer s_emptyHeightmapBorderQuadrantRows;
 		static std::recursive_mutex s_emptyHeightmapBorderQuadrantRowsMtx;
 
-		godot::Ref<godot::ImageTexture> m_heightmapBorderRowsTexture;
-		TheWorld_Utils::MemoryBuffer m_heightmapNorthBorderRow;		// north border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
-		TheWorld_Utils::MemoryBuffer m_heightmapSouthBorderRow;		// south border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
-		TheWorld_Utils::MemoryBuffer m_heightmapWestBorderRow;		// west border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
-		TheWorld_Utils::MemoryBuffer m_heightmapEastBorderRow;		// east border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
+		//godot::Ref<godot::ImageTexture> m_heightmapBorderRowsTexture;
+		// Internal border rows of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side: internal means that it is not the border of the quadrant but the line
+		// internally adjacent to that to build an extended heightmap in neighbours quadrants
+		TheWorld_Utils::MemoryBuffer m_heightmapInternalNorthBorderRow;		// internal north border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
+		TheWorld_Utils::MemoryBuffer m_heightmapInternalSouthBorderRow;		// internal south border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
+		TheWorld_Utils::MemoryBuffer m_heightmapInternalWestBorderRow;		// internal west border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
+		TheWorld_Utils::MemoryBuffer m_heightmapInternalEastBorderRow;		// internal east border row of my own heights (m_float16HeigthsBuffer), used to build neighbours shader heightmaps with a border of heights on each side
 		std::chrono::system_clock::time_point m_lastHeightmapBordersRefreshTs = TheWorld_Utils::null_time_point();
 
-		TheWorld_Utils::MemoryBuffer m_splatmapNorthBorderRow;		// north border row of the splatmap
-		TheWorld_Utils::MemoryBuffer m_splatmapSouthBorderRow;		// south border row of the splatmap
-		TheWorld_Utils::MemoryBuffer m_splatmapWestBorderRow;		// west border row of the splatmap
-		TheWorld_Utils::MemoryBuffer m_splatmapEastBorderRow;		// east border row of the splatmap
-		std::chrono::system_clock::time_point m_lastSplatmapBordersRefreshTs;
+		//TheWorld_Utils::MemoryBuffer m_splatmapNorthBorderRow;		// north border row of the splatmap
+		//TheWorld_Utils::MemoryBuffer m_splatmapSouthBorderRow;		// south border row of the splatmap
+		//TheWorld_Utils::MemoryBuffer m_splatmapWestBorderRow;		// west border row of the splatmap
+		//TheWorld_Utils::MemoryBuffer m_splatmapEastBorderRow;		// east border row of the splatmap
+		//std::chrono::system_clock::time_point m_lastSplatmapBordersRefreshTs;
 
 #ifdef REAL_T_IS_DOUBLE
 		godot::PackedFloat64Array m_heightsForCollider;
@@ -935,13 +941,13 @@ namespace godot
 #define SHADER_PARAM_TERRAIN_HEIGHTMAP				"u_terrain_heightmap"
 #define SHADER_EXTRA_VERTICES_ON_HEIGHTMAP			"u_extra_vertices_on_heightmap"
 //#define SHADER_PARAM_TERRAIN_HEIGHTMAP_BORDER_ROWS	"u_terrain_heightmap_border_rows"
-#define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
-#define SHADER_PARAM_TERRAIN_SPLATMAP				"u_terrain_splatmap"
+//#define SHADER_PARAM_TERRAIN_NORMALMAP				"u_terrain_normalmap"
+//#define SHADER_PARAM_TERRAIN_SPLATMAP				"u_terrain_splatmap"
 //#define SHADER_PARAM_TERRAIN_COLORMAP				"u_terrain_colormap"
 //#define SHADER_PARAM_TERRAIN_GLOBALMAP			"u_terrain_globalmap"
 
 #define SHADER_PARAM_INVERSE_TRANSFORM				"u_terrain_inverse_transform"
-#define SHADER_PARAM_NORMAL_BASIS					"u_terrain_normal_basis"
+//#define SHADER_PARAM_NORMAL_BASIS					"u_terrain_normal_basis"
 #define SHADER_PARAM_QUADRANT_SIZE					"u_quadrant_size"
 #define SHADER_PARAM_GRID_STEP_OPTLVL_ZERO			"u_grid_step_optlvl_zero"
 #define SHADER_PARAM_FORCE_ELEVATION_0				"u_force_height_0"
@@ -1305,7 +1311,7 @@ namespace godot
 			return m_materialParamsNeedReset;
 		}
 		void materialParamsNeedReset(bool b);
-		void resetMaterialParams(enum class QuadType type, bool& lastProcessExecutionInterrupted, LookDev lookdev);
+		void resetMaterialParams(enum class QuadType type, bool& lastProcessExecutionInterrupted /*, LookDev lookdev*/);
 		bool materialParamsNeedUpdateTransformChanged(void) const
 		{
 			return m_materialParamsNeedUpdateTransformChanged;
@@ -1315,7 +1321,7 @@ namespace godot
 			return m_materialParamsNeedUpdate;
 		}
 		void materialParamsNeedUpdate(bool b, bool transformChanged = false);
-		void updateMaterialParams(enum class QuadType type, LookDev lookdev, bool updateTerrainData = true, bool freeMaps = true);
+		void updateMaterialParams(enum class QuadType type, /*LookDev lookdev,*/ bool updateTerrainData = true, bool freeMaps = true);
 		enum class ImageType
 		{
 			heightmap = 0
@@ -1461,14 +1467,14 @@ namespace godot
 		
 		godot::Ref<godot::Image> getOrCreateHeightmapImage();
 		static godot::Ref<godot::Image> createHeightmapImage(TheWorld_Utils::MemoryBuffer& heightmapBuffer, int _resolution, Quadrant* quadrant);
-		godot::Ref<godot::Image> getOrCreateNormalmapImage();
-		static godot::Ref<godot::Image> createNormalmapImage(TheWorld_Utils::MemoryBuffer& normalmapBuffer, int _resolution);
-		godot::Ref<godot::Image> getOrCreateSplatmapImage();
-		static godot::Ref<godot::Image> createSplatlmapImage(TheWorld_Utils::MemoryBuffer& splatmapBuffer, int _resolution);
+		//godot::Ref<godot::Image> getOrCreateNormalmapImage();
+		//static godot::Ref<godot::Image> createNormalmapImage(TheWorld_Utils::MemoryBuffer& normalmapBuffer, int _resolution);
+		//godot::Ref<godot::Image> getOrCreateSplatmapImage();
+		//static godot::Ref<godot::Image> createSplatlmapImage(TheWorld_Utils::MemoryBuffer& splatmapBuffer, int _resolution);
 		godot::Ref<godot::Image> getOrCreateGlobalmapImage();
 		static godot::Ref<godot::Image> createGlobalmapImage(TheWorld_Utils::MemoryBuffer& globalmapBuffer, int _resolution);
-		godot::Ref<godot::Image> getOrCreateColormapImage();
-		static godot::Ref<godot::Image> createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution);
+		//godot::Ref<godot::Image> getOrCreateColormapImage();
+		//static godot::Ref<godot::Image> createColormapImage(TheWorld_Utils::MemoryBuffer& colormapBuffer, int _resolution);
 
 		//godot::Ref<godot::Image> getHiresHeightmapImage(void)
 		//{
@@ -2051,7 +2057,7 @@ namespace godot
 			return m_worldQuadrant; 
 		}
 		Ref<Material> getCurrentMaterial(enum class QuadType type, int lod);
-		void setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, enum class QuadType type, bool reload = false);
+		//void setLookDevMaterial(enum class ShaderTerrainData::LookDev lookDev, enum class QuadType type, bool reload = false);
 		void setRegularMaterial(enum class QuadType type, bool reload = false);
 		void reloadCurrentMaterial(enum class QuadType type);
 		void setQuadrantOptimizations(godot::Vector3& worldCameraWorldPos);
@@ -2187,10 +2193,10 @@ namespace godot
 			return m_editModeQuadrantSelected;
 		}
 
-		enum class ShaderTerrainData::LookDev getLookDev(void) const
-		{
-			return m_lookDev;
-		}
+		//enum class ShaderTerrainData::LookDev getLookDev(void) const
+		//{
+		//	return m_lookDev;
+		//}
 
 		void mouseHitOnTerrainChanged(godot::Vector3 mouseHit, bool hit);
 		void mouseHitChanged(godot::Vector3 mouseHit, bool hit, enum class QuadType type);
@@ -2342,7 +2348,7 @@ namespace godot
 		std::timespec m_refreshTime;
 		GDN_TheWorld_Quadrant* m_GDN_Quadrant;
 		bool m_editModeQuadrantSelected = false;
-		enum class ShaderTerrainData::LookDev m_lookDev;
+		//enum class ShaderTerrainData::LookDev m_lookDev;
 		int m_canContainSea = QUADRANT_SEA_INFO_NOTSET;
 		QuadrantDepth m_quadrantDepth = QuadrantDepth::NotSet;
 		Quadrant::QuadrantTypeInGrid m_quadrantTypeInGrid = Quadrant::QuadrantTypeInGrid::NotSet;

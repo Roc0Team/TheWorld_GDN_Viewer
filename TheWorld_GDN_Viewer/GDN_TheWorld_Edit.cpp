@@ -61,7 +61,7 @@ void GDN_TheWorld_Edit::_bind_methods()
 	ClassDB::bind_method(D_METHOD("edit_mode_generate"), &GDN_TheWorld_Edit::editModeGenerateAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_set_terr_type"), &GDN_TheWorld_Edit::editModeSetTerrType);
 	ClassDB::bind_method(D_METHOD("edit_mode_blend"), &GDN_TheWorld_Edit::editModeBlendAction);
-	ClassDB::bind_method(D_METHOD("edit_mode_reset_normals_splatmap"), &GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction);
+	//ClassDB::bind_method(D_METHOD("edit_mode_reset_normals_splatmap"), &GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction);
 	//ClassDB::bind_method(D_METHOD("edit_mode_gen_normals"), &GDN_TheWorld_Edit::editModeGenNormalsAction);
 	//ClassDB::bind_method(D_METHOD("edit_mode_apply_textures"), &GDN_TheWorld_Edit::editModeApplyTexturesAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_save"), &GDN_TheWorld_Edit::editModeSaveAction);
@@ -69,7 +69,7 @@ void GDN_TheWorld_Edit::_bind_methods()
 	ClassDB::bind_method(D_METHOD("edit_mode_stop"), &GDN_TheWorld_Edit::editModeStopAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_reload_shader"), &GDN_TheWorld_Edit::editModeReloadShader);
 	ClassDB::bind_method(D_METHOD("edit_mode_sel_terr_type"), &GDN_TheWorld_Edit::editModeSelectTerrainTypeAction);
-	ClassDB::bind_method(D_METHOD("edit_mode_sel_lookdev"), &GDN_TheWorld_Edit::editModeSelectLookDevAction);
+	//ClassDB::bind_method(D_METHOD("edit_mode_sel_lookdev"), &GDN_TheWorld_Edit::editModeSelectLookDevAction);
 	ClassDB::bind_method(D_METHOD("mouse_entered_edit_panel"), &GDN_TheWorld_Edit::editModeMouseEnteredEditPanel);
 	ClassDB::bind_method(D_METHOD("mouse_exited_edit_panel"), &GDN_TheWorld_Edit::editModeMouseExitedEditPanel);
 	ClassDB::bind_method(D_METHOD("control_need_resize"), &GDN_TheWorld_Edit::controlNeedResize);
@@ -565,8 +565,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		button->set_self_modulate(BUTTON_COLOR);
 		button = createControl<godot::Button>(hBoxContainer, "", "Reload shader", "pressed", this, "edit_mode_reload_shader");
 		button->set_self_modulate(BUTTON_COLOR);
-		button = createControl<godot::Button>(hBoxContainer, "", "Reset Norm/Tex", "pressed", this, "edit_mode_reset_normals_splatmap");
-		button->set_self_modulate(BUTTON_COLOR);
+		//button = createControl<godot::Button>(hBoxContainer, "", "Reset Norm/Tex", "pressed", this, "edit_mode_reset_normals_splatmap");
+		//button->set_self_modulate(BUTTON_COLOR);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Apply Texs", "pressed", this, "edit_mode_apply_textures");
 		//button->set_self_modulate(BUTTON_COLOR);
 		//hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainFixedVBoxContainer);
@@ -736,27 +736,27 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 	m_innerData->m_mainScrolledVBoxContainer = createControl<godot::VBoxContainer>(m_innerData->m_mainTerrainScrollContainer);	// marginContainer
 
 	// Lookdev Option Button (in scrollable VBox container)
-	{
-		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
-		m_innerData->m_lookDevOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_lookdev");
-		m_innerData->m_lookDevOptionButton->set_h_size_flags(godot::OptionButton::SizeFlags::SIZE_EXPAND_FILL);
-		m_innerData->m_lookDevOptionButton->set_toggle_mode(true);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev disabled", (int64_t)ShaderTerrainData::LookDev::NotSet);
-		m_innerData->m_lookDevOptionButton->add_separator();
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev heights", (int64_t)ShaderTerrainData::LookDev::Heights);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev normals", (int64_t)ShaderTerrainData::LookDev::Normals);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev splatmap", (int64_t)ShaderTerrainData::LookDev::Splat);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev colors", (int64_t)ShaderTerrainData::LookDev::Color);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev globalmap", (int64_t)ShaderTerrainData::LookDev::Global);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev chunk lod", (int64_t)ShaderTerrainData::LookDev::ChunkLod);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev universe", (int64_t)ShaderTerrainData::LookDev::Universe);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev shader art", (int64_t)ShaderTerrainData::LookDev::ShaderArt);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev lightning", (int64_t)ShaderTerrainData::LookDev::Lightning);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev star nest", (int64_t)ShaderTerrainData::LookDev::StarNest);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev flaring star", (int64_t)ShaderTerrainData::LookDev::FlaringStar);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev animated diamond", (int64_t)ShaderTerrainData::LookDev::AnimatedDiamond);
-		m_innerData->m_lookDevOptionButton->add_item("Lookdev plasma waves", (int64_t)ShaderTerrainData::LookDev::PlasmaWaves);
-	}
+	//{
+	//	hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_mainScrolledVBoxContainer);
+	//	m_innerData->m_lookDevOptionButton = createControl<godot::OptionButton>(hBoxContainer, "", "", "item_selected", this, "edit_mode_sel_lookdev");
+	//	m_innerData->m_lookDevOptionButton->set_h_size_flags(godot::OptionButton::SizeFlags::SIZE_EXPAND_FILL);
+	//	m_innerData->m_lookDevOptionButton->set_toggle_mode(true);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev disabled", (int64_t)ShaderTerrainData::LookDev::NotSet);
+	//	m_innerData->m_lookDevOptionButton->add_separator();
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev heights", (int64_t)ShaderTerrainData::LookDev::Heights);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev normals", (int64_t)ShaderTerrainData::LookDev::Normals);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev splatmap", (int64_t)ShaderTerrainData::LookDev::Splat);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev colors", (int64_t)ShaderTerrainData::LookDev::Color);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev globalmap", (int64_t)ShaderTerrainData::LookDev::Global);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev chunk lod", (int64_t)ShaderTerrainData::LookDev::ChunkLod);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev universe", (int64_t)ShaderTerrainData::LookDev::Universe);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev shader art", (int64_t)ShaderTerrainData::LookDev::ShaderArt);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev lightning", (int64_t)ShaderTerrainData::LookDev::Lightning);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev star nest", (int64_t)ShaderTerrainData::LookDev::StarNest);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev flaring star", (int64_t)ShaderTerrainData::LookDev::FlaringStar);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev animated diamond", (int64_t)ShaderTerrainData::LookDev::AnimatedDiamond);
+	//	m_innerData->m_lookDevOptionButton->add_item("Lookdev plasma waves", (int64_t)ShaderTerrainData::LookDev::PlasmaWaves);
+	//}
 
 	// Terrain Generation (content show/hide in scrollable VBox container)
 	{
@@ -2355,11 +2355,11 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	godot::Rect2 fixedContentRect = m_innerData->m_mainFixedVBoxContainer->get_global_rect();
 	float sizeInViewportForScrollableContainer = viewportSize.y - (fixedContentRect.position.y + fixedContentRect.size.y);
 
-	float lookdevOptionButtonHeight = (float)m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
-	float terrGenerationButtonHeight = (float)m_innerData->m_terrGenerationButton->get_rect().size.height + 3;
-	float terrBlendingButtonHeight = (float)m_innerData->m_terrBlendingButton->get_rect().size.height + 3;
-	float quadrantTextureEditButtonHeight = (float)m_innerData->m_quadrantTextureEditButton->get_rect().size.height + 3;
-	float dummyLabelHeight = (float)m_innerData->m_dummyLabel->get_rect().size.height + 3;
+	//float lookdevOptionButtonHeight = m_innerData->m_lookDevOptionButton == nullptr ? 0 : (float)m_innerData->m_lookDevOptionButton->get_rect().size.height + 3;
+	float terrGenerationButtonHeight = m_innerData->m_terrGenerationButton == nullptr ? 0 : (float)m_innerData->m_terrGenerationButton->get_rect().size.height + 3;
+	float terrBlendingButtonHeight = m_innerData->m_terrBlendingButton == nullptr ? 0 : (float)m_innerData->m_terrBlendingButton->get_rect().size.height + 3;
+	float quadrantTextureEditButtonHeight = m_innerData->m_quadrantTextureEditButton == nullptr ? 0 : (float)m_innerData->m_quadrantTextureEditButton->get_rect().size.height + 3;
+	float dummyLabelHeight = m_innerData->m_dummyLabel == nullptr ? 0 : (float)m_innerData->m_dummyLabel->get_rect().size.height + 3;
 
 	//static float terrGenerationVBoxCExpandedHeight = 0;
 	float terrGenerationVBoxCExpandedHeight = 0;
@@ -2403,7 +2403,7 @@ godot::Size2 GDN_TheWorld_Edit::getTerrainScrolledPanelSize(void)
 	else
 		quadrantTextureEditVBoxcHeight = 0;
 
-	float scrollableContentHeightCalc = lookdevOptionButtonHeight + terrGenerationButtonHeight + terrGenerationVBoxCHeight + terrBlendingButtonHeight + terrBlendingVBoxcHeight + quadrantTextureEditButtonHeight + quadrantTextureEditVBoxcHeight + dummyLabelHeight;
+	float scrollableContentHeightCalc = /*lookdevOptionButtonHeight +*/ terrGenerationButtonHeight + terrGenerationVBoxCHeight + terrBlendingButtonHeight + terrBlendingVBoxcHeight + quadrantTextureEditButtonHeight + quadrantTextureEditVBoxcHeight + dummyLabelHeight;
 
 	godot::Size2 ret;
 
@@ -3896,7 +3896,7 @@ bool GDN_TheWorld_Edit::editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* m
 				int numVerticesPerSize = pos.getNumVerticesPerSize();
 				float gridStepInWU = pos.getGridStepInWU();
 				int lvl = pos.getLevel();
-				quadTree->Viewer()->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
+				quadTree->Viewer()->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), true);
 
 				quadTree->getQuadrant()->unlockInternalData();
 
@@ -4252,7 +4252,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	quadTreeSel->getQuadrant()->heightmapChanged();
 	quadTreeSel->getQuadrant()->sendHeightsToShader(true);
-	terrainEdit->heightsNeedRegen = false;
+	terrainEdit->heightsNeedRegen(false);
 
 	// 5. renew MeshId
 	TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadTreeSel->getQuadrant()->getInternalMeshCacheBuffer();
@@ -4260,9 +4260,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->setMeshId(quadrantCache.getMeshId());
 
 	// 6. invalidata normals and textures as heigths have been changed and set flags according (normals need regen and empty normals have to be passed to shader)
-	quadTreeSel->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
-	quadTreeSel->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
-	quadTreeSel->getQuadrant()->resetColormapBuffer(__FUNCTION__);
+	//quadTreeSel->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
+	//quadTreeSel->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
+	//quadTreeSel->getQuadrant()->resetColormapBuffer(__FUNCTION__);
 	quadTreeSel->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
 	// 7. prepare new heigths for collider (PackedFloat32Array) - // WARNING useless ? Same instructions are executed in Collider::setData called in QuadTree::updateMaterialParams
@@ -4355,7 +4355,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 				break;
 			}
 
-			editModeBlendQuadrantAndNeighbours(pos, 2);
+			editModeBlendQuadrantAndNeighbours(pos, THEWORLD_QUADRANT_DISTANCE_FOR_BLENDING);
 
 			removeQuadToDelayedBlend(pos);
 
@@ -4707,7 +4707,7 @@ void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadran
 
 			//lastPhase = false;	// DEBUG
 			bool renewMeshIdOnUpdate = false;	// MeshId Will be renewed in manageUpdatedHeightsAfterQuadrantBlend function
-			bool updated = lockHolder->quadrant()->getInternalMeshCacheBuffer().blendQuadrant(lockHolder->quadrant()->getPos().getNumVerticesPerSize(), lockHolder->quadrant()->getPos().getGridStepInWU(), lastPhase, renewMeshIdOnUpdate,
+			bool updated = lockHolder->quadrant()->getInternalMeshCacheBuffer().blendQuadrant(lockHolder->quadrant()->getPos(), lastPhase, renewMeshIdOnUpdate,
 				quadrantData,
 				northQuadrantData,
 				southQuadrantData,
@@ -4790,7 +4790,7 @@ void GDN_TheWorld_Edit::manageSaveAndUploadAfterBlending(Quadrant* quadrant)
 		quadrant->getTerrainEdit()->needUploadToServer = false;
 		std::string buffer;
 		quadrant->getQuadrantBufferForCache(buffer);
-		m_viewer->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), quadrantPos.getLowerXGridVertex(), quadrantPos.getLowerZGridVertex(), quadrantPos.getNumVerticesPerSize(), quadrantPos.getGridStepInWU(), quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize());
+		m_viewer->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), quadrantPos.getLowerXGridVertex(), quadrantPos.getLowerZGridVertex(), quadrantPos.getNumVerticesPerSize(), quadrantPos.getGridStepInWU(), quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), true);
 	}
 }
 
@@ -4868,7 +4868,7 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 			break;
 		}
 
-		editModeBlendQuadrantAndNeighbours(pos, 2);
+		editModeBlendQuadrantAndNeighbours(pos, THEWORLD_QUADRANT_DISTANCE_FOR_BLENDING);
 
 		removeQuadToDelayedBlend(pos);
 
@@ -5113,7 +5113,7 @@ void GDN_TheWorld_Edit::editModeBlend(void)
 
 					//lastPhase = false;	// DEBUG
 					bool renewMeshIdOnUpdate = false;	// MeshId Will be renewed in manageUpdatedHeightsAfterQuadrantBlend function
-					bool updated = quadTree->getQuadrant()->getInternalMeshCacheBuffer().blendQuadrant(pos.getNumVerticesPerSize(), pos.getGridStepInWU(), lastPhase, renewMeshIdOnUpdate,
+					bool updated = quadTree->getQuadrant()->getInternalMeshCacheBuffer().blendQuadrant(pos, lastPhase, renewMeshIdOnUpdate,
 						quadrantData,
 						northQuadrantData,
 						southQuadrantData,
@@ -5322,8 +5322,8 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 		quadrant->setNeedUploadToServer(true);
 		quadrant->heightmapChanged();
 		quadrant->sendHeightsToShader(true);
-		quadrant->resetNormalsBuffer(__FUNCTION__);
-		quadrant->resetSplatmapBuffer(__FUNCTION__);
+		//quadrant->resetNormalsBuffer(__FUNCTION__);
+		//quadrant->resetSplatmapBuffer(__FUNCTION__);
 		quadrant->resetGlobalmapBuffer(__FUNCTION__);
 
 		{
@@ -5417,9 +5417,9 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 		quadTree->getQuadrant()->heightmapChanged();
 		quadTree->getQuadrant()->sendHeightsToShader(true);
 
-		quadTree->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
+		//quadTree->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
 
-		quadTree->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
+		//quadTree->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
 
 		quadTree->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
@@ -5486,89 +5486,93 @@ void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::M
 	}
 }
 
-void GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction(void)
-{
-	if (m_actionInProgress)
-		return;
+//void GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction(void)
+//{
+//	if (m_actionInProgress)
+//		return;
+//
+//	m_actionInProgress = true;
+//	m_allItems = 0;
+//	setElapsed(0, true);
+//	setNote1(0);
+//
+//	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeResetNormalsSplatmap, this);
+//	m_tp.QueueJob(f);
+//}
 
-	m_actionInProgress = true;
-	m_allItems = 0;
-	setElapsed(0, true);
-	setNote1(0);
+//void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
+//{
+//	if (m_actionClock.counterStarted())
+//	{
+//		m_actionInProgress = false;
+//		return;
+//	}
+//
+//	setMessage(godot::String("Reset in progress..."));
+//
+//	m_actionClock.tick();
+//
+//	QuadTree* quadTreeSel = nullptr;
+//	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
+//	//bool allCheched = m_innerData->m_allCheckBox->is_pressed();
+//	bool allCheched = false;
+//	if (!allCheched && quadrantSelPos.empty())
+//	{
+//		m_actionClock.tock();
+//		m_actionInProgress = false;
+//		setMessage(godot::String("Completed!"), true);
+//		return;
+//	}
+//
+//	std::vector<TheWorld_Utils::QuadrantPos> quadrantPosToRegen;
+//	if (allCheched)
+//		m_viewer->getAllQuadrantPos(quadrantPosToRegen);
+//	else
+//		quadrantPosToRegen.push_back(quadrantSelPos);
+//
+//	m_allItems = quadrantPosToRegen.size();
+//	for (auto& pos : quadrantPosToRegen)
+//	{
+//		if (m_actionStopRequested)
+//		{
+//			m_actionStopRequested = false;
+//			break;
+//		}
+//
+//		QuadTree* quadTree = m_viewer->getQuadTree(pos, true, true);
+//		if (quadTree != nullptr)
+//		{
+//			//quadTree->getQuadrant()->getTerrainEdit()->normalsNeedRegen(true);
+//			//quadTree->getQuadrant()->getNormalsBuffer().clear(__FUNCTION__);
+//			quadTree->getQuadrant()->getTerrainEdit()->globalmapNeedRegen(true);
+//			quadTree->getQuadrant()->updateTerrainEditTextureLayers();
+//			quadTree->getQuadrant()->unlockInternalData();
+//			quadTree->autoSaveRequired(false);
+//			m_completedItems++;
+//			size_t partialCount = m_actionClock.partialDuration().count();
+//			m_lastElapsed = partialCount - m_elapsedCompleted;
+//			m_elapsedCompleted = partialCount;
+//		}
+//	}
+//
+//	m_actionClock.tock();
+//	m_actionInProgress = false;
+//	size_t duration = m_actionClock.duration().count();
+//	setElapsed(duration, false);
+//	setCounter(m_completedItems, m_allItems);
+//	setNote1(m_lastElapsed);
+//
+//	setMessage(godot::String("Reset completed!"));
+//}
 
-	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeResetNormalsSplatmap, this);
-	m_tp.QueueJob(f);
-}
-
-void GDN_TheWorld_Edit::editModeResetNormalsSplatmap(void)
-{
-	if (m_actionClock.counterStarted())
-	{
-		m_actionInProgress = false;
-		return;
-	}
-
-	setMessage(godot::String("Reset in progress..."));
-
-	m_actionClock.tick();
-
-	QuadTree* quadTreeSel = nullptr;
-	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
-	//bool allCheched = m_innerData->m_allCheckBox->is_pressed();
-	bool allCheched = false;
-	if (!allCheched && quadrantSelPos.empty())
-	{
-		m_actionClock.tock();
-		m_actionInProgress = false;
-		setMessage(godot::String("Completed!"), true);
-		return;
-	}
-
-	std::vector<TheWorld_Utils::QuadrantPos> quadrantPosToRegen;
-	if (allCheched)
-		m_viewer->getAllQuadrantPos(quadrantPosToRegen);
-	else
-		quadrantPosToRegen.push_back(quadrantSelPos);
-
-	m_allItems = quadrantPosToRegen.size();
-	for (auto& pos : quadrantPosToRegen)
-	{
-		if (m_actionStopRequested)
-		{
-			m_actionStopRequested = false;
-			break;
-		}
-
-		QuadTree* quadTree = m_viewer->getQuadTree(pos, true, true);
-		if (quadTree != nullptr)
-		{
-			quadTree->getQuadrant()->getTerrainEdit()->normalsNeedRegen = true;
-			quadTree->getQuadrant()->getNormalsBuffer().clear(__FUNCTION__);
-			quadTree->getQuadrant()->updateTerrainEditTextureLayers();
-			quadTree->getQuadrant()->unlockInternalData();
-			quadTree->autoSaveRequired(false);
-			m_completedItems++;
-			size_t partialCount = m_actionClock.partialDuration().count();
-			m_lastElapsed = partialCount - m_elapsedCompleted;
-			m_elapsedCompleted = partialCount;
-		}
-	}
-
-	m_actionClock.tock();
-	m_actionInProgress = false;
-	size_t duration = m_actionClock.duration().count();
-	setElapsed(duration, false);
-	setCounter(m_completedItems, m_allItems);
-	setNote1(m_lastElapsed);
-
-	setMessage(godot::String("Reset completed!"));
-}
-
-void GDN_TheWorld_Edit::editModeSelectLookDevAction(int32_t index)
-{
-	enum class ShaderTerrainData::LookDev lookDev = (enum class ShaderTerrainData::LookDev)m_innerData->m_lookDevOptionButton->get_item_id(index);
-	m_viewer->setDesideredLookDev(lookDev);
-}
+//void GDN_TheWorld_Edit::editModeSelectLookDevAction(int32_t index)
+//{
+//	if (m_innerData->m_lookDevOptionButton == nullptr)
+//		return;
+//
+//	enum class ShaderTerrainData::LookDev lookDev = (enum class ShaderTerrainData::LookDev)m_innerData->m_lookDevOptionButton->get_item_id(index);
+//	m_viewer->setDesideredLookDev(lookDev);
+//}
 
 void GDN_TheWorld_Edit::editModeSelectTerrainTypeAction(int32_t index)
 {

@@ -108,7 +108,6 @@ namespace godot
 				m_elapsed1Label = nullptr;
 				m_message = nullptr;
 				m_terrTypeOptionButton = nullptr;
-				m_lookDevOptionButton = nullptr;
 				m_lowElevationTexPanel = nullptr;
 				m_highElevationTexPanel = nullptr;
 				m_dirtTexPanel = nullptr;
@@ -166,7 +165,7 @@ namespace godot
 			godot::OptionButton* m_terrTypeOptionButton;
 			godot::Button* m_generateTerrButton = nullptr;
 			godot::CheckButton* m_terrTypeButton = nullptr;
-			godot::OptionButton* m_lookDevOptionButton;
+			//godot::OptionButton* m_lookDevOptionButton = nullptr;
 
 			godot::Button* m_serverInfoButton = nullptr;
 			godot::Control* m_serverInfoVBoxContainer = nullptr;
@@ -198,22 +197,22 @@ namespace godot
 			godot::CheckBox* m_selQuadSeaCheckBox = nullptr;
 			bool m_pressedViaCode = false;
 
-			godot::Button* m_terrGenerationButton;
-			godot::Control* m_terrGenerationVBoxContainer;
-			godot::LineEdit* m_seed;
-			godot::LineEdit* m_frequency;
-			godot::LineEdit* m_fractalOctaves;
-			godot::LineEdit* m_fractalLacunarity;
-			godot::LineEdit* m_fractalGain;
-			godot::LineEdit* m_fractalWeightedStrength;
-			godot::LineEdit* m_fractalPingPongStrength;
+			godot::Button* m_terrGenerationButton = nullptr;
+			godot::Control* m_terrGenerationVBoxContainer = nullptr;
+			godot::LineEdit* m_seed = nullptr;
+			godot::LineEdit* m_frequency = nullptr;
+			godot::LineEdit* m_fractalOctaves = nullptr;
+			godot::LineEdit* m_fractalLacunarity = nullptr;
+			godot::LineEdit* m_fractalGain = nullptr;
+			godot::LineEdit* m_fractalWeightedStrength = nullptr;
+			godot::LineEdit* m_fractalPingPongStrength = nullptr;
 			godot::LineEdit* m_amplitudeBlendFactor = nullptr;
 			godot::LineEdit* m_blendCycles = nullptr;
 			godot::LineEdit* m_blendingBendingFactor = nullptr;
 			godot::LineEdit* m_minRandomBendingExtension = nullptr;
 			godot::LineEdit* m_maxRandomBendingExtension = nullptr;
-			godot::LineEdit* m_amplitudeLabel;
-			godot::LineEdit* m_scaleFactorLabel;
+			godot::LineEdit* m_amplitudeLabel = nullptr;
+			godot::LineEdit* m_scaleFactorLabel = nullptr;
 			godot::CheckBox* m_ignoreDesideredMinHeightLabel = nullptr;
 			godot::LineEdit* m_desideredMinHeightLabel = nullptr;
 			godot::LineEdit* m_postGenerateElevationLabel = nullptr;
@@ -360,18 +359,18 @@ namespace godot
 		void editModeBlendAction(void);
 		//bool hiResCollisionGridEnabled(void);
 		//bool lowResCollisionGridEnabled(void);
-		void editModeResetNormalsSplatmapAction(void);
+		//void editModeResetNormalsSplatmapAction(void);
 		void editModeSaveAction(void);
 		void editModeUploadAction(void);
 		void editModeStopAction(void);
 		void editModeReloadShader(void);
 		void editModeSelectTerrainTypeAction(int32_t index);
-		void editModeSelectLookDevAction(int32_t index);
+		//void editModeSelectLookDevAction(int32_t index);
 
 		void editModeGenerate(void);
 		void editModeBlend(void);
 		void editModeBlendNew(void);
-		void editModeResetNormalsSplatmap(void);
+		//void editModeResetNormalsSplatmap(void);
 		void editModeSave(void);
 		void editModeUpload(void);
 		bool editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* map);

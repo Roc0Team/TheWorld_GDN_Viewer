@@ -229,7 +229,7 @@ namespace godot
 		}
 	}
 
-	void GDN_TheWorld_Globals_Client::MapManagerUploadQuadrantBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepInWU, int level, std::string buffer, int32_t numQuadrantsPerSize, float quadrantGlobalSize, float quadrantWorldSize)
+	void GDN_TheWorld_Globals_Client::MapManagerUploadQuadrantBuffer(bool isInEditor, float lowerXGridVertex, float lowerZGridVertex, int numVerticesPerSize, float gridStepInWU, int level, std::string buffer, int32_t numQuadrantsPerSize, float quadrantGlobalSize, float quadrantWorldSize, bool regenOnServer)
 	{
 		std::vector<ClientServerVariant> inputParams;
 		inputParams.push_back(lowerXGridVertex);
@@ -243,6 +243,7 @@ namespace godot
 		inputParams.push_back(numQuadrantsPerSize);
 		inputParams.push_back(quadrantGlobalSize);
 		inputParams.push_back(quadrantWorldSize);
+		inputParams.push_back(regenOnServer);
 		std::string ref;
 		int rc = execMethodAsync(THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER, ref, inputParams, THEWORLD_CLIENTSERVER_MAPVERTICES_TIME_TO_LIVE, m_globals->Viewer());
 		if (rc != THEWORLD_CLIENTSERVER_RC_OK)

@@ -3475,9 +3475,9 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 	else if (_objectName == "CheckBlendCheckBox")
 	{
 		if (pressed)
-			Globals()->setParamShowNeedBlending(true);
+			Globals()->setParamCheckNeedBlending(true);
 		else
-			Globals()->setParamShowNeedBlending(false);
+			Globals()->setParamCheckNeedBlending(false);
 	}
 	else if (_objectName == "ShowNormalCheckBox")
 	{

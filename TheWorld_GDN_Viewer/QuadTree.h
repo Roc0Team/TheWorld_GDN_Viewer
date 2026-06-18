@@ -591,7 +591,7 @@ namespace godot
 
 		void checkInternalData(double _delta);
 
-		void process_checkBlendNeeded(double _delta);
+		void process_checkBlendNeeded(double _delta, bool& heavyCheckBlendExecuted);
 		void process_mapModder(double _delta, bool worldQuadrant);
 		bool process_blend(void);
 		bool mapModdingRequired(void);
@@ -686,7 +686,7 @@ namespace godot
 		godot::Vector4 northQuadrantTextureLayersFromTerrainData(void);
 		godot::Vector4 westQuadrantTextureLayersFromTerrainData(void);
 		godot::Vector4 northwestQuadrantTextureLayersFromTerrainData(void);
-		void getHeightmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& heightmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
+		void getInternalHeightmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& heightmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		void getHeightmapCorner(std::chrono::system_clock::time_point& lastBorderRefreshTs, uint16_t& heightmapCorner, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
 		//godot::Ref<godot::ImageTexture> getHeightmapBorderQuadrantRowsTexture(int32_t& numValidBorders);
 		//void getSplatmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& splatmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir);
@@ -731,11 +731,11 @@ namespace godot
 		//}
 
 		bool checkBlendNeeded(void);
-		bool checkBlendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
-		bool checkNorthSideBlendNeeded(QuadTree* northQuadrantTree = nullptr);
-		bool checkSouthSideBlendNeeded(QuadTree* southQuadrantTree = nullptr);
-		bool checkEastSideBlendNeeded(QuadTree* eastQuadrantTree = nullptr);
-		bool checkWestSideBlendNeeded(QuadTree* westQuadrantTree = nullptr);
+		bool checkBlendNeeded(bool& heavyCheckBlendExecuted, bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
+		bool checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* northQuadrantTree = nullptr, bool newCheckBlend = true);
+		bool checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* southQuadrantTree = nullptr, bool newCheckBlend = true);
+		bool checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* eastQuadrantTree = nullptr, bool newCheckBlend = true);
+		bool checkWestSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* westQuadrantTree = nullptr, bool newCheckBlend = true);
 
 		void setBlendNeeded(bool b, bool northSideBlendNeeded, bool southSideBlendNeeded, bool eastSideBlendNeeded, bool westSideBlendNeeded);
 		bool blendNeeded(void) const
@@ -774,7 +774,58 @@ namespace godot
 		{
 			return m_westQuadrantValid;
 		}
-
+		bool northSideBlendChecked(bool& checkBlendResult) const
+		{
+			checkBlendResult = m_northSideBlendCheckResult;
+			return m_northSideBlendChecked;
+		}
+		void northSideBlendChecked(bool b, bool checkBlendResult)
+		{
+			m_northSideBlendChecked = b;
+			m_northSideBlendCheckResult = checkBlendResult;
+		}
+		bool southSideBlendChecked(bool& checkBlendResult) const
+		{
+			checkBlendResult = m_southSideBlendCheckResult;
+			return m_southSideBlendChecked;
+		}
+		void southSideBlendChecked(bool b, bool checkBlendResult)
+		{
+			m_southSideBlendChecked = b;
+			m_southSideBlendCheckResult = checkBlendResult;
+		}
+		bool eastSideBlendChecked(bool& checkBlendResult) const
+		{
+			checkBlendResult = m_eastSideBlendCheckResult;
+			return m_eastSideBlendChecked;
+		}
+		void eastSideBlendChecked(bool b, bool checkBlendResult)
+		{
+			m_eastSideBlendChecked = b;
+			m_eastSideBlendCheckResult = checkBlendResult;
+		}
+		bool westSideBlendChecked(bool& checkBlendResult) const
+		{
+			checkBlendResult = m_westSideBlendCheckResult;
+			return m_westSideBlendChecked;
+		}
+		void westSideBlendChecked(bool b, bool checkBlendResult)
+		{
+			m_westSideBlendChecked = b;
+			m_westSideBlendCheckResult = checkBlendResult;
+		}
+		void prepareToCheckBlendNeeded(void)
+		{
+			m_northSideBlendChecked = false;
+			m_southSideBlendChecked = false;
+			m_eastSideBlendChecked = false;
+			m_westSideBlendChecked = false;
+			m_northSideBlendCheckResult = false;
+			m_southSideBlendCheckResult = false;
+			m_eastSideBlendCheckResult = false;
+			m_westSideBlendCheckResult = false;
+			setBlendNeeded(true, true, true, true, true);
+		}
 		QuadTree* getQuadTree(void) const
 		{
 			return m_quadTree;
@@ -917,6 +968,14 @@ namespace godot
 		bool m_southQuadrantValid = false;
 		bool m_eastQuadrantValid = false;
 		bool m_westQuadrantValid = false;
+		bool m_northSideBlendChecked = false;
+		bool m_southSideBlendChecked = false;
+		bool m_eastSideBlendChecked = false;
+		bool m_westSideBlendChecked = false;
+		bool m_northSideBlendCheckResult = false;
+		bool m_southSideBlendCheckResult = false;
+		bool m_eastSideBlendCheckResult = false;
+		bool m_westSideBlendCheckResult = false;
 	};
 
 	class ShaderTerrainData

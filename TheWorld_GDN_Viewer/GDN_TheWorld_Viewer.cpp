@@ -9961,6 +9961,8 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 	{
 		//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1 ") + __FUNCTION__, "Loop m_worldQuadrantsMap");
 
+		bool heavyCheckBlendExecutedInCurrentLoop = false;
+		
 		for (auto& item : m_worldQuadrantsMap)
 		{
 			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1 ") + __FUNCTION__, "Elab Single Quadrant");
@@ -10001,9 +10003,10 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 				quadrant->process_mapModder(_delta, true);
 			}
 
+			if (not heavyCheckBlendExecutedInCurrentLoop)
 			{
 				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 5");
-				quadrant->process_checkBlendNeeded(_delta);
+				quadrant->process_checkBlendNeeded(_delta, heavyCheckBlendExecutedInCurrentLoop);
 				if (quadrant->blendNeeded())
 					quadrantsToBlend.push_back(quadrant->getPos());;
 			}
@@ -16215,6 +16218,14 @@ void GDN_TheWorld_Viewer::terrainHeightsChangedEvent(void)
 		Chunk::TerrainHeightsChangedChunkAction action;
 		item.second->ForAllChunk(action, QuadType::NotSet);
 		item.second->colliderNeedReset(true, QuadType::NotSet);
+	}
+}
+
+void GDN_TheWorld_Viewer::prepareToCheckBlendNeeded(void)
+{
+	for (auto& item : m_worldQuadrantsMap)
+	{
+		item.second->getQuadrant()->prepareToCheckBlendNeeded();
 	}
 }
 

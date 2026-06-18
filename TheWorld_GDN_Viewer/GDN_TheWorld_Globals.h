@@ -779,7 +779,9 @@ namespace godot
 		}
 		void setParamShowWireframe(bool f);
 
-		void setParamShowNeedBlending(bool b);
+		void setParamCheckNeedBlending(bool b);
+
+		bool checkNeedBlending(void);
 
 		//int64_t getParamDepthQuadWithCollisionInfo(void)
 		//{
@@ -981,6 +983,7 @@ namespace godot
 		bool m_loadingScreenExitOnFullWorldDeploy = true;
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 		int m_profilerActivated = -1;
+		bool m_checkNeedBlending = false;
 	};
 }
 

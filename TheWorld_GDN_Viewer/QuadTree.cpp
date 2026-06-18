@@ -771,7 +771,7 @@ void QuadTree::refreshSeaInfo(void)
 	}
 	else
 	{
-		if (terrainEdit->heightsNeedRegen())
+		if (terrainEdit->heightsNeedRegen() and terrainEdit->terrainType != TheWorld_Utils::TerrainEdit::TerrainType::empty)
 		{
 			// leaving m_canContainSea not modified
 		}
@@ -5310,7 +5310,7 @@ void Quadrant::setBlendNeeded(bool blendNeeded, bool northSideBlendNeeded, bool 
 	}
 }
 
-void Quadrant::process_checkBlendNeeded(double _delta)
+void Quadrant::process_checkBlendNeeded(double _delta, bool& heavyCheckBlendExecuted)
 {
 	if (!m_viewer->canProcessWorldDataUpdate())
 	{
@@ -5325,7 +5325,10 @@ void Quadrant::process_checkBlendNeeded(double _delta)
 		return;
 
 	if (m_quadTree->getQuadrant()->empty())
+	{
+		setBlendNeeded(false, false, false, false, false);
 		return;
+	}
 
 	GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
 	if (editModeUIControl == nullptr or not editModeUIControl->initialized() or editModeUIControl->terrainDataLocked())
@@ -5360,7 +5363,7 @@ void Quadrant::process_checkBlendNeeded(double _delta)
 		//if (currentPos.getIndexPosX() == -14 and currentPos.getIndexPosZ() == 24)	// #####
 		//	assert(northSideBlendNeeded == false);									// #####
 
-		bool blendNeeded = checkBlendNeeded(northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
+		bool blendNeeded = checkBlendNeeded(heavyCheckBlendExecuted, northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
 	}
 
 	editModeUIControl->terrainDataLocked(false);
@@ -6177,7 +6180,7 @@ void Quadrant::getHeightmapCorner(std::chrono::system_clock::time_point& lastBor
 	}
 }
 
-void Quadrant::getHeightmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& heightmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir)
+void Quadrant::getInternalHeightmapBorderRow(std::chrono::system_clock::time_point& lastBorderRefreshTs, TheWorld_Utils::MemoryBuffer& heightmapBorderRow, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir)
 {
 	TheWorld_Utils::MemoryBuffer* requiredHeightmapBorderRow = nullptr;
 	//std::chrono::system_clock::time_point m_lastBorderRefreshTs;
@@ -6316,20 +6319,27 @@ bool Quadrant::checkBlendNeeded(void)
 	bool eastSideBlendNeeded = false;
 	bool westSideBlendNeeded = false;
 
-	//if (currentPos.getIndexPosX() == -16 and currentPos.getIndexPosZ() == 22)	// #####
-	//	assert(northSideBlendNeeded == false);									// #####
-
-	bool blendNeeded = checkBlendNeeded(northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
+	bool heavyCheckBlendExecuted = false;
+	bool blendNeeded = checkBlendNeeded(heavyCheckBlendExecuted, northSideBlendNeeded, southSideBlendNeeded, eastSideBlendNeeded, westSideBlendNeeded, northQuadrantTree, southQuadrantTree, eastQuadrantTree, westQuadrantTree);
 	return blendNeeded;
 }
 
-bool Quadrant::checkBlendNeeded(bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree, QuadTree* southQuadrantTree, QuadTree* eastQuadrantTree, QuadTree* westQuadrantTree)
+bool Quadrant::checkBlendNeeded(bool& heavyCheckBlendExecuted, bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree, QuadTree* southQuadrantTree, QuadTree* eastQuadrantTree, QuadTree* westQuadrantTree)
 {
-	northSideBlendNeeded = Quadrant::checkNorthSideBlendNeeded(northQuadrantTree);
-	southSideBlendNeeded = Quadrant::checkSouthSideBlendNeeded(southQuadrantTree);
-	eastSideBlendNeeded = Quadrant::checkEastSideBlendNeeded(eastQuadrantTree);
-	westSideBlendNeeded = Quadrant::checkWestSideBlendNeeded(westQuadrantTree);
+	bool newCheckBlend = true;
+	
+	bool northSideHeavyCheckBlendExecuted = false, southSideHeavyCheckBlendExecuted = false, eastSideHeavyCheckBlendExecuted = false, westSideHeavyCheckBlendExecuted = false;
+	
+	northSideBlendNeeded = Quadrant::checkNorthSideBlendNeeded(northSideHeavyCheckBlendExecuted, northQuadrantTree, newCheckBlend);
+	southSideBlendNeeded = Quadrant::checkSouthSideBlendNeeded(southSideHeavyCheckBlendExecuted, southQuadrantTree, newCheckBlend);
+	eastSideBlendNeeded = Quadrant::checkEastSideBlendNeeded(eastSideHeavyCheckBlendExecuted, eastQuadrantTree, newCheckBlend);
+	westSideBlendNeeded = Quadrant::checkWestSideBlendNeeded(westSideHeavyCheckBlendExecuted, westQuadrantTree, newCheckBlend);
 
+	if (northSideHeavyCheckBlendExecuted or southSideHeavyCheckBlendExecuted or eastSideHeavyCheckBlendExecuted or westSideHeavyCheckBlendExecuted)
+		heavyCheckBlendExecuted = true;
+	else
+		heavyCheckBlendExecuted = false;
+	
 	bool blendNeeded;
 
 	if (northSideBlendNeeded or southSideBlendNeeded or eastSideBlendNeeded or westSideBlendNeeded)
@@ -6341,7 +6351,7 @@ bool Quadrant::checkBlendNeeded(bool& northSideBlendNeeded, bool& southSideBlend
 	return blendNeeded;
 }
 
-bool Quadrant::checkNorthSideBlendNeeded(QuadTree* northQuadrantTree)
+bool Quadrant::checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* northQuadrantTree, bool newCheckBlend)
 {
 	m_northQuadrantValid = northQuadrantTree != nullptr and northQuadrantTree->isValid();
 
@@ -6351,13 +6361,64 @@ bool Quadrant::checkNorthSideBlendNeeded(QuadTree* northQuadrantTree)
 	if (not m_northQuadrantValid)
 		return false;
 
-	//return not getTerrainEdit()->northSideZMinus.almostEqual(northQuadrantTree->getQuadrant()->getTerrainEdit()->southSideZPlus);
-	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-	TheWorld_Utils::TerrainEdit* northQuadrantTerrainData = northQuadrantTree->getQuadrant()->getTerrainEdit();
-	return not terrainData->northSideZMinus.almostEqual(northQuadrantTerrainData->southSideZPlus);
+	heavyCheckBlendExecuted = false;
+	
+	bool ret = false;
+
+	if (newCheckBlend)
+	{
+		bool northSideCheckBlendResult = false;
+		bool northQuadrantSouthSideCheckBlendResult = false;
+		ret = false;
+
+		if (not northSideBlendChecked(northSideCheckBlendResult) and not northQuadrantTree->getQuadrant()->southSideBlendChecked(northQuadrantSouthSideCheckBlendResult))
+		{
+			TheWorld_Utils::MemoryBuffer& heightmap = getFloat16HeightsBuffer();
+			TheWorld_Utils::MemoryBuffer northSide;
+			heightmap.getNorthBorder<uint16_t>(getPos().getNumVerticesPerSize(), northSide);
+			TheWorld_Utils::MemoryBuffer& northQuadrantHeightmap = northQuadrantTree->getQuadrant()->getFloat16HeightsBuffer();
+			TheWorld_Utils::MemoryBuffer northQuadrantSouthSide;
+			northQuadrantHeightmap.getSouthBorder<uint16_t>(getPos().getNumVerticesPerSize(), northQuadrantSouthSide);
+			if (northQuadrantSouthSide.size() > 0 and northSide.size() > 0)
+			{
+				if (northQuadrantSouthSide.size() != northSide.size())
+					ret = true;
+				else
+				{
+					for (size_t i = 0; i < northQuadrantSouthSide.size(); i++)
+					{
+						auto northQuadrantSouthSideHeight = northQuadrantSouthSide.get_at<uint16_t>(i);
+						auto northSideHeight = northSide.get_at<uint16_t>(i);
+						if (northQuadrantSouthSideHeight != northSideHeight)
+							ret = true;
+					}
+				}
+			}
+
+			northSideBlendChecked(true, ret);
+			northQuadrantTree->getQuadrant()->southSideBlendChecked(true, ret);
+
+			PLOG_VERBOSE << "Quadrant " << getPos().getIdStr() << " Blend checked on NORTH side";
+
+			heavyCheckBlendExecuted = true;
+		}
+		else
+		{
+			ret = northSideCheckBlendResult or northQuadrantSouthSideCheckBlendResult;
+		}
+	}
+	else
+	{
+		//return not getTerrainEdit()->northSideZMinus.almostEqual(northQuadrantTree->getQuadrant()->getTerrainEdit()->southSideZPlus);
+		TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+		TheWorld_Utils::TerrainEdit* northQuadrantTerrainData = northQuadrantTree->getQuadrant()->getTerrainEdit();
+		ret = not terrainData->northSideZMinus.almostEqual(northQuadrantTerrainData->southSideZPlus);
+	}
+
+	return ret;
 }
 
-bool Quadrant::checkSouthSideBlendNeeded(QuadTree* southQuadrantTree)
+bool Quadrant::checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* southQuadrantTree, bool newCheckBlend)
 {
 	m_southQuadrantValid = southQuadrantTree != nullptr and southQuadrantTree->isValid();
 
@@ -6367,51 +6428,71 @@ bool Quadrant::checkSouthSideBlendNeeded(QuadTree* southQuadrantTree)
 	if (not m_southQuadrantValid)
 		return false;
 
+	heavyCheckBlendExecuted = false;
+
 	bool ret = false;
 
 	// DEBUG
 	if (getPos().isQuadrantTrackedForDebug())
 	{
-		//getPos().TRACK_QUADRANT_FOR_DEBUG("checkSouthSideBlendNeeded", "");
-		bool debug = false;
-		if (debug)
+		ret = false;
+	}
+	// DEBUG
+
+	if (newCheckBlend)
+	{
+		bool southSideCheckBlendResult = false;
+		bool southQuadrantNorthSideCheckBlendResult = false;
+		ret = false;
+
+		if (not southSideBlendChecked(southSideCheckBlendResult) and not southQuadrantTree->getQuadrant()->northSideBlendChecked(southQuadrantNorthSideCheckBlendResult))
 		{
-			// Debugging code here: checking vertex by vertex if the north side of the south quadrant matches the south side of this quadrant
-			
 			TheWorld_Utils::MemoryBuffer& heightmap = getFloat16HeightsBuffer();
 			TheWorld_Utils::MemoryBuffer southSide;
 			heightmap.getSouthBorder<uint16_t>(getPos().getNumVerticesPerSize(), southSide);
 			TheWorld_Utils::MemoryBuffer& southQuadrantHeightmap = southQuadrantTree->getQuadrant()->getFloat16HeightsBuffer();
 			TheWorld_Utils::MemoryBuffer southQuadrantNorthSide;
 			southQuadrantHeightmap.getNorthBorder<uint16_t>(getPos().getNumVerticesPerSize(), southQuadrantNorthSide);
-			if (southQuadrantNorthSide.size() != southSide.size())
-				ret = true;
-			else
+			if (southQuadrantNorthSide.size() > 0 and  southSide.size() > 0)
 			{
-				for (size_t i = 0; i < southQuadrantNorthSide.size(); i++)
+				if (southQuadrantNorthSide.size() != southSide.size())
+					ret = true;
+				else
 				{
-					uint16_t u1 = 57296;	float f1 = 0;	f1 = TheWorld_Utils::MeshCacheBuffer::halfToFloat_1(u1);
-					uint16_t u2 = 57295;	float f2 = 0;	f2 = TheWorld_Utils::MeshCacheBuffer::halfToFloat_1(u2);
-
-					auto southQuadrantNorthSideHeight = southQuadrantNorthSide.get_at<uint16_t>(i);
-					auto southSideHeight = southSide.get_at<uint16_t>(i);
-					if (southQuadrantNorthSideHeight != southSideHeight)
-						ret = true;
+					for (size_t i = 0; i < southQuadrantNorthSide.size(); i++)
+					{
+						auto southQuadrantNorthSideHeight = southQuadrantNorthSide.get_at<uint16_t>(i);
+						auto southSideHeight = southSide.get_at<uint16_t>(i);
+						if (southQuadrantNorthSideHeight != southSideHeight)
+							ret = true;
+					}
 				}
 			}
-		}
-	}
-	// DEBUG
 
-	//return not getTerrainEdit()->southSideZPlus.almostEqual(southQuadrantTree->getQuadrant()->getTerrainEdit()->northSideZMinus);
-	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-	TheWorld_Utils::TerrainEdit* southQuadrantTerrainData = southQuadrantTree->getQuadrant()->getTerrainEdit();
-	ret = not terrainData->southSideZPlus.almostEqual(southQuadrantTerrainData->northSideZMinus);
+			southSideBlendChecked(true, ret);
+			southQuadrantTree->getQuadrant()->northSideBlendChecked(true, ret);
+
+			PLOG_VERBOSE << "Quadrant " << getPos().getIdStr() << " Blend checked on SOUTH side";
+
+			heavyCheckBlendExecuted = true;
+		}
+		else
+		{
+			ret = southSideCheckBlendResult or southQuadrantNorthSideCheckBlendResult;
+		}	
+	}
+	else
+	{
+		//return not getTerrainEdit()->southSideZPlus.almostEqual(southQuadrantTree->getQuadrant()->getTerrainEdit()->northSideZMinus);
+		TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+		TheWorld_Utils::TerrainEdit* southQuadrantTerrainData = southQuadrantTree->getQuadrant()->getTerrainEdit();
+		ret = not terrainData->southSideZPlus.almostEqual(southQuadrantTerrainData->northSideZMinus);
+	}
 	
 	return ret;
 }
 
-bool Quadrant::checkEastSideBlendNeeded(QuadTree* eastQuadrantTree)
+bool Quadrant::checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* eastQuadrantTree, bool newCheckBlend)
 {
 	m_eastQuadrantValid = eastQuadrantTree != nullptr and eastQuadrantTree->isValid();
 
@@ -6421,13 +6502,64 @@ bool Quadrant::checkEastSideBlendNeeded(QuadTree* eastQuadrantTree)
 	if (not m_eastQuadrantValid)
 		return false;
 
-	//return not getTerrainEdit()->eastSideXPlus.almostEqual(eastQuadrantTree->getQuadrant()->getTerrainEdit()->westSideXMinus);
-	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-	TheWorld_Utils::TerrainEdit* eastQuadrantTerrainData = eastQuadrantTree->getQuadrant()->getTerrainEdit();
-	return not terrainData->eastSideXPlus.almostEqual(eastQuadrantTerrainData->westSideXMinus);
+	bool ret = false;
+
+	heavyCheckBlendExecuted = false;
+
+	if (newCheckBlend)
+	{
+		bool eastSideCheckBlendResult = false;
+		bool eastQuadrantWestSideCheckBlendResult = false;
+		ret = false;
+
+		if (not eastSideBlendChecked(eastSideCheckBlendResult) and not eastQuadrantTree->getQuadrant()->westSideBlendChecked(eastQuadrantWestSideCheckBlendResult))
+		{
+			TheWorld_Utils::MemoryBuffer& heightmap = getFloat16HeightsBuffer();
+			TheWorld_Utils::MemoryBuffer eastSide;
+			heightmap.getEastBorder<uint16_t>(getPos().getNumVerticesPerSize(), eastSide);
+			TheWorld_Utils::MemoryBuffer& eastQuadrantHeightmap = eastQuadrantTree->getQuadrant()->getFloat16HeightsBuffer();
+			TheWorld_Utils::MemoryBuffer eastQuadrantWestSide;
+			eastQuadrantHeightmap.getWestBorder<uint16_t>(getPos().getNumVerticesPerSize(), eastQuadrantWestSide);
+			if (eastQuadrantWestSide.size() > 0 and eastSide.size() > 0)
+			{
+				if (eastQuadrantWestSide.size() != eastSide.size())
+					ret = true;
+				else
+				{
+					for (size_t i = 0; i < eastQuadrantWestSide.size(); i++)
+					{
+						auto eastQuadrantWestSideHeight = eastQuadrantWestSide.get_at<uint16_t>(i);
+						auto eastSideHeight = eastSide.get_at<uint16_t>(i);
+						if (eastQuadrantWestSideHeight != eastSideHeight)
+							ret = true;
+					}
+				}
+			}
+
+			eastSideBlendChecked(true, ret);
+			eastQuadrantTree->getQuadrant()->westSideBlendChecked(true, ret);
+
+			PLOG_VERBOSE << "Quadrant " << getPos().getIdStr() << " Blend checked on EAST side";
+
+			heavyCheckBlendExecuted = true;
+		}
+		else
+		{
+			ret = eastSideCheckBlendResult or eastQuadrantWestSideCheckBlendResult;
+		}
+	}
+	else
+	{
+		//return not getTerrainEdit()->eastSideXPlus.almostEqual(eastQuadrantTree->getQuadrant()->getTerrainEdit()->westSideXMinus);
+		TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+		TheWorld_Utils::TerrainEdit* eastQuadrantTerrainData = eastQuadrantTree->getQuadrant()->getTerrainEdit();
+		ret = not terrainData->eastSideXPlus.almostEqual(eastQuadrantTerrainData->westSideXMinus);
+	}
+
+	return ret;
 }
 
-bool Quadrant::checkWestSideBlendNeeded(QuadTree* westQuadrantTree)
+bool Quadrant::checkWestSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* westQuadrantTree, bool newCheckBlend)
 {
 	m_westQuadrantValid = westQuadrantTree != nullptr and westQuadrantTree->isValid();
 
@@ -6437,10 +6569,61 @@ bool Quadrant::checkWestSideBlendNeeded(QuadTree* westQuadrantTree)
 	if (not m_westQuadrantValid)
 		return false;
 
-	//return not getTerrainEdit()->westSideXMinus.almostEqual(westQuadrantTree->getQuadrant()->getTerrainEdit()->eastSideXPlus);
-	TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-	TheWorld_Utils::TerrainEdit* westQuadrantTerrainData = westQuadrantTree->getQuadrant()->getTerrainEdit();
-	return not terrainData->westSideXMinus.almostEqual(westQuadrantTerrainData->eastSideXPlus);
+	bool ret = false;
+
+	heavyCheckBlendExecuted = false;
+
+	if (newCheckBlend)
+	{
+		bool westSideCheckBlendResult = false;
+		bool westQuadrantEastSideCheckBlendResult = false;
+		ret = false;
+
+		if (not westSideBlendChecked(westSideCheckBlendResult) and not westQuadrantTree->getQuadrant()->eastSideBlendChecked(westQuadrantEastSideCheckBlendResult))
+		{
+			TheWorld_Utils::MemoryBuffer& heightmap = getFloat16HeightsBuffer();
+			TheWorld_Utils::MemoryBuffer westSide;
+			heightmap.getWestBorder<uint16_t>(getPos().getNumVerticesPerSize(), westSide);
+			TheWorld_Utils::MemoryBuffer& westQuadrantHeightmap = westQuadrantTree->getQuadrant()->getFloat16HeightsBuffer();
+			TheWorld_Utils::MemoryBuffer westQuadrantEastSide;
+			westQuadrantHeightmap.getEastBorder<uint16_t>(getPos().getNumVerticesPerSize(), westQuadrantEastSide);
+			if (westQuadrantEastSide.size() > 0 and westSide.size() > 0)
+			{
+				if (westQuadrantEastSide.size() != westSide.size())
+					ret = true;
+				else
+				{
+					for (size_t i = 0; i < westQuadrantEastSide.size(); i++)
+					{
+						auto westQuadrantEastSideHeight = westQuadrantEastSide.get_at<uint16_t>(i);
+						auto westSideHeight = westSide.get_at<uint16_t>(i);
+						if (westQuadrantEastSideHeight != westSideHeight)
+							ret = true;
+					}
+				}
+			}
+
+			westSideBlendChecked(true, ret);
+			westQuadrantTree->getQuadrant()->eastSideBlendChecked(true, ret);
+
+			PLOG_VERBOSE << "Quadrant " << getPos().getIdStr() << " Blend checked on WEST side";
+
+			heavyCheckBlendExecuted = true;
+		}
+		else
+		{
+			ret = westSideCheckBlendResult or westQuadrantEastSideCheckBlendResult;
+		}
+	}
+	else
+	{
+		//return not getTerrainEdit()->westSideXMinus.almostEqual(westQuadrantTree->getQuadrant()->getTerrainEdit()->eastSideXPlus);
+		TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+		TheWorld_Utils::TerrainEdit* westQuadrantTerrainData = westQuadrantTree->getQuadrant()->getTerrainEdit();
+		ret = not terrainData->westSideXMinus.almostEqual(westQuadrantTerrainData->eastSideXPlus);
+	}
+
+	return ret;
 }
 
 //godot::Ref<godot::Texture2D> Quadrant::getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir)
@@ -7014,7 +7197,7 @@ void Quadrant::NeighbourQuadrantData::init(Quadrant* owningQuadrant, Quadrant* n
 	
 	if (requiredBorderRow != TheWorld_Utils::QuadrantPos::DirectionSlot::Center)
 	{
-		neighbourQuadrant->getHeightmapBorderRow(m_lastHeightmapBorderRefreshTs, m_internalHeightmapBorderRow, requiredBorderRow);
+		neighbourQuadrant->getInternalHeightmapBorderRow(m_lastHeightmapBorderRefreshTs, m_internalHeightmapBorderRow, requiredBorderRow);
 		//neighbourQuadrant->getSplatmapBorderRow(m_lastSplatmapBorderRefreshTs, m_splatmapBorderRow, requiredBorderRow);
 	}
 

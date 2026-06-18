@@ -2655,6 +2655,8 @@ namespace godot
 
 		void terrainHeightsChangedEvent(void);
 
+		void prepareToCheckBlendNeeded(void);
+
 		float shaderParamSeaFlatSeaHeightApplied(void) const
 		{
 			return m_shaderParamSeaFlatSeaHeightApplied;

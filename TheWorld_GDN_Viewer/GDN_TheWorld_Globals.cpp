@@ -1399,17 +1399,17 @@ namespace godot
 		godot::RenderingServer::get_singleton()->global_shader_parameter_set(GLOBAL_SHADER_PARAM_SHOW_NEED_BLENDING, b);
 		PLOG_INFO << "View Parameter - Show Need Blending: " << (b ? "true" : "false");
 
-		if (m_checkNeedBlending)
-		{
+		//if (m_checkNeedBlending)
+		//{
 			GDN_TheWorld_Viewer* viewer = Viewer();
 			if (viewer != nullptr)
 			{
 				viewer->prepareToCheckBlendNeeded();
 			}
-		}
+		//}
 	}
 
-	bool GDN_TheWorld_Globals::checkNeedBlending(void)
+	bool GDN_TheWorld_Globals::checkNeedBlending(void) const
 	{
 		return m_checkNeedBlending;
 	}

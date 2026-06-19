@@ -781,7 +781,7 @@ namespace godot
 
 		void setParamCheckNeedBlending(bool b);
 
-		bool checkNeedBlending(void);
+		bool checkNeedBlending(void) const;
 
 		//int64_t getParamDepthQuadWithCollisionInfo(void)
 		//{

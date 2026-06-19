@@ -917,7 +917,7 @@ void GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride::apply(GDN_TheWo
 	{
 		enum class QuadTree::QuadrantDepth quadrantDepth = mapQuadrantOverride->quadrantDepth();
 		int numQuadrantsFromCameraQuadrant = mapQuadrantOverride->numQuadrantsFromCameraQuadrant();
-		bool blendNeeded = mapQuadrantOverride->blendNeeded();
+		bool blendNeeded = mapQuadrantOverride->quadrantOverrideBlendNeeded();
 		if (quadrantDepth == QuadTree::QuadrantDepth::NotSet)
 		{
 			const godot::Variant v = SHADER_PARAM_QUADRANT_COLOR_WORLD_QUADRANT_NOPE;
@@ -10003,11 +10003,11 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 				quadrant->process_mapModder(_delta, true);
 			}
 
-			if (not heavyCheckBlendExecutedInCurrentLoop)
+			if (not heavyCheckBlendExecutedInCurrentLoop and globals->checkNeedBlending())
 			{
 				//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1.1 ") + __FUNCTION__, "Elab Single Quadrant 5");
 				quadrant->process_checkBlendNeeded(_delta, heavyCheckBlendExecutedInCurrentLoop);
-				if (quadrant->blendNeeded())
+				if (quadrant->quadrantBlendNeeded())
 					quadrantsToBlend.push_back(quadrant->getPos());;
 			}
 
@@ -10059,7 +10059,7 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 			//if (quadrant->getPos().getIndexPosX() == -9 and quadrant->getPos().getIndexPosZ() == -10)	// #####
 			//	assert(editModeUIControl != nullptr);									// #####
 
-			if (quadrant->blendNeeded() and not editModeUIControl->isDelayedBlend(quadrant->getPos()))
+			if (quadrant->quadrantBlendNeeded() and not editModeUIControl->isDelayedBlend(quadrant->getPos()))
 			{
 				bool processed = quadrant->process_blend();
 				if (processed)

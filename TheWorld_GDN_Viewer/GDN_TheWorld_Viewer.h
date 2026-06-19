@@ -495,13 +495,13 @@ namespace godot
 				m_refreshInProgress = b;
 			}
 
-			bool blendNeeded(void) const
+			bool quadrantOverrideBlendNeeded(void) const
 			{
-				return m_blendNeeded;
+				return m_quadrantOverrideBlendNeeded;
 			}
-			void blendNeeded(bool b)
+			void quadrantOverrideBlendNeeded(bool b)
 			{
-				m_blendNeeded = b;
+				m_quadrantOverrideBlendNeeded = b;
 			}
 
 			TheWorld_Utils::QuadrantPos getPos(void) const
@@ -524,7 +524,7 @@ namespace godot
 
 			bool m_refreshInProgress = false;
 
-			bool m_blendNeeded = false;
+			bool m_quadrantOverrideBlendNeeded = false;
 		};
 
 		class MapQuadrantOverrideContainer : public std::map<TheWorld_Utils::QuadrantPos, std::unique_ptr<MapQuadrantOverride>>

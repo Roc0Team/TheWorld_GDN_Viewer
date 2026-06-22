@@ -6339,7 +6339,14 @@ bool Quadrant::checkBlendNeeded(void)
 bool Quadrant::checkBlendNeeded(bool& heavyCheckBlendExecuted, bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree, QuadTree* southQuadrantTree, QuadTree* eastQuadrantTree, QuadTree* westQuadrantTree)
 {
 	bool newCheckBlend = true;
-	
+
+	//// DEBUG
+	//if (getPos().isQuadrantTrackedForDebug())
+	//{
+	//	newCheckBlend = true;
+	//}
+	//// DEBUG
+
 	bool northSideHeavyCheckBlendExecuted = false, southSideHeavyCheckBlendExecuted = false, eastSideHeavyCheckBlendExecuted = false, westSideHeavyCheckBlendExecuted = false;
 	
 	northSideBlendNeeded = Quadrant::checkNorthSideBlendNeeded(northSideHeavyCheckBlendExecuted, northQuadrantTree, newCheckBlend);
@@ -6366,9 +6373,6 @@ bool Quadrant::checkBlendNeeded(bool& heavyCheckBlendExecuted, bool& northSideBl
 bool Quadrant::checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* northQuadrantTree, bool newCheckBlend)
 {
 	m_northQuadrantValid = northQuadrantTree != nullptr and northQuadrantTree->isValid();
-
-	if (getTerrainEdit()->northSideZMinus.needBlend)
-		return true;
 
 	if (not m_northQuadrantValid)
 		return false;
@@ -6439,10 +6443,15 @@ bool Quadrant::checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree
 	}
 	else
 	{
-		//return not getTerrainEdit()->northSideZMinus.almostEqual(northQuadrantTree->getQuadrant()->getTerrainEdit()->southSideZPlus);
-		TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-		TheWorld_Utils::TerrainEdit* northQuadrantTerrainData = northQuadrantTree->getQuadrant()->getTerrainEdit();
-		ret = not terrainData->northSideZMinus.almostEqual(northQuadrantTerrainData->southSideZPlus);
+		if (getTerrainEdit()->northSideZMinus.needBlend)
+			ret = true;
+		else
+		{
+			//return not getTerrainEdit()->northSideZMinus.almostEqual(northQuadrantTree->getQuadrant()->getTerrainEdit()->southSideZPlus);
+			TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+			TheWorld_Utils::TerrainEdit* northQuadrantTerrainData = northQuadrantTree->getQuadrant()->getTerrainEdit();
+			ret = not terrainData->northSideZMinus.almostEqual(northQuadrantTerrainData->southSideZPlus);
+		}
 	}
 
 	return ret;
@@ -6452,22 +6461,12 @@ bool Quadrant::checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree
 {
 	m_southQuadrantValid = southQuadrantTree != nullptr and southQuadrantTree->isValid();
 
-	if (getTerrainEdit()->southSideZPlus.needBlend)
-		return true;
-
 	if (not m_southQuadrantValid)
 		return false;
 
 	heavyCheckBlendExecuted = false;
 
 	bool ret = false;
-
-	// DEBUG
-	if (getPos().isQuadrantTrackedForDebug())
-	{
-		ret = false;
-	}
-	// DEBUG
 
 	if (newCheckBlend)
 	{
@@ -6531,10 +6530,15 @@ bool Quadrant::checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree
 	}
 	else
 	{
-		//return not getTerrainEdit()->southSideZPlus.almostEqual(southQuadrantTree->getQuadrant()->getTerrainEdit()->northSideZMinus);
-		TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-		TheWorld_Utils::TerrainEdit* southQuadrantTerrainData = southQuadrantTree->getQuadrant()->getTerrainEdit();
-		ret = not terrainData->southSideZPlus.almostEqual(southQuadrantTerrainData->northSideZMinus);
+		if (getTerrainEdit()->southSideZPlus.needBlend)
+			ret = true;
+		else
+		{
+			//return not getTerrainEdit()->southSideZPlus.almostEqual(southQuadrantTree->getQuadrant()->getTerrainEdit()->northSideZMinus);
+			TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+			TheWorld_Utils::TerrainEdit* southQuadrantTerrainData = southQuadrantTree->getQuadrant()->getTerrainEdit();
+			ret = not terrainData->southSideZPlus.almostEqual(southQuadrantTerrainData->northSideZMinus);
+		}
 	}
 	
 	return ret;
@@ -6543,9 +6547,6 @@ bool Quadrant::checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree
 bool Quadrant::checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* eastQuadrantTree, bool newCheckBlend)
 {
 	m_eastQuadrantValid = eastQuadrantTree != nullptr and eastQuadrantTree->isValid();
-
-	if (getTerrainEdit()->eastSideXPlus.needBlend)
-		return true;
 
 	if (not m_eastQuadrantValid)
 		return false;
@@ -6616,10 +6617,15 @@ bool Quadrant::checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree*
 	}
 	else
 	{
-		//return not getTerrainEdit()->eastSideXPlus.almostEqual(eastQuadrantTree->getQuadrant()->getTerrainEdit()->westSideXMinus);
-		TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-		TheWorld_Utils::TerrainEdit* eastQuadrantTerrainData = eastQuadrantTree->getQuadrant()->getTerrainEdit();
-		ret = not terrainData->eastSideXPlus.almostEqual(eastQuadrantTerrainData->westSideXMinus);
+		if (getTerrainEdit()->eastSideXPlus.needBlend)
+			ret = true;
+		else
+		{
+			//return not getTerrainEdit()->eastSideXPlus.almostEqual(eastQuadrantTree->getQuadrant()->getTerrainEdit()->westSideXMinus);
+			TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+			TheWorld_Utils::TerrainEdit* eastQuadrantTerrainData = eastQuadrantTree->getQuadrant()->getTerrainEdit();
+			ret = not terrainData->eastSideXPlus.almostEqual(eastQuadrantTerrainData->westSideXMinus);
+		}
 	}
 
 	return ret;
@@ -6628,9 +6634,6 @@ bool Quadrant::checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree*
 bool Quadrant::checkWestSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* westQuadrantTree, bool newCheckBlend)
 {
 	m_westQuadrantValid = westQuadrantTree != nullptr and westQuadrantTree->isValid();
-
-	if (getTerrainEdit()->westSideXMinus.needBlend)
-		return true;
 
 	if (not m_westQuadrantValid)
 		return false;
@@ -6701,10 +6704,15 @@ bool Quadrant::checkWestSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree*
 	}
 	else
 	{
-		//return not getTerrainEdit()->westSideXMinus.almostEqual(westQuadrantTree->getQuadrant()->getTerrainEdit()->eastSideXPlus);
-		TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
-		TheWorld_Utils::TerrainEdit* westQuadrantTerrainData = westQuadrantTree->getQuadrant()->getTerrainEdit();
-		ret = not terrainData->westSideXMinus.almostEqual(westQuadrantTerrainData->eastSideXPlus);
+		if (getTerrainEdit()->westSideXMinus.needBlend)
+			ret = true;
+		else
+		{
+			//return not getTerrainEdit()->westSideXMinus.almostEqual(westQuadrantTree->getQuadrant()->getTerrainEdit()->eastSideXPlus);
+			TheWorld_Utils::TerrainEdit* terrainData = getTerrainEdit();
+			TheWorld_Utils::TerrainEdit* westQuadrantTerrainData = westQuadrantTree->getQuadrant()->getTerrainEdit();
+			ret = not terrainData->westSideXMinus.almostEqual(westQuadrantTerrainData->eastSideXPlus);
+		}
 	}
 
 	return ret;

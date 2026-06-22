@@ -221,6 +221,7 @@ namespace godot
 			godot::Control* m_terrBlendingVBoxContainer = nullptr;
 			//godot::CheckBox* m_blendAllCheckBox = nullptr;
 			godot::CheckBox* m_checkBlend = nullptr;
+			godot::CheckBox* m_fullCheckBlend = nullptr;
 			godot::CheckBox* m_autoBlendCheckBox = nullptr;
 
 			godot::Control* m_quadrantTextureEditVBoxContainer;

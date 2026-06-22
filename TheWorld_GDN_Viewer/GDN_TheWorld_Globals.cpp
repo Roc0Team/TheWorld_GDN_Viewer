@@ -1409,6 +1409,23 @@ namespace godot
 		//}
 	}
 
+	void GDN_TheWorld_Globals::setParamFullCheckBlend(bool b)
+	{
+		m_fullCheckBlend = b;
+		if (checkNeedBlending())
+		{
+			GDN_TheWorld_Viewer* viewer = Viewer();
+			if (viewer != nullptr)
+			{
+				viewer->prepareToCheckBlendNeeded();
+			}
+		}
+	}
+	bool GDN_TheWorld_Globals::getParamFullCheckBlend(void) const
+	{
+		return m_fullCheckBlend;
+	}
+
 	bool GDN_TheWorld_Globals::checkNeedBlending(void) const
 	{
 		return m_checkNeedBlending;

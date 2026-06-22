@@ -893,6 +893,11 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_checkBlend->set_text("Check Blend");
 		m_innerData->m_checkBlend->set_toggle_mode(true);
 		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_checkBlend, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		m_innerData->m_fullCheckBlend = createControl<godot::CheckBox>(hBoxContainer, "FullCheckBlendCheckBox");
+		m_innerData->m_fullCheckBlend->set_text("Full Check");
+		m_innerData->m_fullCheckBlend->set_toggle_mode(true);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_fullCheckBlend, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_terrBlendingVBoxContainer);
 		m_innerData->m_autoBlendCheckBox = createControl<godot::CheckBox>(hBoxContainer);
 		m_innerData->m_autoBlendCheckBox->set_text("Auto Blend (Save/Upload)");
 		m_innerData->m_autoBlendCheckBox->set_toggle_mode(true);
@@ -3479,6 +3484,13 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 		else
 			Globals()->setParamCheckNeedBlending(false);
 	}
+	else if (_objectName == "FullCheckBlendCheckBox")
+	{
+		if (pressed)
+			Globals()->setParamFullCheckBlend(true);
+		else
+			Globals()->setParamFullCheckBlend(false);
+	}
 	else if (_objectName == "ShowNormalCheckBox")
 	{
 		if (pressed)
@@ -4215,10 +4227,10 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	}
 
 	// 4. refresh new heights on internal datas 16-bit heights (for shader), 32-bit heigths (for collider), terrain data for editing and set flag according (new heigths have to be passed to shader)
-	terrainEdit->northSideZMinus.needBlend = true;
-	terrainEdit->southSideZPlus.needBlend = true;
-	terrainEdit->westSideXMinus.needBlend = true;
-	terrainEdit->eastSideXPlus.needBlend = true;
+	//terrainEdit->northSideZMinus.needBlend_notused = true;
+	//terrainEdit->southSideZPlus.needBlend_notused = true;
+	//terrainEdit->westSideXMinus.needBlend_notused = true;
+	//terrainEdit->eastSideXPlus.needBlend_notused = true;
 
 	TheWorld_Utils::MemoryBuffer& heights16Buffer = quadTreeSel->getQuadrant()->getFloat16HeightsBuffer(false);
 	size_t heights16BufferSize = numVertices * sizeof(uint16_t);

@@ -733,10 +733,10 @@ namespace godot
 
 		bool checkBlendNeeded(void);
 		bool checkBlendNeeded(bool& heavyCheckBlendExecuted, bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
-		bool checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* northQuadrantTree = nullptr, bool newCheckBlend = true);
-		bool checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* southQuadrantTree = nullptr, bool newCheckBlend = true);
-		bool checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* eastQuadrantTree = nullptr, bool newCheckBlend = true);
-		bool checkWestSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* westQuadrantTree = nullptr, bool newCheckBlend = true);
+		bool checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* northQuadrantTree = nullptr, bool fullCheckBlend = true);
+		bool checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* southQuadrantTree = nullptr, bool fullCheckBlend = true);
+		bool checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* eastQuadrantTree = nullptr, bool fullCheckBlend = true);
+		bool checkWestSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* westQuadrantTree = nullptr, bool fullCheckBlend = true);
 
 		void setBlendNeeded(bool b, bool northSideBlendNeeded, bool southSideBlendNeeded, bool eastSideBlendNeeded, bool westSideBlendNeeded);
 		bool quadrantBlendNeeded(void) const

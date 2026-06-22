@@ -237,7 +237,8 @@ constexpr auto MAPCAMERA_MOVE_INCREMENT = 20.0;
 
 void GDN_TheWorld_MapCamera::setZoomFactor(float zoomFactor)
 {
-	if (zoomFactor >= 0.09 /*zoomFactor > 0.03*/ and zoomFactor <= 1)
+	//if (zoomFactor >= 0.09 /*zoomFactor > 0.03*/ and zoomFactor <= 1)
+	if (zoomFactor >= 0.05 and zoomFactor <= 1)
 	{
 		godot::Vector2 zoom(zoomFactor, zoomFactor);
 		set_zoom(zoom);

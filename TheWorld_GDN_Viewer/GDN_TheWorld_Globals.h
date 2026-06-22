@@ -780,6 +780,8 @@ namespace godot
 		void setParamShowWireframe(bool f);
 
 		void setParamCheckNeedBlending(bool b);
+		void setParamFullCheckBlend(bool b);
+		bool getParamFullCheckBlend(void) const;
 
 		bool checkNeedBlending(void) const;
 
@@ -984,6 +986,7 @@ namespace godot
 		//int64_t m_paramDepthQuadWithCollisionInfo = THEWORLD_DEFAULT_DEPTH_QUAD_WITH_COLLISION_INFO;
 		int m_profilerActivated = -1;
 		bool m_checkNeedBlending = false;
+		bool m_fullCheckBlend = false;
 	};
 }
 

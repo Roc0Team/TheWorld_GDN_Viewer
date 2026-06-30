@@ -38,7 +38,7 @@
 BUGFIX:
 * nella generazione del terreno non viene aggiornato correttamente lo shader riguardo alle texture dei quadranti adiacenti per cui l'effetto grafico vero si vede solo dopo un salvataggio dei quadranti e una ripartenza
 
-Tag-2026/06/30
+Tag=wip-2026-06-30-aftermergeinmainbis
 * ***OK*** evitare la necessità dell'auto-blending
 * ***OK*** dopo un upload manuale del quadrante schedulare la generazione server-side che porta ad un nuovo upload questa volta automatico
 * ***OK*** Predisposizione per altri dati nel file che contiene i dati del quadrante

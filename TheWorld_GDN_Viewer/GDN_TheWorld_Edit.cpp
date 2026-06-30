@@ -4211,10 +4211,10 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenerate 1.1 ") + __FUNCTION__, "Generate Heights");
 		cache.generateHeightsWithNoise(numVerticesPerSize, gridStepInWU, lowerXGridVertex, lowerZGridVertex, terrainEdit, vectGridHeights);
 
-		for (auto& item : m_wms)
-		{
-			cache.applyWorldModifier(level, numVerticesPerSize, gridStepInWU, lowerXGridVertex, lowerZGridVertex, terrainEdit, vectGridHeights, *item.second.get());
-		}
+		//for (auto& item : m_wms)
+		//{
+		//	cache.applyWorldModifier(level, numVerticesPerSize, gridStepInWU, lowerXGridVertex, lowerZGridVertex, terrainEdit, vectGridHeights, *item.second.get());
+		//}
 	}
 
 	// 3. remember quadrant has to be saved and uploaded

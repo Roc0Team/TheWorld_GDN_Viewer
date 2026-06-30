@@ -6159,6 +6159,13 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					
 					m_mtxQuadrantsAndMainProcessing.unlock();
 
+					//// DEBUG
+					//if (quadTree->getQuadrant()->getPos().isQuadrantTrackedForDebug())
+					//{
+					//	bool debug = true;
+					//}
+					//// DEBUG
+
 					if (m_stopDeploy)
 					{
 						//quadTree->setStatus(QuadrantStatus::initialized);
@@ -6167,19 +6174,22 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 					}
 					else
 					{
-						if (quadTree->statusGetTerrainDataInProgress() || quadTree->statusRefreshTerrainDataInProgress())
+						if (quadTree->statusGetTerrainDataInProgress() || quadTree->statusRefreshTerrainDataInProgress() || quadTree->statusInitialized())
 						{
-							if (quadTree->statusRefreshTerrainDataInProgress())
+							bool refreshing = false;
+							if (quadTree->statusRefreshTerrainDataInProgress() or quadTree->statusInitialized())
 							{
 								//Globals()->debugPrint((std::string("Refreshing quadrant: received terrain data for quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshIdFromServer) + " ").c_str());
 								PLOG_VERBOSE << "Refreshing quadrant: received terrain data for quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(meshIdFromServer);
 								quadrantPos.TRACK_QUADRANT_FOR_DEBUG("Refreshing quadrant: received terrain data for quadrant", meshIdFromServer);
+								refreshing = true;
 							}
 							else
 							{
 								//Globals()->debugPrint((std::string("Initializing quadrant: received terrain data for quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
 								PLOG_VERBOSE << "Initializing quadrant: received terrain data for quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId());
 								quadrantPos.TRACK_QUADRANT_FOR_DEBUG("Initializing quadrant: received terrain data for quadrant", quadTree->getQuadrant()->getMeshId());
+								refreshing = false;
 							}
 
 							//std::recursive_mutex& quadrantMutex = quadTree->getQuadrantMutex();
@@ -6192,13 +6202,6 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 								//std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);	// SUPERDEBUGRIC : to remove when the mock for altitudes is removed from cache.refreshMeshCacheFromBuffer
 								TheWorld_Utils::GuardProfiler profiler(std::string("WorldDeploy 2.1.1 ") + __FUNCTION__, "quadTree->getQuadrant()->refreshGridVertices");
 								quadTree->getQuadrant()->refreshGridVerticesFromServer(buffGridVerticesFromServer, meshIdFromServer, outMeshIdFromBuffer, true);
-
-								//if (worldQuadrant)
-								//{
-								//	godot::Ref<godot::Image> mapImage = quadTree->getQuadrant()->getMapImage();
-								//	m_mapQuadrantImagesMap.setMapData(mapImage, quadrantPos, meshIdFromServer);
-								//	updateMapQuadrantMap = false;
-								//}
 							}
 
 							if (setCamera)

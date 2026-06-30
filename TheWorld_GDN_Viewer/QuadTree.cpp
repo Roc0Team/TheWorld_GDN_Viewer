@@ -5504,6 +5504,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 				std::string writtenMeshId;
 				saveQuadrantToDiskCache2(writtenMeshId, true, false);
 				PLOG_VERBOSE << "Quadrant " << getPos().getIdStr() << " saved to disk cache with hash [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(writtenMeshId) << "]";	
+				getPos().TRACK_QUADRANT_FOR_DEBUG("Saved to disk cache", writtenMeshId);
 				editModeUIControl->removeQuadToSave(m_quadrantPos);
 				terrainEdit->needUploadToServer = false;
 				std::string buffer;
@@ -6340,13 +6341,6 @@ bool Quadrant::checkBlendNeeded(bool& heavyCheckBlendExecuted, bool& northSideBl
 {
 	bool fullCheckBlend = m_viewer->Globals()->getParamFullCheckBlend();
 
-	// DEBUG
-	if (getPos().isQuadrantTrackedForDebug())
-	{
-		bool debug = true;
-	}
-	// DEBUG
-
 	bool northSideHeavyCheckBlendExecuted = false, southSideHeavyCheckBlendExecuted = false, eastSideHeavyCheckBlendExecuted = false, westSideHeavyCheckBlendExecuted = false;
 	
 	northSideBlendNeeded = Quadrant::checkNorthSideBlendNeeded(northSideHeavyCheckBlendExecuted, northQuadrantTree, fullCheckBlend);
@@ -6362,7 +6356,9 @@ bool Quadrant::checkBlendNeeded(bool& heavyCheckBlendExecuted, bool& northSideBl
 	bool blendNeeded;
 
 	if (northSideBlendNeeded or southSideBlendNeeded or eastSideBlendNeeded or westSideBlendNeeded)
+	{
 		blendNeeded = true;
+	}
 	else
 		blendNeeded = false;
 

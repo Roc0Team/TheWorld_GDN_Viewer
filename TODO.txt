@@ -1,8 +1,6 @@
 * Eliminare i file più vecchi di una certa data:
   * i file .imported in D:\TheWorld\Client\TheWorld_MapManager\Data\DBJson\maps\TestMap03\ST-2.000000_SZ-2049\L-0\Import
   * i file nella cache client side
-* dopo un upload manuale del quadrante schedulare la generazione server-side che porta ad un nuovo upload questa volta automatico
-* evitare la necessità dell'auto-blending
 * generare le informazioni sulle linee di livello (un array di linee di livello) per capire se i livelli di acqua corrispondono a laghi o al mare:
   * un item di un array per ogni linea di livello che comprenda:
     * header: info sulla linea di livello (altitudine, lago/mare/terreno)
@@ -14,12 +12,10 @@
 * Implementare il detiling come in Terrain3D e correggere il calcolo dell'UV
 * Implementare la tesselation e il displacement mapping come in Terrain3d
 * Valutare se usare il mouse picking come in Terrain 3d
-* Conviene usare un materiale per region oppure sarebbe più efficiente usare un unico materiale per tutte le region? Come aggiorno le info sulle region durante lo streaming?
 * tutto in C++ come gdextension
 * Doc del plugin (https://docs.godotengine.org/en/4.4/tutorials/scripting/gdextension/gdextension_docs_system.html)
 * Nuovo progetto STerrain (StreamingLandscape) con Demo
 
-* creare nativamente le mappe di tipo normal e global (global serve ancora? color?) per gli shader con il canale alpha (RGB8 => RGBA8): occorre salvare in modo differente i quadranti
 * riorganizzazione del codice in modo che sia più pulito e razionale: ora è troppo confusionario ed è privo di una progettazione a priori
 * reset changes: "to save"/"to upload"
 * erosione delle montagne
@@ -38,25 +34,23 @@
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
 
 * profiler should aliment a que dequeued by a dedicated thread
-* ottimizzazione: eliminare cache heightmap 32 precalcolando min max height per ogni chunk e salvandolo insieme alle heightmap
-* globalmap deve comprendere tutto quello che si vede: mare etc.
-* riconoscimento laghi e adeguamento movimento onde
-* test_quadrant
 
 BUGFIX:
 * nella generazione del terreno non viene aggiornato correttamente lo shader riguardo alle texture dei quadranti adiacenti per cui l'effetto grafico vero si vede solo dopo un salvataggio dei quadranti e una ripartenza
 
-Tag-???
-* Predisposizione per altri dati nel file che contiene i dati del quadrante
-* Ridurre la dimensione del file che rappresenta un quadrante
-  * oltre alle altezze (4.096) è possibile eliminare:
+Tag-2026/06/30
+* ***OK*** evitare la necessità dell'auto-blending
+* ***OK*** dopo un upload manuale del quadrante schedulare la generazione server-side che porta ad un nuovo upload questa volta automatico
+* ***OK*** Predisposizione per altri dati nel file che contiene i dati del quadrante
+* ***OK*** Ridurre la dimensione del file che rappresenta un quadrante
+  * oltre alle altezze a 32 bit (16.384) è possibile eliminare:
     * la normalmap (12.288)?
     * la splatmap (16.384)?
     * la colormap (12.288) ?
-* Eliminare dal modder la creazione della normalmap e della splatmap e togliere dal codicie i riferimenti a u_terrain_normalmap e u_terrain_splatmap
-* Segnalare se streaming non tiene il ritmo del movimento nella mappa
-* nella mappa la divisione fra quadranti è troppo visibile: è troppo evidente l'effetto scacchiera
-* la mappa (globalmap) deve avere un aspetto più verosimile che tenga conto anche dei quadranti adiacenti
+* ***OK*** Eliminare dal modder la creazione della normalmap e della splatmap e togliere dal codice i riferimenti a u_terrain_normalmap e u_terrain_splatmap
+* ***OK*** Segnalare se streaming non tiene il ritmo del movimento nella mappa
+* ***OK*** nella mappa la divisione fra quadranti è troppo visibile: è troppo evidente l'effetto scacchiera
+* ***OK*** la mappa (globalmap) deve avere un aspetto più verosimile che tenga conto anche dei quadranti adiacenti
 
 Tag 2025/05/13
 * ***OK*** suddivisione dei quadranti in continenti e possibilità di definire differenti scenari in ground.json e di assegnarli ai continenti; ground.json scaricato dal server

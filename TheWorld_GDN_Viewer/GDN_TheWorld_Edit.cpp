@@ -631,10 +631,10 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_procgenHeightsProgress = createControl<godot::Label>(hBoxContainer);
 		label = createControl<godot::Label>(hBoxContainer, "", "Blend");
 		m_innerData->m_procgenBlendProgress = createControl<godot::Label>(hBoxContainer);
-		//label = createControl<godot::Label>(hBoxContainer, "", "To Cli");
-		//m_innerData->m_procgenClientElabProgress = createControl<godot::Label>(hBoxContainer);
 
-		//separator = createControl<godot::HSeparator>(m_innerData->m_serverInfoVBoxContainer);
+		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_serverInfoVBoxContainer);
+		label = createControl<godot::Label>(hBoxContainer, "", "MinMax");
+		m_innerData->m_procgenMinMaxProgress = createControl<godot::Label>(hBoxContainer);
 
 		hBoxContainer = createControl<godot::HBoxContainer>(m_innerData->m_serverInfoVBoxContainer);
 		m_innerData->m_procgenClient = createControl<godot::Label>(hBoxContainer);
@@ -2603,6 +2603,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			m_innerData->m_procgenHeightsProgress->set_text(s.c_str());
 			s = std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numBlendedQuadrants) + "/" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numQuadrantsToBlend) + " (" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_currentBlendingCycle) + "/" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numBlendingCycles) + ")";
 			m_innerData->m_procgenBlendProgress->set_text(s.c_str());
+			s = std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numGeneratedMinMaxQuadrants) + "/" + std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numQuadrantsToGenerateMinMax);
+			m_innerData->m_procgenMinMaxProgress->set_text(s.c_str());
 			m_innerData->m_procgenClientElabProgress->set_text(std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numQuadrantsToElabClientSide).c_str());
 		}
 		else
@@ -2634,6 +2636,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			m_innerData->m_procgenLevel->set_text("-");
 			m_innerData->m_procgenHeightsProgress->set_text("-");
 			m_innerData->m_procgenBlendProgress->set_text("-");
+			m_innerData->m_procgenMinMaxProgress->set_text("-");
 			if (clientWorkNeeded)
 				m_innerData->m_procgenClientElabProgress->set_text(std::to_string(m_innerData->m_serverProceGenStatusMap[numVerticesPerSize][level].m_numQuadrantsToElabClientSide).c_str());
 			else
@@ -4209,7 +4212,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	TheWorld_Utils::MeshCacheBuffer& cache = quadTreeSel->getQuadrant()->getInternalMeshCacheBuffer();
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenerate 1.1 ") + __FUNCTION__, "Generate Heights");
-		cache.generateHeightsWithNoise(numVerticesPerSize, gridStepInWU, lowerXGridVertex, lowerZGridVertex, terrainEdit, vectGridHeights);
+		cache.generateHeightsWithNoise(quadrantSelPos, terrainEdit, vectGridHeights);
 
 		//for (auto& item : m_wms)
 		//{

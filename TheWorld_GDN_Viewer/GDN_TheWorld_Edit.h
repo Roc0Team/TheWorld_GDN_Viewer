@@ -175,6 +175,7 @@ namespace godot
 			godot::Label* m_procgenLevel = nullptr;
 			godot::Label* m_procgenHeightsProgress = nullptr;
 			godot::Label* m_procgenBlendProgress = nullptr;
+			godot::Label* m_procgenMinMaxProgress = nullptr;
 			godot::Label* m_procgenClientElabProgress = nullptr;
 			TimerMs m_procgenClock;
 

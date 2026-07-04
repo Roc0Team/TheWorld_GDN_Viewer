@@ -2420,3 +2420,361 @@
 	//	assert(_streamBuffer - buffer.ptr() == streamBufferSize);
 	//	buffer.adjustSize(streamBufferSize);
 	//}
+
+		//void editModeBlend(void);
+
+//void GDN_TheWorld_Edit::editModeBlend(void)
+//{
+//	m_viewer->getMainProcessingMutex().lock();
+//	if (m_actionClock.counterStarted())
+//	{
+//		m_actionInProgress = false;
+//		m_viewer->getMainProcessingMutex().unlock();
+//		return;
+//	}
+//	if (terrainDataLocked())
+//	{
+//		m_viewer->getMainProcessingMutex().unlock();
+//		setMessage(godot::String("Terrain data locked wait..."));
+//		return;
+//	}
+//	terrainDataLocked(true);
+//	m_viewer->getMainProcessingMutex().unlock();
+//
+//	setMessage(godot::String("Blending heigths..."));
+//	
+//	m_actionClock.tick();
+//
+//	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1 ") + __FUNCTION__, "ALL");
+//
+//	bool allCheched = false;	// m_innerData->m_blendAllCheckBox->is_pressed();
+//
+//	QuadTree* quadTreeSel = nullptr;
+//	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
+//
+//	if (quadrantSelPos.empty())
+//	{
+//		m_actionClock.tock();
+//		m_actionInProgress = false;
+//		setMessage(godot::String("Must select a quadrant!"), true);
+//		return;
+//	}
+//
+//	std::vector<TheWorld_Utils::QuadrantPos> allQuadrantPos;
+//	m_viewer->getAllQuadrantPos(allQuadrantPos);
+//
+//	std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
+//	for (auto& pos : allQuadrantPos)
+//	{
+//		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+//		if (quadTree != nullptr)
+//		{
+//			if (allCheched || pos == quadrantSelPos)
+//			{
+//				quadrantPos.push_back(pos);
+//
+//				if (!allCheched)
+//					break;
+//			}
+//		}
+//	}
+//
+//	m_elapsedCompleted = 0;
+//	m_lastElapsed = 0;
+//	m_allItems = quadrantPos.size();
+//
+//	size_t numRounds = blendingCycles();
+//	for (size_t round = 0; round < numRounds; round++)
+//	{
+//		bool lastPhase = false;
+//		if (round == numRounds - 1)
+//			lastPhase = true;
+//
+//		m_completedItems = 0;
+//
+//		bool cannotExitLoop = false;
+//		
+//		for (auto& pos : quadrantPos)
+//		{
+//			TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
+//
+//			if (m_actionStopRequested)
+//			{
+//				m_actionStopRequested = false;
+//				break;
+//			}
+//
+//			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+//			TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData quadrantData;
+//
+//			bool lockAcquired;
+//
+//			QuadTree* quadTree = nullptr;
+//			{
+//				TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//				quadTree = prepareHeightsForQuadrantBlend(&lockAcquired , &pos, &quadrantData, &terrainEditValuesBuffer);
+//				if (!lockAcquired && lastPhase)
+//					cannotExitLoop = true;
+//			}
+//				
+//			if (quadTree != nullptr)
+//			{
+//				//std::vector<std::thread> threads;
+//				//threads.resize(8);
+//								
+//				TheWorld_Utils::MemoryBuffer northTerrainEditValuesBuffer;
+//				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northQuadrantData;
+//				TheWorld_Utils::QuadrantPos northPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus);
+//				QuadTree* northQuadTree = nullptr;
+//				{
+//					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+//					//threads[0] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &northQuadTree, &northPos, &northQuadrantData, &northTerrainEditValuesBuffer, &northHeights16Buffer, &northHeights32Buffer);
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//					northQuadTree = prepareHeightsForQuadrantBlend(&lockAcquired, &northPos, &northQuadrantData, &northTerrainEditValuesBuffer);
+//					if (!lockAcquired && lastPhase)
+//						cannotExitLoop = true;
+//				}
+//
+//				TheWorld_Utils::MemoryBuffer southTerrainEditValuesBuffer;
+//				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southQuadrantData;
+//				TheWorld_Utils::QuadrantPos southPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus);
+//				QuadTree* southQuadTree = nullptr;
+//				{
+//					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+//					//threads[1] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &southQuadTree, &southPos, &southQuadrantData, &southTerrainEditValuesBuffer, &southHeights16Buffer, &southHeights32Buffer);
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//					southQuadTree = prepareHeightsForQuadrantBlend(&lockAcquired, &southPos, &southQuadrantData, &southTerrainEditValuesBuffer);
+//					if (!lockAcquired && lastPhase)
+//						cannotExitLoop = true;
+//				}
+//
+//				TheWorld_Utils::MemoryBuffer westTerrainEditValuesBuffer;
+//				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData westQuadrantData;
+//				TheWorld_Utils::QuadrantPos westPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus);
+//				QuadTree* westQuadTree = nullptr;
+//				{
+//					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+//					//threads[2] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &westQuadTree, &westPos, &westQuadrantData, &westTerrainEditValuesBuffer, &westHeights16Buffer, &westHeights32Buffer);
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//					westQuadTree = prepareHeightsForQuadrantBlend(&lockAcquired, &westPos, &westQuadrantData, &westTerrainEditValuesBuffer);
+//					if (!lockAcquired && lastPhase)
+//						cannotExitLoop = true;
+//				}
+//
+//				TheWorld_Utils::MemoryBuffer eastTerrainEditValuesBuffer;
+//				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData eastQuadrantData;
+//				TheWorld_Utils::QuadrantPos eastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus);
+//				QuadTree* eastQuadTree = nullptr;
+//				{
+//					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+//					//threads[3] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &eastQuadTree, &eastPos, &eastQuadrantData, &eastTerrainEditValuesBuffer, &eastHeights16Buffer, &eastHeights32Buffer);
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//					eastQuadTree = prepareHeightsForQuadrantBlend(&lockAcquired, &eastPos, &eastQuadrantData, &eastTerrainEditValuesBuffer);
+//					if (!lockAcquired && lastPhase)
+//						cannotExitLoop = true;
+//				}
+//
+//				TheWorld_Utils::MemoryBuffer northwestTerrainEditValuesBuffer;
+//				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northwestQuadrantData;
+//				TheWorld_Utils::QuadrantPos northwestPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXMinus);
+//				QuadTree* northwestQuadTree = nullptr;
+//				{
+//					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+//					//threads[4] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &northwestQuadTree, &northwestPos, &northwestQuadrantData, &northwestTerrainEditValuesBuffer, &northwestHeights16Buffer, &northwestHeights32Buffer);
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//					northwestQuadTree = prepareHeightsForQuadrantBlend(&lockAcquired, &northwestPos, &northwestQuadrantData, &northwestTerrainEditValuesBuffer);
+//					if (!lockAcquired && lastPhase)
+//						cannotExitLoop = true;
+//				}
+//
+//				TheWorld_Utils::MemoryBuffer northeastTerrainEditValuesBuffer;
+//				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northeastQuadrantData;
+//				TheWorld_Utils::QuadrantPos northeastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXPlus);
+//				QuadTree* northeastQuadTree = nullptr;
+//				{
+//					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+//					//threads[5] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &northeastQuadTree, &northeastPos, &northeastQuadrantData, &northeastTerrainEditValuesBuffer, &northeastHeights16Buffer, &northeastHeights32Buffer);
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//					northeastQuadTree = prepareHeightsForQuadrantBlend(&lockAcquired, &northeastPos, &northeastQuadrantData, &northeastTerrainEditValuesBuffer);
+//					if (!lockAcquired && lastPhase)
+//						cannotExitLoop = true;
+//				}
+//
+//				TheWorld_Utils::MemoryBuffer southwestTerrainEditValuesBuffer;
+//				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southwestQuadrantData;
+//				TheWorld_Utils::QuadrantPos southwestPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXMinus);
+//				QuadTree* southwestQuadTree = nullptr;
+//				{
+//					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+//					//threads[6] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &southwestQuadTree, &southwestPos, &southwestQuadrantData, &southwestTerrainEditValuesBuffer, &southwestHeights16Buffer, &southwestHeights32Buffer);
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//					southwestQuadTree = prepareHeightsForQuadrantBlend(&lockAcquired, &southwestPos, &southwestQuadrantData, &southwestTerrainEditValuesBuffer);
+//					if (!lockAcquired && lastPhase)
+//						cannotExitLoop = true;
+//				}
+//
+//				TheWorld_Utils::MemoryBuffer southeastTerrainEditValuesBuffer;
+//				TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southeastQuadrantData;
+//				TheWorld_Utils::QuadrantPos southeastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXPlus);
+//				QuadTree* southeastQuadTree = nullptr;
+//				{
+//					//TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2 ") + __FUNCTION__, "Single QuadTree start thread prepare data for blending");
+//					//threads[7] = std::thread(&GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread, this, &southeastQuadTree, &southeastPos, &southeastQuadrantData, &southeastTerrainEditValuesBuffer, &southeastHeights16Buffer, &southeastHeights32Buffer);
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending");
+//					southeastQuadTree = prepareHeightsForQuadrantBlend(&lockAcquired, &southeastPos, &southeastQuadrantData, &southeastTerrainEditValuesBuffer);
+//					if (!lockAcquired && lastPhase)
+//						cannotExitLoop = true;
+//				}
+//
+//				//for (auto& t : threads)
+//				//	t.join();
+//
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.3 ") + __FUNCTION__, "Single QuadTree blendQuadrant");
+//
+//					//lastPhase = false;	// DEBUG
+//					bool renewMeshIdOnUpdate = false;	// MeshId Will be renewed in manageUpdatedHeightsAfterQuadrantBlend function
+//					bool updated = quadTree->getQuadrant()->getInternalMeshCacheBuffer().blendQuadrant(pos, lastPhase, renewMeshIdOnUpdate,
+//						quadrantData,
+//						northQuadrantData,
+//						southQuadrantData,
+//						westQuadrantData,
+//						eastQuadrantData,
+//						northwestQuadrantData,
+//						northeastQuadrantData,
+//						southwestQuadrantData,
+//						southeastQuadrantData);
+//
+//					//if (updated && lastPhase)
+//					//	cannotExitLoop = true;
+//				}
+//
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(quadrantData, quadTree, terrainEditValuesBuffer);
+//					quadTree->getQuadrant()->unlockInternalData();
+//				}
+//
+//				if (northQuadTree != nullptr)
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(northQuadrantData, northQuadTree, northTerrainEditValuesBuffer);
+//					northQuadTree->getQuadrant()->unlockInternalData();
+//				}
+//				if (southQuadTree != nullptr)
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(southQuadrantData, southQuadTree, southTerrainEditValuesBuffer);
+//					southQuadTree->getQuadrant()->unlockInternalData();
+//				}
+//				if (westQuadTree != nullptr)
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(westQuadrantData, westQuadTree, westTerrainEditValuesBuffer);
+//					westQuadTree->getQuadrant()->unlockInternalData();
+//				}
+//				if (eastQuadTree != nullptr)
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(eastQuadrantData, eastQuadTree, eastTerrainEditValuesBuffer);
+//					eastQuadTree->getQuadrant()->unlockInternalData();
+//				}
+//				if (northwestQuadTree != nullptr)
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(northwestQuadrantData, northwestQuadTree, northwestTerrainEditValuesBuffer);
+//					northwestQuadTree->getQuadrant()->unlockInternalData();
+//				}
+//				if (northeastQuadTree != nullptr)
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(northeastQuadrantData, northeastQuadTree, northeastTerrainEditValuesBuffer);
+//					northeastQuadTree->getQuadrant()->unlockInternalData();
+//				}
+//				if (southwestQuadTree != nullptr)
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(southwestQuadrantData, southwestQuadTree, southwestTerrainEditValuesBuffer);
+//					southwestQuadTree->getQuadrant()->unlockInternalData();
+//				}
+//				if (southeastQuadTree != nullptr)
+//				{
+//					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.4 ") + __FUNCTION__, "Single QuadTree manage blended data");
+//					manageUpdatedHeightsAfterQuadrantBlend(southeastQuadrantData, southeastQuadTree, southeastTerrainEditValuesBuffer);
+//					southeastQuadTree->getQuadrant()->unlockInternalData();
+//				}
+//
+//				m_completedItems++;
+//				size_t partialCount = m_actionClock.partialDuration().count();
+//				m_lastElapsed = partialCount - m_elapsedCompleted;
+//				m_elapsedCompleted = partialCount;
+//			}
+//		}
+//
+//		if (cannotExitLoop && round == numRounds - 1)
+//			round--;
+//	}
+//
+//	setMinHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->minHeight);
+//	setMaxHeight(quadTreeSel->getQuadrant()->getTerrainEdit()->maxHeight);
+//	//setCanContainSea((quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
+//
+//	size_t partialCount = m_actionClock.partialDuration().count();
+//	m_lastElapsed = partialCount - m_elapsedCompleted;
+//	m_elapsedCompleted = partialCount;
+//
+//	m_actionClock.tock();
+//
+//	m_actionInProgress = false;
+//
+//	size_t duration = m_actionClock.duration().count();
+//	setElapsed(duration, false);
+//	setCounter(m_completedItems, m_allItems);
+//	setNote1(m_lastElapsed);
+//
+//	//size_t numToSave = 0;
+//	//size_t numToUpload = 0;
+//	//size_t numLocked = 0;
+//	//refreshNumToSaveUpload(numToSave, numToUpload, numLocked);
+//
+//	setMessage(godot::String("Completed!"), true);
+//
+//	terrainDataLocked(false);
+//}
+
+		//void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
+
+//void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer)
+//{
+//	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1.2.1 ") + __FUNCTION__, "Single QuadTree prepare data for blending in thread");
+//	*quadTree = prepareHeightsForQuadrantBlend(lockAcquired, pos, quadrantData, terrainEditValuesBuffer);
+//}
+
+		//void editModeBlend(void);
+		//void editModeResetNormalsSplatmap(void);
+		//void editModeSelectLookDevAction(int32_t index);
+		//bool hiResCollisionGridEnabled(void);
+		//bool lowResCollisionGridEnabled(void);
+		//void editModeResetNormalsSplatmapAction(void);
+		//void editModeNoisePanel(void);
+		//void editModeInfoPanel(void);
+		//void editModeTerrEditPanel(void);
+		//void setEmptyTerrainEditValues(void);
+		//float minHeight(void);
+		//float maxHeight(void);
+		//void setCanContainSea(bool canContainSea);
+		//void resetHighElevationFactor(void);
+		//void setHighElevationFactor(float value);
+		//float highElevationFactor(void);
+		//void resetLowElevationFactor(void);
+		//void setLowElevationFactor(float value);
+		//float lowElevationFactor(void);
+		//std::map<QuadrantPos, std::string>& getMapQuadToSave(void)
+		//{
+		//	return m_mapQuadToSave;
+		//}
+		//Color m_elapsedLabelNormalColor;
+
+		//void setAllChecked(bool allChecked);
+		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
+

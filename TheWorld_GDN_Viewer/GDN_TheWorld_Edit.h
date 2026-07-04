@@ -336,7 +336,6 @@ namespace godot
 			return m_initialized;
 		}
 		godot::Window* initSelTexturePanel(void);
-		//void setAllChecked(bool allChecked);
 		void expandServerInfoPanel(void);
 		void compressServerInfoPanel(void);
 		void expandTerrainGenerationPanel(void);
@@ -346,9 +345,6 @@ namespace godot
 		void toggledSignalManager(const bool pressed, godot::Object* obj, godot::String signal, godot::String className, int instanceId, godot::String objectName, godot::Variant custom1, godot::Variant custom2, godot::Variant custom3);
 		void m_textureOverflowSizeHSliderValueChanged(double d);
 		void controlNeedResize(void);
-		//void editModeNoisePanel(void);
-		//void editModeInfoPanel(void);
-		//void editModeTerrEditPanel(void);
 		void setSizeUI(void);
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
@@ -358,20 +354,14 @@ namespace godot
 		bool checkBlend(void);
 		bool autoBlendPermitted(void);
 		void editModeBlendAction(void);
-		//bool hiResCollisionGridEnabled(void);
-		//bool lowResCollisionGridEnabled(void);
-		//void editModeResetNormalsSplatmapAction(void);
 		void editModeSaveAction(void);
 		void editModeUploadAction(void);
 		void editModeStopAction(void);
 		void editModeReloadShader(void);
 		void editModeSelectTerrainTypeAction(int32_t index);
-		//void editModeSelectLookDevAction(int32_t index);
 
 		void editModeGenerate(void);
-		void editModeBlend(void);
 		void editModeBlendNew(void);
-		//void editModeResetNormalsSplatmap(void);
 		void editModeSave(void);
 		void editModeUpload(void);
 		bool editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* map);
@@ -379,7 +369,6 @@ namespace godot
 		
 		size_t numQuadrantsRequiringMapModding(void);
 
-		//void prepareHeightsForQuadrantBlendThread(QuadTree** quadTree, bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
 		void prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters);
 		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
 		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, Quadrant* quadrant, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
@@ -388,7 +377,6 @@ namespace godot
 
 		godot::Ref<godot::Texture2D> getTextureByTerrainType(TheWorld_Utils::TerrainEdit::TerrainType terrainType);
 
-		//void setEmptyTerrainEditValues(void);
 		void setTerrainEditValues(TheWorld_Utils::TerrainEdit& terrainEdit, TheWorld_Utils::QuadrantPos quadrantPos, bool activateEditingMap = true);
 
 		void editModeMouseEnteredEditPanel(void);
@@ -451,12 +439,9 @@ namespace godot
 		void setPostGenerateElevation(float postGenerateElevation);
 		float postGenerateElevation(void);
 		void setMinHeight(float minHeight);
-		//float minHeight(void);
 		void setMaxHeight(float maxHeight);
-		//float maxHeight(void);
 		void resetSelectedTerrainType(void);
 		void setSelectedTerrainType(enum class TheWorld_Utils::TerrainEdit::TerrainType terrainType);
-		//void setCanContainSea(bool canContainSea);
 		void setElapsed(size_t elapsed, bool onGoing);
 		size_t elapsed(void);
 		void setCounter(size_t curr, size_t all);
@@ -471,12 +456,6 @@ namespace godot
 		void resetDirtOnRocksFactor(void);
 		void setDirtOnRocksFactor(float value);
 		float dirtOnRocksFactor(void);
-		//void resetHighElevationFactor(void);
-		//void setHighElevationFactor(float value);
-		//float highElevationFactor(void);
-		//void resetLowElevationFactor(void);
-		//void setLowElevationFactor(float value);
-		//float lowElevationFactor(void);
 		void resetSplatMapMode(void);
 		void setSplatMapMode(size_t value);
 		size_t splatMapMode(void);
@@ -513,11 +492,6 @@ namespace godot
 		{
 			return m_innerData->m_mouseInsideEditPanel;
 		}
-
-		//std::map<QuadrantPos, std::string>& getMapQuadToSave(void)
-		//{
-		//	return m_mapQuadToSave;
-		//}
 
 		void addQuadToDelayedBlend(TheWorld_Utils::QuadrantPos pos)
 		{
@@ -719,7 +693,6 @@ namespace godot
 		TimerMs m_actionClock;
 		TimerMs m_refreshUI;
 		bool m_onGoingElapsedLabel;
-		//Color m_elapsedLabelNormalColor;
 		bool m_uploadMapQuadrantOverridesInProgress = false;
 		size_t m_completedItems;
 		size_t m_elapsedCompleted;
@@ -751,8 +724,6 @@ namespace godot
 
 		TheWorld_Utils::ThreadPool m_tp;
 		bool m_requestedThreadExit = false;
-
-		//GDN_TheWorld_MapModder* m_mapModder = nullptr;
 
 		godot::Vector2 m_size;
 

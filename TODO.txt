@@ -1,6 +1,3 @@
-* Eliminare i file più vecchi di una certa data:
-  * i file .imported in D:\TheWorld\Client\TheWorld_MapManager\Data\DBJson\maps\TestMap03\ST-2.000000_SZ-2049\L-0\Import
-  * i file nella cache client side
 * generare le informazioni sulle linee di livello (un array di linee di livello) per capire se i livelli di acqua corrispondono a laghi o al mare:
   * un item di un array per ogni linea di livello che comprenda:
     * header: info sulla linea di livello (altitudine, lago/mare/terreno)
@@ -37,6 +34,10 @@
 
 BUGFIX:
 * nella generazione del terreno non viene aggiornato correttamente lo shader riguardo alle texture dei quadranti adiacenti per cui l'effetto grafico vero si vede solo dopo un salvataggio dei quadranti e una ripartenza
+
+* ***OK*** Eliminare i file più vecchi di una certa data:
+  * i file .imported in D:\TheWorld\Client\TheWorld_MapManager\Data\DBJson\maps\TestMap03\ST-2.000000_SZ-2049\L-0\Import
+  * i file nella cache client side (NON FATTO PER SCELTA)
 
 Tag=wip-2026-06-30-aftermergeinmainbis
 * ***OK*** evitare la necessità dell'auto-blending

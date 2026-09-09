@@ -912,6 +912,81 @@ void QuadTree::forceUpdateForAllChunks(enum class QuadType type)
 	}
 }
 
+bool QuadTree::managePostHeightsUpdateOperations(bool forceGlobalMapUpdate)
+{
+	bool updated = false;
+	
+	Quadrant* quadrant = getQuadrant();
+	
+	// Calc Min/Max heights and update terrain edit values and meshid (can be updated if heights have been changed), furthermore heights16 for shader are updated coerently with heights32
+	{
+		TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData quadrantData;
+		TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
+		quadrant->getTerrainEdit()->serialize(terrainEditValuesBuffer);
+		quadrantData.terrainEditValues = &terrainEditValuesBuffer;
+		quadrantData.heights16Buffer = &quadrant->getFloat16HeightsBuffer(false);
+		quadrantData.heights32Buffer = &quadrant->getFloat32HeightsBuffer(false);
+
+		bool renewMeshIdOnUpdate = true;
+		updated = quadrant->getInternalMeshCacheBuffer().calcMinMaxHeights(quadrant->getPos(), renewMeshIdOnUpdate, quadrantData);
+
+		// update quadrant terrain edit values and meshid (can be updated if heights have been changed)
+		quadrant->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
+	}
+
+	// Collider stuff (heights and AABB) must be updated after heights have been changed
+	{
+		// prepare new heigths for collider (PackedFloat32Array)
+		{
+			size_t numVerticesPerQuadrant = quadrant->getPos().getNumVerticesPerSize() * quadrant->getPos().getNumVerticesPerSize();
+
+#ifdef REAL_T_IS_DOUBLE
+			PackedFloat64Array& heightsForCollider = quadrant->getHeightsForCollider();
+			heightsForCollider.resize((int)numVerticesPerQuadrant);
+			float* f = (float*)quadrant->getFloat32HeightsBuffer(false).ptr();
+			for (int idx = 0; idx < numVerticesPerQuadrant; idx++)
+			{
+				heightsForCollider.set(idx, (real_t)*f);
+				f++;
+			}
+#else
+			quadrant->getHeightsForCollider().resize((int)numVerticesPerQuadrant);
+			memcpy((char*)quadrant->getHeightsForCollider().ptrw(), quadrant->getFloat32HeightsBuffer(false).ptr(), quadrant->getFloat32HeightsBuffer(false).size());
+#endif
+		}
+
+		// calc new quadrant AABB for collider
+		{
+			Vector3 startPosition(quadrant->getPos().getLowerXGridVertex(), quadrant->getTerrainEdit()->minHeight, quadrant->getPos().getLowerZGridVertex());
+			Vector3 endPosition(startPosition.x + quadrant->getPos().getSizeInWU(), quadrant->getTerrainEdit()->maxHeight, startPosition.z + quadrant->getPos().getSizeInWU());
+			Vector3 size = endPosition - startPosition;
+			quadrant->getGlobalCoordAABB().set_position(startPosition);
+			quadrant->getGlobalCoordAABB().set_size(size);
+		}
+	}
+
+	// notify all chunk of the quadrant that heigths have been changed (invalidates all cached chunk and quad AABB)
+	{
+		Chunk::TerrainHeightsChangedChunkAction action;
+		m_viewer->refreshRequired(true);
+		ForAllChunk(action, QuadType::NotSet);
+	}
+
+	// Update internal quadrant data (heights, colors, globalmap) and send to shader
+	{
+		quadrant->getTerrainEdit()->heightsNeedRegen(false);
+		if (forceGlobalMapUpdate or updated)
+			quadrant->resetGlobalmapBuffer(__FUNCTION__);		// force globalmap regeneration for uypdated quadrants
+		quadrant->heightmapChanged();
+		quadrant->sendColorsToShader(true);
+		materialParamsNeedReset(true);
+		colliderNeedReset(true, QuadType::NotSet);
+		quadrant->sendHeightsToShader(true);
+	}
+
+	return updated;
+}
+
 void QuadTree::checkMouseHitOnTerrain(void)
 {
 	checkMouseHit(QuadType::Terrain);
@@ -3716,7 +3791,7 @@ void ShaderTerrainData::cacheTerrainDataForShader(std::string profileHeader, enu
 	std::string imageTypeStr = imageType == ImageType::heightmap ? "Heightmap" : imageType == ImageType::normalmap ? "Normalmap" : imageType == ImageType::splatmap ? "Splatmap" : imageType == ImageType::colormap ? "Colormap" : imageType == ImageType::globalmap ? "Globalmap" : "Unknown";
 
 	// Pre cache images for shader: HiRes Image and all LowRes images that will be used during rendering
-	// WARNING: HiRes Images will be freed when quadrant datas will be sent to the shader becasue they are too big to remain allocated in memory together with the mesh data, so they will be loaded again from disk when needed for rendering
+	// WARNING: HiRes Images will be freed when quadrant datas will be sent to the shader because they are too big to remain allocated in memory together with the mesh data, so they will be loaded again from disk when needed for rendering
 	TheWorld_Utils::GuardProfiler profiler(profileHeader + __FUNCTION__, "Cache " + imageTypeStr + " images");
 
 	size_t maxOptimizationLevel = m_viewer->Globals()->getMaxTextureOptimizationLevel();
@@ -4862,8 +4937,13 @@ void Quadrant::InternalQuadrantDataLockHolder::init(Quadrant* quadrant, bool loc
 
 bool Quadrant::InternalQuadrantDataLockHolder::lock(void)
 {
+	m_mtx.lock();
+
 	if (m_quadrant == nullptr)
+	{
+		m_mtx.unlock();
 		return false;
+	}
 
 	if (m_lockAcquired)
 		m_numLocks++;
@@ -4874,11 +4954,15 @@ bool Quadrant::InternalQuadrantDataLockHolder::lock(void)
 			m_numLocks = 1;
 	}
 
+	m_mtx.unlock();
+
 	return m_lockAcquired;
 }
 
 void Quadrant::InternalQuadrantDataLockHolder::unlock(void)
 {
+	m_mtx.lock();
+
 	if (m_lockAcquired)
 	{
 		m_numLocks--;
@@ -4888,6 +4972,8 @@ void Quadrant::InternalQuadrantDataLockHolder::unlock(void)
 			m_lockAcquired = false;
 		}
 	}
+
+	m_mtx.unlock();
 }
 
 Quadrant::Quadrant(TheWorld_Utils::QuadrantPos& quadrantPos, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree)
@@ -5506,7 +5592,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 				PLOG_VERBOSE << "Quadrant " << getPos().getIdStr() << " saved to disk cache with hash [" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(writtenMeshId) << "]";	
 				getPos().TRACK_QUADRANT_FOR_DEBUG("Saved to disk cache", writtenMeshId);
 				editModeUIControl->removeQuadToSave(m_quadrantPos);
-				terrainEdit->needUploadToServer = false;
+				terrainEdit->needUploadToServer(false);
 				std::string buffer;
 				getQuadrantBufferForCache(buffer);
 				m_viewer->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), false);
@@ -5539,7 +5625,8 @@ bool Quadrant::process_blend(void)
 				return processed;
 			}
 			bool quadrantBusy = false;
-			processed = editModeUIControl->blendAction(getPos(), false, true, true, true, true, quadrantBusy, false);
+			std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>> lockedQuadrants;
+			processed = editModeUIControl->blendAction(getPos(), false, true, true, true, true, quadrantBusy, false, true, lockedQuadrants);
 		}
 	}
 	
@@ -5646,7 +5733,7 @@ bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, st
 		TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
 		cacheQuadrantData.meshId = m_cache.getMeshId();
 		TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
-		terrainEdit->needUploadToServer = needUploadToserver;
+		terrainEdit->needUploadToServer(needUploadToserver);
 		TheWorld_Utils::MemoryBuffer emptyNormalsBuffer, emptySplatmapBuffer, emptyColormapBuffer;
 		TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer((BYTE*)terrainEdit, terrainEdit->size);
 		cacheQuadrantData.minHeight = terrainEdit->minHeight;
@@ -5671,6 +5758,18 @@ bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, st
 	}
 	else
 		return false;
+}
+
+void Quadrant::resetGlobalmapBuffer(std::string actor)
+{
+	getGlobalmapBuffer(false).clear(actor);
+	getTerrainEdit()->globalmapNeedRegen(true);
+	sendGlobalmapToShader(true);
+	m_quadTree->autoSaveRequired(false);	// otherwise save and upload to server will start via mapmodder
+	//if (getPos().isQuadrantTrackedForDebug())
+	//{
+	//	PLOG_DEBUG << "eccoci";
+	//}
 }
 
 bool Quadrant::saveQuadrantToDiskCache2(std::string& writtenMeshId, bool newMeshId, bool lock)
@@ -5716,7 +5815,7 @@ bool Quadrant::needSaveToCache(bool& manual)
 	return needToSave;
 }
 
-bool Quadrant::lockInternalData(void)
+bool Quadrant::lockInternalData(bool strongLock)
 {
 	bool lockAcquired = false;
 	
@@ -5726,7 +5825,16 @@ bool Quadrant::lockInternalData(void)
 		{
 			m_internalDataLocked = true;
 			m_internalDataLockingTid = GetCurrentThreadId();
+			m_internalDataLockingCount = 1;
 			lockAcquired = true;
+		}
+		else
+		{
+			if (not strongLock and m_internalDataLockingTid == GetCurrentThreadId())
+			{
+				m_internalDataLockingCount++;
+				lockAcquired = true;
+			}
 		}
 	}
 
@@ -5738,13 +5846,17 @@ void Quadrant::unlockInternalData(void)
 	std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
 	if (m_internalDataLocked)
 	{
-		m_internalDataLocked = false;
+		m_internalDataLockingCount--;
+		if (m_internalDataLockingCount == 0)
+		{
+			m_internalDataLocked = false;
+			m_internalDataLockingTid = 0;
+		}
 	}
 	else
 	{
-		m_internalDataLocked = false;
+		my_assert(m_internalDataLockingTid == 0 and m_internalDataLockingCount == 0);
 	}
-	m_internalDataLockingTid = 0;
 }
 
 void Quadrant::renderGlobalMapChanged(bool b)
@@ -6385,10 +6497,10 @@ bool Quadrant::checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree
 
 		if (not northSideBlendChecked(northSideCheckBlendResult) and not northQuadrantTree->getQuadrant()->southSideBlendChecked(northQuadrantSouthSideCheckBlendResult))
 		{
-			bool lockAcquired = lockInternalData();
+			bool lockAcquired = lockInternalData(false);
 			bool neighbourQuadrantlockAcquired = false;
 			if (lockAcquired)
-				neighbourQuadrantlockAcquired = northQuadrantTree->getQuadrant()->lockInternalData();
+				neighbourQuadrantlockAcquired = northQuadrantTree->getQuadrant()->lockInternalData(false);
 
 			if (lockAcquired and neighbourQuadrantlockAcquired)
 			{
@@ -6473,10 +6585,10 @@ bool Quadrant::checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree
 
 		if (not southSideBlendChecked(southSideCheckBlendResult) and not southQuadrantTree->getQuadrant()->northSideBlendChecked(southQuadrantNorthSideCheckBlendResult))
 		{
-			bool lockAcquired = lockInternalData();
+			bool lockAcquired = lockInternalData(false);
 			bool neighbourQuadrantlockAcquired = false;
 			if (lockAcquired)
-				neighbourQuadrantlockAcquired = southQuadrantTree->getQuadrant()->lockInternalData();
+				neighbourQuadrantlockAcquired = southQuadrantTree->getQuadrant()->lockInternalData(false);
 
 			if (lockAcquired and neighbourQuadrantlockAcquired)
 			{
@@ -6561,10 +6673,10 @@ bool Quadrant::checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree*
 
 		if (not eastSideBlendChecked(eastSideCheckBlendResult) and not eastQuadrantTree->getQuadrant()->westSideBlendChecked(eastQuadrantWestSideCheckBlendResult))
 		{
-			bool lockAcquired = lockInternalData();
+			bool lockAcquired = lockInternalData(false);
 			bool neighbourQuadrantlockAcquired = false;
 			if (lockAcquired)
-				neighbourQuadrantlockAcquired = eastQuadrantTree->getQuadrant()->lockInternalData();
+				neighbourQuadrantlockAcquired = eastQuadrantTree->getQuadrant()->lockInternalData(false);
 
 			if (lockAcquired and neighbourQuadrantlockAcquired)
 			{
@@ -6649,10 +6761,10 @@ bool Quadrant::checkWestSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree*
 
 		if (not westSideBlendChecked(westSideCheckBlendResult) and not westQuadrantTree->getQuadrant()->eastSideBlendChecked(westQuadrantEastSideCheckBlendResult))
 		{
-			bool lockAcquired = lockInternalData();
+			bool lockAcquired = lockInternalData(false);
 			bool neighbourQuadrantlockAcquired = false;
 			if (lockAcquired)
-				neighbourQuadrantlockAcquired = westQuadrantTree->getQuadrant()->lockInternalData();
+				neighbourQuadrantlockAcquired = westQuadrantTree->getQuadrant()->lockInternalData(false);
 
 			if (lockAcquired and neighbourQuadrantlockAcquired)
 			{
@@ -7114,7 +7226,7 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 	//	bool done = getTerrainEdit()->detectSeaInQuadrant();
 	//}
 
-	if (getTerrainEdit()->needUploadToServer)
+	if (getTerrainEdit()->needUploadToServer())
 		setNeedUploadToServer(true);
 	else
 		setNeedUploadToServer(false);

@@ -2985,6 +2985,15 @@ namespace godot
 			m_numQuadrantLoadingFromServer--;
 		}
 
+		bool refreshRequired(void) const
+		{
+			return m_refreshRequired;
+		}
+		void refreshRequired(bool b)
+		{
+			m_refreshRequired = b;
+		}
+
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
 		void _doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos, QuadTree* quadTreeSel);

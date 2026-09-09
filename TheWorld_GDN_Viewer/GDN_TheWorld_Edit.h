@@ -266,6 +266,7 @@ namespace godot
 			//std::string m_canContainSeaStr;
 			std::string m_counterStr;
 			std::string m_note1Str;
+			std::string m_note2Str;
 			godot::Vector3 m_mouseHitPos;
 			std::string m_mouseQuadHitStr;
 			std::string m_mouseQuadHitPosStr;
@@ -273,6 +274,10 @@ namespace godot
 			std::string m_mouseQuadSelPosStr;
 			std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadrantsToBlend;
 			std::recursive_mutex m_mtxMapQuadrantsToBlend;
+			std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadToSave;
+			std::recursive_mutex m_mtxMapQuadToSave;
+			std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadToDelayedBlend;
+			std::recursive_mutex m_mtxMapQuadToDelayedBlend;
 
 			std::unique_ptr<SelTexturePanel> m_selTexturePanel;
 
@@ -350,8 +355,19 @@ namespace godot
 		void changeTextureAction(void);
 		void editModeGenerateAction(void);
 		void editModeSetTerrType(void);
-		void editModeBlendQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, size_t maxDistance = 1);
-		bool blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock, bool& quadrantBusy, bool overrideBlendingParameters);
+		void editModeLockQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, size_t maxDistance = 1);
+		void editModeUnlockQuadrants(std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants);
+		void editModeBlendQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, size_t maxDistance = 1);
+		bool blendAction(TheWorld_Utils::QuadrantPos blendingPos,
+							bool sync,
+							bool automaticBlending,
+							bool saveAndUpload,
+							bool updateUI,
+							bool lockEditingTerrainData,
+							bool& quadrantBusy,
+							bool overrideBlendingParameters,
+							bool unlockQuadrants,
+							std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants);
 		bool checkBlend(void);
 		bool autoBlendPermitted(void);
 		void editModeBlendAction(void);
@@ -371,9 +387,10 @@ namespace godot
 		size_t numQuadrantsRequiringMapModding(void);
 
 		void prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters);
-		QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
-		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, Quadrant* quadrant, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
-		void manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
+		void prepareHeightsForQuadrantBlend(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters);
+		//QuadTree* prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer);
+		bool quadrantBlendPostOperations(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, Quadrant* quadrant, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
+		bool quadrantBlendPostOperations(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer);
 		void manageSaveAndUploadAfterBlending(Quadrant* quadrant);
 
 		godot::Ref<godot::Texture2D> getTextureByTerrainType(TheWorld_Utils::TerrainEdit::TerrainType terrainType);
@@ -444,10 +461,10 @@ namespace godot
 		void resetSelectedTerrainType(void);
 		void setSelectedTerrainType(enum class TheWorld_Utils::TerrainEdit::TerrainType terrainType);
 		void setElapsed(size_t elapsed, bool onGoing);
-		size_t elapsed(void);
+		//size_t elapsed(void);
 		void setCounter(size_t curr, size_t all);
 		void setNote1(size_t num);
-		void setNote1(std::string msg);
+		void setNote2(std::string msg);
 		void resetSlopeVerticalFactor(void);
 		void setSlopeVerticalFactor(float value);
 		float slopeVerticalFactor(void);
@@ -494,35 +511,36 @@ namespace godot
 			return m_innerData->m_mouseInsideEditPanel;
 		}
 
-		void addQuadToDelayedBlend(TheWorld_Utils::QuadrantPos pos)
+		void addToDelayedBlendQuads(TheWorld_Utils::QuadrantPos pos)
 		{
-			addQuadToDelayedBlendRef(pos);
+			addToDelayedBlendQuadsRef(pos);
 		}
 
-		void addQuadToDelayedBlendRef(TheWorld_Utils::QuadrantPos& pos)
+		void addToDelayedBlendQuadsRef(TheWorld_Utils::QuadrantPos& pos)
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
-			m_mapQuadToDelayedBlend[pos] = true;
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToDelayedBlend);
+			m_innerData->m_mapQuadToDelayedBlend[pos] = true;
 		}
 
 		void removeQuadToDelayedBlend(TheWorld_Utils::QuadrantPos& pos)
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
-			if (m_mapQuadToDelayedBlend.contains(pos))
-				m_mapQuadToDelayedBlend.erase(pos);
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToDelayedBlend);
+			if (m_innerData->m_mapQuadToDelayedBlend.contains(pos))
+				m_innerData->m_mapQuadToDelayedBlend.erase(pos);
 		}
 
 		size_t numQuadsToDelayedBlend(void)
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
-			return m_mapQuadToDelayedBlend.size();
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToDelayedBlend);
+			return m_innerData->m_mapQuadToDelayedBlend.size();
 		}
 
-		TheWorld_Utils::QuadrantPos getFirstQuadToDelayedBlend(void)
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
-			return m_mapQuadToDelayedBlend.begin()->first;
-		}
+		// Useless atm
+		//TheWorld_Utils::QuadrantPos getFirstQuadToDelayedBlend(void)
+		//{
+		//	std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
+		//	return m_mapQuadToDelayedBlend.begin()->first;
+		//}
 
 		void addQuadrantsToBlend(std::vector<TheWorld_Utils::QuadrantPos>& quadsToBlend)
 		{
@@ -538,13 +556,13 @@ namespace godot
 				quadsToBlend.push_back(item.first);
 		}
 
-		void addQuadsToDelayedBlend(std::vector<TheWorld_Utils::QuadrantPos>& quadsToBlend)
+		void addDelayedBlendQuads(std::vector<TheWorld_Utils::QuadrantPos>& quadsToBlend)
 		{
 			std::map<TheWorld_Utils::QuadrantPos, bool> _quadsToBlend;
 			for (auto& item : quadsToBlend)
 				_quadsToBlend[item] = true;
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
-			for (auto& item : m_mapQuadToDelayedBlend)
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToDelayedBlend);
+			for (auto& item : m_innerData->m_mapQuadToDelayedBlend)
 				_quadsToBlend[item.first] = true;
 
 			quadsToBlend.clear();
@@ -559,8 +577,8 @@ namespace godot
 			
 		bool isDelayedBlendRef(TheWorld_Utils::QuadrantPos& pos)
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToDelayedBlend);
-			if (m_mapQuadToDelayedBlend.contains(pos))
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToDelayedBlend);
+			if (m_innerData->m_mapQuadToDelayedBlend.contains(pos))
 				return true;
 			else
 				return false;
@@ -568,30 +586,30 @@ namespace godot
 
 		void addQuadToSave(TheWorld_Utils::QuadrantPos& pos, bool manual = true)
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			if (m_mapQuadToSave.contains(pos))
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+			if (m_innerData->m_mapQuadToSave.contains(pos))
 			{
 				if (manual)
-					if (!m_mapQuadToSave[pos] == manual)
-						m_mapQuadToSave[pos] = manual;
+					if (!m_innerData->m_mapQuadToSave[pos] == manual)
+						m_innerData->m_mapQuadToSave[pos] = manual;
 			}
 			else
-				m_mapQuadToSave[pos] = manual;
+				m_innerData->m_mapQuadToSave[pos] = manual;
 		}
 
 		void removeQuadToSave(TheWorld_Utils::QuadrantPos& pos)
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			if (m_mapQuadToSave.contains(pos))
-				m_mapQuadToSave.erase(pos);
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+			if (m_innerData->m_mapQuadToSave.contains(pos))
+				m_innerData->m_mapQuadToSave.erase(pos);
 		}
 		
 		bool isQuadToSave(TheWorld_Utils::QuadrantPos& pos, bool& manual)
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			if (m_mapQuadToSave.contains(pos))
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+			if (m_innerData->m_mapQuadToSave.contains(pos))
 			{
-				manual = m_mapQuadToSave[pos];
+				manual = m_innerData->m_mapQuadToSave[pos];
 				return true;
 			}
 			else
@@ -674,9 +692,11 @@ namespace godot
 			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southwestPosLockHolder,
 			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder,
 			bool updateUI,
-			bool unlock,
+			bool unlockEditingTerrainData,
+			bool unlockQuadrants,
 			bool saveAndUpload,
 			bool overrideBlendingParameters);
+		void blendQuadrant(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, bool lastPhase);
 
 	private:
 		bool m_initialized;
@@ -709,6 +729,7 @@ namespace godot
 		bool m_scrollPanelsNeedResize;
 		
 		bool m_infoLabelTextChanged;
+		bool m_messageLabelTextChanged = false;
 
 		QuadTree* m_lastQuadTreeSel = nullptr;
 		// filler
@@ -716,12 +737,6 @@ namespace godot
 		// filler
 		
 		bool m_lastMessageChanged;
-
-		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadToSave;
-		std::recursive_mutex m_mtxMapQuadToSave;
-
-		std::map<TheWorld_Utils::QuadrantPos, bool> m_mapQuadToDelayedBlend;
-		std::recursive_mutex m_mtxMapQuadToDelayedBlend;
 
 		TheWorld_Utils::ThreadPool m_tp;
 		bool m_requestedThreadExit = false;

@@ -179,6 +179,8 @@ namespace godot
 
 		Quadrant* quadrant = m_quadTree->getQuadrant();
 
+		quadrant->getPos().TRACK_QUADRANT_FOR_DEBUG("Update collider", m_quadTree->getQuadrant()->getMeshId());
+
 		int numVerticesPerSize = 0;
 
 #ifdef REAL_T_IS_DOUBLE

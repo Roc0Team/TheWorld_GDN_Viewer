@@ -2045,13 +2045,15 @@ void GDN_TheWorld_Edit::setElapsed(size_t elapsed, bool onGoing)
 		m_innerData->m_elapsed = std::to_string(elapsed);
 	}
 
-	m_infoLabelTextChanged = true;
+	//m_infoLabelTextChanged = true;
+	m_messageLabelTextChanged = true;
 }
 
 void GDN_TheWorld_Edit::setCounter(size_t current, size_t all)
 {
 	m_innerData->m_counterStr = std::to_string(current) + "/" + std::to_string(all);
-	m_infoLabelTextChanged = true;
+	//m_infoLabelTextChanged = true;
+	m_messageLabelTextChanged = true;
 }
 
 void GDN_TheWorld_Edit::setNote1(size_t num)
@@ -2064,23 +2066,25 @@ void GDN_TheWorld_Edit::setNote1(size_t num)
 	{
 		m_innerData->m_note1Str = std::to_string(num);
 	}
-	m_infoLabelTextChanged = true;
+	//m_infoLabelTextChanged = true;
+	m_messageLabelTextChanged = true;
 }
 
-void GDN_TheWorld_Edit::setNote1(std::string msg)
+void GDN_TheWorld_Edit::setNote2(std::string msg)
 {
-	m_innerData->m_note1Str = msg;
-	m_infoLabelTextChanged = true;
+	m_innerData->m_note2Str = msg;
+	//m_infoLabelTextChanged = true;
+	m_messageLabelTextChanged = true;
 }
 
-size_t GDN_TheWorld_Edit::elapsed(void)
-{
-	//godot::String s = m_innerData->m_elapsedLabel->get_text();
-	//const char* str = s.utf8().get_data();
-	//size_t ret = std::stoll(std::string(str));
-	size_t ret = std::stoll(std::string(m_innerData->m_elapsedLabel->get_text().utf8().get_data()));
-	return ret;
-}
+//size_t GDN_TheWorld_Edit::elapsed(void)
+//{
+//	//godot::String s = m_innerData->m_elapsedLabel->get_text();
+//	//const char* str = s.utf8().get_data();
+//	//size_t ret = std::stoll(std::string(str));
+//	size_t ret = std::stoll(std::string(m_innerData->m_elapsedLabel->get_text().utf8().get_data()));
+//	return ret;
+//}
 
 void GDN_TheWorld_Edit::setMouseHitPos(godot::Vector3 mouseHitPos)
 {
@@ -2182,8 +2186,8 @@ void GDN_TheWorld_Edit::setNumQuadrantLocked(size_t num)
 void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToUpload, size_t& numToUploadInMapView, size_t& numLocked)
 {
 	{
-		std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-		numToSave = m_mapQuadToSave.size();
+		std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+		numToSave = m_innerData->m_mapQuadToSave.size();
 	}
 
 	numToUpload = 0;
@@ -2197,7 +2201,7 @@ void GDN_TheWorld_Edit::refreshNumToSaveUpload(size_t& numToSave, size_t& numToU
 		QuadTree* q = m_viewer->getQuadTree(pos, false, false, true);
 		if (q != nullptr)
 		{
-			if (q->getQuadrant()->getTerrainEdit()->needUploadToServer)
+			if (q->getQuadrant()->getTerrainEdit()->needUploadToServer())
 			numToUpload++;
 		}
 		if (q != nullptr)
@@ -2451,6 +2455,31 @@ void GDN_TheWorld_Edit::_physics_process(double _delta)
 			}
 		}
 	}
+
+	if (m_messageLabelTextChanged)
+	{
+		if (m_innerData->m_onGoing)
+		{
+			if (!m_onGoingElapsedLabel)
+			{
+				m_innerData->m_elapsedLabel->add_theme_color_override("font_color", Color(1, 0, 0));
+				m_onGoingElapsedLabel = true;
+			}
+		}
+		else
+		{
+			if (m_onGoingElapsedLabel)
+			{
+				m_innerData->m_elapsedLabel->add_theme_color_override("font_color", Color(1, 1, 1));
+				m_onGoingElapsedLabel = false;
+			}
+		}
+		m_innerData->m_elapsedLabel->set_text(m_innerData->m_elapsed.c_str());
+		m_innerData->m_elapsed1Label->set_text((m_innerData->m_counterStr + (m_innerData->m_note2Str.length() > 0 ? " " + m_innerData->m_note2Str : "") + " " + m_innerData->m_note1Str).c_str());
+
+		m_messageLabelTextChanged = false;
+	}
+
 }
 
 void GDN_TheWorld_Edit::_process(double _delta)
@@ -2757,8 +2786,8 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			quadHitMaxHeightStr = std::format("{:.2f}", quadHitMaxHeight);
 			quadHitContinentStr = m_innerData->m_quadTreeHit->getQuadrant()->continentName();
 			quadHitEmptyStr = m_innerData->m_quadTreeHit->getQuadrant()->empty() ? "True" : "False";
-			needToUploadStr = (m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False");
-			needToSaveStr = (m_mapQuadToSave.contains(m_innerData->m_quadTreeHit->getQuadrant()->getPos()) ? "True" : "False");
+			needToUploadStr = (m_innerData->m_quadTreeHit->getQuadrant()->getTerrainEdit()->needUploadToServer() ? "True" : "False");
+			needToSaveStr = (m_innerData->m_mapQuadToSave.contains(m_innerData->m_quadTreeHit->getQuadrant()->getPos()) ? "True" : "False");
 			DepthStr = QuadTree::quadrantDepthToString(m_innerData->m_quadTreeHit->quadrantDepth());
 			quadsFromCameraQuadStr = std::to_string(m_innerData->m_quadTreeHit->numQuadrantsFromCameraQuadrant());
 			numVisibleChunksStr = std::to_string(m_innerData->m_quadTreeHit->getNumChunks(true, QuadType::NotSet));
@@ -2822,7 +2851,7 @@ void GDN_TheWorld_Edit::_process(double _delta)
 				+ "Pos: " + m_innerData->m_mouseQuadSelPosStr + "\n"
 				+ /*"Type: " +*/ TheWorld_Utils::TerrainEdit::terrainTypeString(m_innerData->m_selectedTerrainType) + " - Min: " + m_innerData->m_minHeightStr + " Max: " + m_innerData->m_maxHeightStr + "\n"
 				+ "Opt. Lvl: " + quadSelOptimizationLevelInfoStr + " Coll: " + quadSelColliderInfoStr + " " + quadSelContinentStr + "\n"
-				+ "To Upload: " + (quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer ? "True" : "False") + " To Save: " + (m_mapQuadToSave.contains(quadTreeSel->getQuadrant()->getPos()) ? "True" : "False") + " - Empty: " + (quadTreeSel->getQuadrant()->empty() ? "True" : "False");
+				+ "To Upload: " + (quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer() ? "True" : "False") + " To Save: " + (m_innerData->m_mapQuadToSave.contains(quadTreeSel->getQuadrant()->getPos()) ? "True" : "False") + " - Empty: " + (quadTreeSel->getQuadrant()->empty() ? "True" : "False");
 		}
 		m_innerData->m_selQuadInfoLabel->set_text(selQuadInfoLabelText.c_str());
 
@@ -2843,6 +2872,13 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			m_innerData->m_selQuadSeaCheckBox->set_pressed(false);
 		}
 
+		//m_scrollPanelsNeedResize = true;
+
+		m_infoLabelTextChanged = false;
+	}
+
+	if (m_messageLabelTextChanged)
+	{
 		if (m_innerData->m_onGoing)
 		{
 			if (!m_onGoingElapsedLabel)
@@ -2860,13 +2896,11 @@ void GDN_TheWorld_Edit::_process(double _delta)
 			}
 		}
 		m_innerData->m_elapsedLabel->set_text(m_innerData->m_elapsed.c_str());
-		m_innerData->m_elapsed1Label->set_text((m_innerData->m_counterStr + " " + m_innerData->m_note1Str).c_str());
-		
-		//m_scrollPanelsNeedResize = true;
+		m_innerData->m_elapsed1Label->set_text((m_innerData->m_counterStr + (m_innerData->m_note2Str.length() > 0 ? " " + m_innerData->m_note2Str : "") + " " + m_innerData->m_note1Str).c_str());
 
-		m_infoLabelTextChanged = false;
+		m_messageLabelTextChanged = false;
 	}
-
+	
 	//if (m_mapModder != nullptr && m_mapModder->startProcessRequired())
 	//{
 	//	m_mapModder->startProcessing();
@@ -2933,14 +2967,14 @@ void GDN_TheWorld_Edit::changeTextureAction()
 		m_innerData->m_rocksTex->set_texture(texturePreview);
 	}
 
-	// Quadrant has to be saved and uploaded
-	quadTreeSel->getQuadrant()->setNeedUploadToServer(true);
-	terrainEdit->needUploadToServer = true;
+	// Quadrant has to be saved (and uploaded??? when saved it is set to be uploaded)
 	{
-		std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+		std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
 		bool manual = true;
 		addQuadToSave(quadrantSelPos, manual);
 	}
+	//quadTreeSel->getQuadrant()->setNeedUploadToServer(true);	//  when saved it is set to be uploaded
+	//terrainEdit->needUploadToServer(true);
 
 	GDN_TheWorld_Map* map = m_viewer->Map();
 	GDN_TheWorld_Map::MapQuadrantOverride* MapQuadrantOverride = map->getMapQuadrantOverride(quadrantSelPos);
@@ -3596,13 +3630,13 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 				//quadTreeSel->refreshSeaInfo();
 				//quadTreeSel->updateForAllChunksForced(QuadType::Sea, true);
 
-				quadTreeSel->getQuadrant()->setNeedUploadToServer(true);
-				terrainEdit->needUploadToServer = true;
 				{
-					std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+					std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
 					bool manual = true;
 					addQuadToSave(quadrantSelPos, manual);
 				}
+				//quadTreeSel->getQuadrant()->setNeedUploadToServer(true);	//  when saved it is set to be uploaded
+				//terrainEdit->needUploadToServer(true);
 			}
 		}
 
@@ -3708,8 +3742,8 @@ void GDN_TheWorld_Edit::editModeSave(void)
 	{
 		std::vector<TheWorld_Utils::QuadrantPos> quadToSave;
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			for (auto& item : m_mapQuadToSave)
+			std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+			for (auto& item : m_innerData->	m_mapQuadToSave)
 				quadToSave.push_back(item.first);
 		}
 
@@ -3835,7 +3869,7 @@ bool GDN_TheWorld_Edit::editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* m
 			TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 			//bool allCheched = m_innerData->m_allCheckBox->is_pressed();
 			bool allCheched = true;
-			if (!allCheched && (quadrantSelPos.empty() or !quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer))
+			if (!allCheched && (quadrantSelPos.empty() or !quadTreeSel->getQuadrant()->getTerrainEdit()->needUploadToServer()))
 			{
 				m_actionClock.tock();
 				m_actionInProgress = false;
@@ -4220,14 +4254,14 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		//}
 	}
 
-	// 3. remember quadrant has to be saved and uploaded
-	quadTreeSel->getQuadrant()->setNeedUploadToServer(true);
-	terrainEdit->needUploadToServer = true;
+	// 3. remember quadrant has to be saved (and uploaded???)
 	{
-		std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+		std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
 		bool manual = true;
 		addQuadToSave(quadrantSelPos, manual);
 	}
+	//quadTreeSel->getQuadrant()->setNeedUploadToServer(true);	//  when saved it is set to be uploaded
+	//terrainEdit->needUploadToServer(true);
 
 	// 4. refresh new heights on internal datas 16-bit heights (for shader), 32-bit heigths (for collider), terrain data for editing and set flag according (new heigths have to be passed to shader)
 	//terrainEdit->northSideZMinus.needBlend_notused = true;
@@ -4238,36 +4272,38 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	TheWorld_Utils::MemoryBuffer& heights16Buffer = quadTreeSel->getQuadrant()->getFloat16HeightsBuffer(false);
 	size_t heights16BufferSize = numVertices * sizeof(uint16_t);
 	heights16Buffer.reserve(heights16BufferSize);
+	heights16Buffer.adjustSize(heights16BufferSize);
 	uint16_t* movingHeights16Buffer = (uint16_t*)heights16Buffer.ptr();
 	
 	TheWorld_Utils::MemoryBuffer& heights32Buffer = quadTreeSel->getQuadrant()->getFloat32HeightsBuffer(false);
 	size_t heights32BufferSize = numVertices * sizeof(float);
 	heights32Buffer.reserve(heights32BufferSize);
+	heights32Buffer.adjustSize(heights32BufferSize);
 	float* movingHeights32Buffer = (float*)heights32Buffer.ptr();
 
 	{
 		TheWorld_Utils::GuardProfiler profiler(std::string("EditGenerate 1.2 ") + __FUNCTION__, "Move Heights to float16/float32 buffer");
 
-		size_t idx = 0;
-		for (int z = 0; z < numVerticesPerSize; z++)
-			for (int x = 0; x < numVerticesPerSize; x++)
-			{
-				float altitude = vectGridHeights[idx];
-				TheWorld_Utils::FLOAT_32 f(altitude);
-				*movingHeights16Buffer = half_from_float(f.u32);
-				f.u32 = half_to_float(*movingHeights16Buffer);
-				*movingHeights32Buffer = f.f32;
-				movingHeights16Buffer++;
-				movingHeights32Buffer++;
-				idx++;
-			}
+		//size_t idx = 0;
+		//for (int z = 0; z < numVerticesPerSize; z++)
+		//	for (int x = 0; x < numVerticesPerSize; x++)
+		//	{
+		//		float altitude = vectGridHeights[idx];
+		//		TheWorld_Utils::FLOAT_32 f(altitude);
+		//		*movingHeights16Buffer = half_from_float(f.u32);
+		//		f.u32 = half_to_float(*movingHeights16Buffer);
+		//		*movingHeights32Buffer = f.f32;
+		//		movingHeights16Buffer++;
+		//		movingHeights32Buffer++;
+		//		idx++;
+		//	}
+		//my_assert((BYTE*)movingHeights16Buffer - heights16Buffer.ptr() == heights16BufferSize);
+		//my_assert((BYTE*)movingHeights32Buffer - heights32Buffer.ptr() == heights32BufferSize);
 
-		//memcpy(heights32Buffer.ptr(), &vectGridHeights[0], heights32BufferSize);	// we force float16 and float 32 to the same approssimated value to avoid float16/float32 mismtach
+		// Alternative to upper commented code: we valorize only float 32 buffer leaving float 16 buffer nulland we will valorize it from float 32 buffer at the end of the pipeline (when we calc min/max values)
+		memcpy(heights32Buffer.ptr(), &vectGridHeights[0], heights32BufferSize);
+		memset(heights16Buffer.ptr(), 0, heights16BufferSize);
 	}
-	my_assert((BYTE*)movingHeights16Buffer - heights16Buffer.ptr() == heights16BufferSize);
-
-	heights16Buffer.adjustSize(heights16BufferSize);
-	heights32Buffer.adjustSize(heights32BufferSize);
 
 	quadTreeSel->getQuadrant()->heightmapChanged();
 	quadTreeSel->getQuadrant()->sendHeightsToShader(true);
@@ -4284,7 +4320,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	//quadTreeSel->getQuadrant()->resetColormapBuffer(__FUNCTION__);
 	quadTreeSel->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
-	// 7. prepare new heigths for collider (PackedFloat32Array) - // WARNING useless ? Same instructions are executed in Collider::setData called in QuadTree::updateMaterialParams
+	// 7. prepare new heigths for collider (PackedFloat32Array)
 	{
 #ifdef REAL_T_IS_DOUBLE
 		PackedFloat64Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
@@ -4301,7 +4337,6 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		memcpy((char*)heightsForCollider.ptrw(), heights32Buffer.ptr(), heights32Buffer.size());
 #endif
 	}
-
 
 	// 8. calc new quadrant AABB for collider
 	Vector3 startPosition(lowerXGridVertex, terrainEdit->minHeight, lowerZGridVertex);
@@ -4344,44 +4379,153 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	//setCanContainSea((terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 
 	// 13. mark quadrant to be blended
-	addQuadToDelayedBlend(quadTreeSel->getQuadrant()->getPos());
+	addToDelayedBlendQuads(quadTreeSel->getQuadrant()->getPos());
 
 	// 11. unlock internal datas so that they can be passed to the shader/collider
 	quadTreeSel->getQuadrant()->unlockInternalData();
 
-	// 14. blend selected quadrant
-	if (holdBlending)
 	{
-		m_completedItems++;
-	}
-	else
-	{
-		setMessage(godot::String("Heights generated, blending quadrant[s]..."));
+		std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>> lockedQuadrants;
 
-		std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
-		addQuadsToDelayedBlend(quadrantPos);
-
-		m_lastElapsed = 0;
-		m_allItems = quadrantPos.size();
-
-		for (auto& pos : quadrantPos)
+		// 14. blend selected quadrant
+		//holdBlending = true;	// DEBUG ?????
+		if (holdBlending)
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("EditGenerate 1.3 ") + __FUNCTION__, "Single QuadTree");
+			lockedQuadrants[quadrantSelPos] = nullptr;
+			m_completedItems++;
+		}
+		else
+		{
+			setMessage(godot::String("Heights generated, blending quadrant[s]..."));
 
-			if (m_actionStopRequested)
+			std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
+			addDelayedBlendQuads(quadrantPos);
+
+			m_lastElapsed = 0;
+
+			for (auto& pos : quadrantPos)
 			{
-				m_actionStopRequested = false;
-				break;
+				editModeLockQuadrantAndNeighbours(pos, lockedQuadrants, THEWORLD_QUADRANT_DISTANCE_FOR_BLENDING);
 			}
 
-			editModeBlendQuadrantAndNeighbours(pos, THEWORLD_QUADRANT_DISTANCE_FOR_BLENDING);
+#define NUM_BLENDING_CYCLES	2
+			size_t numRounds = NUM_BLENDING_CYCLES;
+			for (size_t round = 0; round < numRounds; round++)
+			{
+				m_allItems = lockedQuadrants.size();
+				m_completedItems = 0;
 
-			removeQuadToDelayedBlend(pos);
+				for (auto& lockedQuadrant : lockedQuadrants)
+				{
+					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
 
-			size_t partialCount = m_actionClock.partialDuration().count();
-			m_lastElapsed = partialCount - m_elapsedCompleted;
-			m_elapsedCompleted = partialCount;
+					TheWorld_Utils::QuadrantPos pos = lockedQuadrant.first;
+
+					std::stringstream str;
+					str << "Blending heigths for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ();
+					PLOG_DEBUG << str.str();
+					setMessage(godot::String(str.str().c_str()));
+
+					blendQuadrant(pos, lockedQuadrants, round == numRounds - 1);
+					removeQuadToDelayedBlend(pos);
+
+					m_completedItems++;
+					size_t partialCount = m_actionClock.partialDuration().count();
+					m_lastElapsed = partialCount - m_elapsedCompleted;
+					m_elapsedCompleted = partialCount;
+					str.str("");
+					str.clear();
+					str << "Blending heigths for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ() << " - Completed!";
+					PLOG_DEBUG << str.str() << " - " << partialCount << " ms";
+					setMessage(godot::String(str.str().c_str()), false);
+					setElapsed(partialCount, true);
+					setCounter(m_completedItems, m_allItems);
+					setNote1(m_lastElapsed);
+					setNote2("round " + std::to_string(round + 1));
+				}
+			}
+			setNote2("");
+
+			setMessage(godot::String("Completing operations..."));
+
+			////lockedQuadrants.clear();					// DEBUG
+			////lockedQuadrants[quadrantSelPos] = true;	// DEBUG
+			int num = 0;
+			for (auto& pos : lockedQuadrants)
+			{
+				QuadTree* modifiedQuadTree = m_viewer->getQuadTree(pos.first);
+				if (modifiedQuadTree != nullptr and modifiedQuadTree->getQuadrant()->getFloat32HeightsBuffer(false).notEmpty())
+				{
+					num++;
+				}
+			}
+			m_allItems = num;
+			m_completedItems = 0;
+
+			for (auto& [pos, lockedQuadrant] : lockedQuadrants)
+			{
+				std::stringstream str;
+				str << "Finalizing blending for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ();
+				PLOG_DEBUG << str.str();
+				setMessage(godot::String(str.str().c_str()));
+
+				QuadTree* modifiedQuadTree = m_viewer->getQuadTree(pos);
+				if (modifiedQuadTree != nullptr and modifiedQuadTree->getQuadrant()->getFloat32HeightsBuffer(false).notEmpty())
+				{
+					bool forceGlobalMapUpdate = lockedQuadrant->quadrantUpdated();
+					bool updated = modifiedQuadTree->managePostHeightsUpdateOperations(forceGlobalMapUpdate);
+					if (updated)
+					{
+						lockedQuadrant->quadrantUpdated(true);
+					}
+					m_completedItems++;
+				}
+
+				size_t partialCount = m_actionClock.partialDuration().count();
+				m_lastElapsed = partialCount - m_elapsedCompleted;
+				m_elapsedCompleted = partialCount;
+				str.str("");
+				str.clear();
+				str << "Finalizing blending for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ() << " - Completed!";
+				PLOG_DEBUG << str.str() << " - " << partialCount << " ms";
+				setMessage(godot::String(str.str().c_str()), false);
+				setElapsed(partialCount, true);
+				setCounter(m_completedItems, m_allItems);
+				setNote1(m_lastElapsed);
+			}
+
+			for (auto& [pos, lockedQuadrant] : lockedQuadrants)
+			{
+				if (lockedQuadrant->quadrantUpdated())
+				{
+					QuadTree* modifiedQuadTree = m_viewer->getQuadTree(pos);
+					if (modifiedQuadTree != nullptr)
+					{
+						// renew MeshId
+						{
+							TheWorld_Utils::MeshCacheBuffer& quadrantCache = modifiedQuadTree->getQuadrant()->getInternalMeshCacheBuffer();
+							quadrantCache.generateNewInternalMeshId();
+							modifiedQuadTree->getQuadrant()->setMeshId(quadrantCache.getMeshId());
+						}
+
+						// Remember that we need to save/upload quadrant and every surrounding even if heights are not changed because terrain datas may be changed during blending
+						{
+							{
+								std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+								TheWorld_Utils::QuadrantPos pos = modifiedQuadTree->getQuadrant()->getPos();
+								bool manual = true;
+								addQuadToSave(pos, manual);
+							}
+							//modifiedQuadTree->getQuadrant()->getTerrainEdit()->needUploadToServer(true);	//  when saved it is set to be uploaded
+							//modifiedQuadTree->getQuadrant()->setNeedUploadToServer(true);
+						}
+					}
+				}
+			}
+
+			editModeUnlockQuadrants(lockedQuadrants);
 		}
+
 	}
 
 	GDN_TheWorld_Map* map = m_viewer->Map();
@@ -4391,10 +4535,15 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	}
 
 	// final actions
+	strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_lowElevationTexName->get_text().utf8().get_data());
+	strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_highElevationTexName->get_text().utf8().get_data());
+	strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_dirtTexName->get_text().utf8().get_data());
+	strcpy_s(terrainEdit->extraValues.rocksTexName_a, sizeof(terrainEdit->extraValues.rocksTexName_a), m_innerData->m_rocksTexName->get_text().utf8().get_data());
 	setMinHeight(terrainEdit->minHeight);
 	setMaxHeight(terrainEdit->maxHeight);
+	setSelectedTerrainType(terrainEdit->terrainType);
 
-	setMessage(godot::String("Completed!"), true);
+	//setMessage(godot::String("Completed!"), true);
 
 	size_t partialCount = m_actionClock.partialDuration().count();
 	m_lastElapsed = partialCount - m_elapsedCompleted;
@@ -4422,12 +4571,57 @@ bool GDN_TheWorld_Edit::autoBlendPermitted(void)
 	return m_innerData->m_autoBlendCheckBox->is_pressed();
 }
 
-void GDN_TheWorld_Edit::editModeBlendQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, size_t maxDistance)
+void GDN_TheWorld_Edit::editModeLockQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, size_t maxDistance)
 {
+	//my_assert(lockedQuadrants.empty());
+	
+	std::vector<TheWorld_Utils::QuadrantPos> neighbours;
+	neighbours.push_back(pos);
+	pos.getNeighbours(neighbours, maxDistance);
+
+	for (auto& lockingPos : neighbours)
+	{
+		std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder;
+		if (lockedQuadrants.contains(lockingPos))
+		{
+			lockHolder = lockedQuadrants[lockingPos];
+		}
+		else
+		{
+			lockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(lockingPos, m_viewer);
+			lockedQuadrants[lockingPos] = lockHolder;
+		}
+
+		if (lockHolder->quadrant() != nullptr)
+		{
+			while (not lockHolder->lockAcquired())
+			{
+				Sleep(1);
+				lockHolder->lock();
+			}
+		}
+
+	}
+}
+
+void GDN_TheWorld_Edit::editModeUnlockQuadrants(std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants)
+{
+	for (auto& [pos, lockHolder] : lockedQuadrants)
+	{
+		lockHolder->unlock();
+	}
+}
+
+void GDN_TheWorld_Edit::editModeBlendQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, size_t maxDistance)
+{
+	std::vector<TheWorld_Utils::QuadrantPos> neighbours;
+	pos.getNeighbours(neighbours, maxDistance);
+	m_allItems += neighbours.size();
+
 	bool processed = false, quadrantBusy = true;
 	while (not processed and quadrantBusy)
 	{
-		processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true);
+		processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true, false, lockedQuadrants);
 		if (not processed and quadrantBusy)
 			Sleep(1);
 	}
@@ -4436,14 +4630,10 @@ void GDN_TheWorld_Edit::editModeBlendQuadrantAndNeighbours(TheWorld_Utils::Quadr
 
 	// blend neighbour quadrants
 	{
-		std::vector<TheWorld_Utils::QuadrantPos> neighbours;
-		pos.getNeighbours(neighbours, maxDistance);
-
-		m_allItems += neighbours.size();
 		for (auto& pos : neighbours)
 		{
 			//if (pos.getIndexPosX() == -14 and pos.getIndexPosZ() == 24)		// #####
-			//	assert(m_allItems > 0);									// #####
+			//	assert(m_allItems > 0);											// #####
 
 			QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
 			if (quadTree != nullptr)
@@ -4454,12 +4644,14 @@ void GDN_TheWorld_Edit::editModeBlendQuadrantAndNeighbours(TheWorld_Utils::Quadr
 					bool processed = false, quadrantBusy = true;
 					while (not processed and quadrantBusy)
 					{
-						processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true);
+						processed = blendAction(pos, true, false, false, false, false, quadrantBusy, true, false, lockedQuadrants);
 						if (not processed and quadrantBusy)
 							Sleep(1);
 					}
 					if (processed)
 						m_completedItems++;
+					else
+						my_assert(false);
 				}
 				else
 					m_completedItems++;
@@ -4468,7 +4660,16 @@ void GDN_TheWorld_Edit::editModeBlendQuadrantAndNeighbours(TheWorld_Utils::Quadr
 	}
 }
 
-bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, bool sync, bool automaticBlending, bool saveAndUpload, bool updateUI, bool lock, bool& quadrantBusy, bool overrideBlendingParameters)
+bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos,
+									bool sync,
+									bool automaticBlending,
+									bool saveAndUpload,
+									bool updateUI,
+									bool lockEditingTerrainData,
+									bool& quadrantBusy,
+									bool overrideBlendingParameters,
+									bool unlockQuadrants,
+									std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants)
 {
 	bool processed = false;
 	quadrantBusy = false;
@@ -4487,7 +4688,7 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 
 	m_viewer->getMainProcessingMutex().lock();
 
-	if (lock)
+	if (lockEditingTerrainData)
 	{
 		if (m_actionInProgress)
 		{
@@ -4505,114 +4706,356 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 		terrainDataLocked(true);
 	}
 
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos, m_viewer);
-	if (lockHolder->quadrant() != nullptr and not lockHolder->lockAcquired())
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder;
+	if (lockedQuadrants.contains(blendingPos))
 	{
-		if (lock)
-		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
-		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		lockHolder = lockedQuadrants[blendingPos];
+		my_assert(lockHolder->quadrant() == nullptr or lockHolder->lockAcquired());
 	}
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus), m_viewer);
-	if (northPosLockHolder->quadrant() != nullptr and not northPosLockHolder->lockAcquired())
+	else
 	{
-		if (lock)
+		lockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos, m_viewer);
+		if (lockHolder->quadrant() != nullptr and not lockHolder->lockAcquired())
 		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
 		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		else
+		{
+			lockedQuadrants[blendingPos] = lockHolder;
+		}
 	}
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus), m_viewer);
-	if (southPosLockHolder->quadrant() != nullptr and not southPosLockHolder->lockAcquired())
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder;
+	TheWorld_Utils::QuadrantPos northPos = blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+	if (lockedQuadrants.contains(northPos))
 	{
-		if (lock)
-		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
-		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		northPosLockHolder = lockedQuadrants[northPos];
+		my_assert(northPosLockHolder->quadrant() == nullptr or northPosLockHolder->lockAcquired());
 	}
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> westPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus), m_viewer);
-	if (westPosLockHolder->quadrant() != nullptr and not westPosLockHolder->lockAcquired())
+	else
 	{
-		if (lock)
+		northPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(northPos, m_viewer);
+		if (northPosLockHolder->quadrant() != nullptr and not northPosLockHolder->lockAcquired())
 		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
 		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		else
+		{
+			lockedQuadrants[northPos] = northPosLockHolder;
+		}
 	}
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> eastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus), m_viewer);
-	if (eastPosLockHolder->quadrant() != nullptr and not eastPosLockHolder->lockAcquired())
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southPosLockHolder;
+	TheWorld_Utils::QuadrantPos southPos = blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
+	if (lockedQuadrants.contains(southPos))
 	{
-		if (lock)
-		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
-		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		southPosLockHolder = lockedQuadrants[southPos];
+		my_assert(southPosLockHolder->quadrant() == nullptr or southPosLockHolder->lockAcquired());
 	}
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northwestPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXMinus), m_viewer);
-	if (northwestPosLockHolder->quadrant() != nullptr and not northwestPosLockHolder->lockAcquired())
+	else
 	{
-		if (lock)
+		southPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(southPos, m_viewer);
+		if (southPosLockHolder->quadrant() != nullptr and not southPosLockHolder->lockAcquired())
 		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
 		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		else
+		{
+			lockedQuadrants[southPos] = southPosLockHolder;
+		}
 	}
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northeastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXPlus), m_viewer);
-	if (northeastPosLockHolder->quadrant() != nullptr and not northeastPosLockHolder->lockAcquired())
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> westPosLockHolder;
+	TheWorld_Utils::QuadrantPos westPos = blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
+	if (lockedQuadrants.contains(westPos))
 	{
-		if (lock)
-		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
-		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		westPosLockHolder = lockedQuadrants[westPos];
+		my_assert(westPosLockHolder->quadrant() == nullptr or westPosLockHolder->lockAcquired());
 	}
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southwestPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXMinus), m_viewer);
-	if (southwestPosLockHolder->quadrant() != nullptr and not southwestPosLockHolder->lockAcquired())
+	else
 	{
-		if (lock)
+		westPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(westPos, m_viewer);
+		if (westPosLockHolder->quadrant() != nullptr and not westPosLockHolder->lockAcquired())
 		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
 		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		else
+		{
+			lockedQuadrants[westPos] = westPosLockHolder;
+		}
 	}
-	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXPlus), m_viewer);
-	if (southeastPosLockHolder->quadrant() != nullptr and not southeastPosLockHolder->lockAcquired())
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> eastPosLockHolder;
+	TheWorld_Utils::QuadrantPos eastPos = blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
+	if (lockedQuadrants.contains(eastPos))
 	{
-		if (lock)
-		{
-			m_actionInProgress = false;
-			terrainDataLocked(false);
-		}
-		m_viewer->getMainProcessingMutex().unlock();
-		quadrantBusy = true;
-		return processed;
+		eastPosLockHolder = lockedQuadrants[eastPos];
+		my_assert(eastPosLockHolder->quadrant() == nullptr or eastPosLockHolder->lockAcquired());
 	}
+	else
+	{
+		eastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(eastPos, m_viewer);
+		if (eastPosLockHolder->quadrant() != nullptr and not eastPosLockHolder->lockAcquired())
+		{
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
+		}
+		else
+		{
+			lockedQuadrants[eastPos] = eastPosLockHolder;
+		}
+	}
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northwestPosLockHolder;
+	TheWorld_Utils::QuadrantPos northwestPos = blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus);
+	if (lockedQuadrants.contains(northwestPos))
+	{
+		northwestPosLockHolder = lockedQuadrants[northwestPos];
+		my_assert(northwestPosLockHolder->quadrant() == nullptr or northwestPosLockHolder->lockAcquired());
+	}
+	else
+	{
+		northwestPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(northwestPos, m_viewer);
+		if (northwestPosLockHolder->quadrant() != nullptr and not northwestPosLockHolder->lockAcquired())
+		{
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
+		}
+		else
+		{
+			lockedQuadrants[northwestPos] = northwestPosLockHolder;
+		}
+	}
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northeastPosLockHolder;
+	TheWorld_Utils::QuadrantPos northeastPos = blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NortheastZMinusXPlus);
+	if (lockedQuadrants.contains(northeastPos))
+	{
+		northeastPosLockHolder = lockedQuadrants[northeastPos];
+		my_assert(northeastPosLockHolder->quadrant() == nullptr or northeastPosLockHolder->lockAcquired());
+	}
+	else
+	{
+		northeastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(northeastPos, m_viewer);
+		if (northeastPosLockHolder->quadrant() != nullptr and not northeastPosLockHolder->lockAcquired())
+		{
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
+		}
+		else
+		{
+			lockedQuadrants[northeastPos] = northeastPosLockHolder;
+		}
+	}
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southwestPosLockHolder;
+	TheWorld_Utils::QuadrantPos southwestPos = blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthwestZPlusXMinus);
+	if (lockedQuadrants.contains(southwestPos))
+	{
+		southwestPosLockHolder = lockedQuadrants[southwestPos];
+		my_assert(southwestPosLockHolder->quadrant() == nullptr or southwestPosLockHolder->lockAcquired());
+	}
+	else
+	{
+		southwestPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(southwestPos, m_viewer);
+		if (southwestPosLockHolder->quadrant() != nullptr and not southwestPosLockHolder->lockAcquired())
+		{
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
+		}
+		else
+		{
+			lockedQuadrants[southwestPos] = southwestPosLockHolder;
+		}
+	}
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder;
+	TheWorld_Utils::QuadrantPos southeastPos = blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus);
+	if (lockedQuadrants.contains(southeastPos))
+	{
+		southeastPosLockHolder = lockedQuadrants[southeastPos];
+		my_assert(southeastPosLockHolder->quadrant() == nullptr or southeastPosLockHolder->lockAcquired());
+	}
+	else
+	{
+		southeastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(southeastPos, m_viewer);
+		if (southeastPosLockHolder->quadrant() != nullptr and not southeastPosLockHolder->lockAcquired())
+		{
+			if (lockEditingTerrainData)
+			{
+				m_actionInProgress = false;
+				terrainDataLocked(false);
+			}
+			m_viewer->getMainProcessingMutex().unlock();
+			quadrantBusy = true;
+			return processed;
+		}
+		else
+		{
+			lockedQuadrants[southeastPos] = southeastPosLockHolder;
+		}
+	}
+
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos, m_viewer);
+	//if (lockHolder->quadrant() != nullptr and not lockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus), m_viewer);
+	//if (northPosLockHolder->quadrant() != nullptr and not northPosLockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus), m_viewer);
+	//if (southPosLockHolder->quadrant() != nullptr and not southPosLockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> westPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus), m_viewer);
+	//if (westPosLockHolder->quadrant() != nullptr and not westPosLockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> eastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus), m_viewer);
+	//if (eastPosLockHolder->quadrant() != nullptr and not eastPosLockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northwestPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXMinus), m_viewer);
+	//if (northwestPosLockHolder->quadrant() != nullptr and not northwestPosLockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northeastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinusXPlus), m_viewer);
+	//if (northeastPosLockHolder->quadrant() != nullptr and not northeastPosLockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southwestPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXMinus), m_viewer);
+	//if (southwestPosLockHolder->quadrant() != nullptr and not southwestPosLockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
+	//std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder = std::make_shared<Quadrant::InternalQuadrantDataLockHolder>(blendingPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlusXPlus), m_viewer);
+	//if (southeastPosLockHolder->quadrant() != nullptr and not southeastPosLockHolder->lockAcquired())
+	//{
+	//	if (lockEditingTerrainData)
+	//	{
+	//		m_actionInProgress = false;
+	//		terrainDataLocked(false);
+	//	}
+	//	m_viewer->getMainProcessingMutex().unlock();
+	//	quadrantBusy = true;
+	//	return processed;
+	//}
 
 	m_viewer->getMainProcessingMutex().unlock();
 
@@ -4637,7 +5080,8 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			southwestPosLockHolder,
 			southeastPosLockHolder,
 			updateUI,
-			lock,
+			lockEditingTerrainData,
+			unlockQuadrants,
 			saveAndUpload,
 			overrideBlendingParameters);
 	}
@@ -4654,7 +5098,8 @@ bool GDN_TheWorld_Edit::blendAction(TheWorld_Utils::QuadrantPos blendingPos, boo
 			southwestPosLockHolder,
 			southeastPosLockHolder,
 			updateUI,
-			lock,
+			lockEditingTerrainData,
+			unlockQuadrants,
 			saveAndUpload,
 			overrideBlendingParameters);
 		m_tp.QueueJob(f);
@@ -4681,7 +5126,8 @@ void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadran
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southwestPosLockHolder,
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder,
 	bool updateUI,
-	bool unlock,
+	bool unlockEditingTerrainData,
+	bool unlockQuadrants,
 	bool saveAndUpload,
 	bool overrideBlendingParameters)
 {
@@ -4738,15 +5184,15 @@ void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadran
 				southeastQuadrantData);
 		}
 
-		manageUpdatedHeightsAfterQuadrantBlend(quadrantData, lockHolder->quadrant(), terrainEditValuesBuffer);
-		manageUpdatedHeightsAfterQuadrantBlend(northQuadrantData, northPosLockHolder->quadrant(), northTerrainEditValuesBuffer);
-		manageUpdatedHeightsAfterQuadrantBlend(southQuadrantData, southPosLockHolder->quadrant(), southTerrainEditValuesBuffer);
-		manageUpdatedHeightsAfterQuadrantBlend(westQuadrantData, westPosLockHolder->quadrant(), westTerrainEditValuesBuffer);
-		manageUpdatedHeightsAfterQuadrantBlend(eastQuadrantData, eastPosLockHolder->quadrant(), eastTerrainEditValuesBuffer);
-		manageUpdatedHeightsAfterQuadrantBlend(northwestQuadrantData, northwestPosLockHolder->quadrant(), northwestTerrainEditValuesBuffer);
-		manageUpdatedHeightsAfterQuadrantBlend(northeastQuadrantData, northeastPosLockHolder->quadrant(), northeastTerrainEditValuesBuffer);
-		manageUpdatedHeightsAfterQuadrantBlend(southwestQuadrantData, southwestPosLockHolder->quadrant(), southwestTerrainEditValuesBuffer);
-		manageUpdatedHeightsAfterQuadrantBlend(southeastQuadrantData, southeastPosLockHolder->quadrant(), southeastTerrainEditValuesBuffer);
+		quadrantBlendPostOperations(quadrantData, lockHolder->quadrant(), terrainEditValuesBuffer);
+		quadrantBlendPostOperations(northQuadrantData, northPosLockHolder->quadrant(), northTerrainEditValuesBuffer);
+		quadrantBlendPostOperations(southQuadrantData, southPosLockHolder->quadrant(), southTerrainEditValuesBuffer);
+		quadrantBlendPostOperations(westQuadrantData, westPosLockHolder->quadrant(), westTerrainEditValuesBuffer);
+		quadrantBlendPostOperations(eastQuadrantData, eastPosLockHolder->quadrant(), eastTerrainEditValuesBuffer);
+		quadrantBlendPostOperations(northwestQuadrantData, northwestPosLockHolder->quadrant(), northwestTerrainEditValuesBuffer);
+		quadrantBlendPostOperations(northeastQuadrantData, northeastPosLockHolder->quadrant(), northeastTerrainEditValuesBuffer);
+		quadrantBlendPostOperations(southwestQuadrantData, southwestPosLockHolder->quadrant(), southwestTerrainEditValuesBuffer);
+		quadrantBlendPostOperations(southeastQuadrantData, southeastPosLockHolder->quadrant(), southeastTerrainEditValuesBuffer);
 
 		bool renewMeshIdOnUpdate = true;
 		bool updated = lockHolder->quadrant()->getInternalMeshCacheBuffer().calcMinMaxHeights(lockHolder->quadrant()->getPos(), renewMeshIdOnUpdate, quadrantData);
@@ -4767,16 +5213,19 @@ void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadran
 
 	// final operations
 	m_viewer->getMainProcessingMutex().lock();
-	lockHolder->unlock();
-	northPosLockHolder->unlock();
-	southPosLockHolder->unlock();
-	westPosLockHolder->unlock();
-	eastPosLockHolder->unlock();
-	northwestPosLockHolder->unlock();
-	northeastPosLockHolder->unlock();
-	southwestPosLockHolder->unlock();
-	southeastPosLockHolder->unlock();
-	if (unlock)
+	if (unlockQuadrants)
+	{
+		lockHolder->unlock();
+		northPosLockHolder->unlock();
+		southPosLockHolder->unlock();
+		westPosLockHolder->unlock();
+		eastPosLockHolder->unlock();
+		northwestPosLockHolder->unlock();
+		northeastPosLockHolder->unlock();
+		southwestPosLockHolder->unlock();
+		southeastPosLockHolder->unlock();
+	}
+	if (unlockEditingTerrainData)
 	{
 		terrainDataLocked(false);
 		m_actionInProgress = false;
@@ -4797,6 +5246,106 @@ void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadran
 	}
 }
 
+void GDN_TheWorld_Edit::blendQuadrant(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, bool lastPhase)
+{
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder;
+	if (lockedQuadrants.contains(pos))
+		lockHolder = lockedQuadrants[pos];
+	
+	if (lockHolder == nullptr or lockHolder->quadrant() == nullptr)
+		return;
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder;
+	TheWorld_Utils::QuadrantPos northPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthZMinus);
+	if (lockedQuadrants.contains(northPos))
+		northPosLockHolder = lockedQuadrants[northPos];
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southPosLockHolder;
+	TheWorld_Utils::QuadrantPos southPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
+	if (lockedQuadrants.contains(southPos))
+		southPosLockHolder = lockedQuadrants[southPos];
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> westPosLockHolder;
+	TheWorld_Utils::QuadrantPos westPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::WestXMinus);
+	if (lockedQuadrants.contains(westPos))
+		westPosLockHolder = lockedQuadrants[westPos];
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> eastPosLockHolder;
+	TheWorld_Utils::QuadrantPos eastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
+	if (lockedQuadrants.contains(eastPos))
+		eastPosLockHolder = lockedQuadrants[eastPos];
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northwestPosLockHolder;
+	TheWorld_Utils::QuadrantPos northwestPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NorthwestZMinusXMinus);
+	if (lockedQuadrants.contains(northwestPos))
+		northwestPosLockHolder = lockedQuadrants[northwestPos];
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northeastPosLockHolder;
+	TheWorld_Utils::QuadrantPos northeastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::NortheastZMinusXPlus);
+	if (lockedQuadrants.contains(northeastPos))
+		northeastPosLockHolder = lockedQuadrants[northeastPos];
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southwestPosLockHolder;
+	TheWorld_Utils::QuadrantPos southwestPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SouthwestZPlusXMinus);
+	if (lockedQuadrants.contains(southwestPos))
+		southwestPosLockHolder = lockedQuadrants[southwestPos];
+
+	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southeastPosLockHolder;
+	TheWorld_Utils::QuadrantPos southeastPos = pos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::SoutheastZPlusXPlus);
+	if (lockedQuadrants.contains(southeastPos))
+		southeastPosLockHolder = lockedQuadrants[southeastPos];
+	
+	TheWorld_Utils::GuardProfiler profiler(std::string("Blend Quadrant ") + __FUNCTION__, "ALL");
+
+	bool overrideBlendingParameters = true;
+	
+	TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData quadrantData;
+	prepareHeightsForQuadrantBlend(lockHolder, &quadrantData, &terrainEditValuesBuffer, overrideBlendingParameters);
+	TheWorld_Utils::MemoryBuffer northTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northQuadrantData;
+	prepareHeightsForQuadrantBlend(northPosLockHolder, &northQuadrantData, &northTerrainEditValuesBuffer, overrideBlendingParameters);
+	TheWorld_Utils::MemoryBuffer southTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southQuadrantData;
+	prepareHeightsForQuadrantBlend(southPosLockHolder, &southQuadrantData, &southTerrainEditValuesBuffer, overrideBlendingParameters);
+	TheWorld_Utils::MemoryBuffer westTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData westQuadrantData;
+	prepareHeightsForQuadrantBlend(westPosLockHolder, &westQuadrantData, &westTerrainEditValuesBuffer, overrideBlendingParameters);
+	TheWorld_Utils::MemoryBuffer eastTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData eastQuadrantData;
+	prepareHeightsForQuadrantBlend(eastPosLockHolder, &eastQuadrantData, &eastTerrainEditValuesBuffer, overrideBlendingParameters);
+	TheWorld_Utils::MemoryBuffer northwestTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northwestQuadrantData;
+	prepareHeightsForQuadrantBlend(northwestPosLockHolder, &northwestQuadrantData, &northwestTerrainEditValuesBuffer, overrideBlendingParameters);
+	TheWorld_Utils::MemoryBuffer northeastTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData northeastQuadrantData;
+	prepareHeightsForQuadrantBlend(northeastPosLockHolder, &northeastQuadrantData, &northeastTerrainEditValuesBuffer, overrideBlendingParameters);
+	TheWorld_Utils::MemoryBuffer southwestTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southwestQuadrantData;
+	prepareHeightsForQuadrantBlend(southwestPosLockHolder, &southwestQuadrantData, &southwestTerrainEditValuesBuffer, overrideBlendingParameters);
+	TheWorld_Utils::MemoryBuffer southeastTerrainEditValuesBuffer; TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData southeastQuadrantData;
+	prepareHeightsForQuadrantBlend(southeastPosLockHolder, &southeastQuadrantData, &southeastTerrainEditValuesBuffer, overrideBlendingParameters);
+
+	{
+		TheWorld_Utils::GuardProfiler profiler(std::string("Blend execution 1.1.1 ") + __FUNCTION__, "Single QuadTree blendQuadrant");
+
+		//lastPhase = false;	// DEBUG
+		bool renewMeshIdOnUpdate = false;	// MeshId Will be renewed in manageUpdatedHeightsAfterQuadrantBlend function
+		bool updated = lockHolder->quadrant()->getInternalMeshCacheBuffer().blendQuadrant(lockHolder->quadrant()->getPos(), lastPhase, renewMeshIdOnUpdate,
+			quadrantData,
+			northQuadrantData,
+			southQuadrantData,
+			westQuadrantData,
+			eastQuadrantData,
+			northwestQuadrantData,
+			northeastQuadrantData,
+			southwestQuadrantData,
+			southeastQuadrantData);
+	}
+
+	quadrantBlendPostOperations(quadrantData, lockHolder, terrainEditValuesBuffer);
+	quadrantBlendPostOperations(northQuadrantData, northPosLockHolder, northTerrainEditValuesBuffer);
+	quadrantBlendPostOperations(southQuadrantData, southPosLockHolder, southTerrainEditValuesBuffer);
+	quadrantBlendPostOperations(westQuadrantData, westPosLockHolder, westTerrainEditValuesBuffer);
+	quadrantBlendPostOperations(eastQuadrantData, eastPosLockHolder, eastTerrainEditValuesBuffer);
+	quadrantBlendPostOperations(northwestQuadrantData, northwestPosLockHolder, northwestTerrainEditValuesBuffer);
+	quadrantBlendPostOperations(northeastQuadrantData, northeastPosLockHolder, northeastTerrainEditValuesBuffer);
+	quadrantBlendPostOperations(southwestQuadrantData, southwestPosLockHolder, southwestTerrainEditValuesBuffer);
+	quadrantBlendPostOperations(southeastQuadrantData, southeastPosLockHolder, southeastTerrainEditValuesBuffer);
+}
+
 void GDN_TheWorld_Edit::manageSaveAndUploadAfterBlending(Quadrant* quadrant)
 {
 	if (quadrant == nullptr)
@@ -4809,7 +5358,7 @@ void GDN_TheWorld_Edit::manageSaveAndUploadAfterBlending(Quadrant* quadrant)
 		std::string writtenMeshId;
 		quadrant->saveQuadrantToDiskCache2(writtenMeshId, true, false);
 		removeQuadToSave(quadrantPos);
-		quadrant->getTerrainEdit()->needUploadToServer = false;
+		quadrant->getTerrainEdit()->needUploadToServer(false);
 		std::string buffer;
 		quadrant->getQuadrantBufferForCache(buffer);
 		m_viewer->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), quadrantPos.getLowerXGridVertex(), quadrantPos.getLowerZGridVertex(), quadrantPos.getNumVerticesPerSize(), quadrantPos.getGridStepInWU(), quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), true);
@@ -4850,6 +5399,7 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 
 	setMessage(godot::String("Blending heigths..."));
 
+	m_elapsedCompleted = 0;
 	m_actionClock.tick();
 
 	TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1 ") + __FUNCTION__, "ALL");
@@ -4871,33 +5421,129 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 	std::vector<TheWorld_Utils::QuadrantPos> quadrantPos;
 	if (not quadrantSelPos.empty())
 		quadrantPos.push_back(quadrantSelPos);
-	addQuadsToDelayedBlend(quadrantPos);
+	addDelayedBlendQuads(quadrantPos);
 	addQuadrantsToBlend(quadrantPos);
 
-	setMessage(godot::String("Blending quadrants..."));
-
-	m_elapsedCompleted = 0;
 	m_lastElapsed = 0;
-	m_allItems = quadrantPos.size();
 
+	std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>> lockedQuadrants;
 	for (auto& pos : quadrantPos)
 	{
-		TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
+		editModeLockQuadrantAndNeighbours(pos, lockedQuadrants, THEWORLD_QUADRANT_DISTANCE_FOR_BLENDING);
+	}
 
-		if (m_actionStopRequested)
+#define NUM_BLENDING_CYCLES	2
+	size_t numRounds = NUM_BLENDING_CYCLES;
+	for (size_t round = 0; round < numRounds; round++)
+	{
+		m_allItems = lockedQuadrants.size();
+		m_completedItems = 0;
+
+		for (auto& lockedQuadrant : lockedQuadrants)
 		{
-			m_actionStopRequested = false;
-			break;
+			TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
+
+			TheWorld_Utils::QuadrantPos pos = lockedQuadrant.first;
+
+			std::stringstream str;
+			str << "Blending heigths for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ();
+			PLOG_DEBUG << str.str();
+			setMessage(godot::String(str.str().c_str()));
+
+			blendQuadrant(pos, lockedQuadrants, round == numRounds - 1);
+			removeQuadToDelayedBlend(pos);
+
+			m_completedItems++;
+			size_t partialCount = m_actionClock.partialDuration().count();
+			m_lastElapsed = partialCount - m_elapsedCompleted;
+			m_elapsedCompleted = partialCount;
+			str.str("");
+			str.clear();
+			str << "Blending heigths for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ() << " - Completed!";
+			PLOG_DEBUG << str.str() << " - " << partialCount << " ms";
+			setMessage(godot::String(str.str().c_str()), false);
+			setElapsed(partialCount, true);
+			setCounter(m_completedItems, m_allItems);
+			setNote1(m_lastElapsed);
+			setNote2("round " + std::to_string(round + 1));
 		}
+	}
+	setNote2("");
 
-		editModeBlendQuadrantAndNeighbours(pos, THEWORLD_QUADRANT_DISTANCE_FOR_BLENDING);
+	int num = 0;
+	for (auto& [pos, lockedQuadrant] : lockedQuadrants)
+	{
+		QuadTree* modifiedQuadTree = m_viewer->getQuadTree(pos);
+		if (modifiedQuadTree != nullptr and modifiedQuadTree->getQuadrant()->getFloat32HeightsBuffer(false).notEmpty())
+		{
+			num++;
+		}
+	}
+	m_allItems = num;
+	m_completedItems = 0;
 
-		removeQuadToDelayedBlend(pos);
+	for (auto& [pos, lockedQuadrant] : lockedQuadrants)
+	{
+		std::stringstream str;
+		str << "Finalizing blending for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ();
+		PLOG_DEBUG << str.str();
+		setMessage(godot::String(str.str().c_str()));
+
+		QuadTree* modifiedQuadTree = m_viewer->getQuadTree(pos);
+		if (modifiedQuadTree != nullptr and modifiedQuadTree->getQuadrant()->getFloat32HeightsBuffer(false).notEmpty())
+		{
+			bool forceGlobalMapUpdate = lockedQuadrant->quadrantUpdated();
+			bool updated = modifiedQuadTree->managePostHeightsUpdateOperations(forceGlobalMapUpdate);
+			if (updated)
+			{
+				lockedQuadrant->quadrantUpdated(true);
+			}
+			m_completedItems++;
+		}
 
 		size_t partialCount = m_actionClock.partialDuration().count();
 		m_lastElapsed = partialCount - m_elapsedCompleted;
 		m_elapsedCompleted = partialCount;
+		str.str("");
+		str.clear();
+		str << "Finalizing blending for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ() << " - Completed!";
+		PLOG_DEBUG << str.str() << " - " << partialCount << " ms";
+		setMessage(godot::String(str.str().c_str()), false);
+		setElapsed(partialCount, true);
+		setCounter(m_completedItems, m_allItems);
+		setNote1(m_lastElapsed);
 	}
+
+	for (auto& [pos, lockedQuadrant] : lockedQuadrants)
+	{
+		if (lockedQuadrant->quadrantUpdated())
+		{
+			QuadTree* modifiedQuadTree = m_viewer->getQuadTree(pos);
+			if (modifiedQuadTree != nullptr)
+			{
+				// renew MeshId
+				{
+					TheWorld_Utils::MeshCacheBuffer& quadrantCache = modifiedQuadTree->getQuadrant()->getInternalMeshCacheBuffer();
+					quadrantCache.generateNewInternalMeshId();
+					modifiedQuadTree->getQuadrant()->setMeshId(quadrantCache.getMeshId());
+				}
+
+				// Remember that we need to save/upload quadrant and every surrounding even if heights are not changed because terrain datas may be changed during blending
+				{
+					{
+						std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+						TheWorld_Utils::QuadrantPos pos = modifiedQuadTree->getQuadrant()->getPos();
+						bool manual = true;
+						addQuadToSave(pos, manual);
+					}
+					//modifiedQuadTree->getQuadrant()->getTerrainEdit()->needUploadToServer(true);	//  when saved it is set to be uploaded
+					//modifiedQuadTree->getQuadrant()->setNeedUploadToServer(true);
+				}
+			}
+		}
+	}
+	
+	editModeUnlockQuadrants(lockedQuadrants);
 
 	if (quadTreeSel != nullptr)
 	{
@@ -4906,22 +5552,19 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 		//setCanContainSea((quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && quadTreeSel->getQuadrant()->getTerrainEdit()->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 	}
 
-	size_t partialCount = m_actionClock.partialDuration().count();
-	m_lastElapsed = partialCount - m_elapsedCompleted;
-	m_elapsedCompleted = partialCount;
-
 	m_actionClock.tock();
-
-	m_actionInProgress = false;
-
 	size_t duration = m_actionClock.duration().count();
-	setElapsed(duration, false);
+	m_lastElapsed = duration - m_elapsedCompleted;
+	m_elapsedCompleted = duration;
+	setElapsed(m_elapsedCompleted, false);
 	setCounter(m_completedItems, m_allItems);
 	setNote1(m_lastElapsed);
 
-	setMessage(godot::String("Completed!"), true);
+	//setMessage(godot::String("Completed!"), true);
 
 	terrainDataLocked(false);
+	
+	m_actionInProgress = false;
 }
 
 void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters)
@@ -4942,10 +5585,8 @@ void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWo
 		quadrantData->terrainEditValues = terrainEditValuesBuffer;
 		quadrantData->minHeight = quadrant->getTerrainEdit()->minHeight;
 		quadrantData->maxHeight = quadrant->getTerrainEdit()->maxHeight;
-		TheWorld_Utils::MemoryBuffer& h16Buffer = quadrant->getFloat16HeightsBuffer();
-		quadrantData->heights16Buffer = &h16Buffer;
-		TheWorld_Utils::MemoryBuffer& h32Buffer = quadrant->getFloat32HeightsBuffer();
-		quadrantData->heights32Buffer = &h32Buffer;
+		quadrantData->heights16Buffer = &quadrant->getFloat16HeightsBuffer();
+		quadrantData->heights32Buffer = &quadrant->getFloat32HeightsBuffer();
 		quadrantData->normalsBuffer = nullptr;
 		quadrantData->splatmapBuffer = nullptr;
 		quadrantData->colormapBuffer = nullptr;
@@ -4953,234 +5594,179 @@ void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWo
 	}
 }
 
-QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer)
+void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer, bool overrideBlendingParameters)
 {
-	QuadTree* quadTree = nullptr;
-
-	{
-		//std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
-		quadTree = m_viewer->getQuadTree(*pos, false);
-	}
-
-	if (quadTree != nullptr)
-	{
-		*lockAcquired = quadTree->getQuadrant()->lockInternalData();
-
-		if (*lockAcquired)
-		{
-			quadTree->getQuadrant()->getTerrainEdit()->extraValues.amplitudeBlendFactor  = amplitudeBlendFactor();
-			quadTree->getQuadrant()->getTerrainEdit()->extraValues.numBlendingCycles = blendingCycles();
-			quadTree->getQuadrant()->getTerrainEdit()->extraValues.blendingBendingFactor = blendingBendingFactor();
-			quadTree->getQuadrant()->getTerrainEdit()->extraValues.minRandomBendingExtension = minRandomBendingExtension();
-			quadTree->getQuadrant()->getTerrainEdit()->extraValues.maxRandomBendingExtension = maxRandomBendingExtension();
-			quadTree->getQuadrant()->getTerrainEdit()->serialize(*terrainEditValuesBuffer);
-
-			quadrantData->meshId = quadTree->getQuadrant()->getInternalMeshCacheBuffer().getMeshId();
-			quadrantData->terrainEditValues = terrainEditValuesBuffer;
-			quadrantData->minHeight = quadTree->getQuadrant()->getTerrainEdit()->minHeight;
-			quadrantData->maxHeight = quadTree->getQuadrant()->getTerrainEdit()->maxHeight;
-			TheWorld_Utils::MemoryBuffer& h16Buffer = quadTree->getQuadrant()->getFloat16HeightsBuffer();
-			quadrantData->heights16Buffer = &h16Buffer;
-			TheWorld_Utils::MemoryBuffer& h32Buffer = quadTree->getQuadrant()->getFloat32HeightsBuffer();
-			quadrantData->heights32Buffer = &h32Buffer;
-			quadrantData->normalsBuffer = nullptr;
-			quadrantData->splatmapBuffer = nullptr;
-			quadrantData->colormapBuffer = nullptr;
-			quadrantData->globalmapBuffer = nullptr;
-		}
-		else
-			quadTree = nullptr;
-	}
-
-	return quadTree;
+	if (lockHolder == nullptr or lockHolder->quadrant() == nullptr)
+		return;
+	
+	prepareHeightsForQuadrantBlend(lockHolder->quadrant(), quadrantData, terrainEditValuesBuffer, overrideBlendingParameters);
 }
 
-void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, Quadrant* quadrant, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer)
+//QuadTree* GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(bool* lockAcquired, TheWorld_Utils::QuadrantPos* pos, TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData* quadrantData, TheWorld_Utils::MemoryBuffer* terrainEditValuesBuffer)
+//{
+//	QuadTree* quadTree = nullptr;
+//
+//	{
+//		//std::lock_guard<std::recursive_mutex> lock(m_viewer->getMainProcessingMutex());
+//		quadTree = m_viewer->getQuadTree(*pos, false);
+//	}
+//
+//	if (quadTree != nullptr)
+//	{
+//		*lockAcquired = quadTree->getQuadrant()->lockInternalData();
+//
+//		if (*lockAcquired)
+//		{
+//			quadTree->getQuadrant()->getTerrainEdit()->extraValues.amplitudeBlendFactor  = amplitudeBlendFactor();
+//			quadTree->getQuadrant()->getTerrainEdit()->extraValues.numBlendingCycles = blendingCycles();
+//			quadTree->getQuadrant()->getTerrainEdit()->extraValues.blendingBendingFactor = blendingBendingFactor();
+//			quadTree->getQuadrant()->getTerrainEdit()->extraValues.minRandomBendingExtension = minRandomBendingExtension();
+//			quadTree->getQuadrant()->getTerrainEdit()->extraValues.maxRandomBendingExtension = maxRandomBendingExtension();
+//			quadTree->getQuadrant()->getTerrainEdit()->serialize(*terrainEditValuesBuffer);
+//
+//			quadrantData->meshId = quadTree->getQuadrant()->getInternalMeshCacheBuffer().getMeshId();
+//			quadrantData->terrainEditValues = terrainEditValuesBuffer;
+//			quadrantData->minHeight = quadTree->getQuadrant()->getTerrainEdit()->minHeight;
+//			quadrantData->maxHeight = quadTree->getQuadrant()->getTerrainEdit()->maxHeight;
+//			TheWorld_Utils::MemoryBuffer& h16Buffer = quadTree->getQuadrant()->getFloat16HeightsBuffer();
+//			quadrantData->heights16Buffer = &h16Buffer;
+//			TheWorld_Utils::MemoryBuffer& h32Buffer = quadTree->getQuadrant()->getFloat32HeightsBuffer();
+//			quadrantData->heights32Buffer = &h32Buffer;
+//			quadrantData->normalsBuffer = nullptr;
+//			quadrantData->splatmapBuffer = nullptr;
+//			quadrantData->colormapBuffer = nullptr;
+//			quadrantData->globalmapBuffer = nullptr;
+//		}
+//		else
+//			quadTree = nullptr;
+//	}
+//
+//	return quadTree;
+//}
+
+bool GDN_TheWorld_Edit::quadrantBlendPostOperations(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, Quadrant* quadrant, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer)
 {
+	bool updated = false;
+	
 	if (quadrantData.heightsUpdated)
 	{
-		// renew MeshId
-		TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadrant->getInternalMeshCacheBuffer();
-		quadrantCache.generateNewInternalMeshId();
-		quadrant->setMeshId(quadrantCache.getMeshId());
+		updated = true;
 
+		// refresh terrain edit values from the buffer because they may be changed during blending
 		quadrant->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
 
+		// renew MeshId
 		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			//m_mapQuadToSave[quadrant->getPos()] = "";
-			TheWorld_Utils::QuadrantPos pos = quadrant->getPos();
-			bool manual = true;
-			addQuadToSave(pos, manual);
+			TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadrant->getInternalMeshCacheBuffer();
+			quadrantCache.generateNewInternalMeshId();
+			quadrant->setMeshId(quadrantCache.getMeshId());
 		}
 
-		//quadrant->setEmpty(false);
-		quadrant->getTerrainEdit()->needUploadToServer = true;
-		quadrant->setNeedUploadToServer(true);
-		quadrant->heightmapChanged();
-		quadrant->sendHeightsToShader(true);
-		//quadrant->resetNormalsBuffer(__FUNCTION__);
-		//quadrant->resetSplatmapBuffer(__FUNCTION__);
-		quadrant->resetGlobalmapBuffer(__FUNCTION__);
-
+		// Remember that we need to save/upload quadrant and every surrounding even if heights are not changed because terrain datas may be changed during blending
 		{
-			my_assert(quadrant->getFloat32HeightsBuffer().size() == quadrant->getPos().getNumVerticesPerSize() * quadrant->getPos().getNumVerticesPerSize() * sizeof(float));
-#ifdef REAL_T_IS_DOUBLE
-			godot::PackedFloat64Array& heightsForCollider = quadrant->getHeightsForCollider(false);
-			heightsForCollider.resize((int64_t)(quadrant->getPos().getNumVerticesPerSize() * quadrant->getPos().getNumVerticesPerSize()));
-			float* f = (float*)quadrant->getFloat32HeightsBuffer().ptr();
-			for (int idx = 0; idx < quadrant->getPos().getNumVerticesPerSize(); idx++)
 			{
-				heightsForCollider.set(idx, (real_t)*f);
-				f++;
+				std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+				//m_mapQuadToSave[quadrant->getPos()] = "";
+				TheWorld_Utils::QuadrantPos pos = quadrant->getPos();
+				bool manual = true;
+				addQuadToSave(pos, manual);
 			}
-#else
-			godot::PackedFloat32Array& heightsForCollider = quadrant->getHeightsForCollider(false);
-			heightsForCollider.resize((int64_t)(quadrant->getPos().getNumVerticesPerSize() * quadrant->getPos().getNumVerticesPerSize()));
-			memcpy((char*)heightsForCollider.ptrw(), quadrant->getFloat32HeightsBuffer().ptr(), quadrant->getFloat32HeightsBuffer().size());
-#endif
+			//quadrant->getTerrainEdit()->needUploadToServer(true);	//  when saved it is set to be uploaded
+			//quadrant->setNeedUploadToServer(true);
 		}
 
-		Vector3 startPosition(quadrant->getPos().getLowerXGridVertex(), quadrant->getTerrainEdit()->minHeight, quadrant->getPos().getLowerZGridVertex());
-		Vector3 endPosition(startPosition.x + quadrant->getPos().getSizeInWU(), quadrant->getTerrainEdit()->maxHeight, startPosition.z + quadrant->getPos().getSizeInWU());
-		Vector3 size = endPosition - startPosition;
-		quadrant->getGlobalCoordAABB().set_position(startPosition);
-		quadrant->getGlobalCoordAABB().set_size(size);
-
-		//Chunk::HeightsChangedChunkAction action(m_viewer->is_visible_in_tree());
-		Chunk::TerrainHeightsChangedChunkAction action;
-		m_viewer->m_refreshRequired = true;
-		quadrant->getQuadTree()->ForAllChunk(action, QuadType::NotSet);
-
-		quadrant->getQuadTree()->materialParamsNeedReset(true);
-		quadrant->getQuadTree()->colliderNeedReset(true, QuadType::NotSet);
-		//quadrant->northQuadrantData().initialized(false);
-		//quadrant->southQuadrantData().initialized(false);
-		//quadrant->westQuadrantData().initialized(false);
-		//quadrant->eastQuadrantData().initialized(false);
+//		// Collider stuff (heights and AABB) must be updated after heights have been changed
+//		{
+//			// prepare new heigths for collider (PackedFloat32Array)
+//			{
+//				my_assert(quadrant->getFloat32HeightsBuffer().size() == quadrant->getPos().getNumVerticesPerSize() * quadrant->getPos().getNumVerticesPerSize() * sizeof(float));
+//#ifdef REAL_T_IS_DOUBLE
+//				godot::PackedFloat64Array& heightsForCollider = quadrant->getHeightsForCollider(false);
+//				heightsForCollider.resize((int64_t)(quadrant->getPos().getNumVerticesPerSize() * quadrant->getPos().getNumVerticesPerSize()));
+//				float* f = (float*)quadrant->getFloat32HeightsBuffer().ptr();
+//				for (int idx = 0; idx < quadrant->getPos().getNumVerticesPerSize(); idx++)
+//				{
+//					heightsForCollider.set(idx, (real_t)*f);
+//					f++;
+//				}
+//#else
+//				godot::PackedFloat32Array& heightsForCollider = quadrant->getHeightsForCollider(false);
+//				heightsForCollider.resize((int64_t)(quadrant->getPos().getNumVerticesPerSize() * quadrant->getPos().getNumVerticesPerSize()));
+//				memcpy((char*)heightsForCollider.ptrw(), quadrant->getFloat32HeightsBuffer().ptr(), quadrant->getFloat32HeightsBuffer().size());
+//#endif
+//			}
+//
+//			// calc new quadrant AABB for collider
+//			{
+//				Vector3 startPosition(quadrant->getPos().getLowerXGridVertex(), quadrant->getTerrainEdit()->minHeight, quadrant->getPos().getLowerZGridVertex());
+//				Vector3 endPosition(startPosition.x + quadrant->getPos().getSizeInWU(), quadrant->getTerrainEdit()->maxHeight, startPosition.z + quadrant->getPos().getSizeInWU());
+//				Vector3 size = endPosition - startPosition;
+//				quadrant->getGlobalCoordAABB().set_position(startPosition);
+//				quadrant->getGlobalCoordAABB().set_size(size);
+//			}
+//		}
+//
+//		// notify all chunk of the quadrant that heigths have been changed (invalidates all cached chunk and quad AABB)
+//		{
+//			//Chunk::HeightsChangedChunkAction action(m_viewer->is_visible_in_tree());
+//			Chunk::TerrainHeightsChangedChunkAction action;
+//			m_viewer->m_refreshRequired = true;
+//			quadrant->getQuadTree()->ForAllChunk(action, QuadType::NotSet);
+//		}
+//
+//		// Update internal quadrant data (heights, colors, globalmap) and send to shader
+//		{
+//			quadrant->heightmapChanged();
+//			quadrant->sendHeightsToShader(true);
+//			//quadrant->resetNormalsBuffer(__FUNCTION__);
+//			//quadrant->resetSplatmapBuffer(__FUNCTION__);
+//			quadrant->resetGlobalmapBuffer(__FUNCTION__);
+//			quadrant->getQuadTree()->materialParamsNeedReset(true);
+//			quadrant->getQuadTree()->colliderNeedReset(true, QuadType::NotSet);
+//			//quadrant->northQuadrantData().initialized(false);
+//			//quadrant->southQuadrantData().initialized(false);
+//			//quadrant->westQuadrantData().initialized(false);
+//			//quadrant->eastQuadrantData().initialized(false);
+//		}
 	}
-	else
-	{
-		if (quadrant != nullptr and not quadrant->empty())
-		{
-			if (terrainEditValuesBuffer.size() > 0)
-			{
-				// renew MeshId
-				TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadrant->getInternalMeshCacheBuffer();
-				quadrantCache.generateNewInternalMeshId();
-				quadrant->setMeshId(quadrantCache.getMeshId());
+	//else	// if this branch is needed there is a problem with the blending algorithm because it should always set quadrantData.heightsUpdated if heights changed - After all if it is needed somehow it must do all the things of the other branch
+	//{
+	//	if (quadrant != nullptr and not quadrant->empty())
+	//	{
+	//		if (terrainEditValuesBuffer.size() > 0)
+	//		{
+	//			// renew MeshId
+	//			TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadrant->getInternalMeshCacheBuffer();
+	//			quadrantCache.generateNewInternalMeshId();
+	//			quadrant->setMeshId(quadrantCache.getMeshId());
 
-				quadrant->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
+	//			quadrant->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
 
-				// we need to save quadrant and every surrounding even if heights are not changed becasue terrain datas may be changed during blending
-				{
-					std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-					//m_mapQuadToSave[quadrant->getPos()] = "";
-					TheWorld_Utils::QuadrantPos pos = quadrant->getPos();
-					bool manual = true;
-					addQuadToSave(pos, manual);
-				}
-			}
-		}
-	}
+	//			// we need to save quadrant and every surrounding even if heights are not changed because terrain datas may be changed during blending
+	//			{
+	//				std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
+	//				//m_mapQuadToSave[quadrant->getPos()] = "";
+	//				TheWorld_Utils::QuadrantPos pos = quadrant->getPos();
+	//				bool manual = true;
+	//				addQuadToSave(pos, manual);
+	//			}
+	//		}
+	//	}
+	//}
+
+	return updated;
 }
 
-void GDN_TheWorld_Edit::manageUpdatedHeightsAfterQuadrantBlend(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, QuadTree* quadTree, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer)
+bool GDN_TheWorld_Edit::quadrantBlendPostOperations(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder, TheWorld_Utils::MemoryBuffer& terrainEditValuesBuffer)
 {
-	//if (quadTree->getQuadrant()->getPos().getIndexPosX() == -7 and quadTree->getQuadrant()->getPos().getIndexPosZ() == -15)	// #####
-	//	assert(quadTree != nullptr);									// #####
+	if (lockHolder == nullptr or lockHolder->quadrant() == nullptr)
+		return false;
 
-	if (quadrantData.heightsUpdated)
-	{
-		// renew MeshId
-		TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadTree->getQuadrant()->getInternalMeshCacheBuffer();
-		quadrantCache.generateNewInternalMeshId();
-		quadTree->getQuadrant()->setMeshId(quadrantCache.getMeshId());
+	bool updated = quadrantBlendPostOperations(quadrantData, lockHolder->quadrant(), terrainEditValuesBuffer);
+	if (updated)
+		lockHolder->quadrantUpdated(true);
 
-		quadTree->getQuadrant()->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
-		
-		{
-			std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-			//m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
-			TheWorld_Utils::QuadrantPos pos = quadTree->getQuadrant()->getPos();
-			bool manual = true;
-			addQuadToSave(pos, manual);
-		}
-		 
-		//quadTree->getQuadrant()->setEmpty(false);
-		quadTree->getQuadrant()->getTerrainEdit()->needUploadToServer = true;
-		quadTree->getQuadrant()->setNeedUploadToServer(true);
-
-		quadTree->getQuadrant()->heightmapChanged();
-		quadTree->getQuadrant()->sendHeightsToShader(true);
-
-		//quadTree->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
-
-		//quadTree->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
-
-		quadTree->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
-
-
-		{
-			my_assert(quadTree->getQuadrant()->getFloat32HeightsBuffer().size() == quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * sizeof(float));
-#ifdef REAL_T_IS_DOUBLE
-			godot::PackedFloat64Array& heightsForCollider = quadTree->getQuadrant()->getHeightsForCollider(false);
-			heightsForCollider.resize((int64_t)(quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * quadTree->getQuadrant()->getPos().getNumVerticesPerSize()));
-			float* f = (float*)quadTree->getQuadrant()->getFloat32HeightsBuffer().ptr();
-			for (int idx = 0; idx < quadTree->getQuadrant()->getPos().getNumVerticesPerSize(); idx++)
-			{
-				heightsForCollider.set(idx, (real_t)*f);
-				f++;
-			}
-#else
-			godot::PackedFloat32Array& heightsForCollider = quadTree->getQuadrant()->getHeightsForCollider(false);
-			heightsForCollider.resize((int64_t)(quadTree->getQuadrant()->getPos().getNumVerticesPerSize() * quadTree->getQuadrant()->getPos().getNumVerticesPerSize()));
-			memcpy((char*)heightsForCollider.ptrw(), quadTree->getQuadrant()->getFloat32HeightsBuffer().ptr(), quadTree->getQuadrant()->getFloat32HeightsBuffer().size());
-#endif
-		}
-
-		Vector3 startPosition(quadTree->getQuadrant()->getPos().getLowerXGridVertex(), quadTree->getQuadrant()->getTerrainEdit()->minHeight, quadTree->getQuadrant()->getPos().getLowerZGridVertex());
-		Vector3 endPosition(startPosition.x + quadTree->getQuadrant()->getPos().getSizeInWU(), quadTree->getQuadrant()->getTerrainEdit()->maxHeight, startPosition.z + quadTree->getQuadrant()->getPos().getSizeInWU());
-		Vector3 size = endPosition - startPosition;
-		quadTree->getQuadrant()->getGlobalCoordAABB().set_position(startPosition);
-		quadTree->getQuadrant()->getGlobalCoordAABB().set_size(size);
-
-		//Chunk::HeightsChangedChunkAction action(m_viewer->is_visible_in_tree());
-		Chunk::TerrainHeightsChangedChunkAction action;
-		m_viewer->m_refreshRequired = true;
-		quadTree->ForAllChunk(action, QuadType::NotSet);
-
-		quadTree->materialParamsNeedReset(true);
-		quadTree->colliderNeedReset(true, QuadType::NotSet);
-		//quadTree->getQuadrant()->northQuadrantData().initialized(false);
-		//quadTree->getQuadrant()->southQuadrantData().initialized(false);
-		//quadTree->getQuadrant()->westQuadrantData().initialized(false);
-		//quadTree->getQuadrant()->eastQuadrantData().initialized(false);
-	}
-	else
-	{
-		if (not quadTree->getQuadrant()->empty())
-		{
-			if (terrainEditValuesBuffer.size() > 0)
-			{
-				// renew MeshId
-				TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadTree->getQuadrant()->getInternalMeshCacheBuffer();
-				quadrantCache.generateNewInternalMeshId();
-				quadTree->getQuadrant()->setMeshId(quadrantCache.getMeshId());
-
-				quadTree->getQuadrant()->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
-
-				// we need to save quadrant and every surrounding even if heights are not changed becasue terrain datas may be changed during blending
-				{
-					std::lock_guard<std::recursive_mutex> lock(m_mtxMapQuadToSave);
-					//m_mapQuadToSave[quadTree->getQuadrant()->getPos()] = "";
-					TheWorld_Utils::QuadrantPos pos = quadTree->getQuadrant()->getPos();
-					bool manual = true;
-					addQuadToSave(pos, manual);
-				}
-			}
-		}
-	}
+	return updated;
 }
 
 //void GDN_TheWorld_Edit::editModeResetNormalsSplatmapAction(void)

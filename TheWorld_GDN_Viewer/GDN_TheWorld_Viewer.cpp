@@ -15344,7 +15344,7 @@ void GDN_TheWorld_Viewer::dump()
 					mapQuadrantsToSaveTerrainType[terrainType] = 1;
 			}
 			
-			if (quadTree.second->getQuadrant()->getTerrainEdit()->needUploadToServer)
+			if (quadTree.second->getQuadrant()->getTerrainEdit()->needUploadToServer())
 			{
 				if (mapQuadrantsToUploadTerrainType.contains(terrainType))
 					mapQuadrantsToUploadTerrainType[terrainType]++;
@@ -15730,7 +15730,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 					// - MapManagerSync sends the list of the quadrants and the map texture rects (only in map mode) currently owned by the client
 					// - The server (MapManager::sync) checks if the client quadrants and map texture rects are up to date or not compared to the server ones and send back the list of quadrants and map texture rects that need to be
 					//   refreshed on the client side because they are different from the server ones (for example because they have been modified after last synchronization). The server answer with 
-					//   - replyClientQuadrants: the quadrants currently owned by the client that need refresh (because they are newer on server and/or becasue they need client work to create splatmap/globalmap)
+					//   - replyClientQuadrants: the quadrants currently owned by the client that need refresh (because they are newer on server and/or because they need client work to create splatmap/globalmap)
 					//   - replyExtraQuadrants: the quadrants currently not owned by the client that need client work to create splatmap/globalmap
 					//   - replyMapTextureRects: the map texture rects that need refresh
 					//   - replyProceGenStatus: a strucutr containing the status of the procedural generation for the world

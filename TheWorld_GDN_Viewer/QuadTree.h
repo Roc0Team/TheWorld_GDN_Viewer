@@ -142,6 +142,7 @@ namespace godot
 		//	, high = 2
 		//};
 
+		// Manage quadrant lock with a refrence counter, so that if a quadrant is locked multiple times, it will be unlocked only when the last lock is released.
 		class InternalQuadrantDataLockHolder
 		{
 		public:
@@ -159,14 +160,24 @@ namespace godot
 			{
 				return m_quadrant;
 			}
+			bool quadrantUpdated(void) const
+			{
+				return m_quadrantUpdated;
+			}
+			void quadrantUpdated(bool b)
+			{
+				m_quadrantUpdated = b;
+			}
 
 		private:
 			void init(Quadrant* quadrant, bool lock, bool lockOnlyInitializedQuadrants);
 
 		private:
+			std::recursive_mutex m_mtx;
 			Quadrant* m_quadrant = nullptr;
 			bool m_lockAcquired = false;
 			int32_t m_numLocks = 0;
+			bool m_quadrantUpdated = false;
 		};
 
 		class NeighbourQuadrantData
@@ -345,6 +356,10 @@ namespace godot
 		{
 			if (reloadFromCache and m_float32HeigthsBuffer.empty())
 			{
+				//if (getPos().isQuadrantTrackedForDebug())
+				//{
+				//	PLOG_DEBUG << "eccoci";
+				//}
 				TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getFloat32HeightsBuffer 1 ") + __FUNCTION__, "Heightmap32 reload from disk");
 				TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
 				float minAltitude, maxAltitude;
@@ -353,51 +368,6 @@ namespace godot
 			}
 			return m_float32HeigthsBuffer;
 		}
-
-		//TheWorld_Utils::MemoryBuffer& getNormalsBuffer(bool reloadFromCache = true, bool force = false)
-		//{
-		//	if (reloadFromCache and m_normalsBuffer.empty())
-		//	{
-		//		if (!getTerrainEdit()->normalsNeedRegen() || force)
-		//		{
-		//			TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getNormalsBuffer 1 ") + __FUNCTION__, "Normalmap reload from disk");
-		//			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-		//			float minAltitude, maxAltitude;
-		//			bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
-		//		}
-		//	}
-		//	return m_normalsBuffer;
-		//}
-
-		//TheWorld_Utils::MemoryBuffer& getSplatmapBuffer(bool reloadFromCache = true)
-		//{
-		//	if (reloadFromCache and m_splatmapBuffer.empty())
-		//	{
-		//		if (!getTerrainEdit()->splatmapNeedRegen())
-		//		{
-		//			TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getSplatmapBuffer 1 ") + __FUNCTION__, "Splatmap reload from disk");
-		//			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-		//			float minAltitude, maxAltitude;
-		//			bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
-		//		}
-		//	}
-		//	return m_splatmapBuffer;
-		//}
-
-		//TheWorld_Utils::MemoryBuffer& getColormapBuffer(bool reloadFromCache = true)
-		//{
-		//	if (reloadFromCache and m_colormapBuffer.empty())
-		//	{
-		//		if (!getTerrainEdit()->colormapNeedRegen())
-		//		{
-		//			TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant getColormapBuffer 1 ") + __FUNCTION__, "Colormap reload from disk");
-		//			TheWorld_Utils::MemoryBuffer terrainEditValuesBuffer;
-		//			float minAltitude, maxAltitude;
-		//			bool ok = m_cache.refreshMapsFromDisk(m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_meshId, terrainEditValuesBuffer, minAltitude, maxAltitude, m_float16HeigthsBuffer, m_float32HeigthsBuffer, m_normalsBuffer, m_splatmapBuffer, m_colormapBuffer, m_globalmapBuffer, m_namedDataBuffer, false);
-		//		}
-		//	}
-		//	return m_colormapBuffer;
-		//}
 
 		TheWorld_Utils::MemoryBuffer& getGlobalmapBuffer(bool reloadFromCache = true)
 		{
@@ -428,74 +398,7 @@ namespace godot
 			return m_namedDataBuffer;
 		}
 
-		//godot::Ref<godot::Texture2D> getSplatmapBorderRowTexture(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
-		//godot::Color getSplatmapBorderRowTexel(enum class TheWorld_Utils::QuadrantPos::DirectionSlot dir);
-
-		//void fillQuadrantData(TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData& quadrantData)
-		//{
-		//	quadrantData.meshId = getMeshCacheBuffer().getMeshId();
-		//	quadrantData.terrainEdit = getTerrainEdit();
-		//	quadrantData.minHeight = getTerrainEdit()->minHeight;
-		//	quadrantData.maxHeight = getTerrainEdit()->maxHeight;
-		//	TheWorld_Utils::MemoryBuffer& heights16Buffer = getFloat16HeightsBuffer();
-		//	quadrantData.heights16Buffer = &heights16Buffer;
-		//	TheWorld_Utils::MemoryBuffer& heights32Buffer = getFloat32HeightsBuffer();
-		//	quadrantData.heights32Buffer = &heights32Buffer;
-		//	TheWorld_Utils::MemoryBuffer& normalsBuffer = getNormalsBuffer();
-		//	quadrantData.normalsBuffer = &normalsBuffer;
-		//	TheWorld_Utils::MemoryBuffer& splatmapBuffer = getSplatmapBuffer();
-		//	quadrantData.splatmapBuffer = &splatmapBuffer;
-		//	TheWorld_Utils::MemoryBuffer& colormapBuffer = getColormapBuffer();
-		//	quadrantData.colormapBuffer = &colormapBuffer;
-		//	TheWorld_Utils::MemoryBuffer& globalmapBuffer = getGlobalmapBuffer();
-		//	quadrantData.globalmapBuffer = &globalmapBuffer;
-		//	quadrantData.heightsUpdated = heightsUpdated();
-		//	quadrantData.normalsUpdated = normalsUpdated();
-		//	quadrantData.texturesUpdated = textureUpdated();
-		//}
-
-		//void resetHeightsBuffer(std::string actor)
-		//{
-		//	getFloat16HeightsBuffer(false).clear();
-		//	getFloat32HeightsBuffer(false).clear();
-		//	setEmpty(true);
-		//	setHeightsUpdated(true);
-
-		//	resetNormalsBuffer();
-		//	resetColormapBuffer();
-		//}
-
-		//void resetNormalsBuffer(std::string actor)
-		//{
-		//	getNormalsBuffer(false).clear(actor);
-		//	getTerrainEdit()->normalsNeedRegen(true);
-		//	sendNormalsToShader(true);
-
-		//	resetSplatmapBuffer(actor);
-		//}
-
-		//void resetSplatmapBuffer(std::string actor)
-		//{
-		//	getSplatmapBuffer(false).clear(actor);
-		//	getTerrainEdit()->splatmapNeedRegen(true);
-		//	sendSplatmapToShader(true);
-		//	
-		//	resetGlobalmapBuffer(actor);
-		//}
-
-		//void resetColormapBuffer(std::string actor)
-		//{
-		//	getColormapBuffer(false).clear(actor);
-		//	getTerrainEdit()->colormapNeedRegen(true);
-		//	sendColorsToShader(true);
-		//}
-
-		void resetGlobalmapBuffer(std::string actor)
-		{
-			getGlobalmapBuffer(false).clear(actor);
-			getTerrainEdit()->globalmapNeedRegen(true);
-			sendGlobalmapToShader(true);
-		}
+		void resetGlobalmapBuffer(std::string actor);
 
 		TheWorld_Utils::TerrainEdit* getTerrainEdit(bool create = true)
 		{
@@ -520,7 +423,7 @@ namespace godot
 
 		bool needSaveToCache(bool& manual);
 
-		bool lockInternalData(void);
+		bool lockInternalData(bool strongLock = true);
 		void unlockInternalData(void);
 
 		bool internalDataLocked() const
@@ -891,6 +794,7 @@ namespace godot
 		std::unique_ptr<ShaderTerrainData> m_shaderTerrainData;
 		bool m_needUploadToServer;
 		bool m_internalDataLocked;
+		size_t m_internalDataLockingCount = 0;
 		DWORD m_internalDataLockingTid = 0;
 		std::recursive_mutex m_mtxInternalData;
 		//bool m_empty = true;
@@ -2355,7 +2259,10 @@ namespace godot
 
 		void autoSaveRequired(bool b)
 		{
-			m_autoSaveRequired = b;
+			if (b)
+				m_autoSaveRequired = b;
+			else
+				m_autoSaveRequired = b;
 		}
 		bool autoSaveRequired(void) const
 		{
@@ -2396,6 +2303,8 @@ namespace godot
 		{
 			m_quadrantReady = b;
 		}
+
+		bool managePostHeightsUpdateOperations(bool forceGlobalMapUpdate);
 
 	private:
 		void internalUpdate(Vector3 cameraPosInMap, Quad* quadTreeNode, enum class UpdateStage updateStage, int& numSplitRequired, enum class QuadType type);

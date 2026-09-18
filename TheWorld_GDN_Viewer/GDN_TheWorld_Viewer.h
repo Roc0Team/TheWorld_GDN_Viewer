@@ -2111,11 +2111,16 @@ namespace godot
 		{
 			return (int)pow(getMaxDepthQuadOnPerimeter() * 2 + 1, 2);
 		}
-		int getNumQuadrants(void)
+		int getNumQuadrantsInView(void)
 		{
-			return getNumQuadrants2(false);
+			return getNumQuadrantsInView2(false);
 		}
-		int getNumQuadrants2(bool recalcNow);
+		int getNumQuadrantsInView2(bool recalcNow);
+		int getNumQuadrantsInMemory(void)
+		{
+			return getNumQuadrantsInMemory2(false);
+		}
+		int getNumQuadrantsInMemory2(bool recalcNow);
 		int getNumInitializedQuadrants(void)
 		{
 			return getNumInitializedQuadrants2(false);
@@ -2993,6 +2998,8 @@ namespace godot
 		{
 			m_refreshRequired = b;
 		}
+		bool isWorldQuadrantSelectedForEdit(void);
+		bool isMapQuadrantSelectedForEdit(void);
 
 	private:
 		void doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& pos);
@@ -3038,8 +3045,6 @@ namespace godot
 		//void updateTerrainMaterial(godot::Vector3& worldCameraWorldPos, bool processCameraPosForQuadrants, bool processCameraPosForChunks);
 		void writeStreamingNewQuadrantsStatistics(void);
 		TheWorld_Utils::QuadrantPos getWorldQuadrantSelForEdit(QuadTree** quadTreeSel);
-		bool isWorldQuadrantSelectedForEdit(void);
-		bool isMapQuadrantSelectedForEdit(void);
 		bool initNewQuadsAtPriority(size_t numQuadrantsFromCameraQuadrant, size_t& numInitialized);
 		bool setWorldCameraWorldPos(godot::Vector2 worldPos, float altitudeFromTerrain, bool altitudeIsAbsolute, godot::Transform3D worldCameraWorldTransform, bool overSea, bool adjustPositionOnTerrain = true);
 		bool worldGridDimensionChanged(void) const
@@ -3124,9 +3129,10 @@ namespace godot
 		map<int, size_t> m_mapNumActiveSeaChunksPerLod;
 		int m_numActiveSeaChunks;
 		int m_numProcessNotOwnsLock;
-		int m_numQuadrant;
+		int m_numQuadrantInView = 0;
+		int m_numQuadrantInMemory = 0;
 		int m_numInitializedQuadrant;
-		int m_numToEraseQuadrant;
+		int m_numToEraseQuadrant = 0;
 		int m_numVisibleQuadrant;
 		int m_numEmptyQuadrant;
 		int m_numQuadrantLoadingFromServer = 0;

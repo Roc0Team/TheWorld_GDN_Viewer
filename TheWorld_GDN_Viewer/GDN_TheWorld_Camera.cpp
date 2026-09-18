@@ -674,6 +674,17 @@ void GDN_TheWorld_Camera::setWorldTransform(godot::Transform3D map)
 	if (viewer == nullptr)
 		return;
 
+	{
+		if (viewer->isWorldQuadrantSelectedForEdit())
+		{
+			viewer->deselectWorldQuadrant();
+		}
+		if (viewer->isMapQuadrantSelectedForEdit())
+		{
+			viewer->deselectMapQuadrant();
+		}
+	}
+	
 	godot::Camera3D* camera = getRealSceneCamera();
 	if (camera == nullptr)
 		return;

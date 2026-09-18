@@ -1768,6 +1768,14 @@ bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, godot:
 {
 	bool reset = false;
 
+	if (status() != QuadrantStatus::initialized)
+		return reset;
+
+	if (getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+	{
+		reset = false;
+	}
+
 	if (force)
 	{
 		materialParamsNeedReset(true);
@@ -1787,6 +1795,10 @@ bool QuadTree::resetMaterialParams(bool& lastProcessExecutionInterrupted, godot:
 		}
 		else
 		{
+			if (getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+			{
+				reset = false;
+			}
 			setQuadrantOptimizations(worldCameraWorldPos);
 			getQuadrant()->getShaderTerrainData()->resetMaterialParams(QuadType::NotSet, lastProcessExecutionInterrupted /*, m_lookDev*/);
 			if (!lastProcessExecutionInterrupted)
@@ -2022,6 +2034,10 @@ void QuadTree::colliderNeedReset(bool b, enum class QuadType type)
 	case QuadType::NotSet:
 	case QuadType::NotUsed:
 	{
+		if (getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+		{
+			PLOG_DEBUG << "colliderNeedReset";
+		}
 		for (int i = 0; i < (int)QuadType::NotUsed; i++)
 		{
 			if (containsQuadOfType((enum class QuadType)i))
@@ -2035,6 +2051,10 @@ void QuadTree::colliderNeedReset(bool b, enum class QuadType type)
 	break;
 	default:
 	{
+		if (getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+		{
+			PLOG_DEBUG << "colliderNeedReset";
+		}
 		if (!containsQuadOfType(type))
 			return;
 
@@ -4042,6 +4062,10 @@ void ShaderTerrainData::materialParamsNeedReset(bool b)
 	
 	if (b)
 	{
+		if (m_quadTree->getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+		{
+			m_materialParamsNeedReset = b;
+		}
 		m_materialParamsNeedReset = b;
 		//if (!m_quadTree->statusInitialized())	// DEBUG ONLY
 		//	assert(!m_quadTree->statusInitialized());

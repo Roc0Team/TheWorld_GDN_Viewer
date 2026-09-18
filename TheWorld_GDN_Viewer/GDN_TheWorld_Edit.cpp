@@ -2,6 +2,7 @@
 
 #include "GDN_TheWorld_Viewer.h"
 #include "GDN_TheWorld_Edit.h"
+#include "GDN_TheWorld_Camera.h"
 #include "MeshCache.h"
 #include "WorldModifier.h"
 #include "Utils.h"
@@ -4383,6 +4384,12 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	// 11. unlock internal datas so that they can be passed to the shader/collider
 	quadTreeSel->getQuadrant()->unlockInternalData();
+
+	{
+		GDN_TheWorld_Camera* customCamera = m_viewer->WorldCamera();
+		if (customCamera != nullptr)
+			customCamera->adjustPositionOnTerrainRequired(true);
+	}
 
 	{
 		std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>> lockedQuadrants;

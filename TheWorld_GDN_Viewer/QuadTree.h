@@ -2074,7 +2074,10 @@ namespace godot
 		}
 		bool statusToErase(void)
 		{
-			return status() == QuadrantStatus::toErase;
+			//if (status() == QuadrantStatus::toErase)
+			//	return status() == QuadrantStatus::toErase;
+			//else
+				return status() == QuadrantStatus::toErase;
 		}
 		enum class QuadrantStatus currentStatus(void) const
 		{

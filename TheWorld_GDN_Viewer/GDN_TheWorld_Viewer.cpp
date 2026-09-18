@@ -4463,7 +4463,8 @@ void GDN_TheWorld_Viewer::_bind_methods()
 	//ClassDB::bind_method(D_METHOD("get_loading_progress"), &GDN_TheWorld_Viewer::getLoadingProgress);
 	ClassDB::bind_method(D_METHOD("get_max_num_quadrant"), &GDN_TheWorld_Viewer::getMaxNumQuadrants);
 	ClassDB::bind_method(D_METHOD("get_min_num_quadrant"), &GDN_TheWorld_Viewer::getMinNumQuadrants);
-	ClassDB::bind_method(D_METHOD("get_num_quadrant"), &GDN_TheWorld_Viewer::getNumQuadrants);
+	ClassDB::bind_method(D_METHOD("get_num_quadrant_in_view"), &GDN_TheWorld_Viewer::getNumQuadrantsInView);
+	ClassDB::bind_method(D_METHOD("get_num_quadrant_in_memory"), &GDN_TheWorld_Viewer::getNumQuadrantsInMemory);
 	ClassDB::bind_method(D_METHOD("get_num_initialized_quadrant"), &GDN_TheWorld_Viewer::getNumInitializedQuadrants);
 	ClassDB::bind_method(D_METHOD("get_num_toerase_quadrant"), &GDN_TheWorld_Viewer::getNumToEraseQuadrants);
 	ClassDB::bind_method(D_METHOD("get_num_visible_quadrant"), &GDN_TheWorld_Viewer::getNumVisibleQuadrants);
@@ -4571,7 +4572,6 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 	m_numJoins = 0;
 	m_numActiveChunks = 0;
 	m_numProcessNotOwnsLock = 0;
-	m_numQuadrant = 0;
 	m_numInitializedQuadrant = 0;
 	m_numVisibleQuadrant = 0;
 	m_numEmptyQuadrant = 0;
@@ -7298,7 +7298,7 @@ void GDN_TheWorld_Viewer::deselectWorldQuadrant(void)
 
 void GDN_TheWorld_Viewer::doDeselectWorldQuadrant(void)
 {
-	if (m_selectedWorldQuadrantPos.uninitialized())
+	if (m_selectedWorldQuadrantPos.empty())
 		return;
 	
 	{
@@ -8556,13 +8556,6 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 	if (!m_gridWorldCameraQuadrantPos.isInitialized())
 		return newQuadAdded;
 	
-	vector<TheWorld_Utils::QuadrantPos> quadrantPosNeeded;
-	quadrantPosNeeded.push_back(m_gridWorldCameraQuadrantPos);
-	vector<enum class QuadTree::QuadrantDepth> quadrantDepth;
-	quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
-	vector<size_t> numQuadrantsFromCameraQuadrant;
-	numQuadrantsFromCameraQuadrant.push_back(0);
-
 	m_minVisibleQuadrantOnPerimeter = getMinDepthQuadOnPerimeter();
 
 	if (m_numCacheQuadrantOnPerimeter != getCacheQuadOnPerimeter())
@@ -8644,77 +8637,30 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 		}
 	}
 
-	// add horizontal (X axis) quadrants on the left
-	for (int i = 0; i < m_numVisibleQuadrantOnPerimeterOnWestSide + m_numCacheQuadrantOnPerimeter; i++)
+	vector<TheWorld_Utils::QuadrantPos> quadrantPosNeeded;
+	vector<enum class QuadTree::QuadrantDepth> quadrantDepth;
+	vector<size_t> numQuadrantsFromCameraQuadrant;
+
+	// Filling in quads vector camera quadrant: we will fill in all the quadrants of the current view starting from this
 	{
-		TheWorld_Utils::QuadrantPos q = m_gridWorldCameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus, 1 + i);
-		q.setTag(m_gridWorldCameraQuadrantPos.getTag() + " X-" + std::to_string(1 + i));
-		quadrantPosNeeded.push_back(q);
-		if (i < m_minVisibleQuadrantOnPerimeter)
-		{
-			quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
-		}
-		else if (i < m_numVisibleQuadrantOnPerimeterOnWestSide)
-		{
-			quadrantDepth.push_back(QuadTree::QuadrantDepth::Growing);
-		}
-		else
-		{
-			quadrantDepth.push_back(QuadTree::QuadrantDepth::Cache);
-		}
-		numQuadrantsFromCameraQuadrant.push_back(static_cast<size_t>(i) + 1);
-		//break;	// SUPERDEBUGRIC only X-1 quadrant
+		quadrantPosNeeded.push_back(m_gridWorldCameraQuadrantPos);
+		quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
+		numQuadrantsFromCameraQuadrant.push_back(0);
 	}
 
-	// add horizontal (X axis) quadrants on the right
-	for (int i = 0; i < m_numVisibleQuadrantOnPerimeterOnEastSide + m_numCacheQuadrantOnPerimeter; i++)
+	// Starting from camera quadrant already set in quads vector we fill in all the quadrants of the new grid of quads in view: we add quadrants on the left and right (X axis) and then for each of them we add quadrants up and down (Z axis)
 	{
-		TheWorld_Utils::QuadrantPos q = m_gridWorldCameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus, 1 + i);
-		q.setTag(m_gridWorldCameraQuadrantPos.getTag() + " X+" + std::to_string(1 + i));
-		quadrantPosNeeded.push_back(q);
-		if (i < m_minVisibleQuadrantOnPerimeter)
+		// add horizontal (X axis) quadrants on the left
+		for (int i = 0; i < m_numVisibleQuadrantOnPerimeterOnWestSide + m_numCacheQuadrantOnPerimeter; i++)
 		{
-			quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
-		}
-		else if (i < m_numVisibleQuadrantOnPerimeterOnEastSide)
-		{
-			quadrantDepth.push_back(QuadTree::QuadrantDepth::Growing);
-		}
-		else
-		{
-			quadrantDepth.push_back(QuadTree::QuadrantDepth::Cache);
-		}
-		numQuadrantsFromCameraQuadrant.push_back(static_cast<size_t>(i) + 1);
-		//break;	// SUPERDEBUGRIC only X+1 quadrant
-	}
-
-	// for each horizontal quadrant ...
-	size_t size = quadrantPosNeeded.size();
-	for (size_t idx = 0; idx < size; idx++)
-	{
-		// first is central quadrant
-		// following there are (((size - 1) / 2) - m_numCacheQuadrantOnPerimeter) visible quadrant on left side
-		// following there are m_numCacheQuadrantOnPerimeter cache quadrant on left size
-		// following there are (((size - 1) / 2) - m_numCacheQuadrantOnPerimeter) visible quadrant on right side
-		// finally there are m_numCacheQuadrantOnPerimeter cache quadrant on right size
-		
-		int horizontalDelimiter;
-		if (idx <= m_numVisibleQuadrantOnPerimeterOnWestSide + m_numCacheQuadrantOnPerimeter)
-			horizontalDelimiter = m_numVisibleQuadrantOnPerimeterOnWestSide;	// because after camera idx (=0) there are quadrants on left (west) side
-		else
-			horizontalDelimiter = m_numVisibleQuadrantOnPerimeterOnEastSide;	// then there are quadrants on right (east) side
-
-		// ... add vertical (Z axis) quadrants up
-		for (size_t i = 0; i < m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numCacheQuadrantOnPerimeter; i++)
-		{
-			TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus, 1 + int(i));
-			q.setTag(quadrantPosNeeded[idx].getTag() + " Z-" + std::to_string(1 + i));
+			TheWorld_Utils::QuadrantPos q = m_gridWorldCameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus, 1 + i);
+			q.setTag(m_gridWorldCameraQuadrantPos.getTag() + " X-" + std::to_string(1 + i));
 			quadrantPosNeeded.push_back(q);
-			if (numQuadrantsFromCameraQuadrant[idx] <= m_minVisibleQuadrantOnPerimeter and i < m_minVisibleQuadrantOnPerimeter)
+			if (i < m_minVisibleQuadrantOnPerimeter)
 			{
 				quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
 			}
-			else if (numQuadrantsFromCameraQuadrant[idx] <= horizontalDelimiter and i < m_numVisibleQuadrantOnPerimeterOnNorthSide)
+			else if (i < m_numVisibleQuadrantOnPerimeterOnWestSide)
 			{
 				quadrantDepth.push_back(QuadTree::QuadrantDepth::Growing);
 			}
@@ -8722,21 +8668,21 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 			{
 				quadrantDepth.push_back(QuadTree::QuadrantDepth::Cache);
 			}
-			numQuadrantsFromCameraQuadrant.push_back(TheWorld_Utils::Utils::max2(numQuadrantsFromCameraQuadrant[idx], i + 1));
-			//break;	// SUPERDEBUGRIC only Z-1 quadrant
+			numQuadrantsFromCameraQuadrant.push_back(static_cast<size_t>(i) + 1);
+			//break;	// SUPERDEBUGRIC only X-1 quadrant
 		}
 
-		// ... add vertical (Z axis) quadrants down
-		for (size_t i = 0; i < m_numVisibleQuadrantOnPerimeterOnSouthSide + m_numCacheQuadrantOnPerimeter; i++)
+		// add horizontal (X axis) quadrants on the right
+		for (int i = 0; i < m_numVisibleQuadrantOnPerimeterOnEastSide + m_numCacheQuadrantOnPerimeter; i++)
 		{
-			TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus, 1 + int(i));
-			q.setTag(quadrantPosNeeded[idx].getTag() + " Z+" + std::to_string(1 + i));
+			TheWorld_Utils::QuadrantPos q = m_gridWorldCameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus, 1 + i);
+			q.setTag(m_gridWorldCameraQuadrantPos.getTag() + " X+" + std::to_string(1 + i));
 			quadrantPosNeeded.push_back(q);
-			if (numQuadrantsFromCameraQuadrant[idx] <= m_minVisibleQuadrantOnPerimeter and i < m_minVisibleQuadrantOnPerimeter)
+			if (i < m_minVisibleQuadrantOnPerimeter)
 			{
 				quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
 			}
-			else if (numQuadrantsFromCameraQuadrant[idx] <= horizontalDelimiter and i < m_numVisibleQuadrantOnPerimeterOnSouthSide)
+			else if (i < m_numVisibleQuadrantOnPerimeterOnEastSide)
 			{
 				quadrantDepth.push_back(QuadTree::QuadrantDepth::Growing);
 			}
@@ -8744,8 +8690,69 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 			{
 				quadrantDepth.push_back(QuadTree::QuadrantDepth::Cache);
 			}
-			numQuadrantsFromCameraQuadrant.push_back(TheWorld_Utils::Utils::max2(numQuadrantsFromCameraQuadrant[idx], i + 1));
-			//break;	// SUPERDEBUGRIC only Z+1 quadrant
+			numQuadrantsFromCameraQuadrant.push_back(static_cast<size_t>(i) + 1);
+			//break;	// SUPERDEBUGRIC only X+1 quadrant
+		}
+
+		// for each horizontal quadrant ...
+		size_t size = quadrantPosNeeded.size();
+		for (size_t idx = 0; idx < size; idx++)
+		{
+			// first is central quadrant
+			// following there are (((size - 1) / 2) - m_numCacheQuadrantOnPerimeter) visible quadrant on left side
+			// following there are m_numCacheQuadrantOnPerimeter cache quadrant on left size
+			// following there are (((size - 1) / 2) - m_numCacheQuadrantOnPerimeter) visible quadrant on right side
+			// finally there are m_numCacheQuadrantOnPerimeter cache quadrant on right size
+
+			int horizontalDelimiter;
+			if (idx <= m_numVisibleQuadrantOnPerimeterOnWestSide + m_numCacheQuadrantOnPerimeter)
+				horizontalDelimiter = m_numVisibleQuadrantOnPerimeterOnWestSide;	// because after camera idx (=0) there are quadrants on left (west) side
+			else
+				horizontalDelimiter = m_numVisibleQuadrantOnPerimeterOnEastSide;	// then there are quadrants on right (east) side
+
+			// ... add vertical (Z axis) quadrants up
+			for (size_t i = 0; i < m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numCacheQuadrantOnPerimeter; i++)
+			{
+				TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus, 1 + int(i));
+				q.setTag(quadrantPosNeeded[idx].getTag() + " Z-" + std::to_string(1 + i));
+				quadrantPosNeeded.push_back(q);
+				if (numQuadrantsFromCameraQuadrant[idx] <= m_minVisibleQuadrantOnPerimeter and i < m_minVisibleQuadrantOnPerimeter)
+				{
+					quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
+				}
+				else if (numQuadrantsFromCameraQuadrant[idx] <= horizontalDelimiter and i < m_numVisibleQuadrantOnPerimeterOnNorthSide)
+				{
+					quadrantDepth.push_back(QuadTree::QuadrantDepth::Growing);
+				}
+				else
+				{
+					quadrantDepth.push_back(QuadTree::QuadrantDepth::Cache);
+				}
+				numQuadrantsFromCameraQuadrant.push_back(TheWorld_Utils::Utils::max2(numQuadrantsFromCameraQuadrant[idx], i + 1));
+				//break;	// SUPERDEBUGRIC only Z-1 quadrant
+			}
+
+			// ... add vertical (Z axis) quadrants down
+			for (size_t i = 0; i < m_numVisibleQuadrantOnPerimeterOnSouthSide + m_numCacheQuadrantOnPerimeter; i++)
+			{
+				TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus, 1 + int(i));
+				q.setTag(quadrantPosNeeded[idx].getTag() + " Z+" + std::to_string(1 + i));
+				quadrantPosNeeded.push_back(q);
+				if (numQuadrantsFromCameraQuadrant[idx] <= m_minVisibleQuadrantOnPerimeter and i < m_minVisibleQuadrantOnPerimeter)
+				{
+					quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
+				}
+				else if (numQuadrantsFromCameraQuadrant[idx] <= horizontalDelimiter and i < m_numVisibleQuadrantOnPerimeterOnSouthSide)
+				{
+					quadrantDepth.push_back(QuadTree::QuadrantDepth::Growing);
+				}
+				else
+				{
+					quadrantDepth.push_back(QuadTree::QuadrantDepth::Cache);
+				}
+				numQuadrantsFromCameraQuadrant.push_back(TheWorld_Utils::Utils::max2(numQuadrantsFromCameraQuadrant[idx], i + 1));
+				//break;	// SUPERDEBUGRIC only Z+1 quadrant
+			}
 		}
 	}
 
@@ -8810,12 +8817,23 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("recalcGridOfQuadrantsInView 1.1.1.2 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants (refresh old quads)");
 
+					if (it->second->getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+					{
+						it->second->refreshTime(refreshTime);
+					}
+
 					if (it->second->statusToErase())
 					{
 						// recycle quadrant flagged to erase because it is now usefull
 						it->second->setPrevStatus();
 						if (m_toErase.contains(it->first))
 							m_toErase.erase(it->first);
+
+						//it->second->getQuadrant()->heightmapChanged();
+						it->second->getQuadrant()->sendColorsToShader(true);
+						it->second->materialParamsNeedReset(true);
+						it->second->colliderNeedReset(true, QuadType::NotSet);
+						it->second->getQuadrant()->sendHeightsToShader(true);
 					}
 
 					it->second->refreshTime(refreshTime);
@@ -11271,7 +11289,7 @@ void GDN_TheWorld_Viewer::process_updateHud(godot::Camera3D* activeWorldCamera)
 	{
 		std::string hudStreaming = m_hudStreamingInfoLabel->get_text().utf8().get_data();
 		int numQuadsToRefreshToShader = getNumNeedShaderResetQuadrants() + getNumNeedShaderUpdateQuadrants();
-		int numQuadrant = getNumQuadrants() - getNumToEraseQuadrants();
+		int numQuadrant = getNumQuadrantsInView();
 		int numQuadsToInitialize = numQuadrant - getNumInitializedQuadrants();
 		int averageQuadsToProcess = (numQuadsToRefreshToShader + numQuadsToInitialize) / 2;
 		int maxNumQuadrant = getMaxNumQuadrants();
@@ -14006,7 +14024,16 @@ bool GDN_TheWorld_Viewer::isWorldQuadrantSelectedForEdit(void)
 	if (m_selectedWorldQuadrantPos.empty())
 		return false;
 	else
-		return true;
+	{
+		//QuadTree* quadTreeSel = getQuadTree(m_selectedWorldQuadrantPos);
+		//if (quadTreeSel == nullptr)
+		//{
+		//	deselectWorldQuadrant();
+		//	return false;
+		//}
+		//else
+			return true;
+	}
 }
 
 bool GDN_TheWorld_Viewer::isMapQuadrantSelectedForEdit(void)
@@ -14283,7 +14310,7 @@ bool GDN_TheWorld_Viewer::terrainShiftPermitted(void)
 	}
 
 	return true;
-	return m_numInitializedQuadrant >= m_numQuadrant;
+	return m_numInitializedQuadrant >= m_numQuadrantInView;
 }
 
 godot::Camera3D* GDN_TheWorld_Viewer::getCustomCamera(void)
@@ -14750,7 +14777,8 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	int numVisibleSeaChunks = 0;
 	map<int, size_t> mapNumActiveSeaChunksPerLod;
 	int numActiveSeaChunks = 0;
-	int numQuadrant = (int)m_worldQuadrantsMap.size();
+	int numQuadrantInView = getNumQuadrantsInView2(true);  // (int)m_worldQuadrantsMap.size();
+	int numQuadrantInMemory = getNumQuadrantsInMemory2(true);
 	int numinitializedQuadrant = 0;
 	int numToEraseQuadrants = 0;
 	int numVisibleQuadrant = 0;
@@ -14862,7 +14890,8 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	m_numActiveTerrainChunks = numActiveTerrainChunks;
 	m_numSeaChunks = numVisibleSeaChunks;
 	m_numActiveSeaChunks = numActiveSeaChunks;
-	m_numQuadrant = numQuadrant;
+	m_numQuadrantInView = numQuadrantInView;
+	m_numQuadrantInMemory = numQuadrantInMemory;
 	m_numInitializedQuadrant = numinitializedQuadrant;
 	m_numToEraseQuadrant = numToEraseQuadrants;
 	m_numVisibleQuadrant = numVisibleQuadrant;
@@ -14970,15 +14999,26 @@ float GDN_TheWorld_Viewer::getLoadingProgress()
 	return loadingProgress;
 }
 
-int GDN_TheWorld_Viewer::getNumQuadrants2(bool recalcNow)
+int GDN_TheWorld_Viewer::getNumQuadrantsInView2(bool recalcNow)
 {
 	if (recalcNow)
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
-		m_numQuadrant = (int)m_worldQuadrantsMap.size();
+		m_numQuadrantInView = (int)m_worldQuadrantsMap.size() - getNumToEraseQuadrants();
 	}
 	
-	return m_numQuadrant;
+	return m_numQuadrantInView;
+}
+
+int GDN_TheWorld_Viewer::getNumQuadrantsInMemory2(bool recalcNow)
+{
+	if (recalcNow)
+	{
+		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
+		m_numQuadrantInMemory = (int)m_worldQuadrantsMap.size();
+	}
+
+	return m_numQuadrantInMemory;
 }
 
 int GDN_TheWorld_Viewer::getNumReadyQuadrantsAtDepth(int& numEvaluated, float& numReady, QuadTree::QuadrantDepth depth1)
@@ -15152,7 +15192,7 @@ float GDN_TheWorld_Viewer::getDelayDegree(void)
 void GDN_TheWorld_Viewer::calcDelayDegree(void)
 {
 	int numQuadsToRefreshToShader = getNumNeedShaderResetQuadrants() + getNumNeedShaderUpdateQuadrants();
-	int numQuadsToInitialize = getNumQuadrants() - getNumInitializedQuadrants();
+	int numQuadsToInitialize = getNumQuadrantsInView() - getNumInitializedQuadrants();
 	int quadsToProcess = numQuadsToRefreshToShader + numQuadsToInitialize;
 	int numQuadsToProcessPerMovement = (maxActualDepthQuadInAllDirections() + getCacheQuadOnPerimeter()) * 2 + 1;
 	m_delayDegree = float(quadsToProcess) / float(numQuadsToProcessPerMovement);

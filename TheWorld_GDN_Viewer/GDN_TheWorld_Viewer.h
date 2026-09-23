@@ -2134,7 +2134,9 @@ namespace godot
 		int getNumVisibleQuadrants(void) const;
 		int getNumInitializedVisibleQuadrants(void) const;
 		int getNumNeedShaderResetQuadrants(void) const;
+		void setNumNeedShaderResetQuadrants(int num);
 		int getNumNeedShaderUpdateQuadrants(void) const;
+		void setNumNeedShaderUpdateQuadrants(int num);
 		int getNumEmptyQuadrants(void) const;
 		int getNumQuadrantsLoadingFromServer(void) const;
 		int getNumQuadrantsLoadingFromLocalCache(void) const;
@@ -2963,7 +2965,8 @@ namespace godot
 		}
 		void decNumQuadrantNeedResetMaterialParam(void)
 		{
-			m_numQuadrantNeedResetMaterialParam--;
+			if (m_numQuadrantNeedResetMaterialParam > 0)
+				m_numQuadrantNeedResetMaterialParam--;
 		}
 		void incNumQuadrantNeedUpdateMaterialParam(void)
 		{
@@ -2971,7 +2974,8 @@ namespace godot
 		}
 		void decNumQuadrantNeedUpdateMaterialParam(void)
 		{
-			m_numQuadrantNeedUpdateMaterialParam--;
+			if (m_numQuadrantNeedUpdateMaterialParam > 0)
+				m_numQuadrantNeedUpdateMaterialParam--;
 		}
 		void incNumQuadrantLoadingFromLocalCache(void)
 		{
@@ -3065,7 +3069,7 @@ namespace godot
 		bool m_forceUpdateTerrainMaterial = false;
 		bool m_worldEntered = false;
 		bool m_quitting;
-		bool m_visibleInTree;
+		bool m_visibleInTree = false;
 		bool m_initRequired;
 		bool m_isInEditor;
 		bool m_isInEditorInitialized;

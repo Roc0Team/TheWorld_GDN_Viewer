@@ -685,6 +685,10 @@ void Chunk::setActive(bool b)
 	m_active = b;
 	if (!b)
 	{
+		//{
+		//	if (m_quadTree->getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+		//		m_justJoined = false;
+		//}
 		m_justJoined = false;
 		if (m_chunkType == ChunkType::Terrain)
 		{

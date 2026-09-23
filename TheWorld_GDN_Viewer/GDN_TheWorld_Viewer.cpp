@@ -4550,7 +4550,6 @@ GDN_TheWorld_Viewer::GDN_TheWorld_Viewer()
 {
 	m_initialized = false;
 	m_quitting = false;
-	m_visibleInTree = false;
 	m_initRequired = false;
 	m_isInEditor = false;
 	m_isInEditorInitialized = false;
@@ -8149,10 +8148,17 @@ void GDN_TheWorld_Viewer::_notification(int p_what)
 				if (!itQuadTree->second->isValid())
 					continue;
 
-				if (!itQuadTree->second->isVisible())
-					continue;
+				//if (!itQuadTree->second->isVisible())
+				//	continue;
 
-				Chunk::VisibilityChangedChunkAction action(is_visible_in_tree(), globals);
+				//Chunk::VisibilityChangedChunkAction action(is_visible_in_tree(), globals);
+				//itQuadTree->second->ForAllChunk(action, QuadType::NotSet);
+
+				bool quadrantVisibility = itQuadTree->second->isVisible();
+				if (not is_visible_in_tree())
+					quadrantVisibility = false;
+				
+				Chunk::VisibilityChangedChunkAction action(quadrantVisibility, globals);
 				itQuadTree->second->ForAllChunk(action, QuadType::NotSet);
 			}
 			//}
@@ -8637,13 +8643,13 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 		}
 	}
 
-	vector<TheWorld_Utils::QuadrantPos> quadrantPosNeeded;
+	vector<TheWorld_Utils::QuadrantPos> quadrantPosNeededInView;
 	vector<enum class QuadTree::QuadrantDepth> quadrantDepth;
 	vector<size_t> numQuadrantsFromCameraQuadrant;
 
-	// Filling in quads vector camera quadrant: we will fill in all the quadrants of the current view starting from this
+	// Filling camera quadrant into quads vector: we will fill in all the quadrants of the current view starting from this
 	{
-		quadrantPosNeeded.push_back(m_gridWorldCameraQuadrantPos);
+		quadrantPosNeededInView.push_back(m_gridWorldCameraQuadrantPos);
 		quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
 		numQuadrantsFromCameraQuadrant.push_back(0);
 	}
@@ -8655,7 +8661,7 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 		{
 			TheWorld_Utils::QuadrantPos q = m_gridWorldCameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XMinus, 1 + i);
 			q.setTag(m_gridWorldCameraQuadrantPos.getTag() + " X-" + std::to_string(1 + i));
-			quadrantPosNeeded.push_back(q);
+			quadrantPosNeededInView.push_back(q);
 			if (i < m_minVisibleQuadrantOnPerimeter)
 			{
 				quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
@@ -8677,7 +8683,7 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 		{
 			TheWorld_Utils::QuadrantPos q = m_gridWorldCameraQuadrantPos.getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::XPlus, 1 + i);
 			q.setTag(m_gridWorldCameraQuadrantPos.getTag() + " X+" + std::to_string(1 + i));
-			quadrantPosNeeded.push_back(q);
+			quadrantPosNeededInView.push_back(q);
 			if (i < m_minVisibleQuadrantOnPerimeter)
 			{
 				quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
@@ -8695,7 +8701,7 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 		}
 
 		// for each horizontal quadrant ...
-		size_t size = quadrantPosNeeded.size();
+		size_t size = quadrantPosNeededInView.size();
 		for (size_t idx = 0; idx < size; idx++)
 		{
 			// first is central quadrant
@@ -8713,9 +8719,9 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 			// ... add vertical (Z axis) quadrants up
 			for (size_t i = 0; i < m_numVisibleQuadrantOnPerimeterOnNorthSide + m_numCacheQuadrantOnPerimeter; i++)
 			{
-				TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus, 1 + int(i));
-				q.setTag(quadrantPosNeeded[idx].getTag() + " Z-" + std::to_string(1 + i));
-				quadrantPosNeeded.push_back(q);
+				TheWorld_Utils::QuadrantPos q = quadrantPosNeededInView[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZMinus, 1 + int(i));
+				q.setTag(quadrantPosNeededInView[idx].getTag() + " Z-" + std::to_string(1 + i));
+				quadrantPosNeededInView.push_back(q);
 				if (numQuadrantsFromCameraQuadrant[idx] <= m_minVisibleQuadrantOnPerimeter and i < m_minVisibleQuadrantOnPerimeter)
 				{
 					quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
@@ -8735,9 +8741,9 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 			// ... add vertical (Z axis) quadrants down
 			for (size_t i = 0; i < m_numVisibleQuadrantOnPerimeterOnSouthSide + m_numCacheQuadrantOnPerimeter; i++)
 			{
-				TheWorld_Utils::QuadrantPos q = quadrantPosNeeded[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus, 1 + int(i));
-				q.setTag(quadrantPosNeeded[idx].getTag() + " Z+" + std::to_string(1 + i));
-				quadrantPosNeeded.push_back(q);
+				TheWorld_Utils::QuadrantPos q = quadrantPosNeededInView[idx].getQuadrantPos(TheWorld_Utils::QuadrantPos::DirectionSlot::ZPlus, 1 + int(i));
+				q.setTag(quadrantPosNeededInView[idx].getTag() + " Z+" + std::to_string(1 + i));
+				quadrantPosNeededInView.push_back(q);
 				if (numQuadrantsFromCameraQuadrant[idx] <= m_minVisibleQuadrantOnPerimeter and i < m_minVisibleQuadrantOnPerimeter)
 				{
 					quadrantDepth.push_back(QuadTree::QuadrantDepth::Initial);
@@ -8765,7 +8771,6 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 		std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantsAndMainProcessing);
 
 		//TheWorld_Utils::GuardProfiler profiler(std::string("recalcGridOfQuadrantsInView 1.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants (map stuff)");
-		// insert needed quadrants not present in map and refresh the ones which are already in it
 		//vector<QuadrantPos> quadrantToAdd;
 		std::timespec refreshTime;
 
@@ -8775,13 +8780,14 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 			int ret = timespec_get(&refreshTime, TIME_UTC);
 		}
 		
+		// Insert needed quadrants not present in map and refresh the ones which are already in it
 		{
 			//TheWorld_Utils::GuardProfiler profiler(std::string("recalcGridOfQuadrantsInView 1.1.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants (create/refresh)");
 
-			size_t size = quadrantPosNeeded.size();
+			size_t size = quadrantPosNeededInView.size();
 			for (int idx = 0; idx < size; idx++)
 			{
-				WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(quadrantPosNeeded[idx]);
+				WorldQuadrantsMap::iterator it = m_worldQuadrantsMap.find(quadrantPosNeededInView[idx]);
 				if (it == m_worldQuadrantsMap.end())
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("recalcGridOfQuadrantsInView 1.1.1.1 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants (create new quads)");
@@ -8794,10 +8800,11 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 					//	m_toErase[pos] = true;
 					//}
 
-					m_worldQuadrantsMap[quadrantPosNeeded[idx]] = make_unique<QuadTree>(this, quadrantPosNeeded[idx]);
-					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->refreshTime(refreshTime);
-					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->quadrantDepth(quadrantDepth[idx]);
-					m_worldQuadrantsMap[quadrantPosNeeded[idx]]->numQuadrantsFromCameraQuadrant(numQuadrantsFromCameraQuadrant[idx]);
+					// Quadrant not present in world quadrants map so we create it and add it to the map
+					m_worldQuadrantsMap[quadrantPosNeededInView[idx]] = make_unique<QuadTree>(this, quadrantPosNeededInView[idx]);
+					m_worldQuadrantsMap[quadrantPosNeededInView[idx]]->refreshTime(refreshTime);
+					m_worldQuadrantsMap[quadrantPosNeededInView[idx]]->quadrantDepth(quadrantDepth[idx]);
+					m_worldQuadrantsMap[quadrantPosNeededInView[idx]]->numQuadrantsFromCameraQuadrant(numQuadrantsFromCameraQuadrant[idx]);
 					addedQuandrantsForInititalization = true;
 					newQuadAdded = true;
 
@@ -8817,10 +8824,10 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 				{
 					//TheWorld_Utils::GuardProfiler profiler(std::string("recalcGridOfQuadrantsInView 1.1.1.2 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants (refresh old quads)");
 
-					if (it->second->getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
-					{
-						it->second->refreshTime(refreshTime);
-					}
+					//if (it->second->getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+					//{
+					//	it->second->refreshTime(refreshTime);
+					//}
 
 					if (it->second->statusToErase())
 					{
@@ -8837,7 +8844,7 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 					}
 
 					it->second->refreshTime(refreshTime);
-					it->second->setTag(quadrantPosNeeded[idx].getTag());
+					it->second->setTag(quadrantPosNeededInView[idx].getTag());
 					it->second->quadrantDepth(quadrantDepth[idx]);
 					it->second->numQuadrantsFromCameraQuadrant(numQuadrantsFromCameraQuadrant[idx]);
 				}
@@ -8854,7 +8861,12 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 
 				if (itQuadTree->second->getRefreshTime().tv_nsec == refreshTime.tv_nsec && itQuadTree->second->getRefreshTime().tv_sec == refreshTime.tv_sec)
 				{
+					// Adjust visibility status according to distance from camera quadrant: if too far it is not visible, else it is visible: if the quadrant has been recycled it need this passage
 					bool visibilityChanged = false;
+					//if (itQuadTree->second->getQuadrant()->getPos().IS_QUADRANT_TRACKED_FOR_DEBUG)
+					//{
+					//	visibilityChanged = false;
+					//}
 					int distanceInPerimeterFromCameraQuadOnEstXPlus = itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(m_gridWorldCameraQuadrantPos, TheWorld_Utils::QuadrantPos::DirectionSlot::EastXPlus);
 					int distanceInPerimeterFromCameraQuadOnSouthZPlus = itQuadTree->second->getQuadrant()->getPos().distanceInPerimeter(m_gridWorldCameraQuadrantPos, TheWorld_Utils::QuadrantPos::DirectionSlot::SouthZPlus);
 					bool outOfView = false;
@@ -8886,7 +8898,13 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 					if (visibilityChanged)
 					{
 						//TheWorld_Utils::GuardProfiler profiler(std::string("recalcGridOfQuadrantsInView 1.1.3 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants (ForAllChunk)");
-						Chunk::VisibilityChangedChunkAction action(m_visibleInTree, Globals());
+
+						bool quadrantVisibility = itQuadTree->second->isVisible();
+						if (not m_visibleInTree)
+							quadrantVisibility = false;
+
+						Chunk::VisibilityChangedChunkAction action(quadrantVisibility, Globals());
+						//Chunk::VisibilityChangedChunkAction action(m_visibleInTree, Globals());
 						itQuadTree->second->ForAllChunk(action, QuadType::NotSet);
 					}
 				}
@@ -8916,6 +8934,7 @@ bool GDN_TheWorld_Viewer::recalcGridOfQuadrantsInView(void)
 			}
 		}
 		
+		// Erase quadrants too far from camera: we don't erase them immediately because they could be needed again in the next frame (if camera moves back to them) so we just flag them to be erased and we will erase them in the next _process() call
 		{
 			//TheWorld_Utils::GuardProfiler profiler(std::string("recalcGridOfQuadrantsInView 1.1.3 ") + __FUNCTION__, "Adjust Quadtrees: recalc quadrants (erase all quads)");
 
@@ -9986,6 +10005,9 @@ void GDN_TheWorld_Viewer::process_mapModderAndUnlockInternalDataUntilCompletePro
 		
 		for (auto& item : m_worldQuadrantsMap)
 		{
+			if (item.second->statusToErase())
+				continue;
+
 			//TheWorld_Utils::GuardProfiler profiler(std::string("process_mapModderAndUnlockInternalDataUntilCompleteProcessExecution 1.1.1 ") + __FUNCTION__, "Elab Single Quadrant");
 
 			QuadTree* quadTree = item.second.get();
@@ -10807,6 +10829,9 @@ void GDN_TheWorld_Viewer::process_updateWorldCameraQuadrant(GDN_TheWorld_Globals
 
 	for (auto& itQuadTree : m_worldQuadrantsMap)
 	{
+		if (itQuadTree.second->statusToErase())
+			continue;
+
 		itQuadTree.second->setQuadrantOptimizations(worldCameraWorldPos);	// Occhio!!! E' stato commentato il 25/11/2024
 	}
 }
@@ -14790,8 +14815,8 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	int numQuadrantWithHiResCollider = 0;
 	int numQuadrantWithLowResCollider = 0;
 	int numinitializedVisibleQuadrant = 0;
-	//int numQuadrantNeedResetMaterialParams = 0;
-	//int numQuadrantNeedUpdateMaterialParams = 0;
+	int numQuadrantNeedResetMaterialParams = 0;
+	int numQuadrantNeedUpdateMaterialParams = 0;
 	m_mapNumActiveChunksPerLod.clear();
 	m_mapNumActiveTerrainChunksPerLod.clear();
 	m_mapNumActiveSeaChunksPerLod.clear();
@@ -14804,10 +14829,10 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 			numVisibleQuadrant++;
 			if (itQuadTree.second->statusInitialized())
 				numinitializedVisibleQuadrant++;
-			//if (itQuadTree.second->materialParamsNeedReset())
-			//	numQuadrantNeedResetMaterialParams++;
-			//if (itQuadTree.second->materialParamsNeedUpdate())
-			//	numQuadrantNeedUpdateMaterialParams++;
+			if (not itQuadTree.second->statusToErase() and itQuadTree.second->materialParamsNeedReset())
+				numQuadrantNeedResetMaterialParams++;
+			if (not itQuadTree.second->statusToErase() and itQuadTree.second->materialParamsNeedUpdate())
+				numQuadrantNeedUpdateMaterialParams++;
 		}
 		
 		if (itQuadTree.second->statusInitialized() and !itQuadTree.second->statusToErase())
@@ -14903,8 +14928,8 @@ void GDN_TheWorld_Viewer::refreshQuadrantsStatistics()
 	m_numQuadrantWithHiResCollider = numQuadrantWithHiResCollider;
 	m_numQuadrantWithLowResCollider = numQuadrantWithLowResCollider;
 	m_numInitializedVisibleQuadrant = numinitializedVisibleQuadrant;
-	//m_numQuadrantNeedResetMaterialParam = numQuadrantNeedResetMaterialParams;
-	//m_numQuadrantNeedUpdateMaterialParam = numQuadrantNeedUpdateMaterialParams;
+	setNumNeedShaderResetQuadrants(numQuadrantNeedResetMaterialParams);
+	setNumNeedShaderUpdateQuadrants(numQuadrantNeedUpdateMaterialParams);
 }
 
 int GDN_TheWorld_Viewer::getProcessNotOwnsLock(void) const
@@ -15203,9 +15228,19 @@ int GDN_TheWorld_Viewer::getNumNeedShaderResetQuadrants(void) const
 	return m_numQuadrantNeedResetMaterialParam;
 }
 
+void GDN_TheWorld_Viewer::setNumNeedShaderResetQuadrants(int num)
+{
+	m_numQuadrantNeedResetMaterialParam = num;
+}
+
 int GDN_TheWorld_Viewer::getNumNeedShaderUpdateQuadrants(void) const
 {
 	return m_numQuadrantNeedUpdateMaterialParam;
+}
+
+void GDN_TheWorld_Viewer::setNumNeedShaderUpdateQuadrants(int num)
+{
+	m_numQuadrantNeedUpdateMaterialParam = num;
 }
 
 int GDN_TheWorld_Viewer::getProcessDuration(void) const

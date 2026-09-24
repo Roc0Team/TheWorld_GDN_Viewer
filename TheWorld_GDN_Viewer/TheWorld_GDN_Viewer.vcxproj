@@ -176,18 +176,19 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\..\godot-cpp\include;$(MSBuildProjectDirectory)\..\..\godot-cpp\gdextension;$(MSBuildProjectDirectory)\..\..\godot-cpp\gen\include;$(MSBuildProjectDirectory)\..\..\TheWorld_MapManager;$(MSBuildProjectDirectory)\..\..\GSL\include;$(MSBuildProjectDirectory)\..\plog\include;..\..\TheWorld_Utils;..\..\eigen-3.3.9;..\..\jsoncpp\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\..\godot-cpp\include;$(MSBuildProjectDirectory)\..\..\godot-cpp\gdextension;$(MSBuildProjectDirectory)\..\..\godot-cpp\gen\include;$(MSBuildProjectDirectory)\..\..\TheWorld_MapManager;$(MSBuildProjectDirectory)\..\..\GSL\include;$(MSBuildProjectDirectory)\..\plog\include;..\..\TheWorld_Utils;..\..\eigen-5.0.0;..\..\jsoncpp\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <Optimization>Disabled</Optimization>
+      <AdditionalOptions>/Zc:__cplusplus</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\..\..\godot-cpp\bin;$(SolutionDir)x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libgodot-cpp.windows.editor.x86_64_d.lib;TheWorld_MapManager_d.lib;TheWorld_Utils_d.lib;Rpcrt4.lib;lib_json_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libgodot-cpp.windows.editor.x86_64.lib;TheWorld_MapManager_d.lib;TheWorld_Utils_d.lib;Rpcrt4.lib;lib_json_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y ..\x64\*.dll ..\..\TheWorld_Viewer\TheWorld\addons\twviewer\native</Command>
@@ -229,10 +230,11 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\..\godot-cpp\include;$(MSBuildProjectDirectory)\..\..\godot-cpp\gdextension;$(MSBuildProjectDirectory)\..\..\godot-cpp\gen\include;$(MSBuildProjectDirectory)\..\..\TheWorld_MapManager;$(MSBuildProjectDirectory)\..\..\GSL\include;$(MSBuildProjectDirectory)\..\plog\include;..\..\TheWorld_Utils;..\..\eigen-3.3.9;..\..\jsoncpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\..\godot-cpp\include;$(MSBuildProjectDirectory)\..\..\godot-cpp\gdextension;$(MSBuildProjectDirectory)\..\..\godot-cpp\gen\include;$(MSBuildProjectDirectory)\..\..\TheWorld_MapManager;$(MSBuildProjectDirectory)\..\..\GSL\include;$(MSBuildProjectDirectory)\..\plog\include;..\..\TheWorld_Utils;..\..\eigen-5.0.0;..\..\jsoncpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <Optimization>MaxSpeed</Optimization>
+      <AdditionalOptions>/Zc:__cplusplus</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -241,7 +243,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\..\..\godot-cpp\bin;$(SolutionDir)x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libgodot-cpp.windows.editor.x86_64.lib;TheWorld_MapManager.lib;TheWorld_Utils.lib;Rpcrt4.lib;lib_json.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libgodot-cpp.windows.template_release.x86_64.lib;TheWorld_MapManager.lib;TheWorld_Utils.lib;Rpcrt4.lib;lib_json.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y ..\x64\*.dll ..\..\TheWorld_Viewer\TheWorld\addons\twviewer\native</Command>

@@ -816,7 +816,7 @@ void Chunk::dump(void)
 		+ " - MinH = " + to_string(m_aabb.position.y).c_str()
 		+ " - MaxH = " + to_string((m_aabb.position + m_aabb.size).y).c_str()
 		+ (m_isCameraVerticalOnChunk ? " - CAMERA" : ""));
-	globals->debugPrint(String("t: ") + getGlobalTransformApplied() + String(" - t (debug): ") + getDebugGlobalTransformApplied());
+	globals->debugPrint(godot::String("t: ") + godot::String(getGlobalTransformApplied()) + godot::String(" - t (debug): ") + godot::String(getDebugGlobalTransformApplied()));
 }
 
 TerrainChunk::TerrainChunk(int slotPosX, int slotPosZ, int lod, GDN_TheWorld_Viewer* viewer, QuadTree* quadTree, godot::Ref<godot::Material>& mat /*, godot::Ref<godot::Material>& seaMat*/)
@@ -1201,7 +1201,7 @@ void DebugTerrainChunk::applyDebugMesh()
 			// set special Wirecube
 			godot::Ref<godot::Mesh> _mesh = createWireCubeMesh(GDN_TheWorld_Globals::g_color_blue);
 			m_viewer->getMainProcessingMutex().lock();
-			godot::StandardMaterial3D* mat = memnew(godot::StandardMaterial3D);
+			godot::Ref<godot::StandardMaterial3D> mat = memnew(godot::StandardMaterial3D);
 			m_viewer->getMainProcessingMutex().unlock();
 			//mat->set_shading_mode(godot::BaseMaterial3D::ShadingMode::SHADING_MODE_UNSHADED);
 			//mat->set_flag(godot::BaseMaterial3D::Flags::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
@@ -1248,7 +1248,7 @@ void DebugTerrainChunk::applyDebugMesh()
 
 				godot::Ref<godot::Mesh> _mesh = createWireCubeMesh(wiredMeshColor);
 				m_viewer->getMainProcessingMutex().lock();
-				godot::StandardMaterial3D* mat = memnew(godot::StandardMaterial3D);
+				godot::Ref<godot::StandardMaterial3D> mat = memnew(godot::StandardMaterial3D);
 				m_viewer->getMainProcessingMutex().unlock();
 				//mat->set_shading_mode(godot::BaseMaterial3D::ShadingMode::SHADING_MODE_UNSHADED);
 				//mat->set_flag(godot::BaseMaterial3D::Flags::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
@@ -1274,7 +1274,7 @@ void DebugTerrainChunk::applyDebugMesh()
 			godot::Color wiredMeshColor = GDN_TheWorld_Globals::g_color_blue;
 			godot::Ref<godot::Mesh> _mesh = createWireSquareMesh(wiredMeshColor);
 			m_viewer->getMainProcessingMutex().lock();
-			godot::StandardMaterial3D* mat = memnew(godot::StandardMaterial3D);
+			godot::Ref<godot::StandardMaterial3D> mat = memnew(godot::StandardMaterial3D);
 			m_viewer->getMainProcessingMutex().unlock();
 			mat->set_shading_mode(godot::BaseMaterial3D::ShadingMode::SHADING_MODE_UNSHADED);
 			mat->set_flag(godot::BaseMaterial3D::Flags::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
@@ -1312,7 +1312,7 @@ void DebugTerrainChunk::applyDebugMesh()
 
 				godot::Ref<godot::ArrayMesh> _mesh = createWireSquareMesh(wiredMeshColor);
 				m_viewer->getMainProcessingMutex().lock();
-				godot::StandardMaterial3D* mat = memnew(godot::StandardMaterial3D);
+				godot::Ref<godot::StandardMaterial3D> mat = memnew(godot::StandardMaterial3D);
 				m_viewer->getMainProcessingMutex().unlock();
 				mat->set_shading_mode(godot::BaseMaterial3D::ShadingMode::SHADING_MODE_UNSHADED);
 				mat->set_flag(godot::BaseMaterial3D::Flags::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);

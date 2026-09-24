@@ -11862,8 +11862,17 @@ void GDN_TheWorld_Viewer::trackedMouseHitChanged(godot::Camera3D* activeWorldCam
 					{
 						_positionVisible = true;
 
-						m_positionDrawer->updateLabel2d(m_labelPositionXIdx, mouseHitWorldPos, std::string("X=") + std::format("{:.2f}", mouseHitWorldPos.x));
-						m_positionDrawer->updateLabel2d(m_labelPositionZIdx, mouseHitWorldPos, std::string("Z=") + std::format("{:.2f}", mouseHitWorldPos.z));
+						godot::Vector2i vertexHit;
+						if (quadrantHit != nullptr)
+						{
+							size_t x, y;
+							bool b = quadrantHit->getQuadrant()->getPos().getNearestGridVertexOffset(mouseHitWorldPos.x, mouseHitWorldPos.z, x, y);
+							vertexHit.x = int32_t(x);
+							vertexHit.y = int32_t(y);
+						}
+						
+						m_positionDrawer->updateLabel2d(m_labelPositionXIdx, mouseHitWorldPos, std::string("X=") + std::format("{:.2f}", mouseHitWorldPos.x) + " (" + std::to_string(vertexHit.x) + ")");
+						m_positionDrawer->updateLabel2d(m_labelPositionZIdx, mouseHitWorldPos, std::string("Z=") + std::format("{:.2f}", mouseHitWorldPos.z) + " (" + std::to_string(vertexHit.y) + ")");
 						m_positionDrawer->updateLabel2d(m_labelPositionYIdx, mouseHitWorldPos, std::string("H=") + std::format("{:.2f}", mouseHitWorldPos.y));
 
 						godot::Vector3 cameraPosInMap = globalPosToWorldPos(activeWorldCamera->get_global_position());

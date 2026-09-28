@@ -801,9 +801,19 @@ namespace godot
 
 		string logPath;
 		if (IS_EDITOR_HINT())
-			logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_EDITOR_log.txt";
+		{
+			if (debugBuild())
+				logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_DEBUG_EDITOR_log.txt";
+			else
+				logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_EDITOR_log.txt";
+		}
 		else
-			logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_log.txt";
+		{
+			if (debugBuild())
+				logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_DEBUG_log.txt";
+			else
+				logPath = getModuleLoadPath() + "\\log\\TheWorld_Viewer_log.txt";
+		}
 		if (!g_plogInitialized)
 		{
 			plog::init(m_debugLogSeveverity, logPath.c_str(), 10000000, 3);

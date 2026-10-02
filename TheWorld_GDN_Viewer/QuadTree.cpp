@@ -6259,10 +6259,14 @@ bool Quadrant::checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree
 						ret = true;
 					else
 					{
+						auto northQuadrantSouthSidePtr = northQuadrantSouthSide.ptr<float>();
+						auto northSidePtr = northSide.ptr<float>();
 						for (size_t i = 0; i < northQuadrantSouthSide.size(); i++)
 						{
 							auto northQuadrantSouthSideHeight = northQuadrantSouthSide.get_at<float>(i);
 							auto northSideHeight = northSide.get_at<float>(i);
+							//auto northQuadrantSouthSideHeight = northQuadrantSouthSidePtr[i];
+							//auto northSideHeight = northSidePtr[i];
 							if (northQuadrantSouthSideHeight != northSideHeight)
 								ret = true;
 						}
@@ -6347,10 +6351,14 @@ bool Quadrant::checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree
 						ret = true;
 					else
 					{
+						auto southQuadrantNorthSidePtr = southQuadrantNorthSide.ptr<float>();
+						auto southSidePtr = southSide.ptr<float>();
 						for (size_t i = 0; i < southQuadrantNorthSide.size(); i++)
 						{
 							auto southQuadrantNorthSideHeight = southQuadrantNorthSide.get_at<float>(i);
 							auto southSideHeight = southSide.get_at<float>(i);
+							//auto southQuadrantNorthSideHeight = southQuadrantNorthSidePtr[i];
+							//auto southSideHeight = southSidePtr[i];
 							if (southQuadrantNorthSideHeight != southSideHeight)
 								ret = true;
 						}
@@ -6435,10 +6443,14 @@ bool Quadrant::checkEastSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree*
 						ret = true;
 					else
 					{
+						auto eastQuadrantWestSidePtr = eastQuadrantWestSide.ptr<float>();
+						auto eastSidePtr = eastSide.ptr<float>();
 						for (size_t i = 0; i < eastQuadrantWestSide.size(); i++)
 						{
 							auto eastQuadrantWestSideHeight = eastQuadrantWestSide.get_at<float>(i);
 							auto eastSideHeight = eastSide.get_at<float>(i);
+							//auto eastQuadrantWestSideHeight = eastQuadrantWestSidePtr[i];
+							//auto eastSideHeight = eastSidePtr[i];
 							if (eastQuadrantWestSideHeight != eastSideHeight)
 								ret = true;
 						}
@@ -6523,10 +6535,14 @@ bool Quadrant::checkWestSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree*
 						ret = true;
 					else
 					{
+						auto westQuadrantEastSidePtr = westQuadrantEastSide.ptr<float>();
+						auto westSidePtr = westSide.ptr<float>();
 						for (size_t i = 0; i < westQuadrantEastSide.size(); i++)
 						{
 							auto westQuadrantEastSideHeight = westQuadrantEastSide.get_at<float>(i);
 							auto westSideHeight = westSide.get_at<float>(i);
+							//auto westQuadrantEastSideHeight = westQuadrantEastSidePtr[i];
+							//auto westSideHeight = westSidePtr[i];;
 							if (westQuadrantEastSideHeight != westSideHeight)
 								ret = true;
 						}

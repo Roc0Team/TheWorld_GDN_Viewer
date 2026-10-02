@@ -1331,15 +1331,15 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 
 				if (m_lastCameraAltitudeFromTerrain != INVALID_CAMERA_ALTITUDE)
 				{
-					float terrainHeigth = cameraGlobalPos.y - m_lastCameraAltitudeFromTerrain;
+					float terrainHeight = cameraGlobalPos.y - m_lastCameraAltitudeFromTerrain;
 					float shaderParamSeaStartTerrDepthForWavesAttenuationApplied = viewer->shaderParamSeaStartTerrDepthForWavesAttenuationApplied();
 					// Attenuation of height waves at lower depth (near the coast)
-					if (terrainHeigth > shaderParamSeaFlatSeaHeightApplied - shaderParamSeaStartTerrDepthForWavesAttenuationApplied)
-						scaleFactor *= -TheWorld_Viewer_Utils::Utils::clamp<float>(terrainHeigth, -shaderParamSeaStartTerrDepthForWavesAttenuationApplied, 0) / shaderParamSeaStartTerrDepthForWavesAttenuationApplied;
+					if (terrainHeight > shaderParamSeaFlatSeaHeightApplied - shaderParamSeaStartTerrDepthForWavesAttenuationApplied)
+						scaleFactor *= -TheWorld_Viewer_Utils::Utils::clamp<float>(terrainHeight, -shaderParamSeaStartTerrDepthForWavesAttenuationApplied, 0) / shaderParamSeaStartTerrDepthForWavesAttenuationApplied;
 
 					float shaderParamSeaScaleOffsetThresholdApplied = viewer->shaderParamSeaScaleOffsetThresholdApplied();
-					if (terrainHeigth >= shaderParamSeaFlatSeaHeightApplied - shaderParamSeaScaleOffsetThresholdApplied) {
-						float scale_offset = TheWorld_Viewer_Utils::Utils::clamp<float>(shaderParamSeaScaleOffsetThresholdApplied + terrainHeigth, 0, shaderParamSeaScaleOffsetThresholdApplied);
+					if (terrainHeight >= shaderParamSeaFlatSeaHeightApplied - shaderParamSeaScaleOffsetThresholdApplied) {
+						float scale_offset = TheWorld_Viewer_Utils::Utils::clamp<float>(shaderParamSeaScaleOffsetThresholdApplied + terrainHeight, 0, shaderParamSeaScaleOffsetThresholdApplied);
 						scaleFactor += scale_offset;
 					}
 				}

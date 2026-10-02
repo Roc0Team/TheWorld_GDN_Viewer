@@ -1121,15 +1121,15 @@ namespace godot
 
 		void framePostDraw(void);
 
-		//void initForNormals(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
-		//void initForSplatmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeigthsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer,
+		//void initForNormals(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeightsBuffer, size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
+		//void initForSplatmap(QuadTree* quadtree, TheWorld_Utils::MemoryBuffer* float32HeightsBuffer, TheWorld_Utils::MemoryBuffer* normalsBuffer,
 		//	float slopeVerticalFactor,
 		//	float slopeFlatFactor,
 		//	float dirtOnRocksFactor,
 		//	float highElevationFactor,
 		//	float lowElevationFactor,
-		//	float minHeigth,
-		//	float maxHeigth,
+		//	float minHeight,
+		//	float maxHeight,
 		//	size_t tileSize, size_t viewportBorder = 0, bool signalRequired = false);
 		void initForGlobalMap(QuadTree* quadtree, size_t tileSize = 512, bool signalRequired = false);
 		void deinit(void);
@@ -1196,7 +1196,7 @@ namespace godot
 		size_t m_tileSize = 0;
 		size_t m_viewportBorder = 0;
 		size_t m_imageSize = 0;
-		//TheWorld_Utils::MemoryBuffer* m_float32HeigthsBuffer = nullptr;
+		//TheWorld_Utils::MemoryBuffer* m_float32HeightsBuffer = nullptr;
 		//size_t m_numHeights = 0;
 		//TheWorld_Utils::MemoryBuffer* m_normalsBuffer = nullptr;
 		//size_t m_numNormals = 0;
@@ -1205,8 +1205,8 @@ namespace godot
 		float m_dirtOnRocksFactor = 0;
 		float m_highElevationFactor = 0;
 		float m_lowElevationFactor = 0;
-		float m_minHeigth = 0;
-		float m_maxHeigth = 0;
+		float m_minHeight = 0;
+		float m_maxHeight = 0;
 		//godot::Vector2 m_eastQuadrantheights;
 		//godot::Vector2 m_westQuadrantheights;
 		//godot::Vector2 m_southQuadrantheights;
@@ -2312,7 +2312,7 @@ namespace godot
 			return (canProcessDataUpdate or editMode());
 		}
 
-		//void GenerateHeigths(void);
+		//void GenerateHeights(void);
 
 		std::recursive_mutex& getMainProcessingMutex(void)
 		{

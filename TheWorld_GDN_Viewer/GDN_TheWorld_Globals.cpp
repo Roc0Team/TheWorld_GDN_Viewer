@@ -383,7 +383,8 @@ namespace godot
 		m_bAppInError = false;
 		m_lastErrorCode = 0;
 
-		bool b = resize(THEWORLD_VIEWER_CHUNK_SIZE_SHIFT, THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT, true);
+		//bool b = resize(THEWORLD_VIEWER_CHUNK_SIZE_SHIFT, THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT, true);
+		bool b = resize(THEWORLD_VIEWER_CHUNK_SIZE_SHIFT, (int)heightmapResolutionShift(), true);
 		assert(b);
 
 		//m_mapManager = NULL;
@@ -660,7 +661,7 @@ namespace godot
 				if (reply.error())
 					return;
 				
-				if (reply.getNumReplyParams() != 4)
+				if (reply.getNumReplyParams() != 5)
 				{
 					std::string m = std::string("Server::initializeSession: error reply params ");
 					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str(), "", 0));
@@ -702,6 +703,15 @@ namespace godot
 				}
 				std::string s = *ptr3;
 				std::chrono::system_clock::time_point serverGroundJsonUtc = TheWorld_Utils::str_time_to_time_point(s);
+
+				v = reply.getReplyParam(4);
+				const auto ptr4(std::get_if<int>(&v));
+				if (ptr4 == NULL)
+				{
+					std::string m = std::string("Server::initializeSession did not return an int as fifth param");
+					throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
+				}
+				TheWorld_Utils::MeshCacheBuffer::setHeightsFormatInNewSavedQuadrant(static_cast<TheWorld_Utils::MeshCacheBuffer::HeightsFormatInQuadrantBuffer>(*ptr4));
 
 				std::string jsonFilePath = getGroundJsonFilePath();
 				std::chrono::system_clock::time_point groundJsonUtc;

@@ -476,6 +476,7 @@ namespace godot
 		// The maximum lod value (lodMaxDepth) is the maximum number of split - 1 that can be done so that all the vertices of all the chunks can be contained in the heightmap : it is computed as the power of 2 of the maximum number
 		//		of chunks of a side of the heightmap (heightmapResolution / numVerticesPerChuckSide), the number of lods (numLods) is equal to lodMaxDepth + 1
 
+		// Exponent of 2 of the number of vertices of the side of a quadrant (-1): number of vertices of a quadrant = 2^THEWORLD_VIEWER_CHUNK_SIZE_SHIFT + 1
 		size_t heightmapResolutionShift(void)
 		{
 			return THEWORLD_VIEWER_HEIGHTMAP_RESOLUTION_SHIFT;

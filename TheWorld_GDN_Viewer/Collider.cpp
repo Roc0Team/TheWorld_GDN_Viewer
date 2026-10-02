@@ -179,7 +179,7 @@ namespace godot
 
 		Quadrant* quadrant = m_quadTree->getQuadrant();
 
-		quadrant->getPos().TRACK_QUADRANT_FOR_DEBUG("Update collider", m_quadTree->getQuadrant()->getMeshId());
+		//quadrant->getPos().TRACK_QUADRANT_FOR_DEBUG("Update collider", m_quadTree->getQuadrant()->getMeshId());
 
 		int numVerticesPerSize = 0;
 
@@ -202,7 +202,7 @@ namespace godot
 
 		if (hiResData)
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.1 ") + __FUNCTION__, "get heigths opt level = 0");
+			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.1 ") + __FUNCTION__, "get heights opt level = 0");
 			numVerticesPerSize = quadrant->getPos().getNumVerticesPerSize();
 #ifdef REAL_T_IS_DOUBLE
 			PackedFloat64Array& _heightsForCollider = quadrant->getHeightsForCollider();
@@ -214,7 +214,7 @@ namespace godot
 		}
 		else
 		{
-			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2 ") + __FUNCTION__, "get heigths opt level > 0");
+			TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2 ") + __FUNCTION__, "get heights opt level > 0");
 
 			//size_t optimizationLevel = quadrant->optimizationLevel();
 			size_t optimizationLevel = 4;
@@ -230,22 +230,29 @@ namespace godot
 				image = quadrant->getShaderTerrainData()->getImageAtResolution(profileHeader, ShaderTerrainData::ImageType::heightmap, optimizationLevel, newResolution);
 			}
 
+			//{
+			//	TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2.2 ") + __FUNCTION__, "heights 16 to 32");
+			//	int size = int(numVerticesPerSize * numVerticesPerSize);
+			//	resizedHeightsForCollider.resize(size);
+			//	godot::PackedByteArray array = image->get_data();
+			//	assert(array.size() == size * 2);
+			//	uint16_t* p = (uint16_t*)array.ptr();
+			//	for (int idx = 0; idx < size; idx++)
+			//	{
+			//		TheWorld_Utils::FLOAT_32 f(0);
+			//		f.u32 = half_to_float(*p);
+			//		resizedHeightsForCollider[idx] = (real_t)f.f32;
+			//		p++;
+			//	}
+			//}
+			
 			{
-				TheWorld_Utils::GuardProfiler profiler(std::string("Collider setData 1.2.2 ") + __FUNCTION__, "heigths 16 to 32");
-				int size = int(numVerticesPerSize * numVerticesPerSize);
-				resizedHeightsForCollider.resize(size);
-				godot::PackedByteArray array = image->get_data();
-				assert(array.size() == size * 2);
-				uint16_t* p = (uint16_t*)array.ptr();
-				for (int idx = 0; idx < size; idx++)
-				{
-					TheWorld_Utils::FLOAT_32 f(0);
-					f.u32 = half_to_float(*p);
-					resizedHeightsForCollider[idx] = (real_t)f.f32;
-					p++;
-				}
+				assert(image->get_data().size() == numVerticesPerSize * numVerticesPerSize * elementSize);
+				assert(image->get_format() == godot::Image::Format::FORMAT_RF);
+				PackedByteArray imageData = image->get_data();
+				resizedHeightsForCollider = imageData.to_float32_array();
 			}
-
+			
 			m_hasHiResData = false;
 		}
 		
@@ -256,7 +263,7 @@ namespace godot
 		//}
 		my_assert(areaSize == heightsForCollider->size());
 		if (areaSize != heightsForCollider->size())
-			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Size of Heigths inconsistent, areaSize=" + std::to_string(areaSize) + " Heigths size=" + std::to_string(heightsForCollider->size())).c_str()));
+			throw(GDN_TheWorld_Exception(__FUNCTION__, std::string("Size of Heights inconsistent, areaSize=" + std::to_string(areaSize) + " Heights size=" + std::to_string(heightsForCollider->size())).c_str()));
 
 		//size_t size = heightsForCollider.size();	// DEBUG
 		Dictionary data;
@@ -264,21 +271,21 @@ namespace godot
 		data["depth"] = numVerticesPerSize;			// data["map_depth"];
 		if (globals->getParamElevationZero())
 		{
-			static TheWorld_Utils::MemoryBuffer zeroHeigths;
+			static TheWorld_Utils::MemoryBuffer zeroHeights;
 			m_quadTree->Viewer()->getMainProcessingMutex().lock();
-			if (zeroHeigths.size() == 0)
+			if (zeroHeights.size() == 0)
 			{
 				size_t maxNumVerticesPerSize = quadrant->getPos().getNumVerticesPerSize();
 				size_t bufferNeeded = maxNumVerticesPerSize * maxNumVerticesPerSize * elementSize;
-				zeroHeigths.reserve(bufferNeeded);
+				zeroHeights.reserve(bufferNeeded);
 				for (int i = 0; i < maxNumVerticesPerSize * maxNumVerticesPerSize; i++)
-					zeroHeigths.append((BYTE*)&zero, sizeof(zero));
-				//zeroHeigths.adjustSize(bufferNeeded);
+					zeroHeights.append((BYTE*)&zero, sizeof(zero));
+				//zeroHeights.adjustSize(bufferNeeded);
 			}
 			m_quadTree->Viewer()->getMainProcessingMutex().unlock();
 
 			heightsZeroForCollider.resize(areaSize);
-			memcpy((char*)heightsZeroForCollider.ptrw(), zeroHeigths.ptr(), areaSize * elementSize);
+			memcpy((char*)heightsZeroForCollider.ptrw(), zeroHeights.ptr(), areaSize * elementSize);
 			data["heights"] = heightsZeroForCollider;		// data["map_data"];
 		}
 		else

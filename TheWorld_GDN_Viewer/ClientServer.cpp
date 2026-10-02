@@ -492,6 +492,8 @@ namespace TheWorld_ClientServer
 				std::string groundJson = m_threadContextPool->getCurrentContext()->getMapManager()->getGroundJson(groundJsonUtc);
 				reply->replyParam(groundJson);
 				reply->replyParam(TheWorld_Utils::time_point_to_str_time(groundJsonUtc));
+				int heightsFormatInQuadrantBuffer = int(m_threadContextPool->getCurrentContext()->getMapManager()->getHeightsFormatInQuadrantBuffer());
+				reply->replyParam(heightsFormatInQuadrantBuffer);
 				reply->replyComplete();
 			}
 			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_UPLOADQUADRANTBUFFER)

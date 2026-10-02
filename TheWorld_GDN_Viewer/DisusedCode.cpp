@@ -2885,3 +2885,443 @@
 		//	sendColorsToShader(true);
 		//}
 
+//__declspec(dllexport) void setDummyBuffer_Format0(std::string meshId, std::string& buffer);
+
+//void MeshCacheBuffer::setDummyBuffer_Format0(std::string meshId, std::string& buffer)
+//{
+//	TheWorld_Utils::GuardProfiler profiler(std::string("MeshCacheBuffer setDummyBuffer_Format0_deprecated 1 ") + __FUNCTION__, "ALL");
+//
+//	size_t size = 0;
+//
+//	size_t vectSize = 0;
+//	size_t terrainEditValuesBufferSize = 0, float16HeightmapSize = 0, float32HeightmapSize = 0, normalmapSize = 0;
+//	size_t streamBufferSize = 1 /* buffer format "0"/"1" */
+//		+ sizeof(size_t) + meshId.length()
+//		+ sizeof(size_t) + terrainEditValuesBufferSize
+//		+ sizeof(size_t) /* numheights */ + sizeof(float) /*min_altitude*/ + sizeof(float) /*max_altitude*/ + float16HeightmapSize + float32HeightmapSize + normalmapSize;
+//
+//	BYTE* startOfStreamBuffer = nullptr;
+//	BYTE* _streamBuffer = nullptr;
+//
+//	{
+//		//TheWorld_Utils::GuardProfiler profiler(std::string("MeshCacheBuffer setBufferFromHeights 1.1 ") + __FUNCTION__, "calloc");
+//
+//		_streamBuffer = startOfStreamBuffer = (BYTE*)calloc(1, streamBufferSize);
+//		if (startOfStreamBuffer == nullptr)
+//			throw(std::exception((std::string(__FUNCTION__) + std::string(" Allocation error")).c_str()));
+//	}
+//
+//	{
+//		//TheWorld_Utils::GuardProfiler profiler(std::string("MeshCacheBuffer setBufferFromHeights 1.2 ") + __FUNCTION__, "meshId/edit values");
+//
+//		memcpy(_streamBuffer, "0", 1);
+//		_streamBuffer++;
+//
+//		TheWorld_Utils::serializeToByteStream<size_t>(meshId.length(), _streamBuffer, size);
+//		_streamBuffer += size;
+//
+//		memcpy(_streamBuffer, meshId.c_str(), meshId.length());
+//		_streamBuffer += meshId.length();
+//
+//		TheWorld_Utils::serializeToByteStream<size_t>(terrainEditValuesBufferSize, _streamBuffer, size);
+//		_streamBuffer += size;
+//	}
+//
+//	size = 0;
+//	TheWorld_Utils::serializeToByteStream<size_t>(vectSize, _streamBuffer, size);
+//	_streamBuffer += size;
+//
+//	{
+//		//TheWorld_Utils::GuardProfiler profiler(std::string("MeshCacheBuffer setBufferFromHeights 1.4 ") + __FUNCTION__, "copy out buffer");
+//		buffer = std::string((char*)startOfStreamBuffer, streamBufferSize);
+//	}
+//
+//	{
+//		//TheWorld_Utils::GuardProfiler profiler(std::string("MeshCacheBuffer setBufferFromHeights 1.5 ") + __FUNCTION__, "free");
+//		free(startOfStreamBuffer);
+//	}
+//
+//	m_meshId = meshId;
+//}
+
+//godot::Ref<godot::Texture2D> Quadrant::NeighbourQuadrantData::getSplatmapBorderRowTexture(void)
+//{
+//	int numVerticesPerQuadrantSize = (int)m_owningQuadrant->getQuadTree()->Viewer()->Globals()->numVerticesPerQuadrantSize();
+//
+//	godot::Ref<godot::Texture2D> tex;
+//
+//	if (TheWorld_Utils::null_time_point(m_lastSplatmapBorderRefreshTs))
+//	{
+//		Ref<godot::Image> image = godot::Image::create(numVerticesPerQuadrantSize, 1, false, godot::Image::Format::FORMAT_RGBA8);
+//		image->fill(godot::Color(1.0f, 0.0f, 0.0f, 0.0f));
+//		tex = godot::ImageTexture::create_from_image(image);
+//	}
+//	else
+//	{
+//		godot::PackedByteArray data;
+//		size_t splatmapBufferSizeRowInBytes = (size_t)numVerticesPerQuadrantSize * sizeof(struct TheWorld_Utils::_RGBA);
+//		data.resize((int)splatmapBufferSizeRowInBytes);
+//		assert(splatmapBufferSizeRowInBytes == m_splatmapBorderRow.size());
+//		{
+//			memcpy((char*)data.ptrw(), m_splatmapBorderRow.ptr(), splatmapBufferSizeRowInBytes);
+//		}
+//		Ref<godot::Image> image = godot::Image::create_from_data(numVerticesPerQuadrantSize, 1, false, godot::Image::Format::FORMAT_RGBA8, data);
+//		tex = godot::ImageTexture::create_from_image(image);
+//	}
+//
+//	return tex;
+//}
+
+//void godot::ShaderTerrainData::GridControlData::setData(GDN_TheWorld_Viewer* viewer, godot::Vector2 gridPos, WorldQuadrantsMap& worldQuadrantsMap, size_t numQuadrantsPerGridSize, std::vector<QuadTree*>& quadrantsToRefresh)
+//{
+//	TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.1.1 ") + __FUNCTION__, "Creating Terrain Shader Data");
+//
+//	m_viewer = viewer;
+//
+//	TheWorld_Utils::TerrainEdit emptyTerrainEdit(TheWorld_Utils::TerrainEdit::TerrainType::empty);
+//
+//	static size_t s_maxOptimizationLevel = 0;
+//	static size_t s_minResolution = 0;
+//	static godot::Ref<godot::Image> s_emptyTerrainImage;
+//	static bool s_statisInitialized = false;
+//	if (!s_statisInitialized)
+//	{
+//		s_maxOptimizationLevel = m_viewer->Globals()->getMaxTextureOptimizationLevel();
+//		s_minResolution = m_viewer->Globals()->resolutionForOptimizationLevel(s_maxOptimizationLevel);
+//		s_emptyTerrainImage = godot::Image::create_empty((int32_t)s_minResolution, (int32_t)s_minResolution, false, godot::Image::Format::FORMAT_RH);
+//		s_emptyTerrainImage->fill(godot::Color(emptyTerrainEdit.minHeight, 0.0f, 0.0f, 0.0f));
+//		s_statisInitialized = true;
+//	}
+//
+//	releaseData();
+//
+//	// DEBUG
+//	//std::vector<std::vector<bool>> quadrantMap;
+//	//quadrantMap.resize(numQuadrantsPerGridSize);
+//	//for (size_t i = 0; i < numQuadrantsPerGridSize; i++)
+//	//	quadrantMap[i].resize(numQuadrantsPerGridSize, false);
+//	// DEBUG
+//
+//	size_t heightmapArrayOptLvlIncIndex[4] = {0, 0, 0, 0};
+//
+//	if ((int32_t)numQuadrantsPerGridSize != m_gridControl1Image->get_width())
+//	{
+//		m_gridControl1Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+//		m_gridControl2Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+//		m_gridControl3Image->resize((int32_t)numQuadrantsPerGridSize, (int32_t)numQuadrantsPerGridSize);
+//	}
+//
+//	for (auto& quadTreeEntry : worldQuadrantsMap)
+//	{
+//		QuadTree* quadTree = quadTreeEntry.second.get();
+//		Quadrant* quadrant = quadTree->getQuadrant();
+//		ShaderTerrainData* shaderTerrainData = quadrant->getShaderTerrainData();
+//		
+//		godot::Vector2 quadrantPosInWU(quadrant->getPos().getLowerXGridVertex(), quadrant->getPos().getLowerZGridVertex());
+//		godot::Vector2 quadrantPosInGrid = (quadrantPosInWU - gridPos) / m_viewer->Globals()->heightmapSizeInWUs();				// 0-based
+//
+//		TheWorld_Utils::TerrainEdit* terrainEdit = nullptr;
+//		size_t _numOptLvlIncrements = 0;
+//
+//		bool locked = quadrant->lockInternalData();
+//		if (locked and quadTree->statusInitialized())
+//		{
+//			TheWorld_Utils::GuardProfiler profiler(std::string("Update Terrain Material 1.1.1.1 ") + __FUNCTION__, "Creating Terrain Shader Data for quadrant");
+//			size_t _optimizationLevel = quadrant->optimizationLevel();
+//			_numOptLvlIncrements = _optimizationLevel / m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+//			my_assert(_numOptLvlIncrements >= 0 and _numOptLvlIncrements < MAX_OPTLVL_INCREMENTS_TO_SHADER);
+//
+//			godot::Ref<godot::Image> image;
+//			{
+//				std::string profileHeader("Update Terrain Material 1.1.1.1.1 ");
+//				image = shaderTerrainData->getImageAtOptimizationLevel(profileHeader, ImageType::heightmap, _optimizationLevel);
+//			}
+//			m_heightmapArrayOptLvlIncrements[_numOptLvlIncrements].push_back(image);
+//
+//			terrainEdit = quadrant->getTerrainEdit();
+//		}
+//		else
+//		{
+//			//PLOG_DEBUG << "GridControlData::setData: quadrant locked - x=" << quadrantPosInGrid.x << ", y=" << (int32_t)quadrantPosInGrid.y;		// DEBUG
+//
+//			_numOptLvlIncrements = s_maxOptimizationLevel / m_viewer->Globals()->getParamTextureOptimizationResolutionIncrement();
+//			my_assert(_numOptLvlIncrements >= 0 and _numOptLvlIncrements < MAX_OPTLVL_INCREMENTS_TO_SHADER);
+//
+//			m_heightmapArrayOptLvlIncrements[_numOptLvlIncrements].push_back(s_emptyTerrainImage);
+//
+//			terrainEdit = &emptyTerrainEdit;
+//		}
+//		
+//		ShaderTerrainData::GroundTextures& groundTextures = ShaderTerrainData::getGroundTextures();
+//		std::string textureLayout = quadrant->textureLayout(), layoutForFoundTexture = "";
+//		int32_t lowElevationTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.lowElevationTexName_r, layoutForFoundTexture);
+//		int32_t highElevationTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.highElevationTexName_g, layoutForFoundTexture);
+//		int32_t dirtTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.dirtTexName_b, layoutForFoundTexture);
+//		int32_t rocksTexIdx = groundTextures.getTextureIdx(textureLayout, terrainEdit->extraValues.rocksTexName_a, layoutForFoundTexture);
+//		ShaderTerrainData::QuadrantControlData quadrantControlData(_numOptLvlIncrements,
+//			lowElevationTexIdx,
+//			highElevationTexIdx,
+//			dirtTexIdx,
+//			rocksTexIdx,
+//			terrainEdit->extraValues.highElevationFactor,
+//			terrainEdit->extraValues.lowElevationFactor,
+//			terrainEdit->minHeight,
+//			terrainEdit->maxHeight,
+//			terrainEdit->extraValues.slopeVerticalFactor,
+//			terrainEdit->extraValues.slopeFlatFactor,
+//			terrainEdit->extraValues.dirtOnRocksFactor,
+//			(int)heightmapArrayOptLvlIncIndex[_numOptLvlIncrements]);
+//
+//		heightmapArrayOptLvlIncIndex[_numOptLvlIncrements]++;
+//
+//		Color c = quadrantControlData.gridControl1Value();
+//		m_gridControl1Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
+//		c = quadrantControlData.gridControl2Value();
+//		m_gridControl2Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
+//		c = quadrantControlData.gridControl3Value();
+//		m_gridControl3Image->set_pixel((int32_t)quadrantPosInGrid.x, (int32_t)quadrantPosInGrid.y, c);
+//
+//		//quadrantMap[(size_t)quadrantPosInGrid.y][(size_t)quadrantPosInGrid.x] = true;	// DEBUG
+//
+//		if (locked and quadTree->statusInitialized())
+//			m_viewer->requestDataRefreshToShader(quadTree, false);
+//
+//		if (locked)
+//			quadrant->unlockInternalData();
+//	}
+//
+//	// DEBUG
+//	//bool allQuadrantsPresent = true;
+//	//for (size_t x = 0; x < numQuadrantsPerGridSize; x++)
+//	//{
+//	//	for (size_t y = 0; y < numQuadrantsPerGridSize; y++)
+//	//	{
+//	//		if (!quadrantMap[x][y])
+//	//		{
+//	//			allQuadrantsPresent = false;
+//	//			break;
+//	//		}
+//	//	}
+//	//}
+//	//PLOG_DEBUG << "GridControlData::setData: allQuadrantsPresent=" << allQuadrantsPresent;
+//	// DEBUG
+//}
+
+//void ShaderTerrainData::debugPrintTexture(std::string tex_name, Ref<Texture> tex)
+//{
+//	File* _file = File::_new();
+//	_file->open("res://" + String(tex_name.c_str()) + ".txt", File::WRITE);
+//	Ref<Image> _image = tex->get_data();
+//	int64_t width = _image->get_width();
+//	int64_t height = _image->get_height();
+//	Image::Format format = _image->get_format();
+//	std::string formatStr = std::to_string(format);
+//	if (format == Image::Format::FORMAT_RH)
+//		formatStr = "FORMAT_RH";
+//	else if (format == Image::Format::FORMAT_RGB8)
+//		formatStr = "FORMAT_RGB8";
+//	else if (format == Image::Format::FORMAT_RGBA8)
+//		formatStr = "FORMAT_RGBA8";
+//	std::string text = "Name=" + tex_name + " Format=" + formatStr + " W=" + std::to_string(width) + " H=" + std::to_string(height);
+//	_file->store_string(String(text.c_str()) + "\n");
+//	_image->lock();
+//	for (int h = 0; h < height; h++)
+//	{
+//		std::string row = "";
+//		for (int w = 0; w < width; w++)
+//		{
+//			row += std::to_string(w) + ":";
+//			if (format == Image::Format::FORMAT_RF)
+//				row += std::to_string(_image->get_pixel(w, h).r) + " ";
+//			else if (format == Image::Format::FORMAT_RGB8)
+//				row += std::to_string(_image->get_pixel(w, h).r) + "-" + std::to_string(_image->get_pixel(w, h).g) + "-" + std::to_string(_image->get_pixel(w, h).b) + " ";
+//			else if (format == Image::Format::FORMAT_RGBA8)
+//				row += std::to_string(_image->get_pixel(w, h).r) + "-" + std::to_string(_image->get_pixel(w, h).g) + "-" + std::to_string(_image->get_pixel(w, h).b) + "-" + std::to_string(_image->get_pixel(w, h).a) + " ";
+//			else
+//			{
+//				String s = String(_image->get_pixel(w, h));
+//				char* str = s.alloc_c_string();
+//				row += str;
+//				row += " ";
+//				godot::api->godot_free(str);
+//			}
+//		}
+//		text = "H=" + std::to_string(h) + " " + row;
+//		_file->store_string(String(text.c_str()) + "\n");
+//	}
+//	_image->unlock();
+//	_file->close();
+//}
+
+/*
+QuadrantPos QuadrantPos::getQuadrantPos(enum class DirectionSlot dir, int numSlot)
+{
+	QuadrantPos pos = *this;
+
+	switch (dir)
+	{
+	case DirectionSlot::XMinus:
+	{
+		pos.m_lowerXGridVertex -= (m_sizeInWU * numSlot);
+	}
+	break;
+	case DirectionSlot::XPlus:
+	{
+		pos.m_lowerXGridVertex += (m_sizeInWU * numSlot);
+	}
+	break;
+	case DirectionSlot::ZMinus:
+	{
+		pos.m_lowerZGridVertex -= (m_sizeInWU * numSlot);
+	}
+	break;
+	case DirectionSlot::ZPlus:
+	{
+		pos.m_lowerZGridVertex += (m_sizeInWU * numSlot);
+	}
+	break;
+	case DirectionSlot::ZMinusXMinus:
+	{
+		QuadrantPos pos1 = getQuadrantPos(DirectionSlot::ZMinus, numSlot);
+		pos = pos1.getQuadrantPos(DirectionSlot::XMinus, numSlot);
+	}
+	break;
+	case DirectionSlot::ZMinusXPlus:
+	{
+		QuadrantPos pos1 = getQuadrantPos(DirectionSlot::ZMinus, numSlot);
+		pos = pos1.getQuadrantPos(DirectionSlot::XPlus, numSlot);
+	}
+	break;
+	case DirectionSlot::ZPlusXMinus:
+	{
+		QuadrantPos pos1 = getQuadrantPos(DirectionSlot::ZPlus, numSlot);
+		pos = pos1.getQuadrantPos(DirectionSlot::XMinus, numSlot);
+	}
+	break;
+	case DirectionSlot::ZPlusXPlus:
+	{
+		QuadrantPos pos1 = getQuadrantPos(DirectionSlot::ZPlus, numSlot);
+		pos = pos1.getQuadrantPos(DirectionSlot::XPlus, numSlot);
+	}
+	break;
+	}
+
+	pos.resetName();
+
+	return pos;
+}
+
+size_t QuadrantPos::distanceInPerimeter(QuadrantPos& q) const
+{
+	size_t distanceOnX = (size_t)ceil(abs(q.getLowerXGridVertex() - getLowerXGridVertex()) / q.m_sizeInWU);
+	size_t distanceOnZ = (size_t)ceil(abs(q.getLowerZGridVertex() - getLowerZGridVertex()) / q.m_sizeInWU);
+	if (distanceOnX > distanceOnZ)
+		return distanceOnX;
+	else
+		return distanceOnZ;
+}
+*/
+
+//godot::Ref<godot::ImageTexture> Quadrant::getHeightmapBorderQuadrantRowsTexture(int32_t& numValidBorders)
+//{
+//	numValidBorders = 0;
+//
+//	size_t verticesPerBorder = m_viewer->Globals()->numVerticesPerQuadrantSize();
+//	
+//	Quadrant::NeighbourQuadrantData& northQuadrantData = Quadrant::northQuadrantData();
+//	if (northQuadrantData.initialized())
+//		numValidBorders++;
+//
+//	Quadrant::NeighbourQuadrantData& southQuadrantData = Quadrant::southQuadrantData();
+//	if (southQuadrantData.initialized())
+//		numValidBorders++;
+//
+//	Quadrant::NeighbourQuadrantData& westQuadrantData = Quadrant::westQuadrantData();
+//	if (westQuadrantData.initialized())
+//		numValidBorders++;
+//
+//	Quadrant::NeighbourQuadrantData& eastQuadrantData = Quadrant::eastQuadrantData();
+//	if (eastQuadrantData.initialized())
+//		numValidBorders++;
+//
+//	QuadrantTypeInGrid type = QuadrantTypeInGrid::NotSet;
+//	godot::Vector2i quadrantPosInGrid = Quadrant::quadrantPosInGrid(type);
+//
+//	if (((type == QuadrantTypeInGrid::BottomLeftCorner or type == QuadrantTypeInGrid::BottomRightCorner or type == QuadrantTypeInGrid::TopLeftCorner or type == QuadrantTypeInGrid::TopRightCorner) and numValidBorders == 2) or
+//		((type == QuadrantTypeInGrid::LeftEdge or type == QuadrantTypeInGrid::RightEdge or type == QuadrantTypeInGrid::TopEdge or type == QuadrantTypeInGrid::BottomEdge) and numValidBorders == 3) or
+//		(type == QuadrantTypeInGrid::Inner and numValidBorders == 4))
+//	{
+//		// Continue
+//	}
+//	else
+//	{
+//		return godot::Ref<godot::ImageTexture>();
+//	}
+//
+//	TheWorld_Utils::GuardProfiler profiler(std::string("Quadrant::getHeightmapBorderQuadrantRowsTexture 1 ") + __FUNCTION__, "create texture");
+//
+//	TheWorld_Utils::MemoryBuffer heightmapBorderRowsBuffer;
+//	{
+//		// Initialize heightmap border rows buffer with zeros if not initialized yet
+//		std::lock_guard<std::recursive_mutex> lock(s_emptyHeightmapBorderQuadrantRowsMtx);
+//		if (s_emptyHeightmapBorderQuadrantRows.size() != verticesPerBorder * 4 * sizeof(uint16_t))
+//		{
+//			TheWorld_Utils::FLOAT_32 f(0);
+//			uint16_t h = half_from_float(f.u32);
+//			s_emptyHeightmapBorderQuadrantRows.init<uint16_t>(verticesPerBorder * 4, h);	// 4 rows: North, South, West, East
+//		}
+//		heightmapBorderRowsBuffer = s_emptyHeightmapBorderQuadrantRows;
+//	}
+//
+//	if (northQuadrantData.initialized())
+//	{
+//		my_assert(northQuadrantData.getHeightmapBorderRow().size() == verticesPerBorder * sizeof(uint16_t));
+//		int row = 0;
+//		heightmapBorderRowsBuffer.setPart(northQuadrantData.getHeightmapBorderRow().ptr(), northQuadrantData.getHeightmapBorderRow().size(), row * verticesPerBorder * sizeof(uint16_t));
+//	}
+//
+//	if (southQuadrantData.initialized())
+//	{
+//		my_assert(southQuadrantData.getHeightmapBorderRow().size() == verticesPerBorder * sizeof(uint16_t));
+//		int row = 1;
+//		heightmapBorderRowsBuffer.setPart(southQuadrantData.getHeightmapBorderRow().ptr(), southQuadrantData.getHeightmapBorderRow().size(), row * verticesPerBorder * sizeof(uint16_t));
+//	}
+//
+//	if (westQuadrantData.initialized())
+//	{
+//		my_assert(westQuadrantData.getHeightmapBorderRow().size() == verticesPerBorder * sizeof(uint16_t));
+//		int row = 2;
+//		heightmapBorderRowsBuffer.setPart(westQuadrantData.getHeightmapBorderRow().ptr(), westQuadrantData.getHeightmapBorderRow().size(), row * verticesPerBorder * sizeof(uint16_t));
+//	}
+//
+//	if (eastQuadrantData.initialized())
+//	{
+//		my_assert(eastQuadrantData.getHeightmapBorderRow().size() == verticesPerBorder * sizeof(uint16_t));
+//		int row = 3;
+//		heightmapBorderRowsBuffer.setPart(eastQuadrantData.getHeightmapBorderRow().ptr(), eastQuadrantData.getHeightmapBorderRow().size(), row * verticesPerBorder * sizeof(uint16_t));
+//	}
+//
+//	godot::PackedByteArray data;
+//	data.resize(int32_t(heightmapBorderRowsBuffer.size()));
+//	{
+//		memcpy((char*)data.ptrw(), heightmapBorderRowsBuffer.ptr(), heightmapBorderRowsBuffer.size());
+//	}
+//	godot::Ref<godot::Image> image = godot::Image::create_from_data(int32_t(verticesPerBorder), 4, false, godot::Image::Format::FORMAT_RH, data);
+//
+//	godot::Ref<godot::ImageTexture> heightmapBorderRowsTexture = getHeightmapBorderRowsTexture();
+//	if (not heightmapBorderRowsTexture.is_valid())
+//	{
+//		heightmapBorderRowsTexture = godot::ImageTexture::create_from_image(image);
+//		setHeightmapBorderRowsTexture(heightmapBorderRowsTexture);
+//	}
+//	else
+//	{
+//		if (heightmapBorderRowsTexture->get_width() == int32_t(verticesPerBorder) && heightmapBorderRowsTexture->get_height() == 4)
+//			heightmapBorderRowsTexture->update(image);
+//		else
+//			heightmapBorderRowsTexture->set_image(image);
+//	}
+//
+//	return heightmapBorderRowsTexture;
+//}
+

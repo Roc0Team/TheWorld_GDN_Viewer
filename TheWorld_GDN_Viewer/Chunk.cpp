@@ -883,20 +883,20 @@ void Chunk::getGlobalCoordTerrainAABB(godot::AABB& aabb, int firstWorldVertCol, 
 		{
 			if (firstTime)
 			{
-				minHeight = maxHeight = m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert);
+				minHeight = maxHeight = m_quadTree->getQuadrant()->getAltitudeFromHeightmap(idxVert);
 				firstTime = false;
 			}
 			else
 			{
-				minHeight = TheWorld_Viewer_Utils::Utils::min2(minHeight, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
-				maxHeight = TheWorld_Viewer_Utils::Utils::max2(maxHeight, m_quadTree->getQuadrant()->getAltitudeFromHeigthmap(idxVert));
+				minHeight = TheWorld_Viewer_Utils::Utils::min2(minHeight, m_quadTree->getQuadrant()->getAltitudeFromHeightmap(idxVert));
+				maxHeight = TheWorld_Viewer_Utils::Utils::max2(maxHeight, m_quadTree->getQuadrant()->getAltitudeFromHeightmap(idxVert));
 			}
 		}
 	}
 
-	godot::Vector3 startPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxFirstColFirstRowWorldVert), minHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxFirstColFirstRowWorldVert));
-	//godot::Vector3 endPosition(m_worldVertices[idxLastColLastRowWorldVert].posX() - m_worldVertices[idxFirstColFirstRowWorldVert].posX(), maxHeigth, m_worldVertices[idxLastColLastRowWorldVert].posZ() - m_worldVertices[idxFirstColFirstRowWorldVert].posZ());
-	godot::Vector3 endPosition(m_quadTree->getQuadrant()->getPosXFromHeigthmap(idxLastColLastRowWorldVert), maxHeight, m_quadTree->getQuadrant()->getPosZFromHeigthmap(idxLastColLastRowWorldVert));
+	godot::Vector3 startPosition(m_quadTree->getQuadrant()->getPosXFromHeightmap(idxFirstColFirstRowWorldVert), minHeight, m_quadTree->getQuadrant()->getPosZFromHeightmap(idxFirstColFirstRowWorldVert));
+	//godot::Vector3 endPosition(m_worldVertices[idxLastColLastRowWorldVert].posX() - m_worldVertices[idxFirstColFirstRowWorldVert].posX(), maxHeight, m_worldVertices[idxLastColLastRowWorldVert].posZ() - m_worldVertices[idxFirstColFirstRowWorldVert].posZ());
+	godot::Vector3 endPosition(m_quadTree->getQuadrant()->getPosXFromHeightmap(idxLastColLastRowWorldVert), maxHeight, m_quadTree->getQuadrant()->getPosZFromHeightmap(idxLastColLastRowWorldVert));
 
 	godot::Vector3 size = endPosition - startPosition;
 	//size.x += 1;

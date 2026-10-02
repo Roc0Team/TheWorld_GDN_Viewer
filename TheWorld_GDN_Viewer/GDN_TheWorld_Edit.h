@@ -357,7 +357,7 @@ namespace godot
 		void editModeSetTerrType(void);
 		void editModeLockQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, size_t maxDistance = 1);
 		void editModeUnlockQuadrants(std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants);
-		void editModeBlendQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, size_t maxDistance = 1);
+		//void editModeBlendQuadrantAndNeighbours(TheWorld_Utils::QuadrantPos pos, std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>>& lockedQuadrants, size_t maxDistance = 1);
 		bool blendAction(TheWorld_Utils::QuadrantPos blendingPos,
 							bool sync,
 							bool automaticBlending,

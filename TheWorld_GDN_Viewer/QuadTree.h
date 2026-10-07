@@ -630,7 +630,7 @@ namespace godot
 		//	return m_mapImage;
 		//}
 
-		bool checkBlendNeeded(void);
+		//bool checkBlendNeeded(void);
 		bool checkBlendNeeded(bool& heavyCheckBlendExecuted, bool& northSideBlendNeeded, bool& southSideBlendNeeded, bool& eastSideBlendNeeded, bool& westSideBlendNeeded, QuadTree* northQuadrantTree = nullptr, QuadTree* southQuadrantTree = nullptr, QuadTree* eastQuadrantTree = nullptr, QuadTree* westQuadrantTree = nullptr);
 		bool checkNorthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* northQuadrantTree = nullptr, bool fullCheckBlend = true);
 		bool checkSouthSideBlendNeeded(bool& heavyCheckBlendExecuted, QuadTree* southQuadrantTree = nullptr, bool fullCheckBlend = true);

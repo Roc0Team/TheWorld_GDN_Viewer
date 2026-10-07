@@ -378,7 +378,7 @@ namespace godot
 		void editModeSelectTerrainTypeAction(int32_t index);
 
 		void editModeGenerate(void);
-		void editModeBlendNew(void);
+		void editModeBlend(void);
 		void editModeSave(void);
 		void editModeUpload(void);
 		bool editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* map);

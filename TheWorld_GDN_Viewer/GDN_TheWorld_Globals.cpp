@@ -739,9 +739,6 @@ namespace godot
 			}
 			else if (method == THEWORLD_CLIENTSERVER_METHOD_MAPM_SETLOGMAXSEVERITY)
 			{
-				//setStatus(TheWorldStatus::error);
-				errorPrint((std::string("GDN_TheWorld_Globals::replyFromServer: unknow method ") + method).c_str());
-				method = "to remove";
 			}
 			else
 			{

@@ -5358,11 +5358,11 @@ void GDN_TheWorld_Edit::editModeBlendAction(void)
 	setElapsed(0, true);
 	setNote1(0);
 
-	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeBlendNew, this);
+	std::function<void(void)> f = std::bind(&GDN_TheWorld_Edit::editModeBlend, this);
 	m_tp.QueueJob(f);
 }
 
-void GDN_TheWorld_Edit::editModeBlendNew(void)
+void GDN_TheWorld_Edit::editModeBlend(void)
 {
 	m_viewer->getMainProcessingMutex().lock();
 	if (m_actionClock.counterStarted())
@@ -5409,12 +5409,18 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 
 	m_lastElapsed = 0;
 
+	/*
+	* Pre Blend Operations: collecting all necessary quadrants to lock for blending, including neighbours
+	*/
 	std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>> lockedQuadrants;
 	for (auto& pos : quadrantPos)
 	{
 		editModeLockQuadrantAndNeighbours(pos, lockedQuadrants, THEWORLD_QUADRANT_DISTANCE_FOR_BLENDING);
 	}
 
+	/*
+	* Blend Operations
+	*/
 #define NUM_BLENDING_CYCLES	2
 	size_t numRounds = NUM_BLENDING_CYCLES;
 	for (size_t round = 0; round < numRounds; round++)
@@ -5422,11 +5428,9 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 		m_allItems = lockedQuadrants.size();
 		m_completedItems = 0;
 
-		for (auto& lockedQuadrant : lockedQuadrants)
+		for (auto& [pos, lockedQuadrant] : lockedQuadrants)
 		{
 			TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
-
-			TheWorld_Utils::QuadrantPos pos = lockedQuadrant.first;
 
 			std::stringstream str;
 			str << "Blending heights for quadrant " << pos.getIndexPosX() << "," << pos.getIndexPosZ();
@@ -5434,7 +5438,8 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 			setMessage(godot::String(str.str().c_str()));
 
 			blendQuadrant(pos, lockedQuadrants, round == numRounds - 1);
-			removeQuadToDelayedBlend(pos);
+			TheWorld_Utils::QuadrantPos pos1 = pos;
+			removeQuadToDelayedBlend(pos1);
 
 			m_completedItems++;
 			size_t partialCount = m_actionClock.partialDuration().count();
@@ -5453,6 +5458,9 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 	}
 	setNote2("");
 
+	/*
+	* Post Blend Operations
+	*/
 	int num = 0;
 	for (auto& [pos, lockedQuadrant] : lockedQuadrants)
 	{
@@ -5497,6 +5505,9 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 		setNote1(m_lastElapsed);
 	}
 
+	/*
+	* Mark quadrant to save if modified
+	*/
 	for (auto& [pos, lockedQuadrant] : lockedQuadrants)
 	{
 		if (lockedQuadrant->quadrantUpdated())
@@ -5525,7 +5536,7 @@ void GDN_TheWorld_Edit::editModeBlendNew(void)
 			}
 		}
 	}
-	
+
 	editModeUnlockQuadrants(lockedQuadrants);
 
 	if (quadTreeSel != nullptr)
@@ -5573,6 +5584,8 @@ void GDN_TheWorld_Edit::prepareHeightsForQuadrantBlend(Quadrant* quadrant, TheWo
 		quadrantData->splatmapBuffer = nullptr;
 		quadrantData->colormapBuffer = nullptr;
 		quadrantData->globalmapBuffer = nullptr;
+
+		//quadrantData->heightsUpdated = true;	// forcing heights updated
 	}
 }
 

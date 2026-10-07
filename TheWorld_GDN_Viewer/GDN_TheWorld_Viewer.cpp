@@ -6246,6 +6246,7 @@ void GDN_TheWorld_Viewer::replyFromServer(TheWorld_ClientServer::ClientServerExe
 							else
 							{
 								//Globals()->debugPrint((std::string("Initialized quadrant ") + quadTree->getQuadrant()->getPos().getIdStr() + " Hash=" + TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId())).c_str());
+								//PLOG_VERBOSE << "crash";
 								PLOG_VERBOSE << "Initialized quadrant " << quadTree->getQuadrant()->getPos().getIdStr() << " Hash=" << TheWorld_Utils::MeshCacheBuffer::meshIdToPrint1(quadTree->getQuadrant()->getMeshId());
 							}
 

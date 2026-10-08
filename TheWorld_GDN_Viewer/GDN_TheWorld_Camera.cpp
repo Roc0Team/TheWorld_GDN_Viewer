@@ -653,7 +653,7 @@ godot::Transform3D GDN_TheWorld_Camera::getWorldTransform(void)
 	if (viewer == nullptr)
 		return map;
 
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return map;
 
@@ -685,7 +685,7 @@ void GDN_TheWorld_Camera::setWorldTransform(godot::Transform3D map)
 		}
 	}
 	
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 
@@ -709,7 +709,7 @@ godot::Vector3 GDN_TheWorld_Camera::getWorldPos(void)
 
 void GDN_TheWorld_Camera::setWorldPos(godot::Vector3 worldPos)
 {
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 
@@ -944,7 +944,7 @@ void GDN_TheWorld_Camera::_physics_process(double _delta)
 
 void GDN_TheWorld_Camera::calcYawPitchRoll(void)
 {
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 	godot::Vector3 euler = camera->get_global_transform().basis.get_euler();;
@@ -1130,7 +1130,7 @@ GDN_TheWorld_Camera* GDN_TheWorld_Camera::getActiveCamera(void)
 //	return true;
 //}
 
-godot::Camera3D* GDN_TheWorld_Camera::getRealSceneCamera(void)
+godot::Camera3D* GDN_TheWorld_Camera::getSceneRealCamera(void)
 {
 	if (IS_EDITOR_HINT())
 	{
@@ -1148,7 +1148,7 @@ godot::Camera3D* GDN_TheWorld_Camera::getRealSceneCamera(void)
 
 void GDN_TheWorld_Camera::set_cameraFar(void)
 {
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 
@@ -1199,7 +1199,7 @@ bool GDN_TheWorld_Camera::initCameraInWorld(godot::Vector3 cameraPos, godot::Vec
 	godot::Vector3 lookAtGlobalCoord = Globals()->Viewer()->worldToGlobal(godot::Transform3D(godot::Basis(), lookAt)).origin;;
 	if (cameraPosGlobalCoord != lookAtGlobalCoord)
 	{
-		godot::Camera3D* camera = getRealSceneCamera();
+		godot::Camera3D* camera = getSceneRealCamera();
 		if (camera == nullptr)
 			return false;
 		camera->look_at_from_position(cameraPosGlobalCoord, lookAtGlobalCoord, godot::Vector3(0, 1, 0));
@@ -1272,7 +1272,7 @@ void GDN_TheWorld_Camera::updateCameraUnderWater(void)
 	if (!viewer->worldMode())
 		return;
 
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 
@@ -1810,7 +1810,7 @@ float GDN_TheWorld_Camera::distanceFromTerrainAlongMovement(godot::Vector3 movem
 //	if (!testCollisions)
 //		return;
 //	
-//	godot::Camera3D* camera = getRealSceneCamera();
+//	godot::Camera3D* camera = getSceneRealCamera();
 //	if (camera == nullptr)
 //		return;
 //
@@ -1930,10 +1930,16 @@ void GDN_TheWorld_Camera::adjustPositionOnTerrain(void)
 				float altitudeFromTerrain = MIN_DISTANCE_FROM_TERRAIN_ALLOWED_FOR_CAMERA;
 				//altitudeFromTerrain = 50;
 				float cameraAltitudeComputed = m_lastComputedCameraVerticalOnTerrain.y + altitudeFromTerrain;
-				if (m_overSea)
+				if (m_adjustPositionOverSea)
 					cameraAltitudeComputed = THEWORLD_SEA_LEVEL + THEWORLD_SEA_MAX_WAVE_HEIGHT * 2;
 				godot::Vector3 cameraPos = get_global_position();
-				set_global_position(godot::Vector3(cameraPos.x, cameraAltitudeComputed, cameraPos.z));
+				if (m_adjustPositionOnTerrainMoveOnlyIfBelow)
+				{
+					if (cameraPos.y < cameraAltitudeComputed)
+						set_global_position(godot::Vector3(cameraPos.x, cameraAltitudeComputed, cameraPos.z));
+				}
+				else
+					set_global_position(godot::Vector3(cameraPos.x, cameraAltitudeComputed, cameraPos.z));
 				m_lastCameraAltitudeFromTerrain = altitudeFromTerrain;
 			}
 			else
@@ -1960,7 +1966,7 @@ void GDN_TheWorld_Camera::updateAltitudeFromTerrain(bool force)
 	if (force)
 		m_forceRecalcCameraAltitude = true;
 	
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 
@@ -2033,7 +2039,7 @@ void GDN_TheWorld_Camera::setYaw(float yaw, bool radiant)
 {
 	float radiantYaw = radiant ? yaw : (yaw * TheWorld_Utils::kPi) / 180;
 
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 
@@ -2071,7 +2077,7 @@ void GDN_TheWorld_Camera::setPitch(float pitch, bool radiant)
 {
 	float radiantPitch = radiant ? pitch : (pitch * TheWorld_Utils::kPi) / 180;
 
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 
@@ -2109,7 +2115,7 @@ void GDN_TheWorld_Camera::setRoll(float roll, bool radiant)
 {
 	float radiantRoll = radiant ? roll : (roll * TheWorld_Utils::kPi) / 180;
 
-	godot::Camera3D* camera = getRealSceneCamera();
+	godot::Camera3D* camera = getSceneRealCamera();
 	if (camera == nullptr)
 		return;
 

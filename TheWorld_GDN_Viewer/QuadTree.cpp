@@ -932,6 +932,14 @@ bool QuadTree::managePostHeightsUpdateOperations(bool forceGlobalMapUpdate)
 		quadrant->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
 	}
 
+	// Sea info stuff (must be updated when heights have been changed and min/max set accordingly)
+	{
+		quadrant->getTerrainEdit()->extraValues.seaInfoSet = QUADRANT_SEA_INFO_NOTSET;
+		canContainSea(QUADRANT_SEA_INFO_NOTSET);
+		refreshSeaInfo();
+		checkAndInitSeaQuadrant();
+	}
+
 	// Collider stuff (heights and AABB) must be updated after heights have been changed
 	{
 		// prepare new heights for collider (PackedFloat32Array)
@@ -974,7 +982,7 @@ bool QuadTree::managePostHeightsUpdateOperations(bool forceGlobalMapUpdate)
 	{
 		quadrant->getTerrainEdit()->heightsNeedRegen(false);
 		if (forceGlobalMapUpdate or updated)
-			quadrant->resetGlobalmapBuffer(__FUNCTION__);		// force globalmap regeneration for uypdated quadrants
+			quadrant->resetGlobalmapBuffer(__FUNCTION__);		// force globalmap regeneration for updated quadrants
 		quadrant->heightmapChanged();
 		quadrant->sendColorsToShader(true);
 		materialParamsNeedReset(true);

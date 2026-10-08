@@ -4221,7 +4221,6 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	terrainEdit->noise.desideredMinHeight = desideredMinHeight();
 	terrainEdit->extraValues.ignoreDesideredMinHeight = ignoreDesideredMinHeight();
 	terrainEdit->extraValues.postGenerateElevation = postGenerateElevation();
-	//terrainEdit->needUploadToServer = true;
 
 	int level = quadrantSelPos.getLevel();
 	size_t numVerticesPerSize = quadrantSelPos.getNumVerticesPerSize();
@@ -4265,11 +4264,12 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	//terrainEdit->needUploadToServer(true);
 
 	// 4. refresh new heights on internal datas 16-bit heights (for shader), 32-bit heights (for collider), terrain data for editing and set flag according (new heights have to be passed to shader)
+	
 	//terrainEdit->northSideZMinus.needBlend_notused = true;
 	//terrainEdit->southSideZPlus.needBlend_notused = true;
 	//terrainEdit->westSideXMinus.needBlend_notused = true;
 	//terrainEdit->eastSideXPlus.needBlend_notused = true;
-
+	
 	TheWorld_Utils::MemoryBuffer& heights32Buffer = quadTreeSel->getQuadrant()->getFloat32HeightsBuffer(false);
 	size_t heights32BufferSize = numVertices * sizeof(float);
 	heights32Buffer.reserve(heights32BufferSize);
@@ -4297,6 +4297,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	//quadTreeSel->getQuadrant()->resetColormapBuffer(__FUNCTION__);
 	quadTreeSel->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
+	// TODO: which of next steps are already contained in managePostHeightsUpdateOperations?
+	quadTreeSel->managePostHeightsUpdateOperations(true);
+	
 	// 7. prepare new heights for collider (PackedFloat32Array)
 	{
 #ifdef REAL_T_IS_DOUBLE
@@ -4364,7 +4367,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	{
 		GDN_TheWorld_Camera* customCamera = m_viewer->WorldCamera();
 		if (customCamera != nullptr)
-			customCamera->adjustPositionOnTerrainRequired(true);
+			customCamera->adjustPositionOnTerrainRequired(true, false, true);
 	}
 
 	{

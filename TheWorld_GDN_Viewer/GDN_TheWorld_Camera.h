@@ -131,7 +131,7 @@ namespace godot {
 		virtual void _physics_process(double _delta) override;
 		virtual void _input(const godot::Ref<godot::InputEvent>& event) override;
 
-		godot::Camera3D* getRealSceneCamera(void);
+		godot::Camera3D* getSceneRealCamera(void);
 
 		bool initCameraInWorld(Vector3 cameraPos, Vector3 lookAt, float cameraYaw, float cameraPitch, float cameraRoll);
 		void set_cameraFar(void);
@@ -233,7 +233,7 @@ namespace godot {
 			if (not cameraAltitudeFromTerrainValid())
 				return INVALID_CAMERA_ALTITUDE;
 
-			return getRealSceneCamera()->get_global_transform().origin.y - THEWORLD_SEA_LEVEL;
+			return getSceneRealCamera()->get_global_transform().origin.y - THEWORLD_SEA_LEVEL;
 		}
 		float cameraAltitudeFromTerrainValid(void) const
 		{
@@ -277,10 +277,11 @@ namespace godot {
 		}
 
 		void adjustPositionOnTerrain(void);
-		void adjustPositionOnTerrainRequired(bool b, bool overSea = false)
+		void adjustPositionOnTerrainRequired(bool b, bool overSea = false, bool moveCameraOnlyIfBelow = false)
 		{
 			m_adjustPositionOnTerrainRequired = b;
-			m_overSea = overSea;
+			m_adjustPositionOverSea = overSea;
+			m_adjustPositionOnTerrainMoveOnlyIfBelow = moveCameraOnlyIfBelow;
 		}
 		bool adjustPositionOnTerrainRequired(void)
 		{
@@ -300,7 +301,8 @@ namespace godot {
 		bool m_WorldCamera;
 		bool m_updateCameraRequired;
 		bool m_adjustPositionOnTerrainRequired = false;
-		bool m_overSea = false;
+		bool m_adjustPositionOverSea = false;
+		bool m_adjustPositionOnTerrainMoveOnlyIfBelow = false;
 		bool m_isActive;
 		int64_t m_instanceId;
 		godot::Node3D* m_trackedPlayer = nullptr;

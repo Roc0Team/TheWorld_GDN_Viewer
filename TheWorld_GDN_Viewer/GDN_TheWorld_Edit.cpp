@@ -3946,7 +3946,8 @@ bool GDN_TheWorld_Edit::editModeUploadModifiedWorldQuadrants(GDN_TheWorld_Map* m
 				int numVerticesPerSize = pos.getNumVerticesPerSize();
 				float gridStepInWU = pos.getGridStepInWU();
 				int lvl = pos.getLevel();
-				quadTree->Viewer()->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), true);
+				//quadTree->Viewer()->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), true);
+				quadTree->Viewer()->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), lowerXGridVertex, lowerZGridVertex, numVerticesPerSize, gridStepInWU, lvl, buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), false);		// Occhio! Tolto regen per conservare il lavoro fatto client side
 
 				quadTree->getQuadrant()->unlockInternalData();
 

@@ -5076,9 +5076,9 @@ void Quadrant::releaseTerrainValuesMemory(bool visible)
 	if (m_quadTree->materialParamsNeedReset() || m_quadTree->materialParamsNeedUpdate() || m_quadTree->colliderNeedReset(QuadType::Terrain) || terrainDataJustLoaded())
 		return;
 
-	if (internalDataLocked())
-		return;
-	
+	//if (internalDataLocked())		// locked by caller
+	//	return;
+
 	// i buffers durante il caricamento devono essere distrutti appena lavorati perché fanno esaurire la memoria di sistema rallentando notevolmente il caricamento
 	if (canCacheHeightBuffers())	// set according to camera distance from camera: heights can be cached if distance is under a threshold value because it is supposed splits will be necessary
 	{

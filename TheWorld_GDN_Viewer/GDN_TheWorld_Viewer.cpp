@@ -15806,7 +15806,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 					//	editorUploadToServerInProgress = true;	// DEBUG
 					
 					// *
-					// The client sends the list of quadrants and map texture rects it has and the server reply with the list of quadrants and map texture rects that need to be refreshed on the client side because they are different
+					// The client sends the list of the pos(es) of the quadrants and the map texture rects it has and the server reply with the list of quadrants and map texture rects that need to be refreshed on the client side because they are different
 					// from the server ones (for example because they have been modified after last synchronization)
 					// *
 					// - MapManagerSync sends the list of the quadrants and the map texture rects (only in map mode) currently owned by the client
@@ -15815,7 +15815,7 @@ void GDN_TheWorld_Viewer::streamer(void)
 					//   - replyClientQuadrants: the quadrants currently owned by the client that need refresh (because they are newer on server and/or because they need client work to create splatmap/globalmap)
 					//   - replyExtraQuadrants: the quadrants currently not owned by the client that need client work to create splatmap/globalmap
 					//   - replyMapTextureRects: the map texture rects that need refresh
-					//   - replyProceGenStatus: a strucutr containing the status of the procedural generation for the world
+					//   - replyProceGenStatus: a structure containing the status of the procedural generation for the world
 					// - The client (GDN_TheWorld_Viewer::replyFromServer, method == THEWORLD_CLIENTSERVER_METHOD_MAPM_SYNC) receive the above structures and:
 					//   - for the quadrants in replyClientQuadrants that need refresh or for the quadrants in replyExtraQuadrants owned by the client (they are contained in m_worldQuadrantsMap but don't need a refresh):
 					//     - set quadrant status to "need refresh" for the quadrants in m_worldQuadrantsMap (quadrants currently owned by the client) ==> quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded)

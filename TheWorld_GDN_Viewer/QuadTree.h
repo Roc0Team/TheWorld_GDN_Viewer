@@ -423,7 +423,7 @@ namespace godot
 
 		bool needSaveToCache(bool& manual);
 
-		bool lockInternalData(bool strongLock = true);
+		bool lockInternalData(bool strongLock = true, bool exitOnlyOnLock = false);
 		void unlockInternalData(void);
 
 		bool internalDataLocked() const
@@ -770,6 +770,8 @@ namespace godot
 			, RightEdge = 8
 		};
 		godot::Vector2i quadrantPosInGrid(QuadrantTypeInGrid& type);
+
+		void populateHeightmap(TheWorld_Utils::HeightMap& heightMap);
 
 	private:
 		TheWorld_Utils::MeshCacheBuffer& getInternalMeshCacheBuffer(void);

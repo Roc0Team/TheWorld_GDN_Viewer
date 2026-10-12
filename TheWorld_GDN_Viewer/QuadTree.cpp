@@ -5673,11 +5673,15 @@ bool Quadrant::needSaveToCache(bool& manual)
 	return needToSave;
 }
 
-bool Quadrant::lockInternalData(bool strongLock)
+bool Quadrant::lockInternalData(bool strongLock, bool exitOnlyOnLock)
 {
 	bool lockAcquired = false;
+	bool firstTry = true;
 	
+	while (firstTry or (not lockAcquired and exitOnlyOnLock))
 	{
+		firstTry = false;
+
 		std::lock_guard<std::recursive_mutex> lock(m_mtxInternalData);
 		if (!m_internalDataLocked)
 		{
@@ -5694,6 +5698,9 @@ bool Quadrant::lockInternalData(bool strongLock)
 				lockAcquired = true;
 			}
 		}
+
+		if (not lockAcquired and exitOnlyOnLock)
+			Sleep(1);
 	}
 
 	return lockAcquired;
@@ -6012,6 +6019,11 @@ godot::Vector2i Quadrant::quadrantPosInGrid(QuadrantTypeInGrid& type)
 		type = QuadrantTypeInGrid::Inner;
 
 	return quadrantPosInGrid;
+}
+
+void Quadrant::populateHeightmap(TheWorld_Utils::HeightMap& heightMap)
+{
+	heightMap.init(getFloat32HeightsBuffer(), getPos().getNumVerticesPerSize());
 }
 
 void Quadrant::getHeightmapCorner(std::chrono::system_clock::time_point& lastBorderRefreshTs, float& heightmapCorner, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir)

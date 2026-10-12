@@ -4301,49 +4301,51 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	// TODO: which of next steps are already contained in managePostHeightsUpdateOperations?
 	quadTreeSel->managePostHeightsUpdateOperations(true);
 	
-	// 7. prepare new heights for collider (PackedFloat32Array)
-	{
-#ifdef REAL_T_IS_DOUBLE
-		PackedFloat64Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
-		heightsForCollider.resize((int)numVertices);
-		float* f = (float*)heights32Buffer.ptr();
-		for (int idx = 0; idx < numVertices; idx++)
-		{
-			heightsForCollider.set(idx, (real_t)*f);
-			f++;
-		}
-#else
-		PackedFloat32Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
-		heightsForCollider.resize((int)numVertices);
-		memcpy((char*)heightsForCollider.ptrw(), heights32Buffer.ptr(), heights32Buffer.size());
-#endif
-	}
-
-	// 8. calc new quadrant AABB for collider
-	Vector3 startPosition(lowerXGridVertex, terrainEdit->minHeight, lowerZGridVertex);
-	Vector3 endPosition(startPosition.x + sizeInWU, terrainEdit->maxHeight, startPosition.z + sizeInWU);
-	Vector3 size = endPosition - startPosition;
-	quadTreeSel->getQuadrant()->getGlobalCoordAABB().set_position(startPosition);
-	quadTreeSel->getQuadrant()->getGlobalCoordAABB().set_size(size);
-
-	
-	// 9. notify all chunk of the quadrant that heights have been changed (invalidates all cached chunk and quad AABB)
-	//Chunk::HeightsChangedChunkAction action(m_viewer->is_visible_in_tree());
-	Chunk::TerrainHeightsChangedChunkAction action;
-	m_viewer->m_refreshRequired = true;
-	quadTreeSel->ForAllChunk(action, QuadType::NotSet);
-
-	// 10. update quadrant flags
-	//quadTreeSel->getQuadrant()->setEmpty(false);
-	quadTreeSel->getQuadrant()->sendColorsToShader(true);
-	quadTreeSel->materialParamsNeedReset(true);
-	quadTreeSel->colliderNeedReset(true, QuadType::NotSet);
-	quadTreeSel->getQuadrant()->northQuadrantData().initialized(false);
-	quadTreeSel->getQuadrant()->southQuadrantData().initialized(false);
-	quadTreeSel->getQuadrant()->westQuadrantData().initialized(false);
-	quadTreeSel->getQuadrant()->eastQuadrantData().initialized(false);
-	quadTreeSel->getQuadrant()->northWestQuadrantData().initialized(false);
-	quadTreeSel->getQuadrant()->southEastQuadrantData().initialized(false);
+// ******************
+//	// 7. prepare new heights for collider (PackedFloat32Array)
+//	{
+//#ifdef REAL_T_IS_DOUBLE
+//		PackedFloat64Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
+//		heightsForCollider.resize((int)numVertices);
+//		float* f = (float*)heights32Buffer.ptr();
+//		for (int idx = 0; idx < numVertices; idx++)
+//		{
+//			heightsForCollider.set(idx, (real_t)*f);
+//			f++;
+//		}
+//#else
+//		PackedFloat32Array& heightsForCollider = quadTreeSel->getQuadrant()->getHeightsForCollider();
+//		heightsForCollider.resize((int)numVertices);
+//		memcpy((char*)heightsForCollider.ptrw(), heights32Buffer.ptr(), heights32Buffer.size());
+//#endif
+//	}
+//
+//	// 8. calc new quadrant AABB for collider
+//	Vector3 startPosition(lowerXGridVertex, terrainEdit->minHeight, lowerZGridVertex);
+//	Vector3 endPosition(startPosition.x + sizeInWU, terrainEdit->maxHeight, startPosition.z + sizeInWU);
+//	Vector3 size = endPosition - startPosition;
+//	quadTreeSel->getQuadrant()->getGlobalCoordAABB().set_position(startPosition);
+//	quadTreeSel->getQuadrant()->getGlobalCoordAABB().set_size(size);
+//
+//	
+//	// 9. notify all chunk of the quadrant that heights have been changed (invalidates all cached chunk and quad AABB)
+//	//Chunk::HeightsChangedChunkAction action(m_viewer->is_visible_in_tree());
+//	Chunk::TerrainHeightsChangedChunkAction action;
+//	m_viewer->m_refreshRequired = true;
+//	quadTreeSel->ForAllChunk(action, QuadType::NotSet);
+//
+//	// 10. update quadrant flags
+//	//quadTreeSel->getQuadrant()->setEmpty(false);
+//	quadTreeSel->getQuadrant()->sendColorsToShader(true);
+//	quadTreeSel->materialParamsNeedReset(true);
+//	quadTreeSel->colliderNeedReset(true, QuadType::NotSet);
+//	quadTreeSel->getQuadrant()->northQuadrantData().initialized(false);
+//	quadTreeSel->getQuadrant()->southQuadrantData().initialized(false);
+//	quadTreeSel->getQuadrant()->westQuadrantData().initialized(false);
+//	quadTreeSel->getQuadrant()->eastQuadrantData().initialized(false);
+//	quadTreeSel->getQuadrant()->northWestQuadrantData().initialized(false);
+//	quadTreeSel->getQuadrant()->southEastQuadrantData().initialized(false);
+// ******************
 
 	// 12. set texture according to editor
 	//strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
@@ -4520,6 +4522,32 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	{
 		map->removeEditedMapQuadrantOverride(quadrantSelPos);
 	}
+
+	/*
+	* DEBUG: for testing purpose only, to be removed
+	*/
+	{
+		bool lockAcquired = quadTreeSel->getQuadrant()->lockInternalData(true, true);
+
+		TheWorld_Utils::HeightMap heightMap;
+		quadTreeSel->getQuadrant()->populateHeightmap(heightMap);
+		
+		TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
+		TheWorld_Utils::QuadrantPos quadrantSelPos = quadTreeSel->getQuadrant()->getPos();
+		TheWorld_Utils::Level coastalLevel(quadrantSelPos, THEWORLD_SEA_LEVEL);
+		coastalLevel.generateTracks(heightMap);
+		
+		TheWorld_Utils::MemoryBuffer levelBuffer;
+		size_t offset = -1;		// to append to the end of the buffer
+		coastalLevel.serializeAndTruncate(levelBuffer, offset);
+
+		quadTreeSel->getQuadrant()->getNamedDataBuffer().add(levelBuffer, THEWORLD_SEA_LEVEL_TRACK_NAME);
+
+		quadTreeSel->getQuadrant()->unlockInternalData();
+	}
+	/*
+	* DEBUG: for testing purpose only, to be removed
+	*/
 
 	// final actions
 	strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_lowElevationTexName->get_text().utf8().get_data());

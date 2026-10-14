@@ -4524,7 +4524,7 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	}
 
 	/*
-	* DEBUG: for testing purpose only, to be removed
+	* DEBUG unit test: for testing purpose only, to be removed
 	*/
 	{
 		bool lockAcquired = quadTreeSel->getQuadrant()->lockInternalData(true, true);
@@ -4534,19 +4534,20 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		
 		TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
 		TheWorld_Utils::QuadrantPos quadrantSelPos = quadTreeSel->getQuadrant()->getPos();
-		TheWorld_Utils::Level coastalLevel(quadrantSelPos, THEWORLD_SEA_LEVEL);
-		coastalLevel.generateTracks(heightMap);
-		
-		TheWorld_Utils::MemoryBuffer levelBuffer;
-		size_t offset = -1;		// to append to the end of the buffer
-		coastalLevel.serializeAndTruncate(levelBuffer, offset);
 
-		quadTreeSel->getQuadrant()->getNamedDataBuffer().add(levelBuffer, THEWORLD_SEA_LEVEL_TRACK_NAME);
+		TheWorld_Utils::LevelCurves levelCurves;
+		levelCurves.generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
+		levelCurves.saveToBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
+
+		TheWorld_Utils::LevelCurves levelCurvesLoaded;
+		levelCurvesLoaded.loadFromBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
+
+		my_assert(levelCurves == levelCurvesLoaded);
 
 		quadTreeSel->getQuadrant()->unlockInternalData();
 	}
 	/*
-	* DEBUG: for testing purpose only, to be removed
+	* DEBUG unit test: for testing purpose only, to be removed
 	*/
 
 	// final actions

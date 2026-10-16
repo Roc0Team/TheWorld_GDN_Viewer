@@ -374,6 +374,7 @@ namespace godot
 		void editModeSaveAction(void);
 		void editModeUploadAction(void);
 		void editModeStopAction(void);
+		void editModeResetAction(void);
 		void editModeReloadShader(void);
 		void editModeSelectTerrainTypeAction(int32_t index);
 

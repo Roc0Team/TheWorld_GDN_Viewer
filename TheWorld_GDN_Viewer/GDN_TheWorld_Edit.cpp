@@ -68,6 +68,7 @@ void GDN_TheWorld_Edit::_bind_methods()
 	ClassDB::bind_method(D_METHOD("edit_mode_save"), &GDN_TheWorld_Edit::editModeSaveAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_upload"), &GDN_TheWorld_Edit::editModeUploadAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_stop"), &GDN_TheWorld_Edit::editModeStopAction);
+	ClassDB::bind_method(D_METHOD("edit_mode_reset"), &GDN_TheWorld_Edit::editModeResetAction);
 	ClassDB::bind_method(D_METHOD("edit_mode_reload_shader"), &GDN_TheWorld_Edit::editModeReloadShader);
 	ClassDB::bind_method(D_METHOD("edit_mode_sel_terr_type"), &GDN_TheWorld_Edit::editModeSelectTerrainTypeAction);
 	//ClassDB::bind_method(D_METHOD("edit_mode_sel_lookdev"), &GDN_TheWorld_Edit::editModeSelectLookDevAction);
@@ -565,6 +566,8 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		button = createControl<godot::Button>(hBoxContainer, "", "Stop", "pressed", this, "edit_mode_stop");
 		button->set_self_modulate(BUTTON_COLOR);
 		button = createControl<godot::Button>(hBoxContainer, "", "Reload shader", "pressed", this, "edit_mode_reload_shader");
+		button->set_self_modulate(BUTTON_COLOR);
+		button = createControl<godot::Button>(hBoxContainer, "", "Reset", "pressed", this, "edit_mode_reset");
 		button->set_self_modulate(BUTTON_COLOR);
 		//button = createControl<godot::Button>(hBoxContainer, "", "Reset Norm/Tex", "pressed", this, "edit_mode_reset_normals_splatmap");
 		//button->set_self_modulate(BUTTON_COLOR);
@@ -3665,6 +3668,38 @@ void GDN_TheWorld_Edit::editModeStopAction(void)
 		return;
 
 	m_actionStopRequested = true;
+}
+
+void GDN_TheWorld_Edit::editModeResetAction(void)
+{
+	std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
+
+	if (m_actionInProgress)
+		return;
+
+	m_actionInProgress = true;
+	
+	for (auto& [pos, value] : m_innerData->m_mapQuadToSave)
+	{
+		QuadTree* quadTree = m_viewer->getQuadTree(pos, false);
+		if (quadTree != nullptr)
+		{
+			quadTree->setStatus(QuadrantStatus::refreshTerrainDataNeeded);
+		}
+	}
+
+	m_innerData->m_mapQuadToSave.clear();
+
+	m_viewer->deselectMapQuadrant();
+	m_viewer->deselectWorldQuadrant();
+
+	resetPanelsOnQuadrantDeselection();
+
+	GDN_TheWorld_Camera* customCamera = m_viewer->WorldCamera();
+	if (customCamera != nullptr)
+		customCamera->adjustPositionOnTerrainRequired(true, false, true);
+
+	m_actionInProgress = false;
 }
 
 void GDN_TheWorld_Edit::editModeReloadShader(void)

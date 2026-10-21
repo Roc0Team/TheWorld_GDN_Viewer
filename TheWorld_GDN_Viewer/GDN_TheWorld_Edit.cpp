@@ -424,6 +424,7 @@ void GDN_TheWorld_Edit::setEditingMapMouseShape(bool b)
 
 void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 {
+	
 	m_innerData = std::make_unique<InnerData>();
 
 	m_viewer = viewer;
@@ -2235,6 +2236,14 @@ void GDN_TheWorld_Edit::_ready(void)
 	//Cannot find Globals pointer as current node is not yet in the scene
 	//godot::UtilityFunctions::print("GDN_TheWorld_Edit::_ready");
 
+	{
+		m_overlay = memnew(GDN_TheWorld_Edit::Overlay);
+		//m_viewer->add_child(m_overlay);
+		this->add_child(m_overlay);			// For position purposes, Overlay can be indifferently child of editor or viewer as they are both child of the anchor which as to be a parent of the viever: editor and viewer are actually brothers
+		m_overlay->set_visible(true);
+		m_overlay->init(this, m_viewer);
+	}
+
 	m_ready = true;
 }
 
@@ -2547,6 +2556,31 @@ void GDN_TheWorld_Edit::_process(double _delta)
 
 	QuadTree* quadTreeSel = nullptr;
 	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
+
+	/*
+	* DEBUG unit test: for testing purpose only, to be removed
+	*/
+	if (quadTreeSel != nullptr and m_viewer->worldMode())
+	{
+		bool locked = quadTreeSel->getQuadrant()->lockInternalData(true);
+		if (locked)
+		{
+			for (auto& [height, levelCurve] : quadTreeSel->getQuadrant()->getLevelCurvesManager().getLevelCurves())
+			{
+				for (auto& track : levelCurve.getTracks())
+				{
+					if (not track.isEmpty())
+					{
+						//curve->setVisible(false);
+					}
+				}
+			}
+			quadTreeSel->getQuadrant()->unlockInternalData();
+		}
+	}
+	/*
+	* DEBUG unit test: for testing purpose only, to be removed
+	*/
 
 	//if (m_innerData->m_mainScrolledVBoxContainer != nullptr)
 	//{
@@ -4566,18 +4600,16 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 		TheWorld_Utils::HeightMap heightMap;
 		quadTreeSel->getQuadrant()->populateHeightmap(heightMap);
-		
-		TheWorld_Utils::TerrainEdit* terrainEdit = quadTreeSel->getQuadrant()->getTerrainEdit();
 		TheWorld_Utils::QuadrantPos quadrantSelPos = quadTreeSel->getQuadrant()->getPos();
+		quadTreeSel->getQuadrant()->getLevelCurvesManager().generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
+		m_overlay->addQuadrantOverlayAction(quadrantSelPos, Overlay::QuadrantOverlayAction::refreshAll);
 
-		TheWorld_Utils::LevelCurves levelCurves;
-		levelCurves.generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
-		levelCurves.saveToBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
-
-		TheWorld_Utils::LevelCurves levelCurvesLoaded;
-		levelCurvesLoaded.loadFromBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
-
-		my_assert(levelCurves == levelCurvesLoaded);
+		//TheWorld_Utils::LevelCurvesManager levelCurves;
+		//levelCurves.generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
+		//levelCurves.saveToBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
+		//TheWorld_Utils::LevelCurvesManager levelCurvesLoaded;
+		//levelCurvesLoaded.loadFromBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
+		//my_assert(levelCurves == levelCurvesLoaded);
 
 		quadTreeSel->getQuadrant()->unlockInternalData();
 	}
@@ -5167,6 +5199,37 @@ bool GDN_TheWorld_Edit::uploadToServerInProgress(void) const
 		return false;
 }
 
+
+void GDN_TheWorld_Edit::worldQuadrantSelected(const TheWorld_Utils::QuadrantPos& pos)
+{
+	QuadTree* quadTreeSel = m_viewer->getQuadTree(pos, false);
+	if (quadTreeSel != nullptr)
+	{
+		bool lockAcquired = quadTreeSel->getQuadrant()->lockInternalData(false, true);
+			
+		if (not quadTreeSel->getQuadrant()->getLevelCurvesManager().isValidLevelCurve(THEWORLD_SEA_LEVEL))
+		{
+			TheWorld_Utils::HeightMap heightMap;
+			quadTreeSel->getQuadrant()->populateHeightmap(heightMap);
+			TheWorld_Utils::QuadrantPos quadrantSelPos = quadTreeSel->getQuadrant()->getPos();
+			quadTreeSel->getQuadrant()->getLevelCurvesManager().generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
+		}
+			
+		m_overlay->refreshQuadrantOverlay(quadTreeSel, GDN_TheWorld_Edit::Overlay::QuadrantOverlayAction::refreshLevelCurves);
+
+		quadTreeSel->getQuadrant()->unlockInternalData();
+	}
+}
+
+void GDN_TheWorld_Edit::worldQuadrantDeselected(const TheWorld_Utils::QuadrantPos& pos)
+{
+	QuadTree* quadTreeSel = m_viewer->getQuadTree(pos, false);
+	if (quadTreeSel != nullptr)
+	{
+		m_overlay->clearQuadrantOverlay(quadTreeSel, GDN_TheWorld_Edit::Overlay::QuadrantOverlayAction::clearLevelCurves);
+	}
+}
+
 void GDN_TheWorld_Edit::blendExecution(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder,
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder,
 	std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> southPosLockHolder,
@@ -5410,6 +5473,7 @@ void GDN_TheWorld_Edit::manageSaveAndUploadAfterBlending(Quadrant* quadrant)
 		quadrant->saveQuadrantToDiskCache2(writtenMeshId, true, false);
 		removeQuadToSave(quadrantPos);
 		quadrant->getTerrainEdit()->needUploadToServer(false);
+		//quadrant->preSaveNamedDataBuffer();		// useless because saveQuadrantToDiskCache2 already calls it
 		std::string buffer;
 		quadrant->getQuadrantBufferForCache(buffer);
 		m_viewer->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), quadrantPos.getLowerXGridVertex(), quadrantPos.getLowerZGridVertex(), quadrantPos.getNumVerticesPerSize(), quadrantPos.getGridStepInWU(), quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), true);
@@ -5997,4 +6061,170 @@ void GDN_TheWorld_Edit::setMessage(godot::String text, bool add)
 		//m_message->set_text(text);
 
 	m_lastMessageChanged = true;
+}
+
+void GDN_TheWorld_Edit::Overlay::refreshQuadrantOverlay(QuadTree* quadTree, enum class QuadrantOverlayAction quadrantOverlayAction)
+{
+	if (quadrantOverlayAction == QuadrantOverlayAction::refreshAll or quadrantOverlayAction == QuadrantOverlayAction::refreshLevelCurves)
+	{
+		for (auto& [height, quadrantLevelCurve] : quadTree->getQuadrant()->getLevelCurvesManager().getLevelCurves())
+		{
+			// get the level curve from the overlay for the same height and timestamp, if it exists and timestamp are the same, otherwise create a new one
+			Overlay::QuadrantOverlay::LevelCurve* overlayLevelCurve = getQuadrantOverlay(quadTree->getQuadrant()->getPos())->getLevelCurve(height, quadrantLevelCurve.timestamp());
+
+			if (overlayLevelCurve->isEmpty())
+			{
+				for (size_t quadrantTrackIdx = 0; quadrantTrackIdx < quadrantLevelCurve.getTracks().size(); ++quadrantTrackIdx)
+				{
+					auto& quadrantTrack = quadrantLevelCurve.getTracks()[quadrantTrackIdx];
+
+					{
+						Overlay::QuadrantOverlay::LevelCurve::Track* overlayTrack = overlayLevelCurve->getTrack(quadrantTrackIdx);
+						godot::Vector<godot::Vector3> points;
+						for (auto& square : quadrantTrack.getSquares())
+						{
+							godot::Vector3 trackPoint;
+							square.vertexPositionLocalToHeightmap(trackPoint.x, trackPoint.y, trackPoint.z);
+							trackPoint.y = height;	// override y with the level curve height
+							points.push_back(trackPoint);
+						}
+						overlayTrack->setPoints(points, quadrantTrackIdx);
+					}
+				}
+			}
+		}
+	}
+}
+
+void GDN_TheWorld_Edit::Overlay::clearQuadrantOverlay(QuadTree* quadTree, enum class QuadrantOverlayAction quadrantOverlayAction)
+{
+	if (quadrantOverlayAction == QuadrantOverlayAction::clearAll or quadrantOverlayAction == QuadrantOverlayAction::clearLevelCurves)
+	{
+		for (auto& [height, overlayLevelCurve] : getQuadrantOverlay(quadTree->getQuadrant()->getPos())->getLevelCurves())
+		{
+			overlayLevelCurve->clear();
+		}
+	}
+}
+
+void godot::GDN_TheWorld_Edit::Overlay::_process(double _delta)
+{
+	if (m_edit == nullptr)
+		return;
+
+	if (m_viewer == nullptr)
+		return;
+
+	if (not m_edit->initialized())
+		return;
+
+	if (not m_viewer->editMode())
+		return;
+
+	std::time_t currentTime = TheWorld_Utils::current_utc_time_t();
+	if (currentTime - m_lastQuadrantOverlayMapCheck > 5)
+	{
+		m_lastQuadrantOverlayMapCheck = currentTime;
+
+		std::vector<TheWorld_Utils::QuadrantPos> quadrantOverlaysToErase;
+		for (auto& [pos, quadrantOverlay] : m_quadrantOverlays)
+		{
+			QuadTree* quadTree = m_viewer->getQuadTree(pos);
+			if (quadTree == nullptr)
+			{
+				// Handle the case where the QuadTree is not found in the viewer's data structure
+				quadrantOverlaysToErase.push_back(pos);
+			}
+			else if (quadTree->isVisible() != quadrantOverlay->is_visible())
+				quadrantOverlay->set_visible(quadTree->isVisible());
+		}
+
+		for (auto& pos : quadrantOverlaysToErase)
+		{
+			m_quadrantOverlays.erase(pos);
+		}
+	}
+
+	m_mtxQuadrantOveralyActions.lock();
+	while (not m_quadrantOverlaysToRefresh.empty())
+	{
+		TheWorld_Utils::QuadrantPos posToRefresh = m_quadrantOverlaysToRefresh.begin()->first;
+		QuadrantOverlayAction action = m_quadrantOverlaysToRefresh.begin()->second;
+		m_quadrantOverlaysToRefresh.erase(m_quadrantOverlaysToRefresh.begin());
+		
+		m_mtxQuadrantOveralyActions.unlock();
+		
+		QuadTree* quadTree = m_viewer->getQuadTree(posToRefresh);
+		if (quadTree != nullptr)
+		{
+			refreshQuadrantOverlay(quadTree, action);
+		}
+
+		m_mtxQuadrantOveralyActions.lock();
+	}
+	m_mtxQuadrantOveralyActions.unlock();
+
+
+	///*
+	//* DEBUG unit test: for testing purpose only, to be removed
+	//*/
+	//QuadTree* quadTreeSel = nullptr;
+	//TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
+	//QuadTree* quadTreeOverlay = quadTreeSel;
+
+	//if (quadTreeOverlay != nullptr and m_viewer->worldMode())
+	//{
+	//	bool locked = quadTreeOverlay->getQuadrant()->lockInternalData(true);
+	//	if (locked)
+	//	{
+	//		for (auto& [height, quadrantLevelCurve] : quadTreeOverlay->getQuadrant()->getLevelCurvesManager().getLevelCurves())
+	//		{
+	//			// get the level curve from the overlay for the same height and timestamp, if it exists and timestamp are the same, otherwise create a new one
+	//			Overlay::QuadrantOverlay::LevelCurve* overlayLevelCurve = getQuadrantOverlay(quadTreeOverlay->getQuadrant()->getPos())->getLevelCurve(height, quadrantLevelCurve.timestamp());
+	//			
+	//			if (overlayLevelCurve->isEmpty())
+	//			{
+	//				for (size_t quadrantTrackIdx = 0; quadrantTrackIdx < quadrantLevelCurve.getTracks().size(); ++quadrantTrackIdx)
+	//				{
+	//					auto& quadrantTrack = quadrantLevelCurve.getTracks()[quadrantTrackIdx];
+
+	//					{
+	//						Overlay::QuadrantOverlay::LevelCurve::Track* overlayTrack = overlayLevelCurve->getTrack(quadrantTrackIdx);
+	//						godot::Vector<godot::Vector3> points;
+	//						for (auto& square : quadrantTrack.getSquares())
+	//						{
+	//							godot::Vector3 trackPoint;
+	//							square.vertexPositionLocalToHeightmap(trackPoint.x, trackPoint.y, trackPoint.z);
+	//							trackPoint.y = height;	// override y with the level curve height
+	//							points.push_back(trackPoint);
+	//						}
+	//						overlayTrack->setPoints(points);
+	//					}
+	//				}
+	//			}
+
+	//			//for (size_t quadrantTrackIdx = 0; quadrantTrackIdx < quadrantLevelCurve.getTracks().size(); ++quadrantTrackIdx)
+	//			//{
+	//			//	auto& quadrantTrack = quadrantLevelCurve.getTracks()[quadrantTrackIdx];
+
+	//			//	{
+	//			//		if (not quadrantTrack.isEmpty())
+	//			//		{
+	//			//			Overlay::QuadrantOverlay::LevelCurve::Track* overlayTrack = overlayLevelCurve->getTrack(quadrantTrackIdx);
+	//			//			int currentPointToDrawIndex = overlayTrack->getlastPointIndexDrawed() + 1;
+	//			//			if (currentPointToDrawIndex >= quadrantTrack.size())
+	//			//				currentPointToDrawIndex = 0;
+	//			//			godot::Vector3 trackPoint;
+	//			//			quadrantTrack.getSquare(currentPointToDrawIndex).vertexPositionLocalToHeightmap(trackPoint.x, trackPoint.y, trackPoint.z);
+	//			//			overlayTrack->addPoint(trackPoint, currentPointToDrawIndex, quadrantTrackIdx);
+	//			//		}
+	//			//	}
+	//			//}
+	//		}
+	//		quadTreeSel->getQuadrant()->unlockInternalData();
+	//	}
+	//}
+	///*
+	//* DEBUG unit test: for testing purpose only, to be removed
+	//*/
 }

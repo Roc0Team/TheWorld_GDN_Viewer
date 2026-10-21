@@ -8,11 +8,13 @@
 #include <godot_cpp/classes/cylinder_mesh.hpp>
 #include <godot_cpp/classes/label.hpp>
 #include <godot_cpp/classes/label3d.hpp>
-#include <godot_cpp/classes/label.hpp>
 #include <godot_cpp/classes/camera3d.hpp>
 #include <godot_cpp/classes/sub_viewport.hpp>
 #include <godot_cpp/classes/viewport_texture.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
+#include <godot_cpp/classes/array_mesh.hpp>
+#include <godot_cpp/classes/orm_material3d.hpp>
+#include <godot_cpp/templates/vector.hpp>
 #pragma warning(pop)
 
 #include <map>
@@ -177,4 +179,130 @@ namespace godot
 		std::map<int32_t, std::unique_ptr<Drawing>> m_drawings;
 		godot::Camera3D* m_camera = nullptr;
 	};
-}
+
+	class SegmentLine3D : public godot::MeshInstance3D
+	{
+		GDCLASS(SegmentLine3D, MeshInstance3D);
+
+	private:
+		godot::Ref<godot::ImmediateMesh> imm_mesh;
+		godot::Ref<godot::ORMMaterial3D> material;
+		godot::Vector<godot::Vector3> points;
+
+	protected:
+		static void _bind_methods();
+
+	public:
+		SegmentLine3D();
+		~SegmentLine3D();
+
+		void _ready() override;
+
+		// Metodi per gestire la sequenza di segmenti
+		void set_points(const godot::Vector<godot::Vector3>& p_points);
+		void add_point(const godot::Vector3& p_point);
+		void clear_points();
+		void redraw();
+	};
+
+	// WARNING: This class is a work in progress and may not be fully functional yet. Use with caution.
+	class DynamicTrail3D : public godot::MeshInstance3D
+	{
+		GDCLASS(DynamicTrail3D, godot::MeshInstance3D);
+
+	private:
+		godot::Ref<godot::ArrayMesh> array_mesh;
+		godot::Ref<godot::StandardMaterial3D> material;
+		godot::Vector<godot::Vector3> points;
+
+		float thickness = 0.2f; // Spessore configurabile
+
+	protected:
+		static void _bind_methods();
+
+	public:
+		DynamicTrail3D();
+		~DynamicTrail3D();
+
+		void _ready() override;
+		void _process(double delta) override;
+
+		// API per manipolare i punti ad ogni frame
+		void add_segment_point(const godot::Vector3& p_point);
+		void clear_segments();
+
+		// Configurazioni
+		void set_thickness(float p_thickness);
+		float get_thickness() const;
+
+		void rebuild_mesh();
+	};
+
+	// WARNING: This class is a work in progress and may not be fully functional yet. Use with caution.
+	class DynamicTube3D : public MeshInstance3D
+	{
+		GDCLASS(DynamicTube3D, MeshInstance3D);
+
+	public:
+		enum TrailMode
+		{
+			MODE_INFINITE = 0, // I segmenti rimangono per sempre
+			MODE_TIMED = 1     // I segmenti svaniscono dopo un timeout
+		};
+
+	private:
+		struct TrailPoint
+		{
+			Vector3 position;
+			double time_created;
+		};
+
+		Ref<ArrayMesh> array_mesh;
+		Ref<StandardMaterial3D> material;
+
+		Vector<TrailPoint> points; // Usiamo la struct per tracciare il tempo
+
+		TrailMode mode = MODE_TIMED;
+		float thickness = 0.2f;
+		int tube_sides = 8;
+		float lifetime = 2.0f; // Tempo di vita dei segmenti in secondi (usato in MODE_TIMED)
+
+		double time_accumulator = 0.0;
+
+	protected:
+		static void _bind_methods();
+
+	public:
+		DynamicTube3D();
+		~DynamicTube3D();
+
+		void _ready() override;
+		void _process(double delta) override;
+
+		// API per aggiungere punti
+		void add_segment_point(const Vector3& p_point);
+		void clear_segments();
+
+		// Configurazione Proprietà
+		void set_mode(TrailMode p_mode);
+		TrailMode get_mode() const;
+
+		void set_thickness(float p_thickness);
+		float get_thickness() const;
+
+		void set_tube_sides(int p_sides);
+		int get_tube_sides() const;
+
+		void set_lifetime(float p_lifetime);
+		float get_lifetime() const;
+
+		void set_color(const Color& p_color)
+		{
+			material->set_albedo(p_color);
+		}
+
+		void rebuild_mesh();
+	};
+}	// namespace godot
+
+VARIANT_ENUM_CAST(DynamicTube3D::TrailMode); // Permette l'uso dell'enum nell'Isp

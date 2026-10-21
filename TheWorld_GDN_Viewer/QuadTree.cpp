@@ -5452,6 +5452,7 @@ void Quadrant::process_mapModder(double _delta, bool worldQuadrant)
 				editModeUIControl->removeQuadToSave(m_quadrantPos);
 				terrainEdit->needUploadToServer(false);
 				std::string buffer;
+				//quadrant->preSaveNamedDataBuffer();		// useless because saveQuadrantToDiskCache2 already calls it
 				getQuadrantBufferForCache(buffer);
 				m_viewer->Globals()->Client()->MapManagerUploadQuadrantBuffer(m_viewer->isInEditor(), m_quadrantPos.getLowerXGridVertex(), m_quadrantPos.getLowerZGridVertex(), m_quadrantPos.getNumVerticesPerSize(), m_quadrantPos.getGridStepInWU(), m_quadrantPos.getLevel(), buffer, m_viewer->getNumQuadrantsPerSize(), m_viewer->getQuadrantGlobalSize(), m_viewer->getQuadrantWorldSize(), false);
 				unlockInternalData();
@@ -5588,6 +5589,8 @@ bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, st
 			setMeshId(m_cache.getMeshId());
 		}
 
+		preSaveNamedDataBuffer();
+
 		TheWorld_Utils::MeshCacheBuffer::CacheQuadrantData cacheQuadrantData;
 		cacheQuadrantData.meshId = m_cache.getMeshId();
 		TheWorld_Utils::TerrainEdit* terrainEdit = getTerrainEdit();
@@ -5617,6 +5620,17 @@ bool Quadrant::saveQuadrantToDiskCache2(TheWorld_Utils::MemoryBuffer& buffer, st
 	else
 		return false;
 }
+
+TheWorld_Utils::LevelCurvesManager& Quadrant::getLevelCurvesManager(void)
+{
+	return m_levelCurvesManager;
+}
+
+void Quadrant::consolidateLevelCurvesInNamedDataBuffer(void)
+{
+	m_levelCurvesManager.saveToBuffer(getNamedDataBuffer());
+}
+
 
 void Quadrant::resetGlobalmapBuffer(std::string actor)
 {
@@ -6023,7 +6037,7 @@ godot::Vector2i Quadrant::quadrantPosInGrid(QuadrantTypeInGrid& type)
 
 void Quadrant::populateHeightmap(TheWorld_Utils::HeightMap& heightMap)
 {
-	heightMap.init(getFloat32HeightsBuffer(), getPos().getNumVerticesPerSize());
+	heightMap.init(getFloat32HeightsBuffer(), getPos().getNumVerticesPerSize(), getPos().getGridStepInWU());
 }
 
 void Quadrant::getHeightmapCorner(std::chrono::system_clock::time_point& lastBorderRefreshTs, float& heightmapCorner, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir)
@@ -6980,6 +6994,16 @@ void Quadrant::heightmapChanged(void)
 //	}
 //}
 
+void Quadrant::postSetNamedDataBuffer(void)
+{
+	m_levelCurvesManager.loadFromBuffer(getNamedDataBuffer());
+}
+
+void Quadrant::preSaveNamedDataBuffer(void)
+{
+	consolidateLevelCurvesInNamedDataBuffer();
+}
+
 void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache)
 {
 	GDN_TheWorld_Globals* globals = m_viewer->Globals();
@@ -7051,6 +7075,8 @@ void Quadrant::refreshGridVerticesFromServer(std::string& bufferFromServer, std:
 		}
 	}
 	
+	postSetNamedDataBuffer();
+
 	//assert(!m_float32HeightsBuffer.empty());
 	if (m_float32HeightsBuffer.empty())
 	{

@@ -37,6 +37,8 @@ void initialize_tw_main_module(ModuleInitializationLevel p_level)
     ClassDB::register_class<godot::GDN_TheWorld_Camera>();
     ClassDB::register_class<godot::GDN_TheWorld_Quadrant>();
     ClassDB::register_class<godot::GDN_TheWorld_Edit>();
+    ClassDB::register_class<godot::GDN_TheWorld_Edit::Overlay>();
+    ClassDB::register_class<godot::GDN_TheWorld_Edit::Overlay::QuadrantOverlay>();
     ClassDB::register_class<godot::GDN_TheWorld_MapModder>();
     ClassDB::register_class<godot::GDN_TheWorld_Drawer>();
     ClassDB::register_class<godot::GDN_TheWorld_Gizmo3d>();
@@ -49,6 +51,9 @@ void initialize_tw_main_module(ModuleInitializationLevel p_level)
     ClassDB::register_class<godot::GDN_TheWorld_Map::MapTextureRect::MapQuadrantColorOverride>();
     ClassDB::register_class<godot::GDN_TheWorld_Map::MapTextureRect::MapQuadrantTextureOverride>();
     ClassDB::register_class<godot::GDN_TheWorld_Map::MapTextureRect::MapTextureColorOverlay>();
+    ClassDB::register_class<godot::SegmentLine3D>();
+    ClassDB::register_class<godot::DynamicTrail3D>();
+    ClassDB::register_class<godot::DynamicTube3D>();
     //ClassDB::register_class<godot::GDN_TheWorld_WorldViewportContainer>();
     //ClassDB::register_class<godot::GDN_TheWorld_WorldViewport>();
 }

@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 namespace TheWorld_Viewer_Utils
 {
 	
-std::string Utils::ReplaceString(std::string subject, const std::string& search, const std::string& replace)
+	std::string Utils::ReplaceString(std::string subject, const std::string& search, const std::string& replace)
 	{
 		size_t pos = 0;
 		while ((pos = subject.find(search, pos)) != std::string::npos)
@@ -47,5 +47,5 @@ std::string Utils::ReplaceString(std::string subject, const std::string& search,
 			guid->Data4[6], guid->Data4[7]);
 		return guid_string;
 	}
-}
+}	//namespace TheWorld_Viewer_Utils
 

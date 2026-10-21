@@ -7230,6 +7230,7 @@ void GDN_TheWorld_Viewer::_doSelectWorldQuadrant(TheWorld_Utils::QuadrantPos& po
 		{
 			// in world mode we use current world terrain edit values
 			quadTreeSel->getQuadrant()->getTerrainEdit();
+			editModeUIControl->worldQuadrantSelected(m_selectedWorldQuadrantPos);
 		}
 		else
 		{
@@ -7312,6 +7313,7 @@ void GDN_TheWorld_Viewer::doDeselectWorldQuadrant(void)
 		}
 	}
 
+	TheWorld_Utils::QuadrantPos previouslySeleectedWorldQuadrantPos = m_selectedWorldQuadrantPos;
 	m_selectedWorldQuadrantPos.reset();
 	
 	GDN_TheWorld_Edit* editModeUIControl = EditModeUIControl();
@@ -7327,6 +7329,7 @@ void GDN_TheWorld_Viewer::doDeselectWorldQuadrant(void)
 		editModeUIControl->setMouseQuadSelPosLabelText("");
 		//editModeUIControl->setEmptyTerrainEditValues();
 		//editModeUIControl->setElapsed(0, false);
+		editModeUIControl->worldQuadrantDeselected(previouslySeleectedWorldQuadrantPos);
 	}
 }
 

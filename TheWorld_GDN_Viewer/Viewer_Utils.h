@@ -24,6 +24,7 @@
 #include <exception>
 #include <plog/Log.h>
 #include "gsl\assert"
+
 //#include <Eigen/Dense>
 
 #define Vector3One godot::Vector3(1, 1, 1)
@@ -593,7 +594,8 @@ namespace TheWorld_Viewer_Utils
 		else
 			return false;
 	}*/
-}
+
+}	// namespace TheWorld_Viewer_Utils
 
 static bool equal(const float f0, const float f1, const float epsilon = 0.00001)
 {

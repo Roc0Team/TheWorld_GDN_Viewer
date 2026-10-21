@@ -35,6 +35,308 @@ namespace godot
 
 	public:
 
+		class Overlay : public godot::Node3D
+		{
+			GDCLASS(Overlay, Node3D)
+
+		public:
+			class QuadrantOverlay : public godot::Node3D
+			{
+				GDCLASS(QuadrantOverlay, Node3D)
+			
+			public:
+			
+				class LevelCurve
+				{
+				public:
+					class Track
+					{
+					public:
+						Track(QuadrantOverlay* quadrantOverlay) : m_quadrantOverlay(quadrantOverlay) {}
+						~Track()
+						{
+							if (m_segmentLine != nullptr)
+							{
+								godot::Node* parent = m_segmentLine->get_parent();
+								if (parent != nullptr)
+									parent->remove_child(m_segmentLine);
+								m_segmentLine->queue_free();
+								m_segmentLine = nullptr;
+							}
+							if (m_dynamicTube != nullptr)
+							{
+								godot::Node* parent = m_dynamicTube->get_parent();
+								if (parent != nullptr)
+									parent->remove_child(m_dynamicTube);
+								m_dynamicTube->queue_free();
+								m_dynamicTube = nullptr;
+							}
+						}
+						
+						int getlastPointIndexDrawed() const
+						{
+							return m_lastPointIndexDrawed;
+						}
+
+						void addPoint(const godot::Vector3& point, int pointIndex, size_t trackIndex)
+						{
+							// SegmentLine3D
+							//if (pointIndex == 0)
+							//	getSegmentLine()->clear_points();
+							//getSegmentLine()->add_point(point);
+
+							// DynamicTube3D
+							if (pointIndex == 0)
+								getDynamicTube()->clear_segments();
+							getDynamicTube()->add_segment_point(point);
+
+							m_lastPointIndexDrawed = pointIndex;
+						}
+						
+						void setPoints(const godot::Vector<godot::Vector3>& points, size_t trackIndex)
+						{
+							// SegmentLine3D
+							//getSegmentLine()->set_points(points);
+							
+							// DynamicTube3D
+							getDynamicTube()->clear_segments();
+							for (auto& point : points)
+								getDynamicTube()->add_segment_point(point);
+							getDynamicTube()->rebuild_mesh();
+							if (trackIndex == 0)
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_red);
+							else if (trackIndex == 1)
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_green);
+							else if (trackIndex == 2)
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_blue);
+							else if (trackIndex == 3)
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_pink_bisque);
+							else if (trackIndex == 4)
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_yellow);
+							else if (trackIndex == 5)
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_darksea_green);
+							else
+							{
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_black);
+							}
+						}
+
+					private:
+						SegmentLine3D* getSegmentLine()
+						{
+							if (m_segmentLine == nullptr)
+							{
+								m_segmentLine = memnew(SegmentLine3D);
+								m_quadrantOverlay->add_child(m_segmentLine);
+								m_segmentLine->set_visible(true);
+							}
+							return m_segmentLine;
+						}
+
+						DynamicTube3D* getDynamicTube()
+						{
+							if (m_dynamicTube == nullptr)
+							{
+								m_dynamicTube = memnew(DynamicTube3D);
+								m_quadrantOverlay->add_child(m_dynamicTube);
+								m_dynamicTube->set_visible(true);
+								m_dynamicTube->set_mode(DynamicTube3D::MODE_INFINITE);
+								m_dynamicTube->set_thickness(10.0f);
+								m_dynamicTube->set_tube_sides(16);
+							}
+							return m_dynamicTube;
+						}
+
+					private:
+						QuadrantOverlay* m_quadrantOverlay = nullptr;
+						int m_lastPointIndexDrawed = -1;
+						SegmentLine3D* m_segmentLine = nullptr;
+						DynamicTube3D* m_dynamicTube = nullptr;
+					};
+
+				public:
+					LevelCurve(QuadrantOverlay* quadrantOverlay, std::time_t timestamp) : m_quadrantOverlay(quadrantOverlay), m_timestamp(timestamp) {}
+					~LevelCurve() {}
+
+					Track* getTrack(size_t idx)
+					{
+						if (m_tracks.find(idx) == m_tracks.end())
+						{
+							m_tracks[idx] = std::make_unique<Track>(m_quadrantOverlay);
+						}
+						return m_tracks[idx].get();
+					}
+
+					std::time_t timestamp() const
+					{
+						return m_timestamp;
+					}
+
+					bool isEmpty() const
+					{
+						return m_tracks.empty();
+					}
+
+					void clear()
+					{
+						m_tracks.clear();
+					}
+
+				private:
+					QuadrantOverlay* m_quadrantOverlay = nullptr;
+					std::time_t m_timestamp = 0;
+					std::map<size_t, std::unique_ptr<Track>> m_tracks;
+				};
+			
+			protected:
+				//
+				// Godot Standard Functions
+				//
+				static void _bind_methods() {}
+				//void _notification(int p_what) {}
+
+			public:
+				//
+				// Godot Standard Functions
+				//
+				virtual void _ready(void) override
+				{
+					m_ready = true;
+				}
+				//virtual void _process(double _delta) override {}
+				//virtual void _physics_process(double _delta) override {}
+				//virtual void _input(const Ref<InputEvent>& event) override {}
+				//virtual void _unhandled_input(const Ref<InputEvent>& event) override {}
+
+			public:
+				QuadrantOverlay(void) {}
+				~QuadrantOverlay(void) {}
+				void init(Overlay* overlay)
+				{
+					m_overlay = overlay;
+					m_levelCurves.clear();
+				}
+
+				LevelCurve* getLevelCurve(float height, std::time_t timestamp)
+				{
+					auto levelCurve = m_levelCurves.find(height);
+					if (levelCurve == m_levelCurves.end())
+					{
+						m_levelCurves[height] = std::make_unique<LevelCurve>(this, timestamp);
+					}
+					else
+					{
+						// check if the level curve is outdated
+						if (timestamp > 0 && timestamp != levelCurve->second->timestamp())
+						{
+							// remove the old level curve and create a new one
+							m_levelCurves.erase(levelCurve);
+							m_levelCurves[height] = std::make_unique<LevelCurve>(this, timestamp);
+						}
+					}
+					return m_levelCurves[height].get();
+				}
+
+				std::map<float, std::unique_ptr<LevelCurve>>& getLevelCurves(void)
+				{
+					return m_levelCurves;
+				}
+
+			private:
+				Overlay* m_overlay = nullptr;
+				bool m_ready = false;
+				std::map<float, std::unique_ptr<LevelCurve>> m_levelCurves;
+			};
+
+		protected:
+			//
+			// Godot Standard Functions
+			//
+			static void _bind_methods() {}
+			//void _notification(int p_what) {}
+		
+		public:
+			//
+			// Godot Standard Functions
+			//
+			virtual void _ready(void) override
+			{
+				m_ready = true;
+			}
+			virtual void _process(double _delta) override;
+			//virtual void _physics_process(double _delta) override {};
+			//virtual void _input(const Ref<InputEvent>& event) override {}
+			//virtual void _unhandled_input(const Ref<InputEvent>& event) override {}
+
+			Overlay() {}
+			~Overlay()
+			{
+				deinit();
+			}
+			void init(GDN_TheWorld_Edit* edit, GDN_TheWorld_Viewer* viewer)
+			{
+				m_edit = edit;
+				m_viewer = viewer;
+			}
+			void deinit(void)
+			{
+				for (auto& [pos, quadrantOverlay] : m_quadrantOverlays)
+				{
+					if (quadrantOverlay != nullptr)
+					{
+						godot::Node* parent = quadrantOverlay->get_parent();
+						if (parent != nullptr)
+							parent->remove_child(quadrantOverlay);
+						quadrantOverlay->queue_free();
+					}
+				}
+				m_quadrantOverlays.clear();
+				
+				m_edit = nullptr;
+				m_viewer = nullptr;
+			}
+
+			QuadrantOverlay* getQuadrantOverlay(TheWorld_Utils::QuadrantPos pos)
+			{
+				if (not m_quadrantOverlays.contains(pos))
+				{
+					QuadrantOverlay* newQuadrantOverlay = memnew(QuadrantOverlay);
+					this->add_child(newQuadrantOverlay);
+					newQuadrantOverlay->init(this);
+					newQuadrantOverlay->set_visible(true);
+					newQuadrantOverlay->set_global_position(m_viewer->worldPosToGlobalPos(godot::Vector3(pos.getLowerXGridVertex(), 0.0f, pos.getLowerZGridVertex())));
+					m_quadrantOverlays[pos] = newQuadrantOverlay;
+				}
+				return m_quadrantOverlays[pos];
+			}
+
+			enum class QuadrantOverlayAction
+			{
+				refreshAll = 0,
+				refreshLevelCurves = 1,
+				clearAll = 2,
+				clearLevelCurves = 3,
+			};
+			void refreshQuadrantOverlay(QuadTree* quadTree, enum class QuadrantOverlayAction quadrantOverlayAction);
+			void clearQuadrantOverlay(QuadTree* quadTree, enum class QuadrantOverlayAction quadrantOverlayAction);
+			void addQuadrantOverlayAction(TheWorld_Utils::QuadrantPos pos, enum class QuadrantOverlayAction quadrantOverlayAction)
+			{
+				std::lock_guard<std::recursive_mutex> lock(m_mtxQuadrantOveralyActions);
+				m_quadrantOverlaysToRefresh[pos] = quadrantOverlayAction;
+			}
+
+		private:
+			GDN_TheWorld_Edit* m_edit = nullptr;
+			std::recursive_mutex m_mtxQuadrantOveralyActions;
+			GDN_TheWorld_Viewer* m_viewer = nullptr;
+			bool m_ready = false;
+
+			std::map<TheWorld_Utils::QuadrantPos, QuadrantOverlay*> m_quadrantOverlays;
+			std::time_t m_lastQuadrantOverlayMapCheck = 0;
+
+			std::map<TheWorld_Utils::QuadrantPos, enum class QuadrantOverlayAction> m_quadrantOverlaysToRefresh;
+		};
+
 		class InnerData
 		{
 		public:
@@ -681,7 +983,10 @@ namespace godot
 		}
 
 		bool uploadToServerInProgress(void) const;
-
+		
+		void worldQuadrantSelected(const TheWorld_Utils::QuadrantPos& pos);
+		void worldQuadrantDeselected(const TheWorld_Utils::QuadrantPos& pos);
+		
 	private:
 		void blendExecution(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder,
 			std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> northPosLockHolder,
@@ -725,6 +1030,7 @@ namespace godot
 		bool m_terrainDataLocked = false;
 
 		std::unique_ptr<InnerData> m_innerData;
+		Overlay* m_overlay = nullptr;
 
 		bool m_controlNeedResize;
 		bool m_scrollPanelsNeedResize;

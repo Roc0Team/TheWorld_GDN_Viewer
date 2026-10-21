@@ -310,6 +310,10 @@ namespace godot
 
 		void refreshGridVerticesFromServer(std::string& bufferFromServer, std::string meshIdFromServer, std::string& outMeshIdFromBuffer, bool updateCache);
 
+		void postSetNamedDataBuffer(void);
+		void preSaveNamedDataBuffer(void);
+		void consolidateLevelCurvesInNamedDataBuffer(void);
+
 		void heightmapChanged(void);
 		//void splatmapChanged(void);
 
@@ -397,6 +401,8 @@ namespace godot
 			}
 			return m_namedDataBuffer;
 		}
+
+		TheWorld_Utils::LevelCurvesManager& getLevelCurvesManager(void);
 
 		void resetGlobalmapBuffer(std::string actor);
 
@@ -883,6 +889,8 @@ namespace godot
 		bool m_southSideBlendCheckResult = false;
 		bool m_eastSideBlendCheckResult = false;
 		bool m_westSideBlendCheckResult = false;
+
+		TheWorld_Utils::LevelCurvesManager m_levelCurvesManager;
 	};
 
 	class ShaderTerrainData

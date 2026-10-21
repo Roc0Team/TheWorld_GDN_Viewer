@@ -1,3 +1,4 @@
+* versione Linux: codice multipiattaforma
 * gestire modificatori in modo da poter creare depressioni per collocarvi laghi sopra il livello del mare o depressioni senza acqua sotto il livello del mare
 * generare le informazioni sulle linee di livello (un array di linee di livello) per capire se i livelli di acqua corrispondono a laghi o al mare:
   * un item di un array per ogni linea di livello che comprenda:

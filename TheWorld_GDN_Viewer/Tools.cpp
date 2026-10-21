@@ -5,6 +5,7 @@
 #include "Viewer_Utils.h"
 
 #pragma warning(push, 0)
+#include <godot_cpp/core/math.hpp>
 #include <godot_cpp/classes/label3d.hpp>
 #include <godot_cpp/classes/sphere_mesh.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
@@ -13,6 +14,7 @@
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/color_rect.hpp>
 #include <godot_cpp/classes/viewport_texture.hpp>
+#include <godot_cpp/classes/mesh.hpp>
 #pragma warning(pop)
 
 using namespace godot;
@@ -785,4 +787,401 @@ void GDN_TheWorld_Drawer::removeDrawing(int32_t idx)
 {
 	if (m_drawings.contains(idx))
 		m_drawings.erase(idx);
+}
+
+void SegmentLine3D::_bind_methods()
+{
+	// Registra i metodi se vuoi esporli a GDScript (opzionale)
+	//godot::ClassDB::bind_method(godot::D_METHOD("set_points", "points"), &SegmentLine3D::set_points);
+	//godot::ClassDB::bind_method(godot::D_METHOD("add_point", "point"), &SegmentLine3D::add_point);
+	//godot::ClassDB::bind_method(godot::D_METHOD("clear_points"), &SegmentLine3D::clear_points);
+	//godot::ClassDB::bind_method(godot::D_METHOD("redraw"), &SegmentLine3D::redraw);
+}
+
+SegmentLine3D::SegmentLine3D()
+{
+	// Inizializza la mesh immediata e il materiale
+	imm_mesh.instantiate();
+	material.instantiate();
+
+	// Imposta il materiale in modalità Unshaded e dagli un colore (es. Rosso)
+	material->set_shading_mode(godot::BaseMaterial3D::SHADING_MODE_UNSHADED);
+	material->set_albedo(godot::Color(1.0f, 0.0f, 0.0f));
+}
+
+SegmentLine3D::~SegmentLine3D() {}
+
+void SegmentLine3D::_ready()
+{
+	// Assegna la mesh al nodo MeshInstance3D
+	set_mesh(imm_mesh);
+}
+
+void SegmentLine3D::set_points(const godot::Vector<godot::Vector3>& p_points)
+{
+	points = p_points;
+	redraw();
+}
+
+void SegmentLine3D::add_point(const godot::Vector3& p_point)
+{
+	points.push_back(p_point);
+	redraw();
+}
+
+void SegmentLine3D::clear_points()
+{
+	points.clear();
+	imm_mesh->clear_surfaces();
+}
+
+void SegmentLine3D::redraw()
+{
+	// Pulisci la mesh precedente
+	imm_mesh->clear_surfaces();
+
+	if (points.size() < 2)
+	{
+   		return; // Servono almeno due punti per fare un segmento
+	}
+
+	// Inizia a disegnare usando la primitiva LINE_STRIP (sequenza di segmenti collegati)
+	imm_mesh->surface_begin(godot::Mesh::PRIMITIVE_LINE_STRIP, material);
+
+	for (int i = 0; i < points.size(); ++i)
+	{
+   		imm_mesh->surface_add_vertex(points[i]);
+	}
+
+	imm_mesh->surface_end();
+}
+
+void DynamicTrail3D::_bind_methods()
+{
+    //godot::ClassDB::bind_method(godot::D_METHOD("add_segment_point", "point"), &DynamicTrail3D::add_segment_point);
+    //godot::ClassDB::bind_method(godot::D_METHOD("clear_segments"), &DynamicTrail3D::clear_segments);
+
+    //godot::ClassDB::bind_method(godot::D_METHOD("set_thickness", "thickness"), &DynamicTrail3D::set_thickness);
+    //godot::ClassDB::bind_method(godot::D_METHOD("get_thickness"), &DynamicTrail3D::get_thickness);
+
+    //ADD_PROPERTY(godot::PropertyInfo(godot::Variant::FLOAT, "thickness"), "set_thickness", "get_thickness");
+}
+
+DynamicTrail3D::DynamicTrail3D()
+{
+    array_mesh.instantiate();
+    material.instantiate();
+
+    // Configura il materiale di base (puoi esporlo all'Ispettore se preferisci)
+    material->set_cull_mode(godot::BaseMaterial3D::CULL_DISABLED); // Visibile da entrambi i lati
+    material->set_albedo(godot::Color(0.0f, 0.8f, 1.0f));          // Colore Ciano
+}
+
+DynamicTrail3D::~DynamicTrail3D() {}
+
+void DynamicTrail3D::_ready()
+{
+    set_mesh(array_mesh);
+    set_material_override(material);
+}
+
+void DynamicTrail3D::_process(double delta)
+{
+    // Esegui la ricostruzione della mesh ad ogni frame
+    rebuild_mesh();
+}
+
+void DynamicTrail3D::add_segment_point(const godot::Vector3& p_point)
+{
+    points.push_back(p_point);
+}
+
+void DynamicTrail3D::clear_segments()
+{
+    points.clear();
+    array_mesh->clear_surfaces();
+}
+
+void DynamicTrail3D::set_thickness(float p_thickness)
+{
+    thickness = p_thickness;
+}
+
+float DynamicTrail3D::get_thickness() const
+{
+    return thickness;
+}
+
+void DynamicTrail3D::rebuild_mesh()
+{
+	array_mesh->clear_surfaces();
+
+    int total_points = int(points.size());
+    if (total_points < 2)
+	{
+        return; // Servono almeno due punti per generare dei triangoli 3D
+    }
+
+    godot::PackedVector3Array vertices;
+    godot::PackedVector2Array uvs;
+    godot::PackedInt32Array indices;
+
+    // Riserva memoria per evitare riallocazioni continue ad ogni frame
+    vertices.resize(total_points * 2);
+    uvs.resize(total_points * 2);
+
+    // Calcola i vettori di estrusione
+    for (int i = 0; i < total_points; ++i)
+	{
+        godot::Vector3 forward;
+
+        if (i == 0)
+		{
+            forward = (points[1] - points[0]).normalized();
+        }
+        else if (i == total_points - 1)
+		{
+            forward = (points[i] - points[i - 1]).normalized();
+        }
+        else
+		{
+            godot::Vector3 dir1 = (points[i] - points[i - 1]).normalized();
+            godot::Vector3 dir2 = (points[i + 1] - points[i]).normalized();
+            forward = (dir1 + dir2).normalized(); // Direzione media del nodo
+        }
+
+        // Trova un vettore perpendicolare per lo spessore (es. asse Y)
+        // Nota: Per risultati perfetti a 360°, potresti voler calcolare questo vettore rispetto alla Camera
+        godot::Vector3 up = godot::Vector3(0, 1, 0);
+        if (godot::Math::abs(forward.dot(up)) > 0.99f)
+		{
+            up = godot::Vector3(1, 0, 0); // Previene il gimbal lock se la linea va dritta in verticale
+        }
+
+        godot::Vector3 right = forward.cross(up).normalized();
+        godot::Vector3 offset = right * (thickness * 0.5f);
+
+        // Genera i due vertici per formare lo spessore del segmento corrente
+        vertices[i * 2] = points[i] - offset;
+        vertices[i * 2 + 1] = points[i] + offset;
+
+        // Calcola le coordinate UV (utili se vuoi applicare texture animate lungo i segmenti)
+        float progress = (float)i / (float)(total_points - 1);
+        uvs[i * 2] = godot::Vector2(progress, 0.0f);
+        uvs[i * 2 + 1] = godot::Vector2(progress, 1.0f);
+
+        // Costruisci gli indici dei triangoli (Quad) che collegano il punto attuale al precedente
+        if (i > 0)
+		{
+            int curr_left = i * 2;
+            int curr_right = i * 2 + 1;
+            int prev_left = (i - 1) * 2;
+            int prev_right = (i - 1) * 2 + 1;
+
+            // Primo triangolo del segmento
+            indices.push_back(prev_left);
+            indices.push_back(curr_left);
+            indices.push_back(prev_right);
+
+            // Secondo triangolo del segmento
+            indices.push_back(prev_right);
+            indices.push_back(curr_left);
+            indices.push_back(curr_right);
+        }
+    }
+
+    // Prepara l'array globale di Godot per la generazione della superficie mesh
+    godot::Array mesh_arrays;
+    mesh_arrays.resize(godot::Mesh::ARRAY_MAX);
+    mesh_arrays[godot::Mesh::ARRAY_VERTEX] = vertices;
+    mesh_arrays[godot::Mesh::ARRAY_TEX_UV] = uvs;
+    mesh_arrays[godot::Mesh::ARRAY_INDEX] = indices;
+
+    // Invia i vettori alla GPU in un colpo solo
+    array_mesh->add_surface_from_arrays(godot::Mesh::PRIMITIVE_TRIANGLES, mesh_arrays);
+}
+
+void DynamicTube3D::_bind_methods()
+{
+	//ClassDB::bind_method(D_METHOD("add_segment_point", "point"), &DynamicTube3D::add_segment_point);
+	//ClassDB::bind_method(D_METHOD("clear_segments"), &DynamicTube3D::clear_segments);
+
+	//ClassDB::bind_method(D_METHOD("set_mode", "mode"), &DynamicTube3D::set_mode);
+	//ClassDB::bind_method(D_METHOD("get_mode"), &DynamicTube3D::get_mode);
+	//ClassDB::bind_method(D_METHOD("set_thickness", "thickness"), &DynamicTube3D::set_thickness);
+	//ClassDB::bind_method(D_METHOD("get_thickness"), &DynamicTube3D::get_thickness);
+	//ClassDB::bind_method(D_METHOD("set_tube_sides", "sides"), &DynamicTube3D::set_tube_sides);
+	//ClassDB::bind_method(D_METHOD("get_tube_sides"), &DynamicTube3D::get_tube_sides);
+	//ClassDB::bind_method(D_METHOD("set_lifetime", "lifetime"), &DynamicTube3D::set_lifetime);
+	//ClassDB::bind_method(D_METHOD("get_lifetime"), &DynamicTube3D::get_lifetime);
+
+	//ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Infinite,Timed"), "set_mode", "get_mode");
+	//ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thickness"), "set_thickness", "get_thickness");
+	//ADD_PROPERTY(PropertyInfo(Variant::INT, "tube_sides"), "set_tube_sides", "get_tube_sides");
+	//ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "lifetime"), "set_lifetime", "get_lifetime");
+}
+
+DynamicTube3D::DynamicTube3D()
+{
+	array_mesh.instantiate();
+	material.instantiate();
+	material->set_cull_mode(BaseMaterial3D::CULL_BACK);
+	//material->set_albedo(Color(0.2f, 0.6f, 1.0f));
+	material->set_albedo(Color(1.0f, 0.0f, 0.0f));
+}
+
+DynamicTube3D::~DynamicTube3D() {}
+
+void DynamicTube3D::_ready()
+{
+	set_mesh(array_mesh);
+	set_material_override(material);
+}
+
+void DynamicTube3D::_process(double delta)
+{
+	time_accumulator += delta;
+
+	// Se siamo in modalità TIMED, rimuoviamo i punti troppo vecchi
+	if (mode == MODE_TIMED && points.size() > 0)
+	{
+		int points_to_remove = 0;
+		for (int i = 0; i < points.size(); ++i)
+		{
+			if (time_accumulator - points[i].time_created > lifetime)
+			{
+				points_to_remove++;
+			}
+			else
+			{
+				break; // I punti sono ordinati per tempo, se questo è valido lo sono anche i successivi
+			}
+		}
+
+		if (points_to_remove > 0)
+		{
+			// Rimuove i primi N punti obsoleti dal vettore
+			//points.remove_at(0, points_to_remove);
+			for (int i = 0; i < points_to_remove; ++i) {
+				points.remove_at(i);
+			}
+		}
+	}
+
+	// Rigenera la geometria del tubo per questo frame
+	rebuild_mesh();
+}
+
+void DynamicTube3D::add_segment_point(const Vector3& p_point)
+{
+	TrailPoint tp;
+	tp.position = p_point;
+	tp.time_created = time_accumulator;
+	points.push_back(tp);
+}
+
+void DynamicTube3D::clear_segments()
+{
+	points.clear();
+	array_mesh->clear_surfaces();
+}
+
+void DynamicTube3D::set_mode(TrailMode p_mode) { mode = p_mode; }
+DynamicTube3D::TrailMode DynamicTube3D::get_mode() const { return mode; }
+void DynamicTube3D::set_thickness(float p_thickness) { thickness = p_thickness; }
+float DynamicTube3D::get_thickness() const { return thickness; }
+void DynamicTube3D::set_tube_sides(int p_sides) { tube_sides = p_sides < 3 ? 3 : p_sides; }
+int DynamicTube3D::get_tube_sides() const { return tube_sides; }
+void DynamicTube3D::set_lifetime(float p_lifetime) { lifetime = p_lifetime; }
+float DynamicTube3D::get_lifetime() const { return lifetime; }
+
+void DynamicTube3D::rebuild_mesh()
+{
+	array_mesh->clear_surfaces();
+
+	int total_points = int(points.size());
+	if (total_points < 2) return;
+
+	PackedVector3Array vertices;
+	PackedVector3Array normals;
+	PackedVector2Array uvs;
+	PackedInt32Array indices;
+
+	int verts_per_ring = tube_sides + 1;
+	vertices.resize(total_points * verts_per_ring);
+	normals.resize(total_points * verts_per_ring);
+	uvs.resize(total_points * verts_per_ring);
+
+	for (int i = 0; i < total_points; ++i)
+	{
+		Vector3 forward;
+		if (i == 0)
+		{
+			forward = (points[1].position - points[0].position).normalized();
+		}
+		else if (i == total_points - 1)
+		{
+			forward = (points[i].position - points[i - 1].position).normalized();
+		}
+		else
+		{
+			Vector3 dir1 = (points[i].position - points[i - 1].position).normalized();
+			Vector3 dir2 = (points[i + 1].position - points[i].position).normalized();
+			forward = (dir1 + dir2).normalized();
+		}
+
+		Vector3 up = Vector3(0, 1, 0);
+		if (Math::abs(forward.dot(up)) > 0.99f)
+		{
+			up = Vector3(1, 0, 0);
+		}
+		Vector3 right = forward.cross(up).normalized();
+		up = right.cross(forward).normalized();
+
+		for (int side = 0; side <= tube_sides; ++side)
+		{
+			float angle = float(((float)side / (float)tube_sides) * godot::Math::TAU);
+			float cos_a = godot::Math::cos(angle);
+			float sin_a = godot::Math::sin(angle);
+
+			Vector3 normal = (right * cos_a + up * sin_a).normalized();
+			Vector3 vertex_pos = points[i].position + (normal * thickness);
+
+			int vert_idx = i * verts_per_ring + side;
+			vertices[vert_idx] = vertex_pos;
+			normals[vert_idx] = normal;
+
+			float u = (float)i / (float)(total_points - 1);
+			float v = (float)side / (float)tube_sides;
+			uvs[vert_idx] = Vector2(u, v);
+
+			if (i > 0 && side < tube_sides)
+			{
+				int current_ring = i * verts_per_ring;
+				int previous_ring = (i - 1) * verts_per_ring;
+
+				int tl = previous_ring + side;
+				int tr = previous_ring + side + 1;
+				int bl = current_ring + side;
+				int br = current_ring + side + 1;
+
+				indices.push_back(tl);
+				indices.push_back(bl);
+				indices.push_back(tr);
+
+				indices.push_back(tr);
+				indices.push_back(bl);
+				indices.push_back(br);
+			}
+		}
+	}
+
+	Array mesh_arrays;
+	mesh_arrays.resize(Mesh::ARRAY_MAX);
+	mesh_arrays[Mesh::ARRAY_VERTEX] = vertices;
+	mesh_arrays[Mesh::ARRAY_NORMAL] = normals;
+	mesh_arrays[Mesh::ARRAY_TEX_UV] = uvs;
+	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
+
+	array_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, mesh_arrays);
 }

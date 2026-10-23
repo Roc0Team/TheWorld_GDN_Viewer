@@ -916,6 +916,7 @@ bool QuadTree::managePostHeightsUpdateOperations(bool forceGlobalMapUpdate)
 	bool updated = false;
 	
 	Quadrant* quadrant = getQuadrant();
+	TheWorld_Utils::QuadrantPos pos = quadrant->getPos();
 	
 	// Calc Min/Max heights and update terrain edit values and meshid (can be updated if heights have been changed), furthermore heights16 for shader are updated coerently with heights32
 	{
@@ -926,7 +927,7 @@ bool QuadTree::managePostHeightsUpdateOperations(bool forceGlobalMapUpdate)
 		quadrantData.heights32Buffer = &quadrant->getFloat32HeightsBuffer(false);
 
 		bool renewMeshIdOnUpdate = true;
-		updated = quadrant->getInternalMeshCacheBuffer().calcMinMaxHeights(quadrant->getPos(), renewMeshIdOnUpdate, quadrantData);
+		updated = quadrant->getInternalMeshCacheBuffer().calcMinMaxHeights(pos, renewMeshIdOnUpdate, quadrantData);
 
 		// update quadrant terrain edit values and meshid (can be updated if heights have been changed)
 		quadrant->getTerrainEdit()->deserialize(terrainEditValuesBuffer);
@@ -988,6 +989,18 @@ bool QuadTree::managePostHeightsUpdateOperations(bool forceGlobalMapUpdate)
 		materialParamsNeedReset(true);
 		colliderNeedReset(true, QuadType::NotSet);
 		quadrant->sendHeightsToShader(true);
+	}
+
+	// gen/regen level curves for current quadrant
+	{
+		TheWorld_Utils::HeightMap heightMap;
+		quadrant->populateHeightmap(heightMap);
+		quadrant->getLevelCurvesManager().generateLevelCurve(pos, heightMap, THEWORLD_SEA_LEVEL);
+		GDN_TheWorld_Edit* editModeUIControl = m_viewer->EditModeUIControl();
+		//if (editModeUIControl != nullptr and editModeUIControl->initialized())	// Remarked because this action is done in editor for the selected quadrant only, if done here it would be done not for all quadrants with updated heigths
+		//{
+		//	editModeUIControl->addQuadrantOverlayAction(pos, GDN_TheWorld_Edit::Overlay::QuadrantOverlayAction::refreshAll);
+		//}
 	}
 
 	return updated;
@@ -5628,7 +5641,7 @@ TheWorld_Utils::LevelCurvesManager& Quadrant::getLevelCurvesManager(void)
 
 void Quadrant::consolidateLevelCurvesInNamedDataBuffer(void)
 {
-	m_levelCurvesManager.saveToBuffer(getNamedDataBuffer());
+	m_levelCurvesManager.saveToBuffer(getNamedDataBuffer(), 1);
 }
 
 
@@ -6037,7 +6050,9 @@ godot::Vector2i Quadrant::quadrantPosInGrid(QuadrantTypeInGrid& type)
 
 void Quadrant::populateHeightmap(TheWorld_Utils::HeightMap& heightMap)
 {
-	heightMap.init(getFloat32HeightsBuffer(), getPos().getNumVerticesPerSize(), getPos().getGridStepInWU());
+	TheWorld_Utils::QuadrantPos pos = getPos();
+	
+	heightMap.init(pos, getFloat32HeightsBuffer(), pos.getNumVerticesPerSize(), pos.getGridStepInWU());
 }
 
 void Quadrant::getHeightmapCorner(std::chrono::system_clock::time_point& lastBorderRefreshTs, float& heightmapCorner, TheWorld_Utils::QuadrantPos::DirectionSlot requiredBorderDir)

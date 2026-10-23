@@ -1133,10 +1133,10 @@ void DynamicTube3D::rebuild_mesh()
 		Vector3 up = Vector3(0, 1, 0);
 		if (Math::abs(forward.dot(up)) > 0.99f)
 		{
-			up = Vector3(1, 0, 0);
+			up = Vector3(1, 0, 0);	// forward and up are parallel, choose a different up vector to avoid gimbal lock
 		}
 		Vector3 right = forward.cross(up).normalized();
-		up = right.cross(forward).normalized();
+		up = right.cross(forward).normalized();				// recalculate up to ensure orthogonality with forward and right
 
 		for (int side = 0; side <= tube_sides; ++side)
 		{

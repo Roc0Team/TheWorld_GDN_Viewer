@@ -2557,31 +2557,6 @@ void GDN_TheWorld_Edit::_process(double _delta)
 	QuadTree* quadTreeSel = nullptr;
 	TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
 
-	/*
-	* DEBUG unit test: for testing purpose only, to be removed
-	*/
-	if (quadTreeSel != nullptr and m_viewer->worldMode())
-	{
-		bool locked = quadTreeSel->getQuadrant()->lockInternalData(true);
-		if (locked)
-		{
-			for (auto& [height, levelCurve] : quadTreeSel->getQuadrant()->getLevelCurvesManager().getLevelCurves())
-			{
-				for (auto& track : levelCurve.getTracks())
-				{
-					if (not track.isEmpty())
-					{
-						//curve->setVisible(false);
-					}
-				}
-			}
-			quadTreeSel->getQuadrant()->unlockInternalData();
-		}
-	}
-	/*
-	* DEBUG unit test: for testing purpose only, to be removed
-	*/
-
 	//if (m_innerData->m_mainScrolledVBoxContainer != nullptr)
 	//{
 	//	float scrollableContentHeight = m_innerData->m_mainScrolledVBoxContainer->get_global_rect().size.height;
@@ -4369,7 +4344,8 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 	// TODO: which of next steps are already contained in managePostHeightsUpdateOperations?
 	quadTreeSel->managePostHeightsUpdateOperations(true);
-	
+	m_overlay->addQuadrantOverlayAction(quadrantSelPos, Overlay::QuadrantOverlayAction::refreshAll);
+
 // ******************
 //	// 7. prepare new heights for collider (PackedFloat32Array)
 //	{
@@ -4583,8 +4559,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 			editModeUnlockQuadrants(lockedQuadrants);
 		}
-
 	}
+	
+	m_overlay->addQuadrantOverlayAction(quadrantSelPos, Overlay::QuadrantOverlayAction::refreshAll);
 
 	GDN_TheWorld_Map* map = m_viewer->Map();
 	if (map != nullptr)
@@ -4592,30 +4569,30 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		map->removeEditedMapQuadrantOverride(quadrantSelPos);
 	}
 
-	/*
-	* DEBUG unit test: for testing purpose only, to be removed
-	*/
-	{
-		bool lockAcquired = quadTreeSel->getQuadrant()->lockInternalData(true, true);
+	///*
+	//* DEBUG unit test: for testing purpose only, to be removed
+	//*/
+	//{
+	//	bool lockAcquired = quadTreeSel->getQuadrant()->lockInternalData(true, true);
 
-		TheWorld_Utils::HeightMap heightMap;
-		quadTreeSel->getQuadrant()->populateHeightmap(heightMap);
-		TheWorld_Utils::QuadrantPos quadrantSelPos = quadTreeSel->getQuadrant()->getPos();
-		quadTreeSel->getQuadrant()->getLevelCurvesManager().generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
-		m_overlay->addQuadrantOverlayAction(quadrantSelPos, Overlay::QuadrantOverlayAction::refreshAll);
+	//	TheWorld_Utils::HeightMap heightMap;
+	//	quadTreeSel->getQuadrant()->populateHeightmap(heightMap);
+	//	TheWorld_Utils::QuadrantPos quadrantSelPos = quadTreeSel->getQuadrant()->getPos();
+	//	quadTreeSel->getQuadrant()->getLevelCurvesManager().generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
+	//	m_overlay->addQuadrantOverlayAction(quadrantSelPos, Overlay::QuadrantOverlayAction::refreshAll);
 
-		//TheWorld_Utils::LevelCurvesManager levelCurves;
-		//levelCurves.generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
-		//levelCurves.saveToBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
-		//TheWorld_Utils::LevelCurvesManager levelCurvesLoaded;
-		//levelCurvesLoaded.loadFromBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
-		//my_assert(levelCurves == levelCurvesLoaded);
+	//	//TheWorld_Utils::LevelCurvesManager levelCurves;
+	//	//levelCurves.generateLevelCurve(quadrantSelPos, heightMap, THEWORLD_SEA_LEVEL);
+	//	//levelCurves.saveToBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
+	//	//TheWorld_Utils::LevelCurvesManager levelCurvesLoaded;
+	//	//levelCurvesLoaded.loadFromBuffer(quadTreeSel->getQuadrant()->getNamedDataBuffer());
+	//	//my_assert(levelCurves == levelCurvesLoaded);
 
-		quadTreeSel->getQuadrant()->unlockInternalData();
-	}
-	/*
-	* DEBUG unit test: for testing purpose only, to be removed
-	*/
+	//	quadTreeSel->getQuadrant()->unlockInternalData();
+	//}
+	///*
+	//* DEBUG unit test: for testing purpose only, to be removed
+	//*/
 
 	// final actions
 	strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_lowElevationTexName->get_text().utf8().get_data());
@@ -6074,6 +6051,7 @@ void GDN_TheWorld_Edit::Overlay::refreshQuadrantOverlay(QuadTree* quadTree, enum
 
 			if (overlayLevelCurve->isEmpty())
 			{
+				// if the overlay level curve is empty, we need to fill it with the tracks from the quadrant level curve
 				for (size_t quadrantTrackIdx = 0; quadrantTrackIdx < quadrantLevelCurve.getTracks().size(); ++quadrantTrackIdx)
 				{
 					auto& quadrantTrack = quadrantLevelCurve.getTracks()[quadrantTrackIdx];
@@ -6089,6 +6067,22 @@ void GDN_TheWorld_Edit::Overlay::refreshQuadrantOverlay(QuadTree* quadTree, enum
 							points.push_back(trackPoint);
 						}
 						overlayTrack->setPoints(points, quadrantTrackIdx);
+					}
+				}
+
+				// Then we need to evidentiate the points in which the level curve is intersecting with the borders of the quadrant
+				{
+					std::vector<TheWorld_Utils::LevelCurve::Track::Square> squares;
+					quadrantLevelCurve.intersectUpperBorderOfHeightmap(squares);
+					quadrantLevelCurve.intersectLowerBorderOfHeightmap(squares);
+					quadrantLevelCurve.intersectLeftBorderOfHeightmap(squares);
+					quadrantLevelCurve.intersectRightBorderOfHeightmap(squares);
+					for (auto& square : squares)
+					{
+						godot::Vector3 borderPoint;
+						square.vertexPositionLocalToHeightmap(borderPoint.x, borderPoint.y, borderPoint.z);
+						borderPoint.y = height;	// override y with the level curve height
+						overlayLevelCurve->addBorderSquare(borderPoint);
 					}
 				}
 			}
@@ -6121,6 +6115,7 @@ void godot::GDN_TheWorld_Edit::Overlay::_process(double _delta)
 	if (not m_viewer->editMode())
 		return;
 
+	// Erase quadrant overlays that are no longer in the viewer's data structure or update their visibility if it has changed
 	std::time_t currentTime = TheWorld_Utils::current_utc_time_t();
 	if (currentTime - m_lastQuadrantOverlayMapCheck > 5)
 	{

@@ -21,6 +21,7 @@
 #include <godot_cpp/classes/sub_viewport.hpp>
 #include <godot_cpp/classes/sprite2d.hpp>
 #include <godot_cpp/classes/h_slider.hpp>
+#include <godot_cpp/classes/sphere_mesh.hpp>
 #pragma warning (pop)
 
 #include <WorldModifier.h>
@@ -29,6 +30,8 @@ namespace godot
 {
 	//class GDN_TheWorld_Viewer;
 
+	constexpr float Overlay_Thickness = 10.0f;
+	
 	class GDN_TheWorld_Edit : public godot::Container, public TheWorld_Utils::ThreadInitDeinit, public TheWorld_ClientServer::ClientCallback
 	{
 		GDCLASS(GDN_TheWorld_Edit, Container)
@@ -110,14 +113,14 @@ namespace godot
 							else if (trackIndex == 2)
 								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_blue);
 							else if (trackIndex == 3)
-								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_pink_bisque);
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_cyan);
 							else if (trackIndex == 4)
 								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_yellow);
 							else if (trackIndex == 5)
 								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_darksea_green);
 							else
 							{
-								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_black);
+								getDynamicTube()->set_color(GDN_TheWorld_Globals::g_color_yellow_apricot);
 							}
 						}
 
@@ -141,7 +144,7 @@ namespace godot
 								m_quadrantOverlay->add_child(m_dynamicTube);
 								m_dynamicTube->set_visible(true);
 								m_dynamicTube->set_mode(DynamicTube3D::MODE_INFINITE);
-								m_dynamicTube->set_thickness(10.0f);
+								m_dynamicTube->set_thickness(Overlay_Thickness);
 								m_dynamicTube->set_tube_sides(16);
 							}
 							return m_dynamicTube;
@@ -156,7 +159,17 @@ namespace godot
 
 				public:
 					LevelCurve(QuadrantOverlay* quadrantOverlay, std::time_t timestamp) : m_quadrantOverlay(quadrantOverlay), m_timestamp(timestamp) {}
-					~LevelCurve() {}
+					~LevelCurve(void)
+					{
+						for (auto& mesh_instance : m_borderSquares)
+						{
+							godot::Node* parent = mesh_instance->get_parent();
+							if (parent != nullptr)
+								parent->remove_child(mesh_instance);
+							mesh_instance->queue_free();
+						}
+						m_borderSquares.clear();
+					}
 
 					Track* getTrack(size_t idx)
 					{
@@ -182,10 +195,31 @@ namespace godot
 						m_tracks.clear();
 					}
 
+					void addBorderSquare(const godot::Vector3& p1)
+					{
+						godot::Ref<godot::SphereMesh> sphere_mesh;
+						sphere_mesh.instantiate();
+						sphere_mesh->set_radius(Overlay_Thickness / 2.0f);
+						sphere_mesh->set_height(Overlay_Thickness);
+
+						godot::Ref<godot::StandardMaterial3D> material;
+						material.instantiate();
+						material->set_albedo(GDN_TheWorld_Globals::g_color_black);
+						material->set_cull_mode(BaseMaterial3D::CULL_BACK);
+
+						MeshInstance3D* mesh_instance = memnew(MeshInstance3D);
+						mesh_instance->set_mesh(sphere_mesh);
+						m_quadrantOverlay->add_child(mesh_instance);
+						mesh_instance->set_material_override(material);
+						mesh_instance->set_visible(true);
+						m_borderSquares.push_back(mesh_instance);
+					}
+
 				private:
 					QuadrantOverlay* m_quadrantOverlay = nullptr;
 					std::time_t m_timestamp = 0;
 					std::map<size_t, std::unique_ptr<Track>> m_tracks;
+					std::vector<godot::MeshInstance3D*> m_borderSquares;
 				};
 			
 			protected:
@@ -986,6 +1020,12 @@ namespace godot
 		
 		void worldQuadrantSelected(const TheWorld_Utils::QuadrantPos& pos);
 		void worldQuadrantDeselected(const TheWorld_Utils::QuadrantPos& pos);
+
+		void addQuadrantOverlayAction(TheWorld_Utils::QuadrantPos pos, enum class Overlay::QuadrantOverlayAction quadrantOverlayAction)
+		{
+			if (m_overlay != nullptr)
+				m_overlay->addQuadrantOverlayAction(pos, quadrantOverlayAction);
+		}
 		
 	private:
 		void blendExecution(std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder> lockHolder,

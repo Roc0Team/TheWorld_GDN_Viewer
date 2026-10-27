@@ -1,4 +1,19 @@
+* Redesign del plugin per semplificarne l'uso
+  * Consentire nell'editor di Godot la map-view e la generazione dei terreni  
+  * tutto in C++ come gdextension
+  * Doc del plugin (https://docs.godotengine.org/en/4.4/tutorials/scripting/gdextension/gdextension_docs_system.html)
+  * Nuovo progetto STerrain (StreamingLandscape) con Demo  
+  * riorganizzazione del codice in modo che sia più pulito e razionale: ora è troppo confusionario ed è privo di una progettazione a priori
+
 * versione Linux: codice multipiattaforma
+
+* salvataggio nel file di cache delle altezze alle altre lod e caricamento della versione che serve al momento (dovrebbe migliorare i tempi di caricamento a grandi distanze dal terreno consentendo velocità di volo più elevate):
+  * è necessario valorizzare solo la cache delle height a lod inferiori invece di tutta la struttura delle altezze height 32
+* terreno che allontanandosi verso l'alto assume consente di vedere il pianeta e di allontanarsi nell'universo a distenze astronomiche (basta l'origin shift?) - https://www.reddit.com/r/godot/comments/1xemavd/testing_large_world_coordinates_in_godot_game/
+
+* realizzazione di una mappa stile disegno con i nomi delle località, mari, fiumi etc.
+* Visibilità che sfuma in 2D come mappa (mappa stile disegno): a comando ed oltre una certa altezza
+
 * gestire modificatori in modo da poter creare depressioni per collocarvi laghi sopra il livello del mare o depressioni senza acqua sotto il livello del mare
 * generare le informazioni sulle linee di livello (un array di linee di livello) per capire se i livelli di acqua corrispondono a laghi o al mare:
   * un item di un array per ogni linea di livello che comprenda:
@@ -7,16 +22,10 @@
   * gestire in modo opportuno laghi e mare nel water shader
 * gestione dei laghi a livelli differenti da quelli del mare e depressioni sotto il livello del mare senza acqua
 * Ottimizzazione dello shader terrain/water (riducendo if)
-* Consentire nell'editor di Godot la map-view e la generazione dei terreni
 * Implementare il detiling come in Terrain3D e correggere il calcolo dell'UV
 * Implementare la tesselation e il displacement mapping come in Terrain3d
 * Valutare se usare il mouse picking come in Terrain 3d
-* tutto in C++ come gdextension
-* Doc del plugin (https://docs.godotengine.org/en/4.4/tutorials/scripting/gdextension/gdextension_docs_system.html)
-* Nuovo progetto STerrain (StreamingLandscape) con Demo
 
-* riorganizzazione del codice in modo che sia più pulito e razionale: ora è troppo confusionario ed è privo di una progettazione a priori
-* reset changes: "to save"/"to upload"
 * erosione delle montagne
 * Nubi volumetriche e nebbia in 3d (se si sale più in alto si devono vedere in basso e si devono poter attraversare)
 * architettura client-server con software di rete
@@ -28,15 +37,16 @@
 * laghi
 * fiumi
 * pioggia
-* Visibilità che sfuma in 2D come mappa: a comando ed oltre una certa altezza
 * eliminare file nella local cache non acceduti da più di un certo tempo se non devono essere uploadati (vedi "Read last acces time" in MeshCacheBuffer::getMeshIdFromDisk)
 * ottimizzare flusso dati alla GPU organizzando i singoli uniform in array e mandando tutto in una sola volta quando possibile
 
 * profiler should aliment a que dequeued by a dedicated thread
 
 BUGFIX:
-* nella generazione del terreno non viene aggiornato correttamente lo shader riguardo alle texture dei quadranti adiacenti per cui l'effetto grafico vero si vede solo dopo un salvataggio dei quadranti e una ripartenza
+* deve esserci un problema di sincronizzazione tra la generazione dei quadranti in edit mode e il loro rendering perché se si ferma il codice in debug nel thread di generazione il rendering appare incompleto
+* ***OK*** nella generazione del terreno non viene aggiornato correttamente lo shader riguardo alle texture dei quadranti adiacenti per cui l'effetto grafico vero si vede solo dopo un salvataggio dei quadranti e una ripartenza
 
+* ***OK*** reset changes: "to save"/"to upload"
 * ***OK*** Eliminare i file più vecchi di una certa data:
   * i file .imported in D:\TheWorld\Client\TheWorld_MapManager\Data\DBJson\maps\TestMap03\ST-2.000000_SZ-2049\L-0\Import
   * i file nella cache client side (NON FATTO PER SCELTA)

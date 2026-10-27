@@ -15,7 +15,7 @@
 #include <godot_cpp/classes/color_rect.hpp>
 #include <godot_cpp/classes/viewport_texture.hpp>
 #include <godot_cpp/classes/mesh.hpp>
-#pragma warning(pop)
+#include <godot_cpp/classes/importer_mesh.hpp>#pragma warning(pop)
 
 using namespace godot;
 
@@ -1136,11 +1136,12 @@ void DynamicTube3D::rebuild_mesh()
 			up = Vector3(1, 0, 0);	// forward and up are parallel, choose a different up vector to avoid gimbal lock
 		}
 		Vector3 right = forward.cross(up).normalized();
-		up = right.cross(forward).normalized();				// recalculate up to ensure orthogonality with forward and right
+		//up = right.cross(forward).normalized();			// WORNG: recalculate up to ensure orthogonality with forward and right
+		up = forward.cross(right).normalized();				// recalculate up to ensure orthogonality with forward and right
 
 		for (int side = 0; side <= tube_sides; ++side)
 		{
-			float angle = float(((float)side / (float)tube_sides) * godot::Math::TAU);
+			float angle = float(((float)side / (float)tube_sides) * godot::Math::TAU);		// angle in radians for the current side (from 0 to 2*PI with increments of 2*PI/tube_sides)
 			float cos_a = godot::Math::cos(angle);
 			float sin_a = godot::Math::sin(angle);
 
@@ -1184,4 +1185,24 @@ void DynamicTube3D::rebuild_mesh()
 	mesh_arrays[Mesh::ARRAY_INDEX] = indices;
 
 	array_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, mesh_arrays);
+
+	//// 1. Inizializza l'ImporterMesh
+	//godot::Ref<godot::ImporterMesh> importer_mesh;
+	//importer_mesh.instantiate();
+	//
+	//// 2. Aggiungi la superficie base all'importer
+	//importer_mesh->add_surface(Mesh::PRIMITIVE_TRIANGLES, mesh_arrays);
+	//
+	//// 3. Esegui la generazione automatica dei LOD
+	//	// Parametri: 
+	//	// - normal_merge_angle (float): Angolo limite in gradi per unire le normali (es. 25.0f)
+	//	// - normal_split_angle (float): Angolo limite in gradi per dividere le normali (es. 60.0f)
+	//	// - bone_transform_array (Array): Array vuoto se non ci sono bone/scheletri animati
+	//float normal_merge_angle = 25.0f;
+	//float normal_split_angle = 60.0f;
+	//Array bone_transforms;
+	//importer_mesh->generate_lods(normal_merge_angle, normal_split_angle, bone_transforms);
+
+	//// 4. Ottieni la mesh risultante dall'importer
+	//array_mesh = importer_mesh->get_mesh();
 }

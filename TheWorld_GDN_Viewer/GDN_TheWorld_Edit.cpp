@@ -716,6 +716,11 @@ void GDN_TheWorld_Edit::init(GDN_TheWorld_Viewer* viewer)
 		m_innerData->m_castRay->set_text("Cast Ray");
 		m_innerData->m_castRay->set_toggle_mode(true);
 		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_castRay, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
+		m_innerData->m_showLevelCurves = createControl<godot::CheckBox>(hBoxContainer, "ShowLevelCurvesCheckBox");
+		m_innerData->m_showLevelCurves->set_text("Show Lvl Curv");
+		m_innerData->m_showLevelCurves->set_toggle_mode(true);
+		m_innerData->m_showLevelCurves->set_pressed(m_innerData->m_showLevelCurvesRequired);
+		e = GDN_TheWorld_Globals::connectSignal(m_innerData->m_showLevelCurves, "godot::CheckBox", "toggled", this, "toggled_signal_manager");
 
 		separator = createControl<HSeparator>(m_innerData->m_terrainInfoVBoxContainer);
 		m_innerData->m_mouseHitInfoLabel = createControl<godot::Label>(m_innerData->m_terrainInfoVBoxContainer);
@@ -2239,7 +2244,8 @@ void GDN_TheWorld_Edit::_ready(void)
 	{
 		m_overlay = memnew(GDN_TheWorld_Edit::Overlay);
 		//m_viewer->add_child(m_overlay);
-		this->add_child(m_overlay);			// For position purposes, Overlay can be indifferently child of editor or viewer as they are both child of the anchor which as to be a parent of the viever: editor and viewer are actually brothers
+		//this->add_child(m_overlay);			// For position purposes, Overlay can be indifferently child of editor or viewer as they are both child of the anchor which as to be a parent of the viever: editor and viewer are actually brothers
+		m_viewer->add_child(m_overlay);			// For position purposes, Overlay must be child of viewer as it descends from the anchor for origin shift in a chain of Node3D (Anchor-> ... ->Viewer->Overlay)
 		m_overlay->set_visible(true);
 		m_overlay->init(this, m_viewer);
 	}
@@ -3616,6 +3622,15 @@ void GDN_TheWorld_Edit::toggledSignalManager(const bool pressed, godot::Object* 
 		else
 			m_viewer->castRayFromCamera(false);
 	}
+	else if (_objectName == "ShowLevelCurvesCheckBox")
+	{
+		showLevelCurves(pressed);
+
+		QuadTree* quadTreeSel = nullptr;
+		TheWorld_Utils::QuadrantPos quadrantSelPos = m_viewer->getWorldQuadrantSelForEdit(&quadTreeSel);
+		if (quadTreeSel != nullptr)
+			m_overlay->refreshQuadrantOverlay(quadTreeSel, Overlay::QuadrantOverlayAction::refreshLevelCurvesVisibility);
+	}
 	else if (_objectName == "SelectedQuadSeaCheckBox")
 	{
 		if (!m_innerData->m_pressedViaCode)
@@ -4275,7 +4290,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	float lowerXGridVertex = quadrantSelPos.getLowerXGridVertex();
 	float lowerZGridVertex = quadrantSelPos.getLowerZGridVertex();
 	
+	// *
 	// 1. Lock internal data to prevent shader using them while they are incomplete 
+	// *
 	bool lockAcquired = quadTreeSel->getQuadrant()->lockInternalData();
 	if (!lockAcquired)
 	{
@@ -4286,7 +4303,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		return;
 	}
 
+	// *
 	// 2. generate new heights
+	// *
 	std::vector<float> vectGridHeights;
 	TheWorld_Utils::MeshCacheBuffer& cache = quadTreeSel->getQuadrant()->getInternalMeshCacheBuffer();
 	{
@@ -4299,17 +4318,19 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 		//}
 	}
 
+	// *
 	// 3. remember quadrant has to be saved (and uploaded???)
+	// *
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_innerData->m_mtxMapQuadToSave);
 		bool manual = true;
 		addQuadToSave(quadrantSelPos, manual);
 	}
-	//quadTreeSel->getQuadrant()->setNeedUploadToServer(true);	//  when saved it is set to be uploaded
-	//terrainEdit->needUploadToServer(true);
 
-	// 4. refresh new heights on internal datas 16-bit heights (for shader), 32-bit heights (for collider), terrain data for editing and set flag according (new heights have to be passed to shader)
-	
+	// *
+	// 4. refresh new heights on internal datas 32-bit heights (for shader / collider) and set flag according (new heights have to be passed to shader)
+	// *
+
 	//terrainEdit->northSideZMinus.needBlend_notused = true;
 	//terrainEdit->southSideZPlus.needBlend_notused = true;
 	//terrainEdit->westSideXMinus.needBlend_notused = true;
@@ -4331,19 +4352,29 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	quadTreeSel->getQuadrant()->sendHeightsToShader(true);
 	terrainEdit->heightsNeedRegen(false);
 
+	// *
 	// 5. renew MeshId
+	// *
 	TheWorld_Utils::MeshCacheBuffer& quadrantCache = quadTreeSel->getQuadrant()->getInternalMeshCacheBuffer();
 	quadrantCache.generateNewInternalMeshId();
 	quadTreeSel->getQuadrant()->setMeshId(quadrantCache.getMeshId());
 
-	// 6. invalidata normals and textures as heights have been changed and set flags according (normals need regen and empty normals have to be passed to shader)
+	// *
+	// 6. invalidata globalmap for map view
+	// *
 	//quadTreeSel->getQuadrant()->resetNormalsBuffer(__FUNCTION__);
 	//quadTreeSel->getQuadrant()->resetSplatmapBuffer(__FUNCTION__);
 	//quadTreeSel->getQuadrant()->resetColormapBuffer(__FUNCTION__);
 	quadTreeSel->getQuadrant()->resetGlobalmapBuffer(__FUNCTION__);
 
-	// TODO: which of next steps are already contained in managePostHeightsUpdateOperations?
+	// *
+	// 7. Manage post heights update operations
+	// *
 	quadTreeSel->managePostHeightsUpdateOperations(true);
+
+	// *
+	// 8. Refresh overlay for the quadrant (to update level curves and other overlay)
+	// *
 	m_overlay->addQuadrantOverlayAction(quadrantSelPos, Overlay::QuadrantOverlayAction::refreshAll);
 
 // ******************
@@ -4392,7 +4423,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 //	quadTreeSel->getQuadrant()->southEastQuadrantData().initialized(false);
 // ******************
 
-	// 12. set texture according to editor
+	// *
+	// 9. set texture according to editor
+	// *
 	//strcpy_s(terrainEdit->extraValues.lowElevationTexName_r, sizeof(terrainEdit->extraValues.lowElevationTexName_r), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 	//strcpy_s(terrainEdit->extraValues.highElevationTexName_g, sizeof(terrainEdit->extraValues.highElevationTexName_g), m_innerData->m_selTexturePanel->m_newTexName.c_str());
 	//strcpy_s(terrainEdit->extraValues.dirtTexName_b, sizeof(terrainEdit->extraValues.dirtTexName_b), m_innerData->m_selTexturePanel->m_newTexName.c_str());
@@ -4406,18 +4439,28 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 	setSelectedTerrainType(terrainEdit->terrainType);
 	//setCanContainSea((terrainEdit->extraValues.seaInfoSet == QUADRANT_SEA_INFO_TRUE && terrainEdit->extraValues.canContainSea == QUADRANT_SEA_INFO_TRUE) ? true : false);
 
-	// 13. mark quadrant to be blended
+	// *
+	// 10. mark quadrant to be blended
+	// *
 	addToDelayedBlendQuads(quadTreeSel->getQuadrant()->getPos());
 
+	// *
 	// 11. unlock internal datas so that they can be passed to the shader/collider
+	// *
 	quadTreeSel->getQuadrant()->unlockInternalData();
 
+	// *
+	// 12. Recalc Camera position if it collides with newly generated terrain (to avoid camera to be below terrain)
+	// *
 	{
 		GDN_TheWorld_Camera* customCamera = m_viewer->WorldCamera();
 		if (customCamera != nullptr)
 			customCamera->adjustPositionOnTerrainRequired(true, false, true);
 	}
 
+	// *
+	// 13. blend selected quadrant
+	// *
 	{
 		std::map<TheWorld_Utils::QuadrantPos, std::shared_ptr<Quadrant::InternalQuadrantDataLockHolder>> lockedQuadrants;
 
@@ -4437,18 +4480,27 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 			m_lastElapsed = 0;
 
+			// *
+			// Lock quadrants before blending to avoid that they are modified by other threads while blending is in progress
+			// *
 			for (auto& pos : quadrantPos)
 			{
 				editModeLockQuadrantAndNeighbours(pos, lockedQuadrants, THEWORLD_QUADRANT_DISTANCE_FOR_BLENDING);
 			}
 
+			// *
+			// Main blending loop
+			// *
 #define NUM_BLENDING_CYCLES	2
 			size_t numRounds = NUM_BLENDING_CYCLES;
 			for (size_t round = 0; round < numRounds; round++)
 			{
 				m_allItems = lockedQuadrants.size();
 				m_completedItems = 0;
-
+				
+				// *
+				// Iterate over locked quadrants to blend them
+				// *
 				for (auto& lockedQuadrant : lockedQuadrants)
 				{
 					TheWorld_Utils::GuardProfiler profiler(std::string("EditBlend 1.1 ") + __FUNCTION__, "Single QuadTree");
@@ -4482,8 +4534,11 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 
 			setMessage(godot::String("Completing operations..."));
 
+			// *
+			// Manage post blending operations (finalize blending, renew MeshId, save/upload quadrant and surrounding quadrants)
+			// *
 			////lockedQuadrants.clear();					// DEBUG
-			////lockedQuadrants[quadrantSelPos] = true;	// DEBUG
+			////lockedQuadrants[quadrantSelPos] = true;		// DEBUG
 			int num = 0;
 			for (auto& pos : lockedQuadrants)
 			{
@@ -4496,6 +4551,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 			m_allItems = num;
 			m_completedItems = 0;
 
+			// *
+			// Manage post heights update operations
+			// *
 			for (auto& [pos, lockedQuadrant] : lockedQuadrants)
 			{
 				std::stringstream str;
@@ -4528,6 +4586,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 				setNote1(m_lastElapsed);
 			}
 
+			// *
+			// renew MeshId, save/upload quadrant and surrounding quadrants
+			// *
 			for (auto& [pos, lockedQuadrant] : lockedQuadrants)
 			{
 				if (lockedQuadrant->quadrantUpdated())
@@ -4557,6 +4618,9 @@ void GDN_TheWorld_Edit::editModeGenerate(void)
 				}
 			}
 
+			// *
+			// Unlock modified quadrants (and surrounding) so that they can be used by shader/collider
+			// *
 			editModeUnlockQuadrants(lockedQuadrants);
 		}
 	}
@@ -6047,10 +6111,12 @@ void GDN_TheWorld_Edit::Overlay::refreshQuadrantOverlay(QuadTree* quadTree, enum
 		for (auto& [height, quadrantLevelCurve] : quadTree->getQuadrant()->getLevelCurvesManager().getLevelCurves())
 		{
 			// get the level curve from the overlay for the same height and timestamp, if it exists and timestamp are the same, otherwise create a new one
-			Overlay::QuadrantOverlay::LevelCurve* overlayLevelCurve = getQuadrantOverlay(quadTree->getQuadrant()->getPos())->getLevelCurve(height, quadrantLevelCurve.timestamp());
+			Overlay::QuadrantOverlay::LevelCurve* overlayLevelCurve = getQuadrantOverlay(quadTree->getQuadrant()->getPos())->getLevelCurve(height, quadrantLevelCurve.timestamp(), m_edit->showLevelCurves());
 
 			if (overlayLevelCurve->isEmpty())
 			{
+				overlayLevelCurve->setVisible(m_edit->showLevelCurves());
+				
 				// if the overlay level curve is empty, we need to fill it with the tracks from the quadrant level curve
 				for (size_t quadrantTrackIdx = 0; quadrantTrackIdx < quadrantLevelCurve.getTracks().size(); ++quadrantTrackIdx)
 				{
@@ -6059,12 +6125,17 @@ void GDN_TheWorld_Edit::Overlay::refreshQuadrantOverlay(QuadTree* quadTree, enum
 					{
 						Overlay::QuadrantOverlay::LevelCurve::Track* overlayTrack = overlayLevelCurve->getTrack(quadrantTrackIdx);
 						godot::Vector<godot::Vector3> points;
+						//int numSquares = quadrantTrack.getSquares().size();
+						//int idx = 0;
 						for (auto& square : quadrantTrack.getSquares())
 						{
 							godot::Vector3 trackPoint;
 							square.vertexPositionLocalToHeightmap(trackPoint.x, trackPoint.y, trackPoint.z);
 							trackPoint.y = height;	// override y with the level curve height
 							points.push_back(trackPoint);
+							//idx++;
+							////if (idx == numSquares)
+							//	overlayLevelCurve->addBorderSquare(trackPoint);
 						}
 						overlayTrack->setPoints(points, quadrantTrackIdx);
 					}
@@ -6085,6 +6156,17 @@ void GDN_TheWorld_Edit::Overlay::refreshQuadrantOverlay(QuadTree* quadTree, enum
 						overlayLevelCurve->addBorderSquare(borderPoint);
 					}
 				}
+			}
+		}
+	}
+
+	if (quadrantOverlayAction == QuadrantOverlayAction::refreshAll or quadrantOverlayAction == QuadrantOverlayAction::refreshLevelCurvesVisibility)
+	{
+		for (auto& [height, overlayLevelCurve] : getQuadrantOverlay(quadTree->getQuadrant()->getPos())->getLevelCurves())
+		{
+			if (not overlayLevelCurve->isEmpty())
+			{
+				overlayLevelCurve->setVisible(m_edit->showLevelCurves());
 			}
 		}
 	}

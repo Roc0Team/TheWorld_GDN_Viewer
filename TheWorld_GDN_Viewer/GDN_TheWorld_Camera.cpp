@@ -347,7 +347,7 @@ GDN_TheWorld_Camera::GDN_TheWorld_Camera()
 	m_wheelVeryFastVelocity = 500.0f;	// 40.0;	// 10.0;
 	m_wheelFastVelocity = 20.0f;	// 40.0;	// 10.0;
 	m_wheelNormalVelocity = 5.0f;	// 10.0;
-	m_wheelSlowVelocity = 0.3F;		// 10.0;
+	m_wheelSlowVelocity = 0.3f;		// 10.0;
 	//m_forwardMovementOn = false;
 	//m_backwardMovementOn = false;
 	//m_leftMovementOn = false;
@@ -366,7 +366,7 @@ GDN_TheWorld_Camera::GDN_TheWorld_Camera()
 	m_mouseRelativePosToShift = godot::Vector2(0, 0);
 	//m_mouseRelativePosToShiftVert = godot::Vector2(0, 0);
 	m_mouseRelativePosToRotate = godot::Vector2(0, 0);
-	m_sensitivity = 1.0;	// 0.5;
+	m_sensitivity = 1.0f;	// 1.0f;	// 0.5f;
 	m_smoothness = 0.5;
 	m_yaw = 0.0;
 	m_lastYaw = m_yaw;

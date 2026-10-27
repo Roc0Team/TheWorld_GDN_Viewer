@@ -55,7 +55,7 @@ namespace godot
 					class Track
 					{
 					public:
-						Track(QuadrantOverlay* quadrantOverlay) : m_quadrantOverlay(quadrantOverlay) {}
+						Track(QuadrantOverlay* quadrantOverlay, LevelCurve* levelCurve, size_t trackIndex, bool isVisible) : m_quadrantOverlay(quadrantOverlay), m_levelCurve(levelCurve), m_trackIndex(trackIndex), m_isVisible(isVisible) {}
 						~Track()
 						{
 							if (m_segmentLine != nullptr)
@@ -124,6 +124,15 @@ namespace godot
 							}
 						}
 
+						void setVisible(bool visible)
+						{
+							m_isVisible = visible;
+							if (m_segmentLine != nullptr)
+								m_segmentLine->set_visible(m_isVisible);
+							if (m_dynamicTube != nullptr)
+								m_dynamicTube->set_visible(m_isVisible);
+						}
+
 					private:
 						SegmentLine3D* getSegmentLine()
 						{
@@ -131,7 +140,8 @@ namespace godot
 							{
 								m_segmentLine = memnew(SegmentLine3D);
 								m_quadrantOverlay->add_child(m_segmentLine);
-								m_segmentLine->set_visible(true);
+								m_segmentLine->set_name("SegmentLine_Height" + godot::String::num_int64(_int64(m_levelCurve->height())) + "_Track" + godot::String::num_int64(m_trackIndex));
+								m_segmentLine->set_visible(m_isVisible);
 							}
 							return m_segmentLine;
 						}
@@ -142,40 +152,37 @@ namespace godot
 							{
 								m_dynamicTube = memnew(DynamicTube3D);
 								m_quadrantOverlay->add_child(m_dynamicTube);
-								m_dynamicTube->set_visible(true);
+								m_dynamicTube->set_name("SegmentLine_Height" + godot::String::num_int64(_int64(m_levelCurve->height())) + "_Track" + godot::String::num_int64(m_trackIndex));
+								m_dynamicTube->set_visible(m_isVisible);
 								m_dynamicTube->set_mode(DynamicTube3D::MODE_INFINITE);
 								m_dynamicTube->set_thickness(Overlay_Thickness);
-								m_dynamicTube->set_tube_sides(16);
+								m_dynamicTube->set_tube_sides(12);
 							}
 							return m_dynamicTube;
 						}
 
 					private:
 						QuadrantOverlay* m_quadrantOverlay = nullptr;
+						LevelCurve* m_levelCurve = nullptr;
+						size_t m_trackIndex = 0;
 						int m_lastPointIndexDrawed = -1;
 						SegmentLine3D* m_segmentLine = nullptr;
 						DynamicTube3D* m_dynamicTube = nullptr;
+						bool m_isVisible = true;
 					};
 
 				public:
-					LevelCurve(QuadrantOverlay* quadrantOverlay, std::time_t timestamp) : m_quadrantOverlay(quadrantOverlay), m_timestamp(timestamp) {}
+					LevelCurve(QuadrantOverlay* quadrantOverlay, std::time_t timestamp, float height, bool isVisible) : m_quadrantOverlay(quadrantOverlay), m_timestamp(timestamp), m_height(height), m_isVisible(isVisible) {}
 					~LevelCurve(void)
 					{
-						for (auto& mesh_instance : m_borderSquares)
-						{
-							godot::Node* parent = mesh_instance->get_parent();
-							if (parent != nullptr)
-								parent->remove_child(mesh_instance);
-							mesh_instance->queue_free();
-						}
-						m_borderSquares.clear();
+						clear();
 					}
 
 					Track* getTrack(size_t idx)
 					{
 						if (m_tracks.find(idx) == m_tracks.end())
 						{
-							m_tracks[idx] = std::make_unique<Track>(m_quadrantOverlay);
+							m_tracks[idx] = std::make_unique<Track>(m_quadrantOverlay, this, idx, m_isVisible);
 						}
 						return m_tracks[idx].get();
 					}
@@ -190,17 +197,33 @@ namespace godot
 						return m_tracks.empty();
 					}
 
+					float height(void) const
+					{
+						return m_height;
+					}
+
 					void clear()
 					{
 						m_tracks.clear();
+
+						for (auto& mesh_instance : m_borderSquares)
+						{
+							godot::Node* parent = mesh_instance->get_parent();
+							if (parent != nullptr)
+								parent->remove_child(mesh_instance);
+							mesh_instance->queue_free();
+						}
+						m_borderSquares.clear();
 					}
 
 					void addBorderSquare(const godot::Vector3& p1)
 					{
 						godot::Ref<godot::SphereMesh> sphere_mesh;
 						sphere_mesh.instantiate();
-						sphere_mesh->set_radius(Overlay_Thickness / 2.0f);
-						sphere_mesh->set_height(Overlay_Thickness);
+						sphere_mesh->set_radial_segments(16);
+						float radius = Overlay_Thickness * 3.0f;
+						sphere_mesh->set_radius(radius);
+						sphere_mesh->set_height(radius * 2.0f);
 
 						godot::Ref<godot::StandardMaterial3D> material;
 						material.instantiate();
@@ -211,15 +234,36 @@ namespace godot
 						mesh_instance->set_mesh(sphere_mesh);
 						m_quadrantOverlay->add_child(mesh_instance);
 						mesh_instance->set_material_override(material);
-						mesh_instance->set_visible(true);
+						mesh_instance->set_visible(m_isVisible);
+						mesh_instance->set_position(p1);
 						m_borderSquares.push_back(mesh_instance);
+					}
+
+					void setVisible(bool visible)
+					{
+						m_isVisible = visible;
+
+						for (auto& [idx, track] : m_tracks)
+						{
+							if (track != nullptr)
+							{
+								track->setVisible(visible);
+							}
+						}
+
+						for (auto& mesh_instance : m_borderSquares)
+						{
+							mesh_instance->set_visible(visible);
+						}
 					}
 
 				private:
 					QuadrantOverlay* m_quadrantOverlay = nullptr;
 					std::time_t m_timestamp = 0;
+					float m_height = 0.0f;
 					std::map<size_t, std::unique_ptr<Track>> m_tracks;
 					std::vector<godot::MeshInstance3D*> m_borderSquares;
+					bool m_isVisible = true;
 				};
 			
 			protected:
@@ -251,12 +295,12 @@ namespace godot
 					m_levelCurves.clear();
 				}
 
-				LevelCurve* getLevelCurve(float height, std::time_t timestamp)
+				LevelCurve* getLevelCurve(float height, std::time_t timestamp, bool isVisible)
 				{
 					auto levelCurve = m_levelCurves.find(height);
 					if (levelCurve == m_levelCurves.end())
 					{
-						m_levelCurves[height] = std::make_unique<LevelCurve>(this, timestamp);
+						m_levelCurves[height] = std::make_unique<LevelCurve>(this, timestamp, height, isVisible);
 					}
 					else
 					{
@@ -265,7 +309,7 @@ namespace godot
 						{
 							// remove the old level curve and create a new one
 							m_levelCurves.erase(levelCurve);
-							m_levelCurves[height] = std::make_unique<LevelCurve>(this, timestamp);
+							m_levelCurves[height] = std::make_unique<LevelCurve>(this, timestamp, height, isVisible);
 						}
 					}
 					return m_levelCurves[height].get();
@@ -330,12 +374,15 @@ namespace godot
 				m_viewer = nullptr;
 			}
 
-			QuadrantOverlay* getQuadrantOverlay(TheWorld_Utils::QuadrantPos pos)
+			QuadrantOverlay* getQuadrantOverlay(TheWorld_Utils::QuadrantPos pos, bool createIfNotExist = true)
 			{
 				if (not m_quadrantOverlays.contains(pos))
 				{
+					if (not createIfNotExist)
+						return nullptr;
 					QuadrantOverlay* newQuadrantOverlay = memnew(QuadrantOverlay);
 					this->add_child(newQuadrantOverlay);
+					newQuadrantOverlay->set_name(pos.getName().c_str());
 					newQuadrantOverlay->init(this);
 					newQuadrantOverlay->set_visible(true);
 					newQuadrantOverlay->set_global_position(m_viewer->worldPosToGlobalPos(godot::Vector3(pos.getLowerXGridVertex(), 0.0f, pos.getLowerZGridVertex())));
@@ -348,8 +395,9 @@ namespace godot
 			{
 				refreshAll = 0,
 				refreshLevelCurves = 1,
-				clearAll = 2,
-				clearLevelCurves = 3,
+				refreshLevelCurvesVisibility = 2,
+				clearAll = 3,
+				clearLevelCurves = 4,
 			};
 			void refreshQuadrantOverlay(QuadTree* quadTree, enum class QuadrantOverlayAction quadrantOverlayAction);
 			void clearQuadrantOverlay(QuadTree* quadTree, enum class QuadrantOverlayAction quadrantOverlayAction);
@@ -528,6 +576,7 @@ namespace godot
 			godot::CheckBox* m_highlightHitQuadrant = nullptr;
 			godot::CheckBox* m_gridON = nullptr;
 			godot::CheckBox* m_castRay = nullptr;
+			godot::CheckBox* m_showLevelCurves = nullptr;
 			godot::Label* m_mouseHitInfoLabel = nullptr;
 			godot::Label* m_hitQuadInfoLabel = nullptr;
 			godot::Label* m_selQuadInfoLabel = nullptr;
@@ -629,6 +678,8 @@ namespace godot
 
 			godot::Ref<godot::ImageTexture> m_dragCursorShape;
 			godot::Vector2 m_dragCursorShapeSize;
+			
+			bool m_showLevelCurvesRequired = false;
 		};
 
 		enum class Margin {
@@ -1002,6 +1053,14 @@ namespace godot
 		void showFogPressed(bool b);
 		void showChunksPressed(bool b);
 		void showWireframePressed(bool b);
+		bool showLevelCurves(void) const
+		{
+			return m_innerData->m_showLevelCurvesRequired;
+		}
+		void showLevelCurves(bool b)
+		{
+			m_innerData->m_showLevelCurvesRequired = b;
+		}
 
 		void holdBlending(bool b, bool force = false)
 		{

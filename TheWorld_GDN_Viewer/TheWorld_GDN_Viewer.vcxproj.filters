@@ -78,6 +78,9 @@
     <ClInclude Include="DisusedCode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -145,5 +148,10 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="godot.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TheWorld_GDN_Viewer.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

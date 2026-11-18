@@ -10,7 +10,7 @@
 
 
 Utils:
-* per trovare i metodi virtuali esposti da gdextension ricercare BIND_VIRTUAL_METHOD in D:\TheWorld\Prove\Godot4\godot-cpp-4.0 (*.cpp;*.h*) attualmente sono:
+* per trovare i metodi virtuali esposti da gdextension ricercare BIND_VIRTUAL_METHOD in ..\..\godot-cpp (*.cpp;*.h*) attualmente sono:
 
 	_process
 	_physics_process

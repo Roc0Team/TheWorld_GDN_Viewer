@@ -23,13 +23,34 @@ else()
 endif()
 
 set(THEWORLD_EXTERNAL_ROOT "${PROJECT_SOURCE_DIR}/.." CACHE PATH
-	"Directory containing godot-cpp, GSL, Eigen, jsoncpp, and sibling TheWorld projects")
+	"Directory containing GSL, Eigen, jsoncpp, and sibling TheWorld projects")
 set(THEWORLD_LIB_DIR "${PROJECT_SOURCE_DIR}/x64" CACHE PATH
 	"Directory for the solution's generated libraries and DLLs")
-set(THEWORLD_GODOT_CPP_DIR "${THEWORLD_EXTERNAL_ROOT}/godot-cpp" CACHE PATH
+set(THEWORLD_GODOT_CPP_DIR "${PROJECT_SOURCE_DIR}/../../godot-cpp" CACHE PATH
 	"Path to the godot-cpp checkout")
 set(THEWORLD_GODOT_CPP_LIB_DIR "${THEWORLD_GODOT_CPP_DIR}/bin" CACHE PATH
 	"Directory containing the prebuilt godot-cpp import libraries")
+
+get_filename_component(_legacy_godot_cpp_dir "${THEWORLD_EXTERNAL_ROOT}/godot-cpp" ABSOLUTE)
+get_filename_component(_configured_godot_cpp_dir "${THEWORLD_GODOT_CPP_DIR}" ABSOLUTE)
+set(_default_godot_cpp_dir "${PROJECT_SOURCE_DIR}/../../godot-cpp")
+if(_configured_godot_cpp_dir STREQUAL _legacy_godot_cpp_dir
+		AND NOT IS_DIRECTORY "${THEWORLD_GODOT_CPP_DIR}"
+		AND IS_DIRECTORY "${_default_godot_cpp_dir}")
+	message(STATUS "Updating legacy THEWORLD_GODOT_CPP_DIR to ${_default_godot_cpp_dir}")
+	set(THEWORLD_GODOT_CPP_DIR "${_default_godot_cpp_dir}" CACHE PATH
+		"Path to the godot-cpp checkout" FORCE)
+endif()
+
+get_filename_component(_configured_godot_cpp_lib_dir "${THEWORLD_GODOT_CPP_LIB_DIR}" ABSOLUTE)
+if(_configured_godot_cpp_lib_dir STREQUAL "${_legacy_godot_cpp_dir}/bin"
+		AND NOT IS_DIRECTORY "${THEWORLD_GODOT_CPP_LIB_DIR}"
+		AND IS_DIRECTORY "${THEWORLD_GODOT_CPP_DIR}/bin")
+	message(STATUS "Updating legacy THEWORLD_GODOT_CPP_LIB_DIR to ${THEWORLD_GODOT_CPP_DIR}/bin")
+	set(THEWORLD_GODOT_CPP_LIB_DIR "${THEWORLD_GODOT_CPP_DIR}/bin" CACHE PATH
+		"Directory containing the prebuilt godot-cpp import libraries" FORCE)
+endif()
+
 option(THEWORLD_DEPLOY_NATIVE "Copy the built DLLs to the Godot addon after linking" ON)
 set(THEWORLD_NATIVE_DIR "${THEWORLD_EXTERNAL_ROOT}/TheWorld_Viewer/TheWorld/addons/twviewer/native" CACHE PATH
 	"Destination directory for the Godot addon DLLs")
@@ -40,7 +61,7 @@ set(_theworld_include_dirs
 	"${THEWORLD_GODOT_CPP_DIR}/gen/include"
 	"${THEWORLD_EXTERNAL_ROOT}/TheWorld_MapManager"
 	"${THEWORLD_EXTERNAL_ROOT}/GSL/include"
-	"${PROJECT_SOURCE_DIR}/plog/include"
+	"${THEWORLD_EXTERNAL_ROOT}/plog/include"
 	"${THEWORLD_EXTERNAL_ROOT}/TheWorld_Utils"
 	"${THEWORLD_EXTERNAL_ROOT}/eigen-5.0.0"
 	"${THEWORLD_EXTERNAL_ROOT}/jsoncpp/include"

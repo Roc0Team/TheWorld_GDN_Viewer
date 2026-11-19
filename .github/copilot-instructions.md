@@ -5,7 +5,7 @@
 - This is a Windows C++20 Godot 4 GDExtension DLL built by the Visual Studio solution with MSVC toolset `v145`. From a Developer PowerShell:
 
   ```powershell
-  msbuild .\TheWorld_GDN_Viewer.sln /m /p:Configuration=Debug /p:Platform=x64
+  msbuild ..\build\TerrainTechDemo.sln /m /p:Configuration=Debug /p:Platform=x64
   ```
 
   Use `Configuration=Release` for the release extension. The solution also builds sibling projects outside this checkout: `..\TheWorld_MapManager`, `..\TheWorld_Utils`, and `..\jsoncpp`. The extension project additionally expects `GSL` and Eigen under `Client`, and `godot-cpp` at `..\..\godot-cpp` relative to this checkout; do not treat a missing dependency as an in-repo build failure.

@@ -117,7 +117,11 @@ namespace godot
 		if (mapName.length() == 0)
 			return "";
 
-		std::string groundJsonFileName = clientDataDir + "\\Cache\\maps\\" + mapName + "\\ground.json";
+		std::string dir = clientDataDir + "\\Cache\\maps\\" + mapName;
+		if (not fs::exists(dir))
+			fs::create_directories(dir);
+
+		std::string groundJsonFileName = dir + "\\ground.json";
 
 		return groundJsonFileName;
 	}
@@ -723,7 +727,7 @@ namespace godot
 					errno_t err = fopen_s(&outFile, jsonFilePath.c_str(), "w");
 					if (err != 0)
 					{
-						std::string m = std::string("Server::initializeSession cannot open client cache json.ground ==> ") + jsonFilePath;
+						std::string m = std::string("Server::initializeSession cannot open client cache ground.json ==> ") + jsonFilePath;
 						throw(GDN_TheWorld_Exception(__FUNCTION__, m.c_str()));
 					}
 					fwrite(serverGroundJson.c_str(), serverGroundJson.size(), 1, outFile);
